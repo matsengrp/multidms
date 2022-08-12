@@ -186,4 +186,4 @@ def create_homolog_modeling_data(
         # create jax array for functional score targets
         y[homolog] = jnp.array(func_score_df[func_score_col].values)
     
-    return (X, y), func_score_df
+    return (X, y), func_score_df, ref_bmap.all_subs
