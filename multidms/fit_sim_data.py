@@ -74,7 +74,7 @@ print(f"Wall time for fit: {end - start}")
 
 for param in ["β", "S_reference", "S_H2"]:
     # print(params[param].)
-    print(f"\n{param} distribution\n===============")
+    print(f"\nFit {param} distribution\n===============")
     arr = np.array(params[param])
     mean = np.mean(arr)
     median = np.median(arr)
@@ -97,9 +97,9 @@ for param in ["β", "S_reference", "S_H2"]:
     print(f"Variance = {variance:.2e}")
     print(f"Standard Deviation = {sd:.2e}")
 
-print(f"\nSigmoid Parameters, α\n================")
+print(f"\nFit Sigmoid Parameters, α\n================")
 for param, value in params['α'].items():
-    print(f"{param}: {value[0]}") 
+    print(f"{param}: {value[0]:.2e}") 
 
 df["latent_predicted"] = onp.nan
 df["observed_predicted"] = onp.nan
@@ -152,7 +152,8 @@ print(f"Done")
 # plt.axhline(0, color="k", ls="--", lw=1)
 # plt.axvline(0, color="k", ls="--", lw=1)
 
-for param in ["β", "S_reference", "S_H2"]:
+fig, ax = plt.subplots(3, 1, figsize=(55, 15))
+for i, param in enumerate(["β", "S_reference", "S_H2"]):
     rows = []
     for mutation, p in zip(all_subs, params[param]):
         wt = mutation[0]
@@ -168,11 +169,11 @@ for param in ["β", "S_reference", "S_H2"]:
         columns="site", values=param
     )
 
-    fig, ax = plt.subplots(figsize=(55, 5))
     sns.heatmap(mutation_effects, mask=mutation_effects.isnull(),
                 linewidths=1,
                 cmap="coolwarm_r", center=0,
                 # vmin=-1, vmax=1,
-                cbar_kws={"label": param})
+                cbar_kws={"label": param},
+                ax=ax[i])
 
-    fig.savefig(f"../_ignore/{param}-heatmap.png")
+fig.savefig(f"../_ignore/heatmaps.png")
