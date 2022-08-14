@@ -86,6 +86,8 @@ layout = {
     "shift":"H"
 }
 
+shifted_sites = set(simulated_mut_effects.query("shifted_site == True")["site"])
+
 
 for i, param in enumerate(["β", "S_H2"]):
     rows = []
@@ -112,14 +114,15 @@ for i, param in enumerate(["β", "S_H2"]):
         ax=axd[layout[param]]
     )
 
-    axd[layout[param]].add_patch(
-        plt.Rectangle(
-            (0, 0), 3, 21, 
-            linewidth=3, 
-            edgecolor="black", 
-            fill=False
+    for site in shifted_sites:
+        axd[layout[param]].add_patch(
+            plt.Rectangle(
+                (site-1, 0), 1, 21, 
+                linewidth=3, 
+                edgecolor="black", 
+                fill=False
+            )
         )
-    )
 
 for i, param in enumerate(["beta_h1", "beta_h2", "shift"], 2):
 
@@ -136,5 +139,16 @@ for i, param in enumerate(["beta_h1", "beta_h2", "shift"], 2):
         cbar_kws={"label": param},
         ax=axd[layout[param]]
     )
+
+    for site in shifted_sites:
+        axd[layout[param]].add_patch(
+            plt.Rectangle(
+                (site-1, 0), 1, 21, 
+                linewidth=3, 
+                edgecolor="black", 
+                fill=False
+            )
+        )
+
 
 fig.savefig(f"../_ignore/heatmaps.png")
