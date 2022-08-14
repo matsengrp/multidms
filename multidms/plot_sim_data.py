@@ -26,6 +26,7 @@ from model import *
 (params, (X, y), df, simulated_mut_effects, all_subs, homologs) = pickle.load(
     open("../_ignore/simulated_results_V1.pkl", "rb")
 )
+print(list(homologs.values()))
 
 print(f"\nPlotting")
 print(f"--------")
@@ -87,6 +88,12 @@ layout = {
 }
 
 shifted_sites = set(simulated_mut_effects.query("shifted_site == True")["site"])
+non_identical_sites = set([
+    i+1 for i, (aa1, aa2) in enumerate(zip(*homologs.values()))
+    if aa1 != aa2
+])
+
+print(shifted_sites, non_identical_sites)
 
 
 for i, param in enumerate(["β", "S_H2"]):
@@ -114,15 +121,6 @@ for i, param in enumerate(["β", "S_H2"]):
         ax=axd[layout[param]]
     )
 
-    for site in shifted_sites:
-        axd[layout[param]].add_patch(
-            plt.Rectangle(
-                (site-1, 0), 1, 21, 
-                linewidth=3, 
-                edgecolor="black", 
-                fill=False
-            )
-        )
 
 for i, param in enumerate(["beta_h1", "beta_h2", "shift"], 2):
 
@@ -140,12 +138,14 @@ for i, param in enumerate(["beta_h1", "beta_h2", "shift"], 2):
         ax=axd[layout[param]]
     )
 
+
+for param, ax in axd.items():
     for site in shifted_sites:
-        axd[layout[param]].add_patch(
+        ax.add_patch(
             plt.Rectangle(
                 (site-1, 0), 1, 21, 
                 linewidth=3, 
-                edgecolor="black", 
+                edgecolor="black" if site in non_identical_sites else "purple", 
                 fill=False
             )
         )
