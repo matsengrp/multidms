@@ -10,6 +10,7 @@ import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 from scipy.stats import pearsonr
 import seaborn as sns
 import jax
@@ -25,7 +26,9 @@ from model import *
 simulated_dataset = pd.read_csv("../results/simulated_dataset_v1.csv")
 simulated_dataset_lib1 = simulated_dataset.query("library == 'lib_1'").copy()
 simulated_dataset_lib1.aa_substitutions.fillna("", inplace=True)
-#simulated_dataset_lib1 = simulated_dataset_lib1.sample(n=20000, random_state=23)
+
+
+#simulated_mut_effects.replace({"":"", "":""}, axis=1)
 
 homologs = json.load(open("../results/homolog_aa_seqs.json", "r"))
 homologs["reference"] = homologs['1']
@@ -73,7 +76,6 @@ print(f"cost = {cost_smooth(params, (X, y)):.2e}")
 print(f"Wall time for fit: {end - start}")
 
 for param in ["β", "S_reference", "S_H2"]:
-    # print(params[param].)
     print(f"\nFit {param} distribution\n===============")
     arr = np.array(params[param])
     mean = np.mean(arr)
@@ -101,6 +103,8 @@ print(f"\nFit Sigmoid Parameters, α\n================")
 for param, value in params['α'].items():
     print(f"{param}: {value[0]:.2e}") 
 
+
+
 df["latent_predicted"] = onp.nan
 df["observed_predicted"] = onp.nan
 
@@ -116,64 +120,9 @@ for homolog, hdf in df.groupby("homolog"):
 
 print(f"Done")
 
-
-print(f"\nPlotting")
-print(f"--------")
-fig, ax = plt.subplots(1, 3, figsize=[10, 8])
-sns.scatterplot(data=df, x="observed_phenotype", y="observed_predicted",
-                hue="n_aa_substitutions",
-                alpha=0.2, palette="deep", ax=ax[0],
-                legend=False)
-
-lb = df[["observed_phenotype", "observed_predicted"]].min().min()
-ub = df[["observed_phenotype", "observed_predicted"]].max().max()
-
-ax[0].plot([lb, ub], [lb, ub], "k--", lw=1)
-r = pearsonr(df.observed_phenotype, df.observed_predicted)[0]
-ax[0].annotate(f"$r = {r:.2f}$", (.5, .9), xycoords="axes fraction", fontsize=12)
-
-sns.scatterplot(data=df, x="latent_phenotype", y="latent_predicted",
-                hue="n_aa_substitutions",
-                alpha=0.2, palette="deep", ax=ax[1],
-                legend=False)
-
-sns.scatterplot(data=df, x="latent_predicted", y="observed_predicted",
-                hue="n_aa_substitutions",
-                alpha=0.2, palette="deep",
-                legend=False, ax=ax[2])
-
-plt.tight_layout()
-fig.savefig("../_ignore/eval-scatter.png")
-print(f"Done")
+simulated_mut_effects = pd.read_csv("../results/simulated_mut_effects_v1.csv")
+results = (params, (X, y), df, simulated_mut_effects, all_subs)
+pickle.dump(results, open("../_ignore/simulated_results_V1.pkl", "wb"))
 
 
-# ϕ_grid = onp.linspace(1.1 * df.latent_predicted.min(), 1.1 * df.latent_predicted.max())
-# plt.plot(ϕ_grid, g(ϕ_grid, params["α"]), "k")
-# plt.axhline(0, color="k", ls="--", lw=1)
-# plt.axvline(0, color="k", ls="--", lw=1)
 
-fig, ax = plt.subplots(3, 1, figsize=(55, 15))
-for i, param in enumerate(["β", "S_reference", "S_H2"]):
-    rows = []
-    for mutation, p in zip(all_subs, params[param]):
-        wt = mutation[0]
-        mutant = mutation[-1]
-        site = int(mutation[1:-1])
-        rows.append([site, wt, mutant, float(p)])
-
-    mutation_effects = pd.DataFrame(
-        rows,
-        columns=("site", "wildtype", "mutant", param)
-    ).pivot(
-        index="mutant",
-        columns="site", values=param
-    )
-
-    sns.heatmap(mutation_effects, mask=mutation_effects.isnull(),
-                linewidths=1,
-                cmap="coolwarm_r", center=0,
-                # vmin=-1, vmax=1,
-                cbar_kws={"label": param},
-                ax=ax[i])
-
-fig.savefig(f"../_ignore/heatmaps.png")
