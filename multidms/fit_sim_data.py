@@ -121,7 +121,7 @@ for homolog, hdf in df.groupby("homolog"):
 print(f"Done")
 
 simulated_mut_effects = pd.read_csv("../results/simulated_mut_effects_v1.csv")
-results = (params, (X, y), df, simulated_mut_effects, all_subs)
+results = (params, (X, y), df, simulated_mut_effects, all_subs, homologs)
 pickle.dump(results, open("../_ignore/simulated_results_V1.pkl", "wb"))
 
 

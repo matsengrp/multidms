@@ -23,7 +23,7 @@ import jaxopt
 from utils import *
 from model import *
 
-(params, (X, y), df, simulated_mut_effects, all_subs) = pickle.load(
+(params, (X, y), df, simulated_mut_effects, all_subs, homologs) = pickle.load(
     open("../_ignore/simulated_results_V1.pkl", "rb")
 )
 
