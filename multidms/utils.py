@@ -16,7 +16,8 @@ import numpy as onp
 def initialize_model_params(
         homologs: dict, 
         n_beta_shift_params: int, 
-        n_perceptron_units=1
+        n_perceptron_units=1,
+        include_alpha=True
 ):
     """
     initialize a set of starting parameters for the JAX model.
@@ -63,13 +64,18 @@ def initialize_model_params(
     # 'shift' in the x direction
     # 'stretch' in the y direction
     # 'shift' in the y direction
-    key, *subkeys = jax.random.split(key, num=5)
-    params["α"]=dict(
-        sig_stretch_x = jax.random.normal(shape=(n_perceptron_units,), key=subkeys[0]),
-        sig_shift_x = jax.random.normal(shape=(1,), key=subkeys[1]),
-        sig_stretch_y = jax.random.normal(shape=(n_perceptron_units,), key=subkeys[2]),
-        sig_shift_y = jax.random.normal(shape=(1,), key=subkeys[3]),
-    )
+    #key, *subkeys = jax.random.split(key, num=5)
+    if include_alpha:
+        params["α"]=dict(
+            #sig_stretch_x = jax.random.normal(shape=(n_perceptron_units,), key=subkeys[0]),
+            #sig_shift_x = jax.random.normal(shape=(1,), key=subkeys[1]),
+            #sig_stretch_y = jax.random.normal(shape=(n_perceptron_units,), key=subkeys[2]),
+            #sig_shift_y = jax.random.normal(shape=(1,), key=subkeys[3]),
+            sig_stretch_x = jnp.ones(shape=(n_perceptron_units,)),
+            sig_shift_x = jnp.ones(shape=(1,)),
+            sig_stretch_y = jnp.ones(shape=(n_perceptron_units,)),
+            sig_shift_y = jnp.ones(shape=(1,)),
+        )
 
     return params
 
@@ -184,6 +190,6 @@ def create_homolog_modeling_data(
         X[homolog] = sparse.BCOO.fromdense(ref_bmap.binary_variants.toarray())
         
         # create jax array for functional score targets
-        y[homolog] = jnp.array(func_score_df[func_score_col].values)
+        y[homolog] = jnp.array(homolog_func_score_df[func_score_col].values)
     
     return (X, y), func_score_df, ref_bmap.all_subs

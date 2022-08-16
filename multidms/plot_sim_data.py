@@ -26,35 +26,41 @@ from model import *
 (params, (X, y), df, simulated_mut_effects, all_subs, homologs) = pickle.load(
     open("../_ignore/simulated_results_V1.pkl", "rb")
 )
-print(list(homologs.values()))
 
 print(f"\nPlotting")
 print(f"--------")
 fig, ax = plt.subplots(1, 3, figsize=[10, 8])
-sns.scatterplot(data=df, x="observed_phenotype", y="observed_predicted",
-                hue="n_aa_substitutions",
-                alpha=0.2, palette="deep", ax=ax[0],
-                legend=False)
+#sns.scatterplot(data=df, x="observed_phenotype", y="observed_predicted",
+#                hue="n_aa_substitutions",
+#                alpha=0.2, palette="deep", ax=ax[0],
+#                legend=False)
 
-lb = df[["observed_phenotype", "observed_predicted"]].min().min()
-ub = df[["observed_phenotype", "observed_predicted"]].max().max()
-
-ax[0].plot([lb, ub], [lb, ub], "k--", lw=1)
-r = pearsonr(df.observed_phenotype, df.observed_predicted)[0]
-ax[0].annotate(f"$r = {r:.2f}$", (.5, .9), xycoords="axes fraction", fontsize=12)
+#lb = df[["observed_phenotype", "observed_predicted"]].min().min()
+#ub = df[["observed_phenotype", "observed_predicted"]].max().max()
+#
+#ax[0].plot([lb, ub], [lb, ub], "k--", lw=1)
+#r = pearsonr(df.observed_phenotype, df.observed_predicted)[0]
+#ax[0].annotate(f"$r = {r:.2f}$", (.5, .9), xycoords="axes fraction", fontsize=12)
 
 sns.scatterplot(data=df, x="latent_phenotype", y="latent_predicted",
                 hue="n_aa_substitutions",
                 alpha=0.2, palette="deep", ax=ax[1],
                 legend=False)
 
-sns.scatterplot(data=df, x="latent_predicted", y="observed_predicted",
-                hue="n_aa_substitutions",
-                alpha=0.2, palette="deep",
-                legend=False, ax=ax[2])
+lb = df[["latent_phenotype", "latent_predicted"]].min().min()
+ub = df[["latent_phenotype", "latent_predicted"]].max().max()
+
+ax[1].plot([lb, ub], [lb, ub], "k--", lw=1)
+r = pearsonr(df.latent_phenotype, df.latent_predicted)[1]
+ax[1].annotate(f"$r = {r:.2f}$", (.5, .9), xycoords="axes fraction", fontsize=12)
+
+#sns.scatterplot(data=df, x="latent_predicted", y="observed_predicted",
+#                hue="n_aa_substitutions",
+#                alpha=0.2, palette="deep",
+#                legend=False, ax=ax[2])
 
 plt.tight_layout()
-fig.savefig("../_ignore/eval-scatter.png")
+fig.savefig("../_ignore/eval-scatter-no-ge.png")
 print(f"Done")
 
 
@@ -151,4 +157,4 @@ for param, ax in axd.items():
         )
 
 
-fig.savefig(f"../_ignore/heatmaps.png")
+fig.savefig(f"../_ignore/heatmaps-no-ge.png")

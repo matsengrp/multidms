@@ -19,13 +19,17 @@ import jax.numpy as jnp
 from jax.experimental import sparse
 import jaxopt
 
+from jaxopt import ProximalGradient
+
 # local
 from utils import *
 from model import *
 
 simulated_dataset = pd.read_csv("../results/simulated_dataset_v1.csv")
 simulated_dataset_lib1 = simulated_dataset.query("library == 'lib_1'").copy()
+# simulated_dataset_lib1 = simulated_dataset_lib1.query("homolog == 'reference'").copy()
 simulated_dataset_lib1.aa_substitutions.fillna("", inplace=True)
+print(len(simulated_dataset_lib1))
 
 
 #simulated_mut_effects.replace({"":"", "":""}, axis=1)
@@ -45,7 +49,14 @@ del homologs['2']
                         )
 
 # number of columns in the sparse arrays are the number of beta/shift params to fit
-params = initialize_model_params(homologs, n_beta_shift_params = X["reference"].shape[1])
+params = initialize_model_params(
+    homologs, 
+    n_beta_shift_params = X["reference"].shape[1],
+    include_alpha = False
+)
+
+#print([v.shape for k,v in X.items()])
+#print([v.shape for k,v in y.items()])
 
 print(f"\nParameter Shapes")
 print(f"----------------")
@@ -58,23 +69,30 @@ for key, value in params.items():
 
 print(f"\nPre-Optimization")
 print(f"----------------")
-print(f"cost = {cost_smooth(params, (X, y)):.2e}")
+print(f"cost = {cost_smooth_latent(params, (X, y)):.2e}")
+
+#pg = ProjectedGradient(fun=fun, projection=projection_non_negative)
+#pg_sol = pg.run(w_init, data=(X, y)).params
 
 tol = 1e-6
-maxiter = 100
-solver = jaxopt.GradientDescent(cost_smooth, tol=tol, maxiter=maxiter)
+maxiter = 10000
+# solver = ProximalGradient(cost_smooth_latent, prox, tol=tol, maxiter=maxiter)
+latent_solver = jaxopt.GradientDescent(cost_smooth_latent, tol=tol, maxiter=maxiter)
+#solver = jaxopt.ProjectedGradient(cost_smooth_latent, tol=tol, maxiter=maxiter)
 
 start = timer()
-params, state = solver.run(params, data=(X, y))
+params, state = latent_solver.run(params, data=(X, y))
+#params, state = solver.run(params, dict(clip_stretch=0.0), data=(X, y))
 end = timer()
 
 print(f"\nPost-Optimization")
 print(f"-----------------")
 print(f"Full model optimization: {state.iter_num} iterations")
 print(f"error = {state.error:.2e}")
-print(f"cost = {cost_smooth(params, (X, y)):.2e}")
+print(f"cost = {cost_smooth_latent(params, (X, y)):.2e}")
 print(f"Wall time for fit: {end - start}")
 
+# for param in ["β", "S_reference"]:
 for param in ["β", "S_reference", "S_H2"]:
     print(f"\nFit {param} distribution\n===============")
     arr = np.array(params[param])
@@ -99,9 +117,9 @@ for param in ["β", "S_reference", "S_H2"]:
     print(f"Variance = {variance:.2e}")
     print(f"Standard Deviation = {sd:.2e}")
 
-print(f"\nFit Sigmoid Parameters, α\n================")
-for param, value in params['α'].items():
-    print(f"{param}: {value[0]:.2e}") 
+#print(f"\nFit Sigmoid Parameters, α\n================")
+#for param, value in params['α'].items():
+#    print(f"{param}: {value[0]:.2e}") 
 
 
 
@@ -115,14 +133,14 @@ for homolog, hdf in df.groupby("homolog"):
     h_params = {"β":params["β"], "S":params[f"S_{homolog}"], "C_ref":params["C_ref"]}
     z_h = ϕ(h_params, X[homolog])
     df.loc[hdf.index, "latent_predicted"] = z_h
-    y_h_pred = g(params["α"], z_h)
-    df.loc[hdf.index, "observed_predicted"] = y_h_pred
+    #y_h_pred = g(params["α"], z_h)
+    #df.loc[hdf.index, "observed_predicted"] = y_h_pred
 
 print(f"Done")
 
 simulated_mut_effects = pd.read_csv("../results/simulated_mut_effects_v1.csv")
 results = (params, (X, y), df, simulated_mut_effects, all_subs, homologs)
-pickle.dump(results, open("../_ignore/simulated_results_V1.pkl", "wb"))
+pickle.dump(results, open("../_ignore/simulated_results_latent_multi.pkl", "wb"))
 
 
 
