@@ -91,18 +91,94 @@ def ϕ(params:dict, X_h:jnp.array):
     
     return (X_h @ (params["β"] + params[f"S"])) + params["C_ref"]
 
+#@jax.jit
+#def g(z, α):
+#  activations = jax.nn.sigmoid(α["weights"] * z[:, None] + α["biases"])
+#  wt_activations = jax.nn.sigmoid(α["biases"])
+#  return α["a"] @ (activations - wt_activations).T
+
 
 @jax.jit
 def g(α:dict, z_h:jnp.array):
     """ Model for global epistasis as 'flexible' sigmoid. """
+
+    activations = jax.nn.sigmoid(α["weights"] * z_h[:, None] + α["biases"])
+    return α["a"] @ activations.T
+
      
     # TODO Center Wildtype
-    activations = jax.nn.sigmoid(α["sig_stretch_x"] * z_h[:, None] + α["sig_shift_x"])
-    return (α["sig_stretch_y"] * activations) + α["sig_shift_y"]
+    # activations = jax.nn.sigmoid(α["sig_stretch_x"] * z_h[:, None] + α["sig_shift_x"])
+    # return (α["sig_stretch_y"] * activations) + α["sig_shift_y"]
+    # return (α["sig_stretch_y"] * activations) + α["sig_shift_y"]
+
+
+# @jax.jit
+# def prox(params, hyperparams_prox=dict(λ_lasso=0.0, constrain_α=None, constrain_β=None), scaling=1.0):
+@jax.jit
+def prox(params, hyperparams_prox=dict(clip_stretch=0.0, lock_params=None), scaling=1.0):
+
+    params["S_reference"] = jnp.zeros(len(params['β']))
+
+    #params["α"]["sig_stretch_x"] = params["α"]["sig_stretch_x"].clip(hyperparams_prox["clip_stretch"])
+    #params["α"]["sig_stretch_y"] = params["α"]["sig_stretch_y"].clip(hyperparams_prox["clip_stretch"])
+    params["α"]["weights"] = params["α"]["weights"].clip(0)
+    params["α"]["a"] = params["α"]["a"].clip(0)
+
+    # params["β"] = jaxopt.prox.prox_lasso(params["β"], λ_lasso, scaling)
+
+    # params["α"]["weights"] = params["α"]["weights"].clip(0)
+    # params["α"]["a"] = params["α"]["a"].clip(0)
+
+    #if hyperparams_prox["constrain_S"] is not None:
+    #    params["α"] = hyperparams_prox["constrain_α"]
+    #if hyperparams_prox["constrain_β"] is not None:
+    #    params["β"] = hyperparams_prox["constrain_β"]
+    if hyperparams_prox["lock_params"] is not None:
+        for key, value in hyperparams_prox["lock_params"].items():
+            params[key] = value
+        
+
+    return params
 
 
 @jax.jit
 def cost_smooth(params, data, δ=1):
+    """Cost (Objective) function as a sum of huber loss across all homologs"""
+    # TODO : We could probably use f(X) = g(ϕ(X))
+
+    X, y = data
+    loss = 0   
+    
+    # Sum the huber loss across all homologs
+    for homolog, X_h in X.items():
+        
+        # Fix the shift parameters for reference to 0
+        # Static arguments for reference params?
+        #S_h = jnp.where(
+        #    homolog=="reference", 
+        #    jnp.zeros(len(params['β'])), 
+        #    params[f"S_{homolog}"]
+        #)
+        
+        # Subset the params being passed into latent prediction, ϕ
+        h_params = {"β":params["β"], "S":params[f"S_{homolog}"], "C_ref":params["C_ref"]}
+            
+        
+        z_h = ϕ(h_params, X_h)
+        # y_h_predicted = ϕ(h_params, X_h)
+            
+            # Pass the latent predictions through GE model prediction
+        # all GE specific parameters are stored in α
+        y_h_predicted = g(params["α"], z_h)
+        
+        # compute loss at current parameter state.
+        loss += jaxopt.loss.huber_loss(y[homolog], y_h_predicted, δ).mean()
+
+    return loss
+
+
+@jax.jit
+def cost_smooth_latent(params, data, δ=1):
     """Cost (Objective) function as a sum of huber loss across all homologs"""
     # TODO : We could probably use f(X) = g(ϕ(X))
 
@@ -124,12 +200,11 @@ def cost_smooth(params, data, δ=1):
         h_params = {"β":params["β"], "S":S_h, "C_ref":params["C_ref"]}
         
         z_h = ϕ(h_params, X_h)
-        
-        # TODO clip α params
-        
-        # Pass the latent predictions through GE model prediction
+        y_h_predicted = ϕ(h_params, X_h)
+            
+            # Pass the latent predictions through GE model prediction
         # all GE specific parameters are stored in α
-        y_h_predicted = g(params["α"], z_h)
+        # y_h_predicted = g(params["α"], z_h)
         
         # compute loss at current parameter state.
         loss += jaxopt.loss.huber_loss(y[homolog], y_h_predicted, δ).mean()

@@ -26,10 +26,11 @@ from utils import *
 from model import *
 
 simulated_dataset = pd.read_csv("../results/simulated_dataset_v1.csv")
+simulated_dataset.aa_substitutions.fillna("", inplace=True)
 simulated_dataset_lib1 = simulated_dataset.query("library == 'lib_1'").copy()
-# simulated_dataset_lib1 = simulated_dataset_lib1.query("homolog == 'reference'").copy()
-simulated_dataset_lib1.aa_substitutions.fillna("", inplace=True)
-print(len(simulated_dataset_lib1))
+
+#simulated_dataset_lib1_ref = simulated_dataset_lib1.query("homolog == 'reference'").copy()
+#print(len(simulated_dataset_lib1))
 
 
 #simulated_mut_effects.replace({"":"", "":""}, axis=1)
@@ -52,7 +53,7 @@ del homologs['2']
 params = initialize_model_params(
     homologs, 
     n_beta_shift_params = X["reference"].shape[1],
-    include_alpha = False
+    include_alpha = True
 )
 
 #print([v.shape for k,v in X.items()])
@@ -75,13 +76,27 @@ print(f"cost = {cost_smooth_latent(params, (X, y)):.2e}")
 #pg_sol = pg.run(w_init, data=(X, y)).params
 
 tol = 1e-6
-maxiter = 10000
-# solver = ProximalGradient(cost_smooth_latent, prox, tol=tol, maxiter=maxiter)
+maxiter = 5000
 latent_solver = jaxopt.GradientDescent(cost_smooth_latent, tol=tol, maxiter=maxiter)
 #solver = jaxopt.ProjectedGradient(cost_smooth_latent, tol=tol, maxiter=maxiter)
 
 start = timer()
+h2_params = params["S_H2"].copy()
+beta_params = params["β"].copy()
+
+params, state = latent_solver.run(
+    params, 
+    data=(
+        {"reference" : X["reference"]}, 
+        {"reference" : y["reference"]}
+    )
+)
+# make sure only the beta params were tuned.
+assert jnp.all(params["S_H2"] == h2_params)
+assert not jnp.all(params["β"] == beta_params)
+
 params, state = latent_solver.run(params, data=(X, y))
+#solver = ProximalGradient(cost_smooth, prox, tol=tol, maxiter=maxiter)
 #params, state = solver.run(params, dict(clip_stretch=0.0), data=(X, y))
 end = timer()
 
@@ -140,7 +155,7 @@ print(f"Done")
 
 simulated_mut_effects = pd.read_csv("../results/simulated_mut_effects_v1.csv")
 results = (params, (X, y), df, simulated_mut_effects, all_subs, homologs)
-pickle.dump(results, open("../_ignore/simulated_results_latent_multi.pkl", "wb"))
+pickle.dump(results, open("../_ignore/simulated_results_ref_to_multi.pkl", "wb"))
 
 
 

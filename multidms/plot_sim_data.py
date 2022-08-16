@@ -28,12 +28,12 @@ ps = "ref_to_full"
 (params, (X, y), df, simulated_mut_effects, all_subs, homologs) = pickle.load(
     open(f"../_ignore/simulated_results_{ps}.pkl", "rb")
 )
-print(list(homologs.values()))
 
 print(f"\nPlotting")
 print(f"--------")
-#fig, ax = plt.subplots(1, 2, figsize=[10, 8])
-fig, ax = plt.subplots(1, 3, figsize=[10, 8])
+
+# F() acc
+fig, ax = plt.subplots(1, 2, figsize=[8, 5])
 sns.scatterplot(data=df, x="observed_phenotype", y="observed_predicted",
                 hue="n_aa_substitutions",
                 alpha=0.2, palette="deep", ax=ax[0],
@@ -46,23 +46,38 @@ ax[0].plot([lb, ub], [lb, ub], "k--", lw=1)
 r = pearsonr(df.observed_phenotype, df.observed_predicted)[0]
 ax[0].annotate(f"$r = {r:.2f}$", (.5, .9), xycoords="axes fraction", fontsize=12)
 
-sns.scatterplot(data=df, x="latent_phenotype", y="latent_predicted",
-                hue="n_aa_substitutions",
-                alpha=0.2, palette="deep", ax=ax[1],
-                legend=False)
 
-# TODO latent predicted / vs true phenotype
+# Latent acc
+#sns.scatterplot(data=df, x="latent_phenotype", y="latent_predicted",
+#                hue="n_aa_substitutions",
+#                alpha=0.2, palette="deep", ax=ax[1],
+#                legend=False)
+#
+#lb = df[["latent_phenotype", "latent_predicted"]].min().min()
+#ub = df[["latent_phenotype", "latent_predicted"]].max().max()
+#
+#ax[1].plot([lb, ub], [lb, ub], "k--", lw=1)
+#r = pearsonr(df.latent_phenotype, df.latent_predicted)[1]
+#ax[1].annotate(f"$r = {r:.2f}$", (.5, .9), xycoords="axes fraction", fontsize=12)
+
+
+# shape 
 sns.scatterplot(data=df, x="latent_predicted", y="observed_phenotype",
                 hue="n_aa_substitutions",
                 alpha=0.2, palette="deep",
-                legend=False, ax=ax[2])
+                legend=False, ax=ax[1])
+
+#sns.scatterplot(data=df, x="latent_predicted", y="observed_predicted",
+#                hue="n_aa_substitutions",
+#                alpha=0.2, palette="deep",
+#                legend=False, ax=ax[2])
 
 
 ϕ_grid = onp.linspace(1.1 * df.latent_predicted.min(), 1.1 * df.latent_predicted.max())
 shape = (ϕ_grid, g(params["α"], ϕ_grid))
-print(shape[0].min(), shape[0].max())
-print(shape[1].min(), shape[1].max())
-ax[2].plot(*shape)
+ax[1].plot(*shape)
+ax[1].set_ylim(-11, 2)
+ax[1].set_xlim(-15, 10)
 plt.axhline(0, color="k", ls="--", lw=1)
 plt.axvline(0, color="k", ls="--", lw=1)
 
