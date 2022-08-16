@@ -23,13 +23,16 @@ import jaxopt
 from utils import *
 from model import *
 
+ps = "ref_to_full"
+
 (params, (X, y), df, simulated_mut_effects, all_subs, homologs) = pickle.load(
-    open("../_ignore/simulated_results_V1.pkl", "rb")
+    open(f"../_ignore/simulated_results_{ps}.pkl", "rb")
 )
 print(list(homologs.values()))
 
 print(f"\nPlotting")
 print(f"--------")
+#fig, ax = plt.subplots(1, 2, figsize=[10, 8])
 fig, ax = plt.subplots(1, 3, figsize=[10, 8])
 sns.scatterplot(data=df, x="observed_phenotype", y="observed_predicted",
                 hue="n_aa_substitutions",
@@ -48,23 +51,24 @@ sns.scatterplot(data=df, x="latent_phenotype", y="latent_predicted",
                 alpha=0.2, palette="deep", ax=ax[1],
                 legend=False)
 
-sns.scatterplot(data=df, x="latent_predicted", y="observed_predicted",
+# TODO latent predicted / vs true phenotype
+sns.scatterplot(data=df, x="latent_predicted", y="observed_phenotype",
                 hue="n_aa_substitutions",
                 alpha=0.2, palette="deep",
                 legend=False, ax=ax[2])
 
+
+ϕ_grid = onp.linspace(1.1 * df.latent_predicted.min(), 1.1 * df.latent_predicted.max())
+shape = (ϕ_grid, g(params["α"], ϕ_grid))
+print(shape[0].min(), shape[0].max())
+print(shape[1].min(), shape[1].max())
+ax[2].plot(*shape)
+plt.axhline(0, color="k", ls="--", lw=1)
+plt.axvline(0, color="k", ls="--", lw=1)
+
 plt.tight_layout()
-fig.savefig("../_ignore/eval-scatter.png")
+fig.savefig(f"../_ignore/eval-scatter-{ps}.png")
 print(f"Done")
-
-
-# ϕ_grid = onp.linspace(1.1 * df.latent_predicted.min(), 1.1 * df.latent_predicted.max())
-# plt.plot(ϕ_grid, g(ϕ_grid, params["α"]), "k")
-# plt.axhline(0, color="k", ls="--", lw=1)
-# plt.axvline(0, color="k", ls="--", lw=1)
-
-
-
 # load mosaic
 # fig, ax = plt.subplots(3, 1, ))
 fig = plt.figure(constrained_layout=True, figsize=(20, 20))
@@ -78,13 +82,15 @@ axd = fig.subplot_mosaic(
     """
 )
 # identify_axes(axd)
+"""
+"""
 
 layout = {
-    "β":"D",
-    "beta_h1":"E",
-    "beta_h2":"F",
-    "S_H2":"G",
-    "shift":"H"
+    "β":("D", "$\hat{β}$"),
+    "beta_h1":("E", "$β_{H1}$"),
+    "beta_h2":("F", "$β_{H2}$"),
+    "S_H2":("G", "$\hat{S}$"),
+    "shift":("H", "S")
 }
 
 shifted_sites = set(simulated_mut_effects.query("shifted_site == True")["site"])
@@ -93,9 +99,10 @@ non_identical_sites = set([
     if aa1 != aa2
 ])
 
-print(shifted_sites, non_identical_sites)
+#print(shifted_sites, non_identical_sites)
 
 
+#for i, param in enumerate(["β"]):
 for i, param in enumerate(["β", "S_H2"]):
     rows = []
     for mutation, p in zip(all_subs, params[param]):
@@ -118,9 +125,13 @@ for i, param in enumerate(["β", "S_H2"]):
         cmap="coolwarm_r", center=0,
         # vmin=-1, vmax=1,
         cbar_kws={"label": param},
-        ax=axd[layout[param]]
+        ax=axd[layout[param][0]]
     )
 
+    axd[layout[param][0]].set_title(layout[param][1], size=20)
+
+
+# for i, param in enumerate(["beta_h1"], 2):
 
 for i, param in enumerate(["beta_h1", "beta_h2", "shift"], 2):
 
@@ -135,8 +146,9 @@ for i, param in enumerate(["beta_h1", "beta_h2", "shift"], 2):
         cmap="coolwarm_r", center=0,
         # vmin=-1, vmax=1,
         cbar_kws={"label": param},
-        ax=axd[layout[param]]
+        ax=axd[layout[param][0]]
     )
+    axd[layout[param][0]].set_title(layout[param][1], size=20)
 
 
 for param, ax in axd.items():
@@ -146,9 +158,10 @@ for param, ax in axd.items():
                 (site-1, 0), 1, 21, 
                 linewidth=3, 
                 edgecolor="black" if site in non_identical_sites else "purple", 
+                #edgecolor="black",
                 fill=False
             )
         )
 
 
-fig.savefig(f"../_ignore/heatmaps.png")
+fig.savefig(f"../_ignore/heatmaps-{ps}.png")
