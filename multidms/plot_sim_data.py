@@ -76,8 +76,8 @@ sns.scatterplot(data=df, x="latent_predicted", y="observed_phenotype",
 ϕ_grid = onp.linspace(1.1 * df.latent_predicted.min(), 1.1 * df.latent_predicted.max())
 shape = (ϕ_grid, g(params["α"], ϕ_grid))
 ax[1].plot(*shape)
-ax[1].set_ylim(-11, 2)
-ax[1].set_xlim(-15, 10)
+ax[1].set_ylim(-11, 1)
+ax[1].set_xlim(-7.5, 7.5)
 plt.axhline(0, color="k", ls="--", lw=1)
 plt.axvline(0, color="k", ls="--", lw=1)
 
