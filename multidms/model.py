@@ -122,7 +122,7 @@ def prox(params, hyperparams_prox=dict(clip_stretch=0.0, lock_params=None), scal
     #params["α"]["sig_stretch_x"] = params["α"]["sig_stretch_x"].clip(hyperparams_prox["clip_stretch"])
     #params["α"]["sig_stretch_y"] = params["α"]["sig_stretch_y"].clip(hyperparams_prox["clip_stretch"])
     params["α"]["weights"] = params["α"]["weights"].clip(0)
-    params["α"]["a"] = params["α"]["a"].clip(0)
+    # params["α"]["a"] = params["α"]["a"].clip(0)
 
     # params["β"] = jaxopt.prox.prox_lasso(params["β"], λ_lasso, scaling)
 
