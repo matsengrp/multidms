@@ -19,11 +19,12 @@ import jax.numpy as jnp
 from jax.experimental import sparse
 import jaxopt
 
-# local
-from utils import *
-from model import *
+import sys
+sys.path.append("../")
+from multidms.utils import *
+from multidms.model import *
 
-ps = "ref_to_full"
+ps = "test_double"
 
 (params, (X, y), df, simulated_mut_effects, all_subs, homologs) = pickle.load(
     open(f"../_ignore/simulated_results_{ps}.pkl", "rb")
@@ -46,32 +47,11 @@ ax[0].plot([lb, ub], [lb, ub], "k--", lw=1)
 r = pearsonr(df.observed_phenotype, df.observed_predicted)[0]
 ax[0].annotate(f"$r = {r:.2f}$", (.5, .9), xycoords="axes fraction", fontsize=12)
 
-
-# Latent acc
-#sns.scatterplot(data=df, x="latent_phenotype", y="latent_predicted",
-#                hue="n_aa_substitutions",
-#                alpha=0.2, palette="deep", ax=ax[1],
-#                legend=False)
-#
-#lb = df[["latent_phenotype", "latent_predicted"]].min().min()
-#ub = df[["latent_phenotype", "latent_predicted"]].max().max()
-#
-#ax[1].plot([lb, ub], [lb, ub], "k--", lw=1)
-#r = pearsonr(df.latent_phenotype, df.latent_predicted)[1]
-#ax[1].annotate(f"$r = {r:.2f}$", (.5, .9), xycoords="axes fraction", fontsize=12)
-
-
 # shape 
 sns.scatterplot(data=df, x="latent_predicted", y="observed_phenotype",
                 hue="n_aa_substitutions",
                 alpha=0.2, palette="deep",
                 legend=False, ax=ax[1])
-
-#sns.scatterplot(data=df, x="latent_predicted", y="observed_predicted",
-#                hue="n_aa_substitutions",
-#                alpha=0.2, palette="deep",
-#                legend=False, ax=ax[2])
-
 
 ϕ_grid = onp.linspace(1.1 * df.latent_predicted.min(), 1.1 * df.latent_predicted.max())
 shape = (ϕ_grid, g(params["α"], ϕ_grid))
@@ -84,8 +64,6 @@ plt.axvline(0, color="k", ls="--", lw=1)
 plt.tight_layout()
 fig.savefig(f"../_ignore/eval-scatter-{ps}.png")
 print(f"Done")
-# load mosaic
-# fig, ax = plt.subplots(3, 1, ))
 fig = plt.figure(constrained_layout=True, figsize=(20, 20))
 axd = fig.subplot_mosaic(
     """
@@ -96,9 +74,6 @@ axd = fig.subplot_mosaic(
     HHHHHHHHH
     """
 )
-# identify_axes(axd)
-"""
-"""
 
 layout = {
     "β":("D", "$\hat{β}$"),
@@ -114,10 +89,6 @@ non_identical_sites = set([
     if aa1 != aa2
 ])
 
-#print(shifted_sites, non_identical_sites)
-
-
-#for i, param in enumerate(["β"]):
 for i, param in enumerate(["β", "S_H2"]):
     rows = []
     for mutation, p in zip(all_subs, params[param]):
@@ -145,8 +116,6 @@ for i, param in enumerate(["β", "S_H2"]):
 
     axd[layout[param][0]].set_title(layout[param][1], size=20)
 
-
-# for i, param in enumerate(["beta_h1"], 2):
 
 for i, param in enumerate(["beta_h1", "beta_h2", "shift"], 2):
 
