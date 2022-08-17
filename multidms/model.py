@@ -153,7 +153,7 @@ def cost_smooth_latent(params, data, δ=1):
     for homolog, X_h in X.items():
         
         # Subset the params being passed into latent prediction, ϕ
-        h_params = {"β":params["β"], "S":params["S_homolog"], "C_ref":params["C_ref"]}
+        h_params = {"β":params["β"], "S":params[f"S_{homolog}"], "C_ref":params["C_ref"]}
         
         y_h_predicted = ϕ(h_params, X_h)
         
