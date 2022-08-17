@@ -59,11 +59,8 @@ def initialize_model_params(
 
     # Single bias param
     params["C_ref"] = jnp.zeros(shape=(1, ))
-    
-    # 'stretch' in x direction
-    # 'shift' in the x direction
-    # 'stretch' in the y direction
-    # 'shift' in the y direction
+   
+    # Perceptron parameterization 
     key, *subkeys = jax.random.split(key, num=4)
     if include_alpha:
         params["α"]=dict(
@@ -71,14 +68,6 @@ def initialize_model_params(
             biases=jax.random.normal(shape=(n_perceptron_units,), key=subkeys[1]),
             a=jax.random.normal(shape=(n_perceptron_units,), key=subkeys[2])
         )
-            #sig_stretch_x = jax.random.normal(shape=(n_perceptron_units,), key=subkeys[0]),
-            #sig_shift_x = jax.random.normal(shape=(1,), key=subkeys[1]),
-            #sig_stretch_y = jax.random.normal(shape=(n_perceptron_units,), key=subkeys[2]),
-            #sig_shift_y = jax.random.normal(shape=(1,), key=subkeys[3]),
-            #sig_stretch_x = jnp.ones(shape=(n_perceptron_units,)),
-            #sig_shift_x = jnp.ones(shape=(1,)),
-            #sig_stretch_y = jnp.ones(shape=(n_perceptron_units,)),
-            #sig_shift_y = jnp.ones(shape=(1,)),
 
     return params
 
