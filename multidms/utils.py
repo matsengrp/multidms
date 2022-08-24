@@ -17,7 +17,9 @@ def initialize_model_params(
         homologs: dict, 
         n_beta_shift_params: int, 
         n_perceptron_units=1,
-        include_alpha=True
+        include_alpha=True,
+        init_sig_range=10,
+        init_sig_min=-10
 ):
     """
     initialize a set of starting parameters for the JAX model.
@@ -38,6 +40,21 @@ def initialize_model_params(
         for the shape of global epistasis before
         being fed into a sigmoid.
     
+    include_alpha : book
+        Initialize parameters for the sigmoid from
+        the global epistasis function
+    
+    init_sig_range : float
+        The range of observed phenotypes in the raw
+        data, used to initialize the range of the
+        sigmoid from the global epistasis function
+    
+    init_sig_min : float
+        The lower bound of observed phenotypes in
+        the raw data, used to initialize the minimum
+        value of the sigmoid from the global epistasis
+        funciton
+    
     Returns
     -------
     
@@ -57,16 +74,13 @@ def initialize_model_params(
         # We expect most shift parameters to be close to zero
         params[f"S_{homolog}"] = jnp.zeros(shape=(n_beta_shift_params,))
 
-    # Single bias param
-    params["C_ref"] = jnp.zeros(shape=(1, ))
-   
     # Perceptron parameterization 
     key, *subkeys = jax.random.split(key, num=4)
     if include_alpha:
         params["α"]=dict(
-            weights=jax.random.normal(shape=(n_perceptron_units,), key=subkeys[0]),
-            biases=jax.random.normal(shape=(n_perceptron_units,), key=subkeys[1]),
-            a=jax.random.normal(shape=(n_perceptron_units,), key=subkeys[2])
+            biases=jnp.array([5.0] * n_perceptron_units), # 5.0 is a guess, could update
+            a=jnp.array([init_sig_range] * n_perceptron_units),
+            a_bias=jnp.array([init_sig_min] * n_perceptron_units)
         )
 
     return params

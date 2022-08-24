@@ -89,15 +89,17 @@ import numpy as onp
 def ϕ(params:dict, X_h:jnp.array):
     """ Model for predicting latent space """
     
-    return (X_h @ (params["β"] + params[f"S"])) + params["C_ref"]
+    return (X_h @ (params["β"] + params[f"S"]))
 
 
 @jax.jit
 def g(α:dict, z_h:jnp.array):
     """ Model for global epistasis as 'flexible' sigmoid. """
 
-    activations = jax.nn.sigmoid(α["weights"] * z_h[:, None] + α["biases"])
-    return α["a"] @ activations.T
+    # TODO: re-introduce α["weights"], and fix the first weight to 1.0
+    #activations = jax.nn.sigmoid(α["weights"] * z_h[:, None] + α["biases"])
+    activations = jax.nn.sigmoid(z_h[:, None] + α["biases"])
+    return (α["a"] @ activations.T) + α["a_bias"]
 
 
 @jax.jit
@@ -107,7 +109,7 @@ def prox(params, hyperparams_prox=dict(clip_stretch=0.0, lock_params=None), scal
     params["S_reference"] = jnp.zeros(len(params['β']))
 
     # Monotonic non-linearity
-    params["α"]["weights"] = params["α"]["weights"].clip(0)
+    params["α"]["a"] = params["α"]["a"].clip(0)
 
     # Any params to constrain during fit
     if hyperparams_prox["lock_params"] is not None:
@@ -119,8 +121,8 @@ def prox(params, hyperparams_prox=dict(clip_stretch=0.0, lock_params=None), scal
 
 
 @jax.jit
-def cost_smooth(params, data, δ=1):
-    """Cost (Objective) function as a sum of huber loss across all homologs"""
+def cost_smooth(params, data, δ=1, λ_L1=0):
+    """Cost (Objective) function summed across all homologs"""
 
     X, y = data
     loss = 0   
@@ -130,34 +132,19 @@ def cost_smooth(params, data, δ=1):
         
         
         # Subset the params being passed into latent prediction, ϕ
-        h_params = {"β":params["β"], "S":params[f"S_{homolog}"], "C_ref":params["C_ref"]}
+        h_params = {"β":params["β"], "S":params[f"S_{homolog}"]}
         z_h = ϕ(h_params, X_h)
             
         # all GE specific parameters are stored in α
         y_h_predicted = g(params["α"], z_h)
         
-        # compute loss at current parameter state.
+        # compute the Huber loss between observed and predicted
+        # functional scores
         loss += jaxopt.loss.huber_loss(y[homolog], y_h_predicted, δ).mean()
-
-    return loss
-
-
-@jax.jit
-def cost_smooth_latent(params, data, δ=1):
-    """Cost (Objective) function as a sum of huber loss across all homologs"""
-
-    X, y = data
-    loss = 0   
-    
-    # Sum the huber loss across all homologs
-    for homolog, X_h in X.items():
         
-        # Subset the params being passed into latent prediction, ϕ
-        h_params = {"β":params["β"], "S":params[f"S_{homolog}"], "C_ref":params["C_ref"]}
-        
-        y_h_predicted = ϕ(h_params, X_h)
-        
-        # compute loss at current parameter state.
-        loss += jaxopt.loss.huber_loss(y[homolog], y_h_predicted, δ).mean()
+        # compute a regularization term that penalizes non-zero
+        # shift parameters and add it to the loss function
+        ridge_penalty = λ_L1 * jnp.absolute(params[f"S_{homolog}"]).sum()
+        loss += ridge_penalty
 
     return loss
