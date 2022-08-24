@@ -96,10 +96,8 @@ def ϕ(params:dict, X_h:jnp.array):
 def g(α:dict, z_h:jnp.array):
     """ Model for global epistasis as 'flexible' sigmoid. """
 
-    # TODO: re-introduce α["weights"], and fix the first weight to 1.0
-    #activations = jax.nn.sigmoid(α["weights"] * z_h[:, None] + α["biases"])
-    activations = jax.nn.sigmoid(z_h[:, None] + α["biases"])
-    return (α["a"] @ activations.T) + α["a_bias"]
+    activations = jax.nn.sigmoid(z_h[:, None] + α["latent_bias"])
+    return (α["ge_scale"] @ activations.T) + α["ge_bias"]
 
 
 @jax.jit
@@ -109,7 +107,7 @@ def prox(params, hyperparams_prox=dict(clip_stretch=0.0, lock_params=None), scal
     params["S_reference"] = jnp.zeros(len(params['β']))
 
     # Monotonic non-linearity
-    params["α"]["a"] = params["α"]["a"].clip(0)
+    params["α"]["ge_scale"] = params["α"]["ge_scale"].clip(0)
 
     # Any params to constrain during fit
     if hyperparams_prox["lock_params"] is not None:

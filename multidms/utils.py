@@ -15,11 +15,11 @@ import numpy as onp
 
 def initialize_model_params(
         homologs: dict, 
-        n_beta_shift_params: int, 
-        n_perceptron_units=1,
+        n_beta_shift_params: int,
         include_alpha=True,
-        init_sig_range=10,
-        init_sig_min=-10
+        init_sig_range=10.,
+        init_sig_min=-10.,
+        latent_bias=5.
 ):
     """
     initialize a set of starting parameters for the JAX model.
@@ -34,11 +34,6 @@ def initialize_model_params(
     n_beta_shift_params: int
         The number of beta and shift parameters 
         (for each homolog) to initialize.
-        
-    n_perceptron_units : int
-        The number of connections that are tuned
-        for the shape of global epistasis before
-        being fed into a sigmoid.
     
     include_alpha : book
         Initialize parameters for the sigmoid from
@@ -54,6 +49,10 @@ def initialize_model_params(
         the raw data, used to initialize the minimum
         value of the sigmoid from the global epistasis
         funciton
+        
+    latent_bias : float
+        bias parameter applied to the output of the
+        linear model (latent prediction).
     
     Returns
     -------
@@ -74,13 +73,11 @@ def initialize_model_params(
         # We expect most shift parameters to be close to zero
         params[f"S_{homolog}"] = jnp.zeros(shape=(n_beta_shift_params,))
 
-    # Perceptron parameterization 
-    key, *subkeys = jax.random.split(key, num=4)
     if include_alpha:
         params["α"]=dict(
-            biases=jnp.array([5.0] * n_perceptron_units), # 5.0 is a guess, could update
-            a=jnp.array([init_sig_range] * n_perceptron_units),
-            a_bias=jnp.array([init_sig_min] * n_perceptron_units)
+            latent_bias=jnp.array([5.0]), # 5.0 is a guess, could update
+            ge_scale=jnp.array([init_sig_range]),
+            ge_bias=jnp.array([init_sig_min])
         )
 
     return params
