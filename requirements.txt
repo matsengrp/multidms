@@ -1,0 +1,8 @@
+pandas
+numpy
+binarymap
+matplotlib
+seaborn
+notebook
+jaxopt
+scipy
