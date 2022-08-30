@@ -89,7 +89,7 @@ import numpy as onp
 def ϕ(params:dict, X_h:jnp.array):
     """ Model for predicting latent space """
     
-    return (X_h @ (params["β"] + params[f"S"]))
+    return (X_h @ (params["β"] + params["S"])) + params["C"]
 
 
 @jax.jit
@@ -104,7 +104,8 @@ def g(α:dict, z_h:jnp.array):
 def prox(params, hyperparams_prox=dict(clip_stretch=0.0, lock_params=None), scaling=1.0):
 
     # No reference shifts
-    params["S_reference"] = jnp.zeros(len(params['β']))
+#     params[f"S_{reference}"] = jnp.zeros(len(params['β']))
+#     params[f"C_{reference}"] = jnp.zeros(shape=(1,))
 
     # Monotonic non-linearity
     params["α"]["ge_scale"] = params["α"]["ge_scale"].clip(0)
@@ -130,7 +131,12 @@ def cost_smooth(params, data, δ=1, λ_L1=0):
         
         
         # Subset the params being passed into latent prediction, ϕ
-        h_params = {"β":params["β"], "S":params[f"S_{homolog}"]}
+        h_params = {
+            "β":params["β"], 
+            "S":params[f"S_{homolog}"], 
+            "C":params[f"C_{homolog}"]
+        }
+        
         z_h = ϕ(h_params, X_h)
             
         # all GE specific parameters are stored in α

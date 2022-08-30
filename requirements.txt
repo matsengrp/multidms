@@ -6,3 +6,5 @@ seaborn
 notebook
 jaxopt
 scipy
+tqdm
+ipywidgets

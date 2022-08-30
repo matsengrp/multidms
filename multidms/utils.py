@@ -11,6 +11,8 @@ import jax.numpy as jnp
 from jax.experimental import sparse
 import jaxopt
 import numpy as onp
+from tqdm import tqdm
+tqdm.pandas()
 
 
 def initialize_model_params(
@@ -27,9 +29,9 @@ def initialize_model_params(
     Parameters
     ----------
     
-    homologs : dict
-        A dictionary containing all possible target homolog 
-        names (keys) and sequences (values).
+    homologs : list
+        A list containing all possible target homolog 
+        names.
     
     n_beta_shift_params: int
         The number of beta and shift parameters 
@@ -69,9 +71,10 @@ def initialize_model_params(
     params["β"] = jax.random.normal(shape=(n_beta_shift_params,), key=key)
 
     # initialize shift parameters
-    for homolog in homologs.keys():
+    for homolog in homologs:
         # We expect most shift parameters to be close to zero
         params[f"S_{homolog}"] = jnp.zeros(shape=(n_beta_shift_params,))
+        params[f"C_{homolog}"] = jnp.zeros(shape=(1,))
 
     if include_alpha:
         params["α"]=dict(
@@ -82,11 +85,10 @@ def initialize_model_params(
 
     return params
 
-
 def create_homolog_modeling_data(
-    func_score_df:pd.DataFrame, 
-    homologs:dict,
+    func_score_df:pd.DataFrame,
     homolog_name_col: str,
+    reference_homolog: str,
     substitution_col: str,
     func_score_col: str
 ):
@@ -100,89 +102,161 @@ def create_homolog_modeling_data(
 
     func_score_df : pandas.DataFrame
         This should be in the same format as described in BinaryMap.
-        
-    homologs : dict
-        A dictionary containing all possible target homolog 
-        names (keys) and sequences (values).
     
     homolog_name_col : str
         The name of the column in func_score_df that identifies the
         homolog for a given variant. We require that the
         reference homolog variants are labeled as 'reference'
         in this column.
+        
+    reference_homolog : str
+        The name of the homolog existing in ``homolog_name_col`` for
+        which we should convert all substitution to be with respect to.
     
     substitution_col : str 
         The name of the column in func_score_df that
-        lists mutations in each variant relative to the wildtype
-        amino-acid sequence of the homolog in which they occur.
+        lists mutations in each variant relative to the homolog wildtype
+        amino-acid sequence where sites numbers must come from an alignment
+        to a reference sequence (which may or may not be the same as the
+        reference homolog).
         
     func_score_col : str
         Column in func_scores_df giving functional score for each variant.
+        
     
     Returns
     -------
         
-    TODO
+    tuple : (dict[BinaryMap], dict[jnp.array]), pd.DataFrame, np.array, pd.DataFrame
+    
+        This function return a tuple which can be unpacked into the following:
+        
+        - (X, y) Where X and y are both dictionaries containing the prepped data
+            for training our JAX multidms model. The dictionary keys
+            stratify the datasets by homolog
+            
+        - A pandas dataframe which primary contains the information from
+            func_score_df, but has been curated to include only the variants
+            deemed appropriate for training, as well as the substitutions
+            converted to be wrt to the reference homolog.
+            
+        - A numpy array giving the substitutions (beta's) of the binary maps
+            in the order that is preserved to match the matrices in X.
+            
+        - A pandas dataframe providing the site map indexed by alignment site to
+            a column for each homolog wt amino acid. 
     
     """
     
-    def mutations_wrt_ref(mutations, hom_wtseq):
-        """
-        Takes a list of mutations for a given variant relative
-        to its background homolog and returns a list of all
-        mutations that separate the variant from the reference
-        homolog.
-        """
+    # TODO: strip gapped substitutions (insertions) variants
+    # from the func_score_df?
+    
+    def split_sub(sub_string):
+        """String match the wt, site, and sub aa
+        in a given string denoting a single substitution"""
         
-        # Compute the full amino-acid sequence of the
-        # given variant
-        mutated_homolog = list(hom_wtseq)
-        for mutation in mutations.split():
+        pattern = r'(?P<aawt>\w)(?P<site>[\d\w]+)(?P<aamut>[\w\*])'
+        match = re.search(pattern, sub_string)
+        assert match != None, sub_string
+        return match.group('aawt'), str(match.group('site')), match.group('aamut')
+    
+    def split_subs(subs_string):
+        """wrap the split_sub func to work for a 
+        string contining multiple substitutions"""
+        
+        wts, sites, muts = [], [], []
+        for sub in subs_string.split():
+            wt, site, mut = split_sub(sub)
+            wts.append(wt); sites.append(site); muts.append(mut)
+        return wts, sites, muts
+   
+    # Add columns that parse mutations into wt amino acid, site,
+    # and mutant amino acid
+    ret_fs_df = func_score_df.copy()
+    ret_fs_df["wts"], ret_fs_df["sites"], ret_fs_df["muts"] = zip(
+        *ret_fs_df[substitution_col].map(split_subs)
+    )
 
-            # TODO: Do we need to change the regex to allow
-            # for gap '-' and stop '*' characters?
-            pattern = r'(?P<aawt>\w)(?P<site>\d+)(?P<aamut>[\w\*])'
-            match = re.search(pattern, mutation)
-            assert match != None, mutation
-            aawt = match.group('aawt')
-            site = match.group('site')
-            aamut = match.group('aamut')
-            mutated_homolog[int(site)-1] = aamut
-            
-        hom_var_seq = ''.join(mutated_homolog)
+    # Use the substitution_col to infer the wildtype
+    # amino-acid sequence of each homolog, storing this
+    # information in a dataframe.
+    site_map = pd.DataFrame(dtype="string")
+    for hom, hom_func_df in ret_fs_df.groupby(homolog_name_col):
+        for idx, row in hom_func_df.iterrows():
+            for wt, site  in zip(row.wts, row.sites):
+                site_map.loc[site, hom] = wt
+    
+    # Find all sites for which at least one homolog lacks data
+    # (this can happen if there is a gap in the alignment)
+    na_rows = site_map.isna().any(axis=1)
+    print(f"Found {sum(na_rows)} site(s) lacking data in at least one homolog.")
+    sites_to_throw = na_rows[na_rows].index
+    site_map.dropna(inplace=True)
+    
+    # Remove all variants with a mutation at one of the above
+    # "disallowed" sites lacking data
+    def flags_disallowed(disallowed_sites, sites_list):
+        """Check to see if a sites list contains 
+        any disallowed sites"""
+        for site in sites_list:
+            if site in disallowed_sites:
+                return False
+        return True
+    
+    ret_fs_df["allowed_variant"] = ret_fs_df.sites.apply(
+        lambda sl: flags_disallowed(sites_to_throw,sl)
+    )
+    n_var_pre_filter = len(ret_fs_df)
+    ret_fs_df = ret_fs_df[ret_fs_df["allowed_variant"]]
+    print(f"{n_var_pre_filter-len(ret_fs_df)} of the {n_var_pre_filter} variants"
+          f" were removed because they had mutations at the above sites, leaving"
+          f" {len(ret_fs_df)} variants.")
+    
+    def subs_wrt_ref(subs_str, sites_map, ref, hom):
+        """Takes in a string of substitutions wrt homolog seq,
+        a sites map containing seqs for both the homolog
+        and reference, as well as the column names for
+        both. It then copies and mutates the homolog
+        sequence with the mutations in subs_str. Finally,
+        it returns the list of all mutations separating
+        the mutated homolog and reference homolog.
+        """
         
-        # Make a list of all mutations that separate the variant
-        # from the reference homolog
+        var_map = sites_map.copy()
+        for sub in subs_str.split():
+            wt, site, mut = split_sub(sub)
+            var_map.loc[site, hom] = mut
+
         ref_muts = [
-            f"{aaref}{i+1}{aavar}" 
-            for i, (aaref, aavar) in enumerate(zip(homologs["reference"], hom_var_seq))
-            if aaref != aavar
+            f"{row[ref]}{i}{row[hom]}" 
+            for i, row in var_map.iterrows()
+            if row[ref] != row[hom]
         ]
         
         return " ".join(ref_muts)
 
-    # Duplicate the substitutions_col, then convert the respective functional scores
-    func_score_df = func_score_df.assign(
-            var_wrt_ref = func_score_df[substitution_col].values
+    # Duplicate the substitutions_col, then convert the respective subs to be wrt ref
+    # using the function above
+    ret_fs_df = ret_fs_df.assign(
+            var_wrt_ref = ret_fs_df[substitution_col].values
     )
-    for hom_name, hom_seq in homologs.items():
-        if hom_name == "reference": continue
-        hom_df = func_score_df.query(f"{homolog_name_col} == '{hom_name}'")
-        hom_var_wrt_ref = [
-            mutations_wrt_ref(muts, homologs[hom_name]) 
-            for muts in hom_df[substitution_col]
-        ]
-        func_score_df.loc[hom_df.index.values, "var_wrt_ref"] = hom_var_wrt_ref   
-    
-    # Get list of all allowed substitutions that we will tune beta parameters for
+    for hom, hom_func_df in ret_fs_df.groupby(homolog_name_col):
+        if hom == reference_homolog: continue
+        
+        hom_var_wrt_ref = hom_func_df[substitution_col].progress_apply(
+            lambda subs: subs_wrt_ref(subs, site_map, reference_homolog, hom)
+        )
+        ret_fs_df.loc[hom_func_df.index.values, "var_wrt_ref"] = hom_var_wrt_ref   
+        
+    # Get list of all allowed substitutions for which we will tune beta parameters
     allowed_subs = {
-        s for subs in func_score_df.var_wrt_ref
+        s for subs in ret_fs_df.var_wrt_ref
         for s in subs.split()
     }
     
     # Make BinaryMap representations for each homolog
     X, y = {}, {}
-    for homolog, homolog_func_score_df in func_score_df.groupby("homolog"):
+    for homolog, homolog_func_score_df in ret_fs_df.groupby("homolog"):
         ref_bmap = bmap.BinaryMap(
             homolog_func_score_df,
             substitutions_col="var_wrt_ref",
@@ -195,4 +269,6 @@ def create_homolog_modeling_data(
         # create jax array for functional score targets
         y[homolog] = jnp.array(homolog_func_score_df[func_score_col].values)
     
-    return (X, y), func_score_df, ref_bmap.all_subs
+    ret_fs_df.drop(["wts", "sites", "muts"], axis=1, inplace=True)
+
+    return (X, y), ret_fs_df, ref_bmap.all_subs, site_map 
