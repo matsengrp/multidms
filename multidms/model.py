@@ -103,10 +103,6 @@ def g(α:dict, z_h:jnp.array):
 @jax.jit
 def prox(params, hyperparams_prox=dict(clip_stretch=0.0, lock_params=None), scaling=1.0):
 
-    # No reference shifts
-#     params[f"S_{reference}"] = jnp.zeros(len(params['β']))
-#     params[f"C_{reference}"] = jnp.zeros(shape=(1,))
-
     # Monotonic non-linearity
     params["α"]["ge_scale"] = params["α"]["ge_scale"].clip(0)
 
@@ -120,7 +116,7 @@ def prox(params, hyperparams_prox=dict(clip_stretch=0.0, lock_params=None), scal
 
 
 @jax.jit
-def cost_smooth(params, data, δ=1, λ_L1=0):
+def cost_smooth(params, data, δ=1, λ_ridge=0):
     """Cost (Objective) function summed across all homologs"""
 
     X, y = data
@@ -148,7 +144,7 @@ def cost_smooth(params, data, δ=1, λ_L1=0):
         
         # compute a regularization term that penalizes non-zero
         # shift parameters and add it to the loss function
-        ridge_penalty = λ_L1 * jnp.absolute(params[f"S_{homolog}"]).sum()
+        ridge_penalty = λ_ridge * (params[f"S_{homolog}"] ** 2).sum()
         loss += ridge_penalty
 
     return loss

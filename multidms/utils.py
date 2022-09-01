@@ -155,7 +155,7 @@ def create_homolog_modeling_data(
         """String match the wt, site, and sub aa
         in a given string denoting a single substitution"""
         
-        pattern = r'(?P<aawt>\w)(?P<site>[\d\w]+)(?P<aamut>[\w\*])'
+        pattern = r'(?P<aawt>[A-Z\*])(?P<site>[\d\w]+)(?P<aamut>[A-Z\*])'
         match = re.search(pattern, sub_string)
         assert match != None, sub_string
         return match.group('aawt'), str(match.group('site')), match.group('aamut')
@@ -172,7 +172,7 @@ def create_homolog_modeling_data(
    
     # Add columns that parse mutations into wt amino acid, site,
     # and mutant amino acid
-    ret_fs_df = func_score_df.copy()
+    ret_fs_df = func_score_df.reset_index()
     ret_fs_df["wts"], ret_fs_df["sites"], ret_fs_df["muts"] = zip(
         *ret_fs_df[substitution_col].map(split_subs)
     )
@@ -211,43 +211,24 @@ def create_homolog_modeling_data(
     print(f"{n_var_pre_filter-len(ret_fs_df)} of the {n_var_pre_filter} variants"
           f" were removed because they had mutations at the above sites, leaving"
           f" {len(ret_fs_df)} variants.")
-    
-    def subs_wrt_ref(subs_str, sites_map, ref, hom):
-        """Takes in a string of substitutions wrt homolog seq,
-        a sites map containing seqs for both the homolog
-        and reference, as well as the column names for
-        both. It then copies and mutates the homolog
-        sequence with the mutations in subs_str. Finally,
-        it returns the list of all mutations separating
-        the mutated homolog and reference homolog.
-        """
-        
-        var_map = sites_map.copy()
-        for sub in subs_str.split():
-            wt, site, mut = split_sub(sub)
-            var_map.loc[site, hom] = mut
-
-        ref_muts = [
-            f"{row[ref]}{i}{row[hom]}" 
-            for i, row in var_map.iterrows()
-            if row[ref] != row[hom]
-        ]
-        
-        return " ".join(ref_muts)
 
     # Duplicate the substitutions_col, then convert the respective subs to be wrt ref
     # using the function above
-    ret_fs_df = ret_fs_df.assign(
-            var_wrt_ref = ret_fs_df[substitution_col].values
-    )
+    ret_fs_df = ret_fs_df.assign(var_wrt_ref = ret_fs_df[substitution_col])
     for hom, hom_func_df in ret_fs_df.groupby(homolog_name_col):
         if hom == reference_homolog: continue
-        
-        hom_var_wrt_ref = hom_func_df[substitution_col].progress_apply(
-            lambda subs: subs_wrt_ref(subs, site_map, reference_homolog, hom)
-        )
-        ret_fs_df.loc[hom_func_df.index.values, "var_wrt_ref"] = hom_var_wrt_ref   
-        
+
+        # compute bundle muts for a specific site
+        for idx, row in tqdm(hom_func_df.iterrows(), total=len(hom_func_df)):
+            var_map = site_map[[reference_homolog, hom]].copy()
+            for wt, site, mut in zip(row.wts, row.sites, row.muts):
+                var_map.loc[site, hom] = mut
+            nis = var_map.where(
+                var_map[reference_homolog] != var_map[hom]
+            ).dropna()
+            muts = nis[reference_homolog] + nis.index + nis[hom]
+            ret_fs_df.loc[idx, "var_wrt_ref"] = " ".join(muts.values)
+
     # Get list of all allowed substitutions for which we will tune beta parameters
     allowed_subs = {
         s for subs in ret_fs_df.var_wrt_ref
@@ -264,7 +245,7 @@ def create_homolog_modeling_data(
         )
         
         # convert binarymaps into sparse arrays for model input
-        X[homolog] = sparse.BCOO.fromdense(ref_bmap.binary_variants.toarray())
+        X[homolog] = sparse.BCOO.from_scipy_sparse(ref_bmap.binary_variants)
         
         # create jax array for functional score targets
         y[homolog] = jnp.array(homolog_func_score_df[func_score_col].values)
