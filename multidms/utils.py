@@ -148,9 +148,6 @@ def create_homolog_modeling_data(
     
     """
     
-    # TODO: strip gapped substitutions (insertions) variants
-    # from the func_score_df?
-    
     def split_sub(sub_string):
         """String match the wt, site, and sub aa
         in a given string denoting a single substitution"""
