@@ -110,7 +110,6 @@ def prox(params, hyperparams_prox=dict(clip_stretch=0.0, lock_params=None), scal
     if hyperparams_prox["lock_params"] is not None:
         for key, value in hyperparams_prox["lock_params"].items():
             params[key] = value
-        
 
     return params
 
