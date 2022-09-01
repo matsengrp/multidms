@@ -152,7 +152,7 @@ def create_homolog_modeling_data(
         """String match the wt, site, and sub aa
         in a given string denoting a single substitution"""
         
-        pattern = r'(?P<aawt>[A-Z\*])(?P<site>[\d\w]+)(?P<aamut>[A-Z\*])'
+        pattern = r'(?P<aawt>[A-Z])(?P<site>[\d\w]+)(?P<aamut>[A-Z\*])'
         match = re.search(pattern, sub_string)
         assert match != None, sub_string
         return match.group('aawt'), str(match.group('site')), match.group('aamut')
