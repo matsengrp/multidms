@@ -234,7 +234,7 @@ def create_homolog_modeling_data(
     
     # Make BinaryMap representations for each homolog
     X, y = {}, {}
-    for homolog, homolog_func_score_df in ret_fs_df.groupby("homolog"):
+    for homolog, homolog_func_score_df in ret_fs_df.groupby(homolog_name_col):
         ref_bmap = bmap.BinaryMap(
             homolog_func_score_df,
             substitutions_col="var_wrt_ref",
