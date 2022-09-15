@@ -213,10 +213,19 @@ def create_homolog_modeling_data(
     # using the function above
     ret_fs_df = ret_fs_df.assign(var_wrt_ref = ret_fs_df[substitution_col])
     for hom, hom_func_df in ret_fs_df.groupby(homolog_name_col):
+        
         if hom == reference_homolog: continue
-
-        # compute bundle muts for a specific site
+        variant_cache = {} 
+        cache_hits = 0
+        
         for idx, row in tqdm(hom_func_df.iterrows(), total=len(hom_func_df)):
+            
+            key = tuple(list(zip(row.wts, row.sites, row.muts)))
+            if key in variant_cache:
+                ret_fs_df.loc[idx, "var_wrt_ref"]  = variant_cache[key]
+                cache_hits += 1
+                continue
+            
             var_map = site_map[[reference_homolog, hom]].copy()
             for wt, site, mut in zip(row.wts, row.sites, row.muts):
                 var_map.loc[site, hom] = mut
@@ -224,7 +233,12 @@ def create_homolog_modeling_data(
                 var_map[reference_homolog] != var_map[hom]
             ).dropna()
             muts = nis[reference_homolog] + nis.index + nis[hom]
-            ret_fs_df.loc[idx, "var_wrt_ref"] = " ".join(muts.values)
+            
+            mutated_seq = " ".join(muts.values)
+            ret_fs_df.loc[idx, "var_wrt_ref"] = mutated_seq
+            variant_cache[key] = mutated_seq
+            
+        print(f"There were {cache_hits} cache hits in total for homolog {hom}.")
 
     # Get list of all allowed substitutions for which we will tune beta parameters
     allowed_subs = {

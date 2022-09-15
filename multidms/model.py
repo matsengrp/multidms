@@ -101,10 +101,21 @@ def g(α:dict, z_h:jnp.array):
 
 
 @jax.jit
-def prox(params, hyperparams_prox=dict(clip_stretch=0.0, lock_params=None), scaling=1.0):
-
+def prox(
+    params, 
+    hyperparams_prox=dict(
+        lasso_params=None, 
+        lock_params=None
+    ), 
+    scaling=1.0
+):
+    
     # Monotonic non-linearity
     params["α"]["ge_scale"] = params["α"]["ge_scale"].clip(0)
+    
+    if hyperparams_prox["lasso_params"] is not None:
+        for key, value in hyperparams_prox["lasso_params"].items():
+            params[key] = jaxopt.prox.prox_lasso(params[key], value, scaling)
 
     # Any params to constrain during fit
     if hyperparams_prox["lock_params"] is not None:
