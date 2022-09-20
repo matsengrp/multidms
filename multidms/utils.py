@@ -166,7 +166,7 @@ def create_homolog_modeling_data(
             wt, site, mut = split_sub(sub)
             wts.append(wt); sites.append(site); muts.append(mut)
         return wts, sites, muts
-   
+
     # Add columns that parse mutations into wt amino acid, site,
     # and mutant amino acid
     ret_fs_df = func_score_df.reset_index()
