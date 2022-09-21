@@ -14,7 +14,8 @@ from jaxopt import ProximalGradient
 from jax.experimental import sparse
 import jaxopt
 import numpy as onp
-from tqdm.notebook import tqdm
+#from tqdm.notebook import tqdm
+from tqdm import tqdm
 tqdm.pandas()
 
 
@@ -157,7 +158,8 @@ def create_homolog_modeling_data(
             a column for each homolog wt amino acid. 
     
     """
-    
+   
+    # TODO should we assert there's no mutations like, A154bT? 
     def split_sub(sub_string):
         """String match the wt, site, and sub aa
         in a given string denoting a single substitution"""
@@ -280,6 +282,9 @@ def run_fit(func_score_data, fit_params:dict):
     """
     Awrapper for running a full analysis fit on 2 experiments
     from Bloom Lab.
+
+    TODO Doc params and replace dict
+    TODO dont need to mutate the incoming object.
     """
 
     if fit_params["experiment_2"]:
@@ -300,17 +305,18 @@ def run_fit(func_score_data, fit_params:dict):
 
     func_score_df.aa_substitutions_reference.fillna("", inplace=True)
     gapped_sub_vars = []
+    stop_wt_vars = []
+    non_numeric_sites = []
     for idx, row in tqdm(func_score_df.iterrows(), total=len(func_score_df)):
         if "-" in row[substitution_column]:
             gapped_sub_vars.append(idx)
-
-    stop_wt_vars = []
-    for idx, row in tqdm(func_score_df.iterrows(), total=len(func_score_df)):
         for sub in row[substitution_column].split():
             if sub[0] == "*":
                 stop_wt_vars.append(idx)
+            if not sub[-2].isnumeric():
+                non_numeric_sites.append(idx)
 
-    to_drop = set.union(set(gapped_sub_vars), set(stop_wt_vars))
+    to_drop = set.union(set(gapped_sub_vars), set(stop_wt_vars), set(non_numeric_sites))
     func_score_df.drop(to_drop, inplace=True)
 
 
@@ -351,13 +357,17 @@ def run_fit(func_score_data, fit_params:dict):
         hdf['log2e'] = hdf['e'].apply(lambda x: math.log(x, 2))
         dfs.append(hdf)
     func_score_df = pd.concat(dfs)
-    # return
+    
+    # Drop barcoded variants with pre-counts below a threshold
+    n_pre_threshold = len(func_score_df)
+    func_score_df = func_score_df[func_score_df['pre_count'] >= fit_params["min_pre_counts"]]
+#     print(f'Of {n_pre_threshold} variants, {n_pre_threshold - len(func_score_df)} had fewer than {min_pre_counts} counts before selection, and were filtered out')
 
 
     if fit_params["agg_variants"]:
         func_score_df = func_score_df.groupby([substitution_column, experiment_column]).mean().reset_index()
-        func_score_df["pre_count"] = func_score_df["pre_count"].astype(int)
-        func_score_df["post_count"] = func_score_df["post_count"].astype(int)
+    func_score_df["pre_count"] = func_score_df["pre_count"].astype(int)
+    func_score_df["post_count"] = func_score_df["post_count"].astype(int)
 
     # TODO, what's the order of operations?
     if fit_params["shift_func_score_target_nonref"]:
@@ -490,9 +500,12 @@ def run_fit(func_score_data, fit_params:dict):
         df.loc[hdf.index, "predicted_latent_phenotype"] = z_h
         y_h_pred = g(params["α"], z_h)
         df.loc[hdf.index, f"predicted_{fit_params['func_score_target']}"] = y_h_pred
+    print(f"\nDONE :)")
+    print(f"-------------------")
 
     row = fit_params.copy()
-    row["tuned_model_params_dict"] = params.copy()
-    row["all_subs_list"] = all_subs.copy()
+    row["tuned_model_params"] = params.copy()
+    row["all_subs"] = all_subs.copy()
     row["variant_prediction_df"] = df.drop("index", axis=1)
+    
     return pd.Series(row)
