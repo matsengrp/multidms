@@ -86,18 +86,25 @@ import numpy as onp
 
 
 @jax.jit
-def ϕ(params:dict, X_h:jnp.array):
+def ϕ(h_params:dict, X_h:jnp.array):
     """ Model for predicting latent space """
     
-    return (X_h @ (params["β"] + params["S"])) + params["C"]
+    return (X_h @ (h_params["β"] + h_params["S"])) + h_params["C"] + h_params["C_ref"]
 
 
 @jax.jit
 def g(α:dict, z_h:jnp.array):
     """ Model for global epistasis as 'flexible' sigmoid. """
 
-    activations = jax.nn.sigmoid(z_h[:, None] + α["latent_bias"])
+    activations = jax.nn.sigmoid(z_h[:, None])
     return (α["ge_scale"] @ activations.T) + α["ge_bias"]
+
+
+@jax.jit
+def f(h_params:dict, X_h:jnp.array):
+    """ TODO """
+
+    return g(h_params["α"], ϕ(h_params, X_h)) + h_params["γ"]
 
 
 @jax.jit
@@ -133,20 +140,23 @@ def cost_smooth(params, data, δ=1, λ_ridge=0):
     loss = 0   
     
     # Sum the huber loss across all homologs
-    for homolog, X_h in X.items():
+    for homolog, X_h in X.items():   
         
-        
-        # Subset the params being passed into latent prediction, ϕ
+        # Subset the params for homolog-specific prediction
         h_params = {
+            "α":params["α"],
             "β":params["β"], 
+            "C_ref":params["C_ref"],
             "S":params[f"S_{homolog}"], 
-            "C":params[f"C_{homolog}"]
+            "C":params[f"C_{homolog}"],
+            "γ":params[f"γ_{homolog}"]
         }
         
-        z_h = ϕ(h_params, X_h)
+#         z_h = ϕ(h_params, X_h)
             
         # all GE specific parameters are stored in α
-        y_h_predicted = g(params["α"], z_h)
+#         y_h_predicted = g(params["α"], z_h)
+        y_h_predicted = f(h_params, X_h)
         
         # compute the Huber loss between observed and predicted
         # functional scores
