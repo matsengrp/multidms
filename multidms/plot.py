@@ -95,9 +95,9 @@ def plot_pred_scatter(results, show=True, save=False, annotation_vars=None, prin
 
         ax[1].set_xlabel("predicted_latent_phenotype (ϕ)")
         ax[1].plot(*shape, color='k', lw=1)
-        ax[1].set_ylim(-4, 2.5)       
-        ax[1].set_xlim(-11, 5)       
-        ax[0].set_xlim(-3.5, 1)       
+#         ax[1].set_ylim(-4, 2.5)       
+#         ax[1].set_xlim(-11, 5)       
+#         ax[0].set_xlim(-3.5, 1)       
         plt.tight_layout()
         if save:
             saveas = "scatter"

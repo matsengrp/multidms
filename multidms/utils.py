@@ -86,13 +86,15 @@ def initialize_model_params(
         # We expect most shift parameters to be close to zero
         params[f"S_{homolog}"] = jnp.zeros(shape=(n_beta_shift_params,))
         params[f"C_{homolog}"] = jnp.zeros(shape=(1,))
+        params[f"γ_{homolog}"] = jnp.zeros(shape=(1,))
 
     if include_alpha:
         params["α"]=dict(
-            latent_bias=jnp.array([5.0]), # 5.0 is a guess, could update
             ge_scale=jnp.array([init_sig_range]),
             ge_bias=jnp.array([init_sig_min])
         )
+        
+    params["C_ref"] = jnp.array([5.0]) # 5.0 is a guess, could update
 
     return params
 
