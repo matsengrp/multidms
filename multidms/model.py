@@ -89,7 +89,10 @@ import numpy as onp
 def ϕ(h_params:dict, X_h:jnp.array):
     """ Model for predicting latent space """
     
-    return (X_h @ (h_params["β"] + h_params["S"])) + h_params["C"] + h_params["C_ref"]
+    return ((X_h @ (h_params["β"] + h_params["S"])) 
+            + h_params["C"] 
+            + h_params["C_ref"]
+           )
 
 
 @jax.jit
@@ -152,10 +155,6 @@ def cost_smooth(params, data, δ=1, λ_ridge=0):
             "γ":params[f"γ_{homolog}"]
         }
         
-#         z_h = ϕ(h_params, X_h)
-            
-        # all GE specific parameters are stored in α
-#         y_h_predicted = g(params["α"], z_h)
         y_h_predicted = f(h_params, X_h)
         
         # compute the Huber loss between observed and predicted
