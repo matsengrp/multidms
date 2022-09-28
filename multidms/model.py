@@ -23,9 +23,10 @@ Ultimately, mutational parameters, as well as ones controlling the shape of the 
 
 For each variant $v$ from homolog $h$, we use a global-epistasis function $g$ to convert a latent phenotype $\phi$ to a functional score $f$:
 
-$$f(v,h) = g_{\alpha}(\phi(v,h))$$
+$$f(v,h) = g_{\alpha}(\phi(v,h)) + γ_h$$
 
-where $g$ is a sigmoid and $\alpha$ is a set of parameters encoding the sigmoid.
+where $g$ is a sigmoid and $\alpha$ is a set of parameters,
+`ge_scale`, and `ge_bias` which define the shape of the sigmoid.
 
 The latent phenotype is computed in the following way:
 
