@@ -14,7 +14,15 @@ scaled_func_score_column = 'log2e'
 pal = sns.color_palette('colorblind')
 
 
-def plot_pred_scatter(results, show=True, save=False, annotation_vars=None, printrow=True, annotate_sig_params=False, hue=False):
+def plot_pred_scatter(
+    results, 
+    show=True, 
+    save=False, 
+    annotation_vars=None, 
+    printrow=True, 
+    annotate_params=False, 
+    hue=False
+):
 
     for idx, row in results.iterrows():
     
@@ -63,9 +71,9 @@ def plot_pred_scatter(results, show=True, save=False, annotation_vars=None, prin
             assert len(wt_pred) == 1
             ls = "-" if group == row.experiment_ref else "--"
             co = "blue" if group == row.experiment_ref else "orange"
-            ax[1].axvline(wt_pred[0], color=co, ls=ls, label=group)
+            ax[1].axvline(wt_pred[0], color=co, ls=ls, label=f"{group} wt")
 
-        ax[1].legend(loc= "center right", bbox_to_anchor=(1.6, 1.05))
+        ax[1].legend(loc= "center right", bbox_to_anchor=(1.7, 1.00))
         
         ϕ_grid = onp.linspace(
             1.1 * df.predicted_latent_phenotype.min(),
@@ -79,12 +87,17 @@ def plot_pred_scatter(results, show=True, save=False, annotation_vars=None, prin
         ax[1].axhline(0, color="k", ls="--", lw=1)
         ax[1].axvline(0, color="k", ls="--", lw=1)
         
-        if annotate_sig_params:
+        if annotate_params:
             sig_param_anno = ""
             params = row.tuned_model_params
-            for param, value in params['α'].items():
-                sig_param_anno += f"{param}: {round(value[0], 2)}\n"
-            ax[1].annotate(sig_param_anno, (.1, .7), xycoords="axes fraction", fontsize=8)
+            for param, value in params.items():
+                if param[0] not in ["α", "C", "γ"]: continue
+                if param == "α":
+                    for a_param, a_value in params[param].items():
+                        sig_param_anno += f"{a_param}: {round(a_value[0], 2)}\n"
+                else:
+                    sig_param_anno += f"{param}: {round(value[0], 2)}\n"
+            ax[1].annotate(sig_param_anno, (.1, .6), xycoords="axes fraction", fontsize=8)
          
         if annotation_vars:
             annotation_string = "Fit Hyperparams\n------------\n"
@@ -96,8 +109,8 @@ def plot_pred_scatter(results, show=True, save=False, annotation_vars=None, prin
         ax[1].set_xlabel("predicted_latent_phenotype (ϕ)")
         ax[1].plot(*shape, color='k', lw=1)
 #         ax[1].set_ylim(-4, 2.5)       
-#         ax[1].set_xlim(-11, 5)       
-#         ax[0].set_xlim(-3.5, 1)       
+        ax[1].set_xlim(-11, 7)       
+        ax[0].set_xlim(-4, 1.5)       
         plt.tight_layout()
         if save:
             saveas = "scatter"
