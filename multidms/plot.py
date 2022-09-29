@@ -34,6 +34,8 @@ def plot_pred_scatter(
         
         df = df.assign(is_wt = df[substitution_column].apply(is_wt))
         fig, ax = plt.subplots(1, 2, figsize=[10, 4], sharey=True)
+
+
         sns.scatterplot(
             data=df, x=f"predicted_{row.func_score_target}",
             y=row.func_score_target,
@@ -58,14 +60,20 @@ def plot_pred_scatter(
         ax[0].set_xlabel("predicted functional score")
 
 
-        sns.scatterplot(
-            data=df, x="predicted_latent_phenotype",
-            y=row.func_score_target,
-            # hue=experiment_column,
-            hue=experiment_column if hue else None,
-            alpha=0.01, palette="deep",
-            legend=True, ax=ax[1]
-        )
+        idx = df.query(f"homolog_exp == '{row.experiment_2}'").index 
+        df_ep = df.copy()
+        if row.model == "non-linear":
+            df_ep.loc[idx, row.func_score_target] -= row.tuned_model_params[f"γ_{row.experiment_2}"][0]
+            # linear adjustment?
+            #df_ep.loc[idx, "predicted_latent_phenotype"] += row.tuned_model_params[f"γ_{row.experiment_2}"][0]
+            sns.scatterplot(
+                data=df_ep, x="predicted_latent_phenotype",
+                y=row.func_score_target,
+                # hue=experiment_column,
+                hue=experiment_column if hue else None,
+                alpha=0.01, palette="deep",
+                legend=True, ax=ax[1]
+            )
         for group, wt_exp_df in df.query(f"is_wt == True").groupby([experiment_column]):
             wt_pred = wt_exp_df[f"predicted_latent_phenotype"].apply(lambda x: round(x, 5)).unique()
             assert len(wt_pred) == 1
@@ -80,8 +88,9 @@ def plot_pred_scatter(
             1.1 * df.predicted_latent_phenotype.max(),
             num=1000
         )
-        shape = (ϕ_grid, g(row.tuned_model_params["α"], ϕ_grid))
-        ax[1].plot(*shape, color='k', lw=1)
+        if "α" in row.tuned_model_params:
+            shape = (ϕ_grid, g(row.tuned_model_params["α"], ϕ_grid))
+            ax[1].plot(*shape, color='k', lw=1)
         ax[0].axhline(0, color="k", ls="--", lw=1)
         ax[0].axvline(0, color="k", ls="--", lw=1)
         ax[1].axhline(0, color="k", ls="--", lw=1)
@@ -107,10 +116,12 @@ def plot_pred_scatter(
                 size=8)
 
         ax[1].set_xlabel("predicted_latent_phenotype (ϕ)")
-        ax[1].plot(*shape, color='k', lw=1)
-#         ax[1].set_ylim(-4, 2.5)       
-        ax[1].set_xlim(-11, 7)       
-        ax[0].set_xlim(-4, 1.5)       
+        # ax[1].plot(*shape, color='k', lw=1)
+        # ax[1].set_ylim(-4, 2.5)       
+        ax[1].set_xlim(-11, 6)       
+        ax[1].set_ylim(-5, 3)       
+        ax[0].set_xlim(-5, 2.5)       
+        ax[0].set_ylim(-5, 3)       
         plt.tight_layout()
         if save:
             saveas = "scatter"
@@ -183,10 +194,11 @@ def plot_param_hist(results, show=True, save=False, printrow=False):
                 label='muts to stop codons',
                 binwidth=bin_width, binrange=(min_val, max_val),
                 alpha=0.5
+                #log_scale=True
             )
 
             axs[i].set(xlabel=param)
-
+        axs[1].set_yscale('log')
         plt.tight_layout()
         axs[0].legend()
         if save:
