@@ -284,7 +284,7 @@ def plot_shift_by_site(results, show=True, save=False, printrow=False):
             int(i) for i, s in row.site_map.iterrows()
             if s[row.experiment_ref] != s[row.experiment_2]
         ]
-        print(non_identical_sites)
+        # print(non_identical_sites)
 
         def split_sub(sub_string):
             """String match the wt, site, and sub aa
@@ -307,19 +307,25 @@ def plot_shift_by_site(results, show=True, save=False, printrow=False):
             ).pivot(
                 index="mutant",
                 columns="site", values=param
-            ).sum(axis=0).reset_index()
-            # return mutation_effects
+            ).apply(lambda x: sum([abs(t) for t in x if t == t]), axis=0).reset_index()
 
             ax[i].axhline(0, color="k", ls="--", lw=1)
-            for nis in non_identical_sites:
-                ax[i].axvline(nis, color='k', ls='--', lw=1)
 
             sns.lineplot(
                 data=mutation_effects,
                 x="site", y=0, 
                 ax=ax[i]
             )
-            ax[i].set_title(f"$\sum${param}", size=20)
+
+            mutation_effects["non_identical"] = [True if s in non_identical_sites else False for s in mutation_effects.site]
+            sns.scatterplot(
+                data=mutation_effects,
+                # size=1,
+                x="site", y=0,
+                hue = "non_identical",
+                ax=ax[i]
+            )
+            ax[i].set_ylabel(f"$\sum${param[:9]}", size=20)
 
         plt.tight_layout()
         if save:
