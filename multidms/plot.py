@@ -10,6 +10,7 @@ from multidms.utils import *
 
 substitution_column = 'aa_substitutions_reference'
 experiment_column = 'homolog_exp'
+# experiment_column = 'homolog'
 scaled_func_score_column = 'log2e'
 pal = sns.color_palette('colorblind')
 
@@ -60,7 +61,7 @@ def plot_pred_scatter(
         ax[0].set_xlabel("predicted functional score")
 
 
-        idx = df.query(f"homolog_exp == '{row.experiment_2}'").index 
+        idx = df.query(f"{experiment_column} == '{row.experiment_2}'").index 
         df_ep = df.copy()
         if row.model == "non-linear":
             df_ep.loc[idx, row.func_score_target] -= row.tuned_model_params[f"γ_{row.experiment_2}"][0]
@@ -74,14 +75,16 @@ def plot_pred_scatter(
                 alpha=0.01, palette="deep",
                 legend=True, ax=ax[1]
             )
-        for group, wt_exp_df in df.query(f"is_wt == True").groupby([experiment_column]):
-            wt_pred = wt_exp_df[f"predicted_latent_phenotype"].apply(lambda x: round(x, 5)).unique()
-            assert len(wt_pred) == 1
-            ls = "-" if group == row.experiment_ref else "--"
-            co = "blue" if group == row.experiment_ref else "orange"
-            ax[1].axvline(wt_pred[0], color=co, ls=ls, label=f"{group} wt")
+        if row.model == "non-linear":
+            for group, wt_exp_df in df.query(f"is_wt == True").groupby([experiment_column]):
+                wt_pred = wt_exp_df[f"predicted_latent_phenotype"].apply(lambda x: round(x, 5)).unique()
+                assert len(wt_pred) == 1
+                ls = "-" if group == row.experiment_ref else "--"
+                co = "blue" if group == row.experiment_ref else "orange"
+                ax[1].axvline(wt_pred[0], color=co, ls=ls, label=f"{group} wt")
 
-        ax[1].legend(loc= "center right", bbox_to_anchor=(1.7, 1.00))
+        if row.model == "non-linear":
+            ax[1].legend(loc= "center right", bbox_to_anchor=(1.7, 1.00))
         
         ϕ_grid = onp.linspace(
             1.1 * df.predicted_latent_phenotype.min(),
@@ -118,15 +121,15 @@ def plot_pred_scatter(
         ax[1].set_xlabel("predicted_latent_phenotype (ϕ)")
         # ax[1].plot(*shape, color='k', lw=1)
         # ax[1].set_ylim(-4, 2.5)       
-        ax[1].set_xlim(-11, 6)       
-        ax[1].set_ylim(-5, 3)       
-        ax[0].set_xlim(-5, 2.5)       
-        ax[0].set_ylim(-5, 3)       
+        #ax[0].set_xlim(-5, 2.5)       
+        #ax[0].set_ylim(-5, 3)       
+        #ax[1].set_xlim(-11, 6)       
+        #ax[1].set_ylim(-5, 3)       
         plt.tight_layout()
         if save:
             saveas = "scatter"
             for key, value in row.items():
-                if key in ["tuned_model_params", "all_subs", "variant_prediction_df"]: continue
+                if key in ["tuned_model_params", "all_subs", "variant_prediction_df", "site_map"]: continue
                 saveas += f"-{value}"
             saveas = "".join(saveas.split()) + ".png"
             fig.savefig(saveas)
@@ -198,13 +201,13 @@ def plot_param_hist(results, show=True, save=False, printrow=False):
             )
 
             axs[i].set(xlabel=param)
-        axs[1].set_yscale('log')
+        #axs[1].set_yscale('log')
         plt.tight_layout()
         axs[0].legend()
         if save:
             saveas = "param-hist"
             for key, value in row.items():
-                if key in ["tuned_model_params", "all_subs", "variant_prediction_df"]: continue
+                if key in ["tuned_model_params", "all_subs", "variant_prediction_df", "site_map"]: continue
                 saveas += f"-{value}"
             saveas = "".join(saveas.split()) + ".png"
             fig.savefig(saveas)
@@ -218,6 +221,7 @@ def plot_param_heatmap(results, show=True, save=False, printrow=False):
         if printrow: print(row)
         fig, ax = plt.subplots(2, figsize=(25, 10))
 
+        # TODO add outlining plots
         # non_identical_sites = [
         #     i for i, row in site_map.iterrows()
         #     if row["Delta"] != row["Omicron_BA.1"]
@@ -244,13 +248,15 @@ def plot_param_heatmap(results, show=True, save=False, printrow=False):
             ).pivot(
                 index="mutant",
                 columns="site", values=param
-            )#.iloc[:, :100]
+            )
 
             sns.heatmap(
                 mutation_effects, 
                 mask=mutation_effects.isnull(),
                 cmap="coolwarm_r",
                 center=0,
+                vmin=-1,
+                vmax=1,
                 cbar_kws={"label": param},
                 ax=ax[i]
             )
@@ -260,8 +266,103 @@ def plot_param_heatmap(results, show=True, save=False, printrow=False):
         if save:
             saveas = "param-heatmap"
             for key, value in row.items():
-                if key in ["tuned_model_params", "all_subs", "variant_prediction_df"]: continue
+                if key in ["tuned_model_params", "all_subs", "variant_prediction_df", "site_map"]: continue
                 saveas += f"-{value}"
             saveas = "".join(saveas.split()) + ".png"
             fig.savefig(saveas)
         if show: plt.show()
+
+
+def plot_shift_by_site(results, show=True, save=False, printrow=False):
+
+    for idx, row in results.iterrows():
+        
+        if printrow: print(row)
+        fig, ax = plt.subplots(2, figsize=(15, 5))
+
+        non_identical_sites = [
+            int(i) for i, s in row.site_map.iterrows()
+            if s[row.experiment_ref] != s[row.experiment_2]
+        ]
+        print(non_identical_sites)
+
+        def split_sub(sub_string):
+            """String match the wt, site, and sub aa
+            in a given string denoting a single substitution"""
+
+            pattern = r'(?P<aawt>[A-Z\*])(?P<site>[\d\w]+)(?P<aamut>[A-Z\*])'
+            match = re.search(pattern, sub_string)
+            assert match != None, sub_string
+            return match.group('aawt'), match.group('site'), match.group('aamut')
+
+        for i, param in enumerate(["β", f"S_{row.experiment_2}"]):
+            rows = []
+            for mutation, p in zip(row.all_subs, row.tuned_model_params[param]):
+                wt, site, mut = split_sub(mutation)
+                rows.append([int(site), wt, mut, float(p)])
+
+            mutation_effects = pd.DataFrame(
+                rows,
+                columns=("site", "wildtype", "mutant", param)
+            ).pivot(
+                index="mutant",
+                columns="site", values=param
+            ).sum(axis=0).reset_index()
+            # return mutation_effects
+
+            ax[i].axhline(0, color="k", ls="--", lw=1)
+            for nis in non_identical_sites:
+                ax[i].axvline(nis, color='k', ls='--', lw=1)
+
+            sns.lineplot(
+                data=mutation_effects,
+                x="site", y=0, 
+                ax=ax[i]
+            )
+            ax[i].set_title(f"$\sum${param}", size=20)
+
+        plt.tight_layout()
+        if save:
+            saveas = "param-heatmap"
+            for key, value in row.items():
+                if key in ["tuned_model_params", "all_subs", "variant_prediction_df", "site_map"]: continue
+                saveas += f"-{value}"
+            saveas = "".join(saveas.split()) + ".png"
+            fig.savefig(saveas)
+        if show: plt.show()
+
+
+def plot_fit_param_comp_scatter(results, idx_1, idx_2, show=True, save=False, printrow=False):
+
+    to_compare = ["tuned_model_params", "all_subs"] 
+    fit1 = results.loc[idx_1, to_compare]
+    fit2 = results.loc[idx_2, to_compare]
+
+    # make sure we're comparing the same substitution parameters
+    assert onp.all(fit1.all_subs == fit2.all_subs)
+    
+    fig, ax = plt.subplots(2, figsize=[6, 10])
+    i=0
+    for param in fit1.tuned_model_params:
+        if param == "β" or param == f"S_{results.loc[idx_1, 'experiment_2']}":
+            df = pd.DataFrame(
+                {
+                    "fit1": fit1.tuned_model_params[param],
+                    "fit2": fit2.tuned_model_params[param],
+                    "is_stop":[True if "*" in s else False for s in fit1.all_subs]
+                }
+            )
+            sns.scatterplot(data=df, x="fit1", y="fit2", hue="is_stop", alpha=0.6,  palette="deep", ax=ax[i])
+            ax[i].plot([df.fit1.min(), df.fit1.max()], [df.fit1.min(), df.fit1.max()], ls="--", c="k")
+            ax[i].set_title(f"{param} parameter comparison")
+            i += 1
+
+    plt.tight_layout()
+    if save:
+        saveas = "param-heatmap"
+        for key, value in row.items():
+            if key in ["tuned_model_params", "all_subs", "variant_prediction_df", "site_map"]: continue
+            saveas += f"-{value}"
+        saveas = "".join(saveas.split()) + ".png"
+        fig.savefig(saveas)
+    if show: plt.show()
