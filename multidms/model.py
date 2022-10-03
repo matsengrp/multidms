@@ -168,3 +168,65 @@ def cost_smooth(params, data, δ=1, λ_ridge=0):
         loss += ridge_penalty
 
     return loss
+
+
+@jax.jit
+def f_linear(h_params:dict, X_h:jnp.array):
+    """ TODO """
+
+    return ϕ(h_params, X_h) + h_params["γ"]
+
+
+@jax.jit
+def prox_linear(
+    params, 
+    hyperparams_prox=dict(
+        lasso_params=None, 
+        lock_params=None
+    ), 
+    scaling=1.0
+):
+    
+    if hyperparams_prox["lasso_params"] is not None:
+        for key, value in hyperparams_prox["lasso_params"].items():
+            params[key] = jaxopt.prox.prox_lasso(params[key], value, scaling)
+
+    # Any params to constrain during fit
+    if hyperparams_prox["lock_params"] is not None:
+        for key, value in hyperparams_prox["lock_params"].items():
+            params[key] = value
+
+    return params
+
+
+@jax.jit
+def cost_smooth_linear(params, data, δ=1, λ_ridge=0):
+    """Cost (Objective) function summed across all homologs"""
+
+    X, y = data
+    loss = 0   
+    
+    # Sum the huber loss across all homologs
+    for homolog, X_h in X.items():   
+        
+        # Subset the params for homolog-specific prediction
+        h_params = {
+            "β":params["β"], 
+            "C_ref":params["C_ref"],
+            "S":params[f"S_{homolog}"], 
+            "C":params[f"C_{homolog}"],
+            "γ":params[f"γ_{homolog}"]
+        }
+        
+        y_h_predicted = f_linear(h_params, X_h)
+        
+        # compute the Huber loss between observed and predicted
+        # functional scores
+        loss += jaxopt.loss.huber_loss(y[homolog], y_h_predicted, δ).mean()
+        
+        # compute a regularization term that penalizes non-zero
+        # shift parameters and add it to the loss function
+        ridge_penalty = λ_ridge * (params[f"S_{homolog}"] ** 2).sum()
+        loss += ridge_penalty
+
+    return loss
