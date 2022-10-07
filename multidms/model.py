@@ -137,7 +137,7 @@ def prox(
 
 
 @jax.jit
-def cost_smooth(params, data, δ=1, λ_ridge=0):
+def cost_smooth(params, data, δ=1, λ_ridge=0, lower_bound=-3.5):
     """Cost (Objective) function summed across all homologs"""
 
     X, y = data
@@ -156,7 +156,7 @@ def cost_smooth(params, data, δ=1, λ_ridge=0):
             "γ":params[f"γ_{homolog}"]
         }
         
-        y_h_predicted = f(h_params, X_h)
+        y_h_predicted = jax.nn.softplus(f(h_params, X_h)-lower_bound)+lower_bound
         
         # compute the Huber loss between observed and predicted
         # functional scores

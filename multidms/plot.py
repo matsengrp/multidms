@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import plotnine
 from scipy.stats import pearsonr
 
+from functools import reduce
 import sys
 sys.path.append("..")
 from multidms.utils import *
@@ -123,7 +124,10 @@ def plot_pred_scatter(
         # ax[1].set_ylim(-4, 2.5)       
         #ax[0].set_xlim(-5, 2.5)       
         #ax[0].set_ylim(-5, 3)       
-        #ax[1].set_xlim(-11, 6)       
+        ax[1].set_xlim(-11, 6)       
+        ax[1].set_ylim(-11, 6)       
+        ax[0].set_xlim(-11, 6)       
+        ax[0].set_ylim(-11, 6)       
         #ax[1].set_ylim(-5, 3)       
         plt.tight_layout()
         if save:
@@ -278,7 +282,9 @@ def plot_shift_by_site(results, show=True, save=False, printrow=False):
     for idx, row in results.iterrows():
         
         if printrow: print(row)
-        fig, ax = plt.subplots(2, figsize=(15, 5))
+        #fig, ax = plt.subplots(2, figsize=(15, 5))
+        fig, ax = plt.subplots(1, figsize=(12, 3))
+        ax = [ax]
 
         non_identical_sites = [
             int(i) for i, s in row.site_map.iterrows()
@@ -295,7 +301,8 @@ def plot_shift_by_site(results, show=True, save=False, printrow=False):
             assert match != None, sub_string
             return match.group('aawt'), match.group('site'), match.group('aamut')
 
-        for i, param in enumerate(["β", f"S_{row.experiment_2}"]):
+        #for i, param in enumerate(["β", f"S_{row.experiment_2}"]):
+        for i, param in enumerate([f"S_{row.experiment_2}"]):
             rows = []
             for mutation, p in zip(row.all_subs, row.tuned_model_params[param]):
                 wt, site, mut = split_sub(mutation)
@@ -307,9 +314,11 @@ def plot_shift_by_site(results, show=True, save=False, printrow=False):
             ).pivot(
                 index="mutant",
                 columns="site", values=param
-            ).apply(lambda x: sum([abs(t) for t in x if t == t]), axis=0).reset_index()
+            ).apply(lambda x: sum([abs(t) for t in x if t == t]), axis=0).reset_index()#.loc[:, 850:900]
 
             ax[i].axhline(0, color="k", ls="--", lw=1)
+            ax[i].set_ylim([-1, 50])
+            # ax[i].set_xlim([830, 860])
 
             sns.lineplot(
                 data=mutation_effects,
@@ -325,7 +334,7 @@ def plot_shift_by_site(results, show=True, save=False, printrow=False):
                 hue = "non_identical",
                 ax=ax[i]
             )
-            ax[i].set_ylabel(f"$\sum${param[:9]}", size=20)
+            ax[i].set_ylabel(f"$\sum${param}", size=10)
 
         plt.tight_layout()
         if save:
@@ -340,28 +349,40 @@ def plot_shift_by_site(results, show=True, save=False, printrow=False):
 
 def plot_fit_param_comp_scatter(results, idx_1, idx_2, show=True, save=False, printrow=False):
 
-    to_compare = ["tuned_model_params", "all_subs"] 
-    fit1 = results.loc[idx_1, to_compare]
-    fit2 = results.loc[idx_2, to_compare]
-
-    # make sure we're comparing the same substitution parameters
-    assert onp.all(fit1.all_subs == fit2.all_subs)
-    
-    fig, ax = plt.subplots(2, figsize=[6, 10])
-    i=0
-    for param in fit1.tuned_model_params:
-        if param == "β" or param == f"S_{results.loc[idx_1, 'experiment_2']}":
-            df = pd.DataFrame(
-                {
-                    "fit1": fit1.tuned_model_params[param],
-                    "fit2": fit2.tuned_model_params[param],
-                    "is_stop":[True if "*" in s else False for s in fit1.all_subs]
-                }
-            )
-            sns.scatterplot(data=df, x="fit1", y="fit2", hue="is_stop", alpha=0.6,  palette="deep", ax=ax[i])
-            ax[i].plot([df.fit1.min(), df.fit1.max()], [df.fit1.min(), df.fit1.max()], ls="--", c="k")
-            ax[i].set_title(f"{param} parameter comparison")
-            i += 1
+    dfs = []
+    for fit in [idx_1, idx_2]:
+        fit_exp2 = results.loc[fit, "experiment_2"]
+        dfs.append(pd.DataFrame(
+            {
+                "all_subs" : results.loc[fit, "all_subs"],
+                 f"S_{fit_exp2}" : results.loc[fit, "tuned_model_params"][f"S_{fit_exp2}"]
+            }
+        ))
+    df = reduce(
+        lambda l, r: pd.merge(
+            l, r, how="inner", on="all_subs"
+        ), dfs
+    )
+    df["is_stop"] = [True if "*" in s else False for s in df.all_subs]
+    r = pearsonr(df.iloc[:, 1], df.iloc[:, 2])[0]
+    fig, ax = plt.subplots(figsize=[6, 6])
+    sns.scatterplot(
+        data=df, 
+        x=df.columns[1], 
+        y=df.columns[2], 
+        hue="is_stop", 
+        alpha=0.6,  
+        palette="deep", 
+        ax=ax
+    )
+    fit1_ref, fit1_e2 = results.loc[idx_1, ["experiment_ref", "experiment_2"]].values
+    fit2_ref, fit2_e2 = results.loc[idx_2, ["experiment_ref", "experiment_2"]].values
+    min1, max1 = df[f"S_{fit1_e2}"].min(), df[f"S_{fit1_e2}"].max()
+    ax.plot([min1, max1], [min1, max1], ls="--", c="k")
+    ax.annotate(f"$r = {r:.2f}$", (.7, .1), xycoords="axes fraction", fontsize=12)
+    ax.set_title(f"Shift parameter comparison")
+    ax.set_xlabel(f"S({fit1_ref} -> {fit1_e2})")
+    ax.set_ylabel(f"S({fit2_ref} -> {fit2_e2})")
 
     plt.tight_layout()
     if save:
@@ -371,4 +392,77 @@ def plot_fit_param_comp_scatter(results, idx_1, idx_2, show=True, save=False, pr
             saveas += f"-{value}"
         saveas = "".join(saveas.split()) + ".png"
         fig.savefig(saveas)
+
+    if show: plt.show()
+
+
+def plot_fit_param_site_comp_scatter(results, idx_1, idx_2, show=True, save=False, printrow=False):
+
+    def split_sub(sub_string):
+        """String match the wt, site, and sub aa
+        in a given string denoting a single substitution"""
+
+        pattern = r'(?P<aawt>[A-Z\*])(?P<site>[\d\w]+)(?P<aamut>[A-Z\*])'
+        match = re.search(pattern, sub_string)
+        assert match != None, sub_string
+        return match.group('aawt'), match.group('site'), match.group('aamut')
+
+    dfs = []
+    for fit in [idx_1, idx_2]:
+
+        fit_exp2 = results.loc[fit, "experiment_2"]
+        param = f"S_{fit_exp2}"
+        fit_subs = results.loc[fit, "all_subs"]
+        fit_shifts = results.loc[fit, "tuned_model_params"][param]
+        rows = []
+        for mutation, p in zip(fit_subs, fit_shifts):
+            wt, site, mut = split_sub(mutation)
+            rows.append([int(site), wt, mut, float(p)])
+
+        mutation_effects = pd.DataFrame(
+            rows,
+            columns=("site", "wildtype", "mutant", param)
+        ).pivot(
+            index="mutant",
+            columns="site", values=param
+        ).apply(
+            lambda x: sum([abs(t) for t in x if t == t]), axis=0
+        ).reset_index().rename({0:param}, axis=1)
+
+        dfs.append(pd.DataFrame(
+            mutation_effects
+        ))
+    df = reduce(
+        lambda l, r: pd.merge(
+            l, r, how="inner", on="site"
+        ), dfs
+    )
+    r = pearsonr(df.iloc[:, 1], df.iloc[:, 2])[0]
+    fig, ax = plt.subplots(figsize=[6, 6])
+    sns.scatterplot(
+        data=df, 
+        x=df.columns[1], 
+        y=df.columns[2], 
+        alpha=0.6,  
+        palette="deep", 
+        ax=ax
+    )
+    fit1_ref, fit1_e2 = results.loc[idx_1, ["experiment_ref", "experiment_2"]].values
+    fit2_ref, fit2_e2 = results.loc[idx_2, ["experiment_ref", "experiment_2"]].values
+    min1, max1 = df.iloc[:,1].min(), df.iloc[:,1].max()
+    ax.plot([min1, max1], [min1, max1], ls="--", c="k")
+    ax.annotate(f"$r = {r:.2f}$", (.7, .1), xycoords="axes fraction", fontsize=12)
+    ax.set_title(f"Shift parameter comparison")
+    ax.set_xlabel(f"S({fit1_ref} -> {fit1_e2})")
+    ax.set_ylabel(f"S({fit2_ref} -> {fit2_e2})")
+
+    plt.tight_layout()
+    if save:
+        saveas = "param-heatmap"
+        for key, value in row.items():
+            if key in ["tuned_model_params", "all_subs", "variant_prediction_df", "site_map"]: continue
+            saveas += f"-{value}"
+        saveas = "".join(saveas.split()) + ".png"
+        fig.savefig(saveas)
+
     if show: plt.show()
