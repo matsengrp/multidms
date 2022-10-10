@@ -35,7 +35,7 @@ def plot_pred_scatter(
             return True if len(string.split()) == 0 else False
         
         df = df.assign(is_wt = df[substitution_column].apply(is_wt))
-        fig, ax = plt.subplots(1, 2, figsize=[10, 4], sharey=True)
+        fig, ax = plt.subplots(1, 2, figsize=[10, 4], sharey=False)
 
 
         sns.scatterplot(
@@ -66,8 +66,6 @@ def plot_pred_scatter(
         df_ep = df.copy()
         if row.model == "non-linear":
             df_ep.loc[idx, row.func_score_target] -= row.tuned_model_params[f"γ_{row.experiment_2}"][0]
-            # linear adjustment?
-            #df_ep.loc[idx, "predicted_latent_phenotype"] += row.tuned_model_params[f"γ_{row.experiment_2}"][0]
             sns.scatterplot(
                 data=df_ep, x="predicted_latent_phenotype",
                 y=row.func_score_target,
@@ -120,14 +118,15 @@ def plot_pred_scatter(
                 size=8)
 
         ax[1].set_xlabel("predicted_latent_phenotype (ϕ)")
+        ax[1].set_ylabel("functional score - γ")
         # ax[1].plot(*shape, color='k', lw=1)
         # ax[1].set_ylim(-4, 2.5)       
         #ax[0].set_xlim(-5, 2.5)       
         #ax[0].set_ylim(-5, 3)       
         ax[1].set_xlim(-11, 6)       
-        ax[1].set_ylim(-11, 6)       
-        ax[0].set_xlim(-11, 6)       
-        ax[0].set_ylim(-11, 6)       
+        #ax[1].set_ylim(-11, 6)       
+        #ax[0].set_xlim(-11, 6)       
+        #ax[0].set_ylim(-11, 6)       
         #ax[1].set_ylim(-5, 3)       
         plt.tight_layout()
         if save:

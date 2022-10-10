@@ -105,10 +105,26 @@ def g(α:dict, z_h:jnp.array):
 
 
 @jax.jit
+def scaled_shifted_softplus(act, lower_bound=-3.5, hinge_scale=0.1):
+    """A modified softplus that hinges at 'lower_bound'. 
+    the rate of change at the hinge is defined by 'hinge_scale'."""
+
+    return (
+        hinge_scale * (
+            jnp.log(
+                1 + jnp.exp((act - lower_bound) / hinge_scale)
+            )
+        ) + lower_bound
+    )
+
+
+@jax.jit
 def f(h_params:dict, X_h:jnp.array):
     """ TODO """
 
-    return g(h_params["α"], ϕ(h_params, X_h)) + h_params["γ"]
+    return scaled_shifted_softplus(
+        g(h_params["α"], ϕ(h_params, X_h)) + h_params["γ"]
+    )
 
 
 @jax.jit
@@ -155,8 +171,9 @@ def cost_smooth(params, data, δ=1, λ_ridge=0, lower_bound=-3.5):
             "C":params[f"C_{homolog}"],
             "γ":params[f"γ_{homolog}"]
         }
-        
-        y_h_predicted = jax.nn.softplus(f(h_params, X_h)-lower_bound)+lower_bound
+       
+        # compute predictions 
+        y_h_predicted = f(h_params, X_h)
         
         # compute the Huber loss between observed and predicted
         # functional scores
