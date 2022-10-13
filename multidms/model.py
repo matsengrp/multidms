@@ -105,10 +105,27 @@ def g(α:dict, z_h:jnp.array):
 
 
 @jax.jit
-def f(h_params:dict, X_h:jnp.array):
+def scaled_shifted_softplus(act, lower_bound=-1.0, hinge_scale=0.1):
+    """A modified softplus that hinges at 'lower_bound'. 
+    the rate of change at the hinge is defined by 'hinge_scale'."""
+
+    return (
+        hinge_scale * (
+            jnp.log(
+                1 + jnp.exp((act - lower_bound) / hinge_scale)
+            )
+        ) + lower_bound
+    )
+
+
+@jax.jit
+def f(h_params:dict, X_h:jnp.array, **kwargs):
     """ TODO """
 
-    return g(h_params["α"], ϕ(h_params, X_h)) + h_params["γ"]
+    return scaled_shifted_softplus(
+        g(h_params["α"], ϕ(h_params, X_h)), # + h_params["γ"],
+        **kwargs
+    )
 
 
 @jax.jit
@@ -116,13 +133,14 @@ def prox(
     params, 
     hyperparams_prox=dict(
         lasso_params=None, 
-        lock_params=None
+        lock_params=None,
     ), 
     scaling=1.0
 ):
     
-    # Monotonic non-linearity
-    params["α"]["ge_scale"] = params["α"]["ge_scale"].clip(0)
+    # Monotonic non-linearity, if non-linear model
+    if "α" in params:
+        params["α"]["ge_scale"] = params["α"]["ge_scale"].clip(0)
     
     if hyperparams_prox["lasso_params"] is not None:
         for key, value in hyperparams_prox["lasso_params"].items():
@@ -137,7 +155,7 @@ def prox(
 
 
 @jax.jit
-def cost_smooth(params, data, δ=1, λ_ridge=0):
+def cost_smooth(params, data, δ=1, λ_ridge=0, **kwargs):
     """Cost (Objective) function summed across all homologs"""
 
     X, y = data
@@ -153,14 +171,16 @@ def cost_smooth(params, data, δ=1, λ_ridge=0):
             "C_ref":params["C_ref"],
             "S":params[f"S_{homolog}"], 
             "C":params[f"C_{homolog}"],
-            "γ":params[f"γ_{homolog}"]
         }
-        
-        y_h_predicted = f(h_params, X_h)
+       
+        # compute predictions 
+        y_h_predicted = f(h_params, X_h, **kwargs)
         
         # compute the Huber loss between observed and predicted
         # functional scores
-        loss += jaxopt.loss.huber_loss(y[homolog], y_h_predicted, δ).mean()
+        loss += jaxopt.loss.huber_loss(
+            y[homolog] + params[f"γ_{homolog}"], y_h_predicted, δ
+        ).mean()
         
         # compute a regularization term that penalizes non-zero
         # shift parameters and add it to the loss function
@@ -171,11 +191,13 @@ def cost_smooth(params, data, δ=1, λ_ridge=0):
 
 
 @jax.jit
-def f_linear(h_params:dict, X_h:jnp.array):
+def f_linear(h_params:dict, X_h:jnp.array, **kwargs):
     """ TODO """
 
-    return ϕ(h_params, X_h) + h_params["γ"]
-
+    return scaled_shifted_softplus(
+        ϕ(h_params, X_h) + h_params["γ"],
+        **kwargs
+    )
 
 @jax.jit
 def prox_linear(
@@ -198,7 +220,7 @@ def prox_linear(
 
     return params
 
-
+# TODO use static args to exchange f() predictions
 @jax.jit
 def cost_smooth_linear(params, data, δ=1, λ_ridge=0):
     """Cost (Objective) function summed across all homologs"""
