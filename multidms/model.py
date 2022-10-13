@@ -220,7 +220,7 @@ def prox_linear(
 
     return params
 
-
+# TODO use static args to exchange f() predictions
 @jax.jit
 def cost_smooth_linear(params, data, δ=1, λ_ridge=0):
     """Cost (Objective) function summed across all homologs"""

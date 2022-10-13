@@ -228,6 +228,8 @@ def plot_param_by_site(results, show=True, save=False, printrow=False):
             ).apply(lambda x: sum([abs(t) for t in x if t == t]), axis=0).reset_index()
 
             ax[i].axhline(0, color="k", ls="--", lw=1)
+
+            # TODO kwargs?
             #ax[i].set_ylim([-1, 50])
             #ax[i].set_xlim([830, 860])
 
@@ -265,11 +267,6 @@ def plot_fit_param_comp_scatter(
     show=True
 ):
 
-
-    # make sure we're comparing fits which have the same 
-    # assert results.loc[idx_1, "conditions"][0] == results.loc[idx_2, "conditions"][0] == 
-    #dfs = [row.mutation_effects_df.copy() for idx, row in results.loc[[idx_1, idx_2]].iterrows()]
-    
     mut_effect_dfs = []
     fit_features = []
     for fit, feature in fits_features.items():
@@ -277,23 +274,6 @@ def plot_fit_param_comp_scatter(
         fit_mut_effects.site = fit_mut_effects.site.astype(int)
         mut_effect_dfs.append(fit_mut_effects)
         fit_features.append(feature)
-        #fit_features.append(set(
-        #    [
-        #        col for col in fit_mut_effects.columns 
-        #        if col.startswith("β") or col.startswith("S")
-        #    ]
-        #))
-        
-    #features_to_compare = set.intersection(fit_features[0], fit_features[1])
-
-    #for fit in [idx_1, idx_2]:
-    #    fit_exp2 = results.loc[fit, "experiment_2"]
-    #    dfs.append(pd.DataFrame(
-    #        {
-    #            "all_subs" : results.loc[fit, "all_subs"],
-    #             f"S_{fit_exp2}" : results.loc[fit, "tuned_model_params"][f"S_{fit_exp2}"]
-    #        }
-    #    ))
 
     comb_mut_effects = reduce(
         lambda l, r: pd.merge(
@@ -304,8 +284,6 @@ def plot_fit_param_comp_scatter(
         True if "*" in s else False for s in comb_mut_effects.substitution
     ]
 
-    #print(features_to_compare)
-    #print(comb_mut_effects)
     if fit_features[0] == fit_features[1]:
         x = f"{fit_features[0]}_x"
         y = f"{fit_features[1]}_y"
@@ -324,15 +302,10 @@ def plot_fit_param_comp_scatter(
         ax=ax
     )
 
-    #fit1_ref, fit1_e2 = results.loc[idx_1, ["experiment_ref", "experiment_2"]].values
-    #fit2_ref, fit2_e2 = results.loc[idx_2, ["experiment_ref", "experiment_2"]].values
     min1, max1 = comb_mut_effects[x].min(), comb_mut_effects[x].max()
     ax.plot([min1, max1], [min1, max1], ls="--", c="k")
     ax.annotate(f"$r = {r:.2f}$", (.7, .1), xycoords="axes fraction", fontsize=12)
     ax.set_title(f"feature comparison")
-    #ax.set_xlabel(f"S({fit1_ref} -> {fit1_e2})")
-    #ax.set_ylabel(f"S({fit2_ref} -> {fit2_e2})")
-
     plt.tight_layout()
     if show: plt.show()
 
