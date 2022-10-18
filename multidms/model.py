@@ -179,9 +179,6 @@ def g(α:dict, z_h:jnp.array):
     activations = jax.nn.sigmoid(z_h[:, None])
     return (α["ge_scale"] @ activations.T) + α["ge_bias"]
 
-    #activations = jax.nn.softplus(-z_h[:, None])
-    #return -1 * ((α["ge_scale"] @ activations.T) + α["ge_bias"])
-
 
 @jax.jit
 def scaled_shifted_softplus(act, lower_bound=-1.0, hinge_scale=0.1):
