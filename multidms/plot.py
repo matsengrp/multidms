@@ -118,6 +118,7 @@ def plot_pred_scatter(
         ax[0].set_ylabel("functional score - γ$_{h}$")
         # ax[1].plot(*shape, color='k', lw=1)
         AX[0].set_ylim(-5, 2.5)       
+        # ax[0].set_ylim(-5, 2.5)       
         ax[1].set_xlim(-11, 6)       
         plt.tight_layout()
         ax[0].grid()
