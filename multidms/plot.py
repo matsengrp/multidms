@@ -46,7 +46,9 @@ def plot_pred_scatter(
         )
 
         for group, wt_exp_df in df.query(f"is_wt == True").groupby([experiment_column]):
-            wt_pred = wt_exp_df[f"predicted_func_score"].apply(lambda x: round(x, 5)).unique()
+            wt_pred = wt_exp_df[f"predicted_func_score"].apply(
+                lambda x: round(x, 5)
+            ).unique()
             assert len(wt_pred) == 1
             ax[0].axvline(wt_pred[0], label=group)
 
@@ -70,7 +72,9 @@ def plot_pred_scatter(
 
         if row.model == "non-linear":
             for group, wt_exp_df in df.query(f"is_wt == True").groupby([experiment_column]):
-                wt_pred = wt_exp_df[f"predicted_latent_phenotype"].apply(lambda x: round(x, 5)).unique()
+                wt_pred = wt_exp_df[f"predicted_latent_phenotype"].apply(
+                    lambda x: round(x, 5)
+                ).unique()
                 assert len(wt_pred) == 1
                 ax[1].axvline(wt_pred[0], label=group)
 
@@ -113,6 +117,7 @@ def plot_pred_scatter(
         ax[1].set_xlabel("predicted_latent_phenotype (ϕ)")
         ax[0].set_ylabel("functional score - γ$_{h}$")
         # ax[1].plot(*shape, color='k', lw=1)
+        AX[0].set_ylim(-5, 2.5)       
         # ax[0].set_ylim(-5, 2.5)       
         ax[1].set_xlim(-11, 6)       
         plt.tight_layout()
