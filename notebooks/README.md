@@ -1,5 +1,14 @@
-# multidms
+# Example Notebooks
 
+1. fit\_pipeline.ipynb - A notebook showing soup-to-nuts prep and and model fit 
+    to omicron and delta dms data from the bloom lab.
+
+2. simulate\_data.ipynb - How we simulate data for testing.
+
+3. fit\_simulation\_pipeline.ipynb - A notebook fitting to simulation data.
+
+4. homolog\_binarymap\_example.ipynb - Show how mutations are 
+    converted between conditions
 
 **Running on ermine**
 

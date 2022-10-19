@@ -1,7 +1,6 @@
 
 import seaborn as sns
 import matplotlib.pyplot as plt
-import plotnine
 from scipy.stats import pearsonr
 
 from functools import reduce
