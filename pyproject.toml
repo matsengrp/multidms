@@ -1,0 +1,93 @@
+# pyproject.toml
+
+# Metadata
+[build-system]
+requires      = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multidms"
+version = "0.0.1"
+description = "Represent and model one or more dms experiments and identify variant predicted fitness, and individual mutation effects and shifts."
+readme = "README.rst"
+authors = [
+    { name = "Jared Galloway", email= "jgallowa@fredhutch.org" },
+    { name = "Hugh Haddox", email = "hkhaddox@gmail.com" }
+]
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: MIT Licence",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+keywords = [
+    "multidms", 
+    "deep", 
+    "mutational", 
+    "scanning", 
+    "dms", 
+    "bloom", 
+    "matsen"
+]
+
+
+# Software Dependencies
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "pandas",
+    "jax",
+    "jaxopt",
+    "binarymap",
+    "scipy>=1.7.1",
+    "polyclonal @ git+https://github.com/jbloomlab/polyclonal@fd87e2647f9101f881d6bb25c0d29942253f9d01",
+    # https://stackoverflow.com/a/54793503
+    "altair @ git+https://github.com/altair-viz/altair@0217b2e73703d3b7b529b73b4dec9c17e7fb09bb",  # noqa: E501
+    "matplotlib",
+    "seaborn",
+    "notebook",
+    "scipy",
+    "tqdm",
+    "ipywidgets"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-pep8",
+    "pytest-datadir",
+    "pre-commit",
+    "black",
+    "sphinx",
+    "sphinx_rtd_theme",
+    "bumpver"
+]
+
+# Poetry
+[tool.poetry]
+readme = "README.rst"
+
+[project.urls]
+# documentation = "https://matsengrp.github.io/multidms/"
+repository = "https://github.com/matsengrp/multidms"
+
+[tool.setuptools]
+packages = ["multidms"]
+
+[tool.bumpver]
+current_version = "0.0.1"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message = "bump version {old_version} -> {new_version}"
+commit = true
+tag = true
+push = false
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = [
+    'current_version = "{version}"', 'version = "{version}"'
+]
+"multidms/__init__.py" = ["{version}"]
+#"README.md" = [
+#    "{version}",
+#]
+
