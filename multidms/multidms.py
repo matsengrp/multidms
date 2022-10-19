@@ -1041,207 +1041,15 @@ class Multidms:
         """
         pass
 
-    DEFAULT_SCIPY_MINIMIZE_KWARGS = frozendict.frozendict(
-        {
-            "method": "L-BFGS-B",
-            "options": {
-                "maxfun": 1e7,
-                "maxiter": 1e6,
-                "ftol": 1e-7,
-            },
-        }
-    )
-
-    """frozendict.frozendict: default ``scipy_minimize_kwargs`` to ``fit``."""
 
     # TODO Set up f(v, h) = t(g(ϕ(v, h)))
     def predict():
         pass
 
-    def fit(
-        self,
-        *,
-        loss_delta=0.1,
-        reg_shift_weight=0.02,
-        reg_shift_delta=0.1,
-        reg_spread_weight=0.25,
-        reg_activity_weight=1.0,
-        reg_activity_delta=0.1,
-        fit_site_level_first=True,
-        scipy_minimize_kwargs=DEFAULT_SCIPY_MINIMIZE_KWARGS,
-        log=None,
-        logfreq=None,
-    ):
-        r"""Fit parameters (activities and mutation shifts) to the data.
-
-        Requires :attr:`Multidms.data_to_fit` be set at initialization of
-        this :class:`Multidms` object. After calling this method, the
-        :math:`a_{\rm{wt},e}` and :math:`\beta_{m,e}` have been optimized, and
-        can be accessed using other methods of the :class:`Multidms` object.
-
-        Parameters
-        ----------
-        loss_delta : float
-            Pseudo-Huber :math:`\delta` parameter for loss on
-            :math:`p_v\left(c\right)` fitting.
-        reg_shift_weight : float
-            Strength of Pseudo-Huber regularization on :math:`\beta_{m,e}`.
-        reg_shift_delta : float
-            Pseudo-Huber :math:`\delta` for regularizing :math:`\beta_{m,e}`.
-        reg_spread_weight : float
-            Strength of regularization on variance of :math:`\beta_{m,e}`
-            values at each site.
-        reg_activity_weight : float
-            Strength of Pseudo-Huber regularization on :math:`a_{\rm{wt},e}`.
-            Only positive values regularized.
-        reg_activity_delta : float
-            Pseudo-Huber :math:`\delta` for regularizing :math:`a_{\rm{wt},e}`.
-        fit_site_level_first : bool
-            First fit a site-level model, then use those activities /
-            shifts to initialize fit of this model. Generally works better.
-        scipy_minimize_kwargs : dict
-            Keyword arguments passed to ``scipy.optimize.minimize``.
-        log : None or writable file-like object
-            Where to log output. If ``None``, use ``sys.stdout``.
-        logfreq : None or int
-            How frequently to write updates on fitting to ``log``.
-
-        Return
-        ------
-        scipy.optimize.OptimizeResult
-
-        """
-        pass
-
-        # polyclonal
-        """
-        if self.data_to_fit is None:
-            raise ValueError("cannot fit if `data_to_fit` not set")
-
-        if log is None:
-            log = sys.stdout
-        if not (logfreq is None or (isinstance(logfreq, int) and logfreq > 0)):
-            raise ValueError(f"{logfreq=} not an integer > 0")
-
-        self._check_close_activities()
-
-        if fit_site_level_first:
-            if logfreq:
-                log.write("# First fitting site-level model.\n")
-            # get arg passed to fit: https://stackoverflow.com/a/65927265
-            myframe = inspect.currentframe()
-            keys, _, _, values = inspect.getargvalues(myframe)
-            fit_kwargs = {key: values[key] for key in keys if key != "self"}
-            fit_kwargs["fit_site_level_first"] = False
-            site_model = self.site_level_model()
-            site_model.fit(**fit_kwargs)
-            self._params = self._params_from_dfs(
-                activity_wt_df=site_model.activity_wt_df,
-                mut_shift_df=(
-                    site_model.mut_shift_df[["condition", "site", "escape"]].merge(
-                        self.mut_shift_df.drop(columns="escape"),
-                        on=["condition", "site"],
-                        how="right",
-                        validate="one_to_many",
-                    )
-                ),
-            )
-        """
-        
-        class LossReg:
-            # compute loss in class to remember last call
-            """
-            def __init__(self_):
-                self_.last_loss = None
-                self_.last_params = None
-
-            def loss_reg(self_, params, breakdown=False):
-                if (self_.last_params is None) or (params != self_.last_params).any():
-                    fitloss, dfitloss = self._loss_dloss(params, loss_delta)
-                    regshift, dregescape = self._reg_escape(
-                        params, reg_shift_weight, reg_escape_delta
-                    )
-                    regspread, dregspread = self._reg_spread(params, reg_spread_weight)
-                    regactivity, dregactivity = self._reg_activity(
-                        params,
-                        reg_activity_weight,
-                        reg_activity_delta,
-                    )
-                    loss = fitloss + regshift + regspread + regactivity
-                    dloss = dfitloss + dregshift + dregspread + dregactivity
-                    self_.last_params = params
-                    self_.last_loss = (
-                        loss,
-                        dloss,
-                        {
-                            "fit_loss": fitloss,
-                            "reg_shift": regescape,
-                            "reg_spread": regspread,
-                            "reg_activity": regactivity,
-                        },
-                    )
-                return self_.last_loss if breakdown else self_.last_loss[:2]
-                """
-            pass
-
-        #lossreg = LossReg()
-
-        """
-        if logfreq:
-            log.write(
-                f"# Starting optimization of {len(self._params)} "
-                f"parameters at {time.asctime()}.\n"
-            )
-
-            class Callback:
-                # to log minimization
-                def __init__(self_, interval, start):
-                    self_.interval = interval
-                    self_.i = 0
-                    self_.start = start
-
-                def callback(self_, params, header=False, force_output=False):
-                    if force_output or (self_.i % self_.interval == 0):
-                        loss, _, breakdown = lossreg.loss_reg(params, True)
-                        if header:
-                            cols = ["step", "time_sec", "loss", *breakdown.keys()]
-                            log.write("".join("{:>13}".format(x) for x in cols) + "\n")
-                        sec = time.time() - self_.start
-                        log.write(
-                            "".join(
-                                "{:>13.5g}".format(x)
-                                for x in [self_.i, sec, loss, *breakdown.values()]
-                            )
-                            + "\n"
-                        )
-                        log.flush()
-                    self_.i += 1
-
-            scipy_minimize_kwargs = dict(scipy_minimize_kwargs)
-            callback_logger = Callback(logfreq, time.time())
-            callback_logger.callback(self._params, header=True, force_output=True)
-            scipy_minimize_kwargs["callback"] = callback_logger.callback
-        """
+    # TODO
+    def fit(self):
         pass 
 
-        # polyclonal
-        """
-
-        opt_res = scipy.optimize.minimize(
-            fun=lossreg.loss_reg,
-            x0=self._params,
-            jac=True,
-            **scipy_minimize_kwargs,
-        )
-        self._params = opt_res.x
-        if logfreq:
-            callback_logger.callback(self._params, force_output=True)
-            log.write(f"# Successfully finished at {time.asctime()}.\n")
-        if not opt_res.success:
-            log.write(f"# Optimization FAILED at {time.asctime()}.\n")
-            raise MultidmsFitError(f"Optimization failed:\n{opt_res}")
-        return opt_res
-        """
 
     # TODO all plotting
     def activity_wt_barplot(self, **kwargs):
@@ -1260,7 +1068,6 @@ class Multidms:
         """
         pass
 
-        # polyclonal
         """
         kwargs["activity_wt_df"] = self.activity_wt_df
         if "condition_colors" not in kwargs:
@@ -1294,7 +1101,6 @@ class Multidms:
         """
         pass
 
-        # polyclonal
         """
         variants_df = variants_df.copy()
 
@@ -1333,7 +1139,6 @@ class Multidms:
         """Get ``BinaryMap`` appropriate for use."""
         pass
 
-        # polyclonal
         """
         bmap = binarymap.BinaryMap(
             variants_df,
@@ -1371,7 +1176,6 @@ class Multidms:
         """
         pass
 
-        # polyclonal
         """
         if self.mut_shift_df is None or ref_poly.mut_escape_df is None:
             raise ValueError("Both objects must have `mut_shift_df` initialized.")
