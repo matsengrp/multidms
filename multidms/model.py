@@ -185,7 +185,7 @@ def scaled_shifted_softplus(h_params:dict, act, lower_bound=-1.0, hinge_scale=0.
     """A modified softplus that hinges at 'lower_bound'. 
     the rate of change at the hinge is defined by 'hinge_scale'."""
 
-    l = lower_bound + h_params["γ"]
+    l = lower_bound - h_params["γ"]
     return (
         hinge_scale * (
             jnp.log(
