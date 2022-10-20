@@ -37,13 +37,13 @@ def split_sub(sub_string):
     return match.group('aawt'), str(match.group('site')), match.group('aamut')
 
 
-def split_subs(subs_string):
+def split_subs(subs_string, parser=split_sub):
     """wrap the split_sub func to work for a 
     string contining multiple substitutions"""
     
     wts, sites, muts = [], [], []
     for sub in subs_string.split():
-        wt, site, mut = split_sub(sub)
+        wt, site, mut = parser(sub)
         wts.append(wt); sites.append(site); muts.append(mut)
     return wts, sites, muts
 

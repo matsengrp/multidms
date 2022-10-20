@@ -9,6 +9,8 @@ dms experiments under various conditions.
 """
 
 
+
+from functools import partial
 import collections
 import copy  # noqa: F401
 import inspect
@@ -18,33 +20,37 @@ import sys
 import time
 import json
 
-import binarymap
+# bloom lab tools
+import binarymap as bmap
+from polyclonal.plot import DEFAULT_POSITIVE_COLORS
+# TODO https://github.com/google/jax/issues/3045 JIT MutationParser functions?
 from polyclonal.utils import MutationParser
 import frozendict
 # import natsort
 import numpy as onp
 import pandas
+from tqdm import tqdm
 
-#import scipy.optimize
-#import scipy.special
+# jax
+# TODO do we need the cuda version, as well?
 import jax
+import jaxlib
+# from jax import jit
 jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from jax.experimental import sparse
+import jaxopt
 
-import multidms
-import multidms.plot
-import multidms.utils
+# local
+# TODO import only what you need, here.
+# import multidms
+#import multidms.plot
+#import multidms.utils
+from multidms.model import ϕ, identity
 
 
-class MultidmsFitError(Exception):
+class stub_MultidmsFitError(Exception):
     """Error fitting in :meth:`Multidms.fit`."""
-
-    pass
-
-
-class MultidmsHarmonizeError(Exception):
-    """Error harmonizing conditions in :meth:`Multidms.condition_harmonized_model`."""
 
     pass
 
@@ -639,9 +645,17 @@ class Multidms:
         reference : str,
         alphabet=multidms.AAS,
         init_missing="zero",
+        letter_suffixed_sites=False,
+        condition_colors=DEFAULT_POSITIVE_COLORS,
+        latent_model=ϕ,
+        epistatic_model=identity,
+        output_activation=identity,
         **kwargs
     ):
         """See main class docstring."""
+        self.ϕ = latent_model
+        self.g = epistatic_model
+        self.t = output_activation
 
         # check init seed 
         # TODO Is this necessary?
@@ -650,6 +664,15 @@ class Multidms:
             numpy.random.seed(init_missing)
         elif init_missing != "zero":
             raise ValueError(f"invalid {init_missing=}")    
+
+        # Check and initialize conditions attribute
+        if pandas.isnull(data_to_fit["condition"]).any():
+            raise ValueError("condition name cannot be null")
+        self.conditions = tuple(data_to_fit["condition"].unique())
+
+        if reference not in self.conditions:
+            raise ValueError("reference must be in condition factor levels")
+        self.reference = reference
 
         # Check and initialize condition colors
         if isinstance(condition_colors, dict):
@@ -665,76 +688,174 @@ class Multidms:
         self.alphabet = tuple(alphabet)
         self._mutparser = MutationParser(
             alphabet,
-            letter_suffixed_sites=not self.sequential_integer_sites,
+            letter_suffixed_sites
         )
 
-        # Check and initialize conditions attribute
-        if pandas.isnull(activity_wt_df["condition"]).any():
-            raise ValueError("condition name cannot be null")
-        self.conditions = tuple(activity_wt_df["condition"].unique())
 
         # Check and initialize fitting data from func_score_df
         (
-            self._binarymaps,
-            self._data_to_fit,
-            self._all_subs,
-            self._site_map,
+            self.binarymaps,
+            self.data_to_fit,
+            self.all_subs,
+            self.site_mapg,
         ) = self._create_condition_modeling_data(
             data_to_fit, 
             reference,
-            collapse_identical_variants,
             **kwargs    
         )
 
         # set internal params with activities and shifts
-        self._params = self._initialize_model_params()
+        # TODO This should rely on the three functions passed in
+        self.params = self._initialize_model_params(
+            self.data_to_fit["condition"].unique(), 
+            n_beta_shift_params=self.binarymaps['X'][reference].shape[1],
+            include_alpha=True, # TODO would could just initialize them after ... ?
+            #init_sig_range=sig_range, #TODO
+            #init_sig_min=sig_lower
+        )
 
-        # TODO initialize the mutations_df
+        # update variant data
+        # TODO add prediction columns, gamma corrected functional scores etc? 
+        # self._update_variant_df()
 
-        """
-        def _init_mut_shift_df(mutations):
-            # initialize mutation shift values
-            if init_missing == "zero":
-                init = 0.0
-            else:
-                init = numpy.random.rand(len(self.conditions) * len(mutations))
-            return pandas.DataFrame(
-                {
-                    "condition": list(self.conditions) * len(mutations),
-                    "mutation": [m for m in mutations for _ in self.conditions],
-                    "shift": init,
-                }
-            )
-        """
+        # initialize single mutational effects df
+        mut_df = pandas.DataFrame(
+            {
+                "mutation" : self.all_subs
+            }
+        )
+
+        # TODO JIT
+        #parser = partial(multidms.utils.split_sub, parser=self._mutparser.parse_mut)
+        mut_df["wts"], mut_df["sites"], mut_df["muts"] = zip(
+            *mut_df["mutation"].map(multidms.utils.split_sub)
+        )
+        print(mut_df)
+
+        # compute times seen in data
+        #wts2, sites2, muts2 = self._muts_fromdata_to_fit(data_to_fit)
+        #if (self.sites is not None) and not set(sites2).issubset(self.sites):
+        #    raise ValueError("sites in `data_to_fit` not all in `sites`")
+        # ^^ ? 
+        times_seen = (
+            data_to_fit["aa_substitutions"]
+            .str.split()
+            .explode()
+            .dropna()
+            .value_counts()
+            #.sort_values(ascending=False)
+        )
+        if (times_seen == times_seen.astype(int)).all():
+            times_seen = times_seen.astype(int)
+        print(times_seen)
+
+        # add other current model properties.
+        self.mut_df = mut_df
+        self._update_single_mutant_effects_df()
+
+    # TODO finish
+    def _update_variant_df(self):
+        """ update predictions, and gamma corrected function scores? """
+        pass
+
+
+    def _update_single_mutant_effects_df(self):
+
+        # initialize the mutations_df
+        #print(len(self.params["β"]))
+        self.mut_df.loc[:, "β"] = self.params["β"]
+
+        #df["predicted_latent_phenotype"] = onp.nan
+        #df[f"predicted_func_score"] = onp.nan
+        #df[f"corrected_func_score"] = df[f"func_score"]
+        #
+        #print(f"\nRunning Predictions")
+        #print(f"-------------------")
+        #
+        ## sub string, wt, site, mut, Beta, {S_c}, {F_c}
+        ## TODO number of times seen?
+        #
+        #mut_effect_df = pd.DataFrame({
+        #    "substitution" : all_subs,
+        #    "β" : params["β"]
+        #})
+        #
+        #mut_effect_df["wt"], mut_effect_df["site"], mut_effect_df["mut"] = zip(
+        #  *mut_effect_df["substitution"].map(multidms.utils.split_sub)
+        #)
+        #
+        #binary_single_subs = sparse.BCOO.fromdense(onp.identity(len(all_subs)))
+        #
+        #for homolog, hdf in df.groupby(experiment_column):
+        #
+        #    # collect relevant params
+        #    h_params = {
+        #        "β":params["β"],
+        #        "C_ref":params["C_ref"],
+        #        "S":params[f"S_{homolog}"],
+        #        "C":params[f"C_{homolog}"],
+        #    }
+        #
+        #    if fit_params["model"] == "non-linear": h_params["α"] = params["α"]
+        #
+        #    # latent predictions on all variants
+        #    z_h = multidms.model.ϕ(h_params, X[homolog])
+        #    df.loc[hdf.index, "predicted_latent_phenotype"] = z_h
+        #
+        #    # full model predictions
+        #    y_h_pred = pred_func(
+        #        h_params,
+        #        X[homolog],
+        #        lower_bound=fit_params['lower_bound'],
+        #        hinge_scale=fit_params['hinge_scale']
+        #    )
+        #    df.loc[hdf.index, f"predicted_func_score"] = y_h_pred
+        #
+        #    # add the corrected functional scores by tuned gamma
+        #    df.loc[hdf.index, f"corrected_func_score"] += params[f"γ_{homolog}"][0]
+        #
+        #    # attach relevent params to mut effects df
+        #    mut_effect_df[f"S_{homolog}"] = params[f"S_{homolog}"]
+        #
+        #    # predictions for all single subs
+        #    mut_effect_df[f"F_{homolog}"] = pred_func(
+        #        h_params,
+        #        binary_single_subs,
+        #        lower_bound=fit_params['lower_bound'],
+        #        hinge_scale=fit_params['hinge_scale']
+        #    )
+        #
+        #row = fit_params.copy()
+        #
+        #row["variant_prediction_df"] = df.drop("index", axis=1)
+        #row["mutation_effects_df"] = mut_effect_df
+        #row["site_map"] = site_map.copy()
+        #row["tuned_model_params"] = params.copy()
+        #
+        ## results = pd.Series(row)
+        #results.loc[len(results)] = pd.Series(row)
+        #
+        #print(f"\nDONE :)")
+        #print(f"-------------------")
+
+        return None
+        
+
+
+
 
         # TODO Compute times seen somewhere
 
-        """
         # get wildtype, sites, and mutations
-        if data_to_fit is not None:
-            wts2, sites2, muts2 = self._muts_from_data_to_fit(data_to_fit)
-            if (self.sites is not None) and not set(sites2).issubset(self.sites):
-                raise ValueError("sites in `data_to_fit` not all in `sites`")
-            times_seen = (
-                data_to_fit["aa_substitutions"]
-                .str.split()
-                .explode()
-                .dropna()
-                .value_counts()
-                .sort_values(ascending=False)
-                / data_to_fit["concentration"].nunique()
-            )
-            if (times_seen == times_seen.astype(int)).all():
-                times_seen = times_seen.astype(int)
-            self.mutations_times_seen = frozendict.frozendict(times_seen)
-        """
 
     # TODO impliment different condition overlap options
+    # TODO move the column names to a config of some kind. JSON?
     def _create_condition_modeling_data(
+        self,
         func_score_df:pandas.DataFrame,
         reference_condition:str,
-        condition_overlap="sites",
-        collapse_identical_variants=False,
+        # condition_overlap="sites", # TODO document
+        collapse_identical_variants="mean",
         condition_col="condition",
         substitution_col="aa_substitutions",
         func_score_col="func_score",
@@ -803,39 +924,51 @@ class Multidms:
         
         """
 
-        cols = ["concentration", "aa_substitutions"]
-        if "weight" in df.columns:
+        # cols = ["concentration", "aa_substitutions"]
+        cols = [
+            condition_col,
+            substitution_col,
+            func_score_col
+        ]
+        if "weight" in func_score_df.columns:
             cols.append(
                 "weight"
             )  # will be overwritten if `collapse_identical_variants`
         #if get_pv:
         #    cols.append("prob_shift")
-        if not df[cols].notnull().all().all():
+        if not func_score_df[cols].notnull().all().all():
             raise ValueError(f"null entries in data frame of variants:\n{df[cols]}")
 
         if collapse_identical_variants:
-            agg_dict = {"weight": "sum"}
-            if get_pv:
-                agg_dict["prob_shift"] = collapse_identical_variants
+            agg_dict = {
+                "weight" : "sum", 
+                func_score_col : collapse_identical_variants
+            }
+            #if get_pv:
+            #    agg_dict["prob_shift"] = collapse_identical_variants
             df = (
-                df[cols]
+                func_score_df[cols]
                 .assign(weight=1)
-                .groupby(["concentration", "aa_substitutions"], as_index=False)
+                .groupby([condition_col, "aa_substitutions"], as_index=False)
                 .aggregate(agg_dict)
             )
 
         # Add columns that parse mutations into wt amino acid, site,
         # and mutant amino acid
-        ret_fs_df = func_score_df.reset_index()
-        ret_fs_df["wts"], ret_fs_df["sites"], ret_fs_df["muts"] = zip(
-            *ret_fs_df[substitution_col].map(split_subs)
+        else:
+            df = func_score_df.reset_index()
+
+        # TODO JIT
+        parser = partial(multidms.utils.split_subs, parser=self._mutparser.parse_mut)
+        df["wts"], df["sites"], df["muts"] = zip(
+            *df[substitution_col].map(parser)
         )
     
         # Use the substitution_col to infer the wildtype
         # amino-acid sequence of each condition, storing this
         # information in a dataframe.
-        site_map = pandas.DataFrame(dtype="string")
-        for hom, hom_func_df in ret_fs_df.groupby(condition_col):
+        site_map = pandas.DataFrame()
+        for hom, hom_func_df in df.groupby(condition_col):
             for idx, row in hom_func_df.iterrows():
                 for wt, site  in zip(row.wts, row.sites):
                     site_map.loc[site, hom] = wt
@@ -846,6 +979,8 @@ class Multidms:
         print(f"Found {sum(na_rows)} site(s) lacking data in at least one condition.")
         sites_to_throw = na_rows[na_rows].index
         site_map.dropna(inplace=True)
+        #print(site_map)
+        #return
         
         # Remove all variants with a mutation at one of the above
         # "disallowed" sites lacking data
@@ -857,20 +992,20 @@ class Multidms:
                     return False
             return True
         
-        ret_fs_df["allowed_variant"] = ret_fs_df.sites.apply(
+        df["allowed_variant"] = df.sites.apply(
             lambda sl: flags_disallowed(sites_to_throw,sl)
         )
-        n_var_pre_filter = len(ret_fs_df)
-        ret_fs_df = ret_fs_df[ret_fs_df["allowed_variant"]]
-        print(f"{n_var_pre_filter-len(ret_fs_df)} of the {n_var_pre_filter} variants"
+        n_var_pre_filter = len(df)
+        df = df[df["allowed_variant"]]
+        print(f"{n_var_pre_filter-len(df)} of the {n_var_pre_filter} variants"
               f" were removed because they had mutations at the above sites, leaving"
-              f" {len(ret_fs_df)} variants.")
+              f" {len(df)} variants.")
     
         # Duplicate the substitutions_col, 
         # then convert the respective subs to be wrt ref
         # using the function above
-        ret_fs_df = ret_fs_df.assign(var_wrt_ref = ret_fs_df[substitution_col])
-        for hom, hom_func_df in ret_fs_df.groupby(condition_col):
+        df = df.assign(var_wrt_ref = df[substitution_col])
+        for hom, hom_func_df in df.groupby(condition_col):
             
             if hom == reference_condition: continue
             # TODO, conditions with identical site maps should share cache, yea?
@@ -882,7 +1017,7 @@ class Multidms:
                 
                 key = tuple(list(zip(row.wts, row.sites, row.muts)))
                 if key in variant_cache:
-                    ret_fs_df.loc[idx, "var_wrt_ref"]  = variant_cache[key]
+                    df.loc[idx, "var_wrt_ref"]  = variant_cache[key]
                     cache_hits += 1
                     continue
                 
@@ -891,24 +1026,29 @@ class Multidms:
                     var_map.loc[site, hom] = mut
                 nis = var_map.where(
                     var_map[reference_condition] != var_map[hom]
-                ).dropna()
-                muts = nis[reference_condition] + nis.index + nis[hom]
+                ).dropna().astype(str)
+                
+                #print(nis.info())
+                #return
+                #print("GGGGGGG")
+                #print(nis[reference_condition], nis.index, nis[hom])
+                muts = nis[reference_condition] + nis.index.astype(str) + nis[hom]
                 
                 mutated_seq = " ".join(muts.values)
-                ret_fs_df.loc[idx, "var_wrt_ref"] = mutated_seq
+                df.loc[idx, "var_wrt_ref"] = mutated_seq
                 variant_cache[key] = mutated_seq
                 
             print(f"There were {cache_hits} cache hits in total for condition {hom}.")
     
         # Get list of all allowed substitutions for which we will tune beta parameters
         allowed_subs = {
-            s for subs in ret_fs_df.var_wrt_ref
+            s for subs in df.var_wrt_ref
             for s in subs.split()
         }
         
         # Make BinaryMap representations for each condition
         X, y = {}, {}
-        for condition, condition_func_score_df in ret_fs_df.groupby(condition_col):
+        for condition, condition_func_score_df in df.groupby(condition_col):
             ref_bmap = bmap.BinaryMap(
                 condition_func_score_df,
                 substitutions_col="var_wrt_ref",
@@ -921,12 +1061,12 @@ class Multidms:
             # create jax array for functional score targets
             y[condition] = jnp.array(condition_func_score_df[func_score_col].values)
         
-        ret_fs_df.drop(["wts", "sites", "muts"], axis=1, inplace=True)
-    
-        return (X, y), ret_fs_df, ref_bmap.all_subs, site_map 
+        df.drop(["wts", "sites", "muts"], axis=1, inplace=True)
+        return {'X':X, 'y':y}, df, ref_bmap.all_subs, site_map 
 
 
     def _initialize_model_params(
+            self,
             homologs: dict, 
             n_beta_shift_params: int,
             include_alpha=True,
@@ -1006,12 +1146,12 @@ class Multidms:
         r"""pandas.DataFrame: Activities :math:`a_{\rm{wt,e}}` for conditions."""
         pass
 
+
     @property
     def mutation_df(self):
         r"""pandas.DataFrame: Escape :math:`\beta_{m,e}` for each mutation."""
         pass
 
-        # polyclonal
 
     @property
     def mutation_site_summary_df(
@@ -1042,13 +1182,52 @@ class Multidms:
         pass
 
 
-    # TODO Set up f(v, h) = t(g(ϕ(v, h)))
-    def predict():
-        pass
+    def get_condition_params(self, condition=None):
+        """ get the relent parameters for a model prediction"""
+
+        condition = self.reference if condition is None else condition
+        if condition not in self.conditions:
+            raise ValueError("condition does not exist in model")
+
+        return {
+            "β":self.params["β"], 
+            "C_ref":self.params["C_ref"],
+            "S":self.params[f"S_{condition}"], 
+            "C":self.params[f"C_{condition}"],
+            "α":self.params[f"α"]
+        }
+
+
+    def condition_predict(self, X, condition=None):
+        """ condition specific prediction on X using the biophysical model
+        given current model parameters. """
+
+        # TODO assert X is correct shape.
+        # TODO assert that the substitutions exist?
+        # TODO require the user
+        h_params = get_condition_params(condition)
+
+        return self.predict(
+                h_params, X, self._ϕ, self._g, self._t
+        )
+
+    @partial(jax.jit, static_argnums=(0, 3, 4, 5))
+    def predict(
+        self,
+        h_params:dict, 
+        X_h:jnp.array, 
+        ϕ:jaxlib.xla_extension.CompiledFunction,
+        g:jaxlib.xla_extension.CompiledFunction,
+        t:jaxlib.xla_extension.CompiledFunction
+    ):
+        """ Biophysical model - compiled for optimization 
+        until model functions ϕ, g, and t are updated."""
+
+        return t(g(h_params['α'], ϕ(h_params, X_h)))
 
     # TODO
-    def fit(self):
-        pass 
+    #def fit(self):
+    #    pass 
 
 
     # TODO all plotting

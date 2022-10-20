@@ -161,23 +161,10 @@ from jax.experimental import sparse
 import jaxopt
 import numpy as onp
 
-
+# activation functions
 @jax.jit
-def ϕ(h_params:dict, X_h:jnp.array):
-    """ Model for predicting latent space """
-    
-    return ((X_h @ (h_params["β"] + h_params["S"])) 
-            + h_params["C"] 
-            + h_params["C_ref"]
-           )
-
-
-@jax.jit
-def g(α:dict, z_h:jnp.array):
-    """ Model for global epistasis as 'flexible' sigmoid. """
-
-    activations = jax.nn.sigmoid(z_h[:, None])
-    return (α["ge_scale"] @ activations.T) + α["ge_bias"]
+def identity(x):
+    return x
 
 
 @jax.jit
@@ -192,6 +179,28 @@ def scaled_shifted_softplus(act, lower_bound=-1.0, hinge_scale=0.1):
             )
         ) + lower_bound
     )
+
+
+# linear models
+@jax.jit
+def ϕ(h_params:dict, X_h:jnp.array):
+    """ Model for predicting latent space """
+    
+    return ((X_h @ (h_params["β"] + h_params["S"])) 
+            + h_params["C"] 
+            + h_params["C_ref"]
+           )
+
+# global epistasis models
+@jax.jit
+def g(α:dict, z_h:jnp.array):
+
+    """ Model for global epistasis as 'flexible' sigmoid. """
+
+    activations = jax.nn.sigmoid(z_h[:, None])
+    return (α["ge_scale"] @ activations.T) + α["ge_bias"]
+
+
 
 
 @jax.jit

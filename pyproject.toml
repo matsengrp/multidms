@@ -34,13 +34,13 @@ keywords = [
 # Software Dependencies
 requires-python = ">=3.9"
 dependencies = [
-    "numpy",
-    "pandas",
+    "polyclonal @ git+https://github.com/jbloomlab/polyclonal@fd87e2647f9101f881d6bb25c0d29942253f9d01",
     "jax",
     "jaxopt",
+    "numpy",
+    "pandas",
     "binarymap",
     "scipy>=1.7.1",
-    "polyclonal @ git+https://github.com/jbloomlab/polyclonal@fd87e2647f9101f881d6bb25c0d29942253f9d01",
     # https://stackoverflow.com/a/54793503
     "altair @ git+https://github.com/altair-viz/altair@0217b2e73703d3b7b529b73b4dec9c17e7fb09bb",  # noqa: E501
     "matplotlib",
