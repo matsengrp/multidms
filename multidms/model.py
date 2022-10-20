@@ -181,16 +181,17 @@ def g(α:dict, z_h:jnp.array):
 
 
 @jax.jit
-def scaled_shifted_softplus(act, lower_bound=-1.0, hinge_scale=0.1):
+def scaled_shifted_softplus(h_params:dict, act, lower_bound=-1.0, hinge_scale=0.1):
     """A modified softplus that hinges at 'lower_bound'. 
     the rate of change at the hinge is defined by 'hinge_scale'."""
 
+    l = lower_bound + h_params["γ"]
     return (
         hinge_scale * (
             jnp.log(
-                1 + jnp.exp((act - lower_bound) / hinge_scale)
+                1 + jnp.exp((act - l) / hinge_scale)
             )
-        ) + lower_bound
+        ) + l
     )
 
 
@@ -199,6 +200,7 @@ def f(h_params:dict, X_h:jnp.array, **kwargs):
     """ TODO """
 
     return scaled_shifted_softplus(
+        h_params,
         g(h_params["α"], ϕ(h_params, X_h)), # + h_params["γ"],
         **kwargs
     )
@@ -247,6 +249,7 @@ def cost_smooth(params, data, δ=1, λ_ridge=0, **kwargs):
             "C_ref":params["C_ref"],
             "S":params[f"S_{homolog}"], 
             "C":params[f"C_{homolog}"],
+            "γ":params[f"γ_{homolog}"]
         }
        
         # compute predictions 
@@ -255,7 +258,7 @@ def cost_smooth(params, data, δ=1, λ_ridge=0, **kwargs):
         # compute the Huber loss between observed and predicted
         # functional scores
         loss += jaxopt.loss.huber_loss(
-            y[homolog] + params[f"γ_{homolog}"], y_h_predicted, δ
+            y[homolog] + h_params[f"γ"], y_h_predicted, δ
         ).mean()
         
         # compute a regularization term that penalizes non-zero
