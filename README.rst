@@ -88,3 +88,14 @@ To contribute to this package, read the instructions in `CONTRIBUTING.rst <CONTR
       8         2              P3G  ...             -0.066929                   0.4
       9         2              P3R  ...             -0.012681                  -5.0
 
+
+    We can then fit the data.
+
+    >>> data = (mdms.binarymaps['X'], mdms.binarymaps['y'])
+    >>> compiled_cost = global_epistasis["objective"]
+    >>> compiled_cost(mdms.params, data)
+    4.434311992312495
+    >>> mdms.fit()
+    >>> compiled_cost(mdms.params, data)
+    0.3332387869442089
+    """

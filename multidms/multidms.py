@@ -338,7 +338,15 @@ class Multidms:
       9         2              P3R  ...             -0.012681                  -5.0
 
 
-    >>> TODO Fitting 
+    We can then fit the data.
+
+    >>> data = (mdms.binarymaps['X'], mdms.binarymaps['y'])
+    >>> compiled_cost = global_epistasis["objective"]
+    >>> compiled_cost(mdms.params, data)
+    4.434311992312495
+    >>> mdms.fit()
+    >>> compiled_cost(mdms.params, data)
+    0.3332387869442089
     """
 
     # TODO sites : array-like or 'infer' #2
@@ -362,7 +370,7 @@ class Multidms:
         self,
         data_to_fit : pandas.DataFrame,
         predict_function,
-        object_function,
+        objective_function,
         proximal_function,
         reference : str,
         alphabet=multidms.AAS,
@@ -372,7 +380,9 @@ class Multidms:
         **kwargs
     ):
         """See main class docstring."""
-        self.predict_function = predict_function
+        self._predict_function = predict_function
+        self._objective_function = objective_function
+        self._proximal_function = proximal_function
 
         # check init seed 
         # TODO Is this necessary?
@@ -490,7 +500,7 @@ class Multidms:
             
             # predictions for all single subs
             # TODO how should we handle fitting/prediction hyper params i.e. kwargs? 
-            self._mutations_df[f"F_{condition}"] = self.predict_function(
+            self._mutations_df[f"F_{condition}"] = self._predict_function(
                 h_params, 
                 binary_single_subs
                 # self._ϕ, self._g, self._t,
@@ -510,7 +520,7 @@ class Multidms:
 
             # TODO how should we handle fitting/prediction hyper params i.e. kwargs? 
             h_params = self.get_condition_params(condition)
-            y_h_pred = self.predict_function(
+            y_h_pred = self._predict_function(
                 h_params, 
                 self.binarymaps['X'][condition]
                 # **kwargs
@@ -835,15 +845,13 @@ class Multidms:
         # TODO assert that the substitutions exist?
         # TODO require the user
         h_params = get_condition_params(condition)
-        return self.predict_function(h_params, X)
+        return self._predict_function(h_params, X)
     
 
     # TODO finish documentation.
     # TODO lasso etc paramerters (**kwargs ?)
     def fit(
         self, 
-        smooth_cost, 
-        prox,
         λ_lasso=1e-5,
         λ_ridge=0,
         **kwargs
@@ -852,11 +860,11 @@ class Multidms:
         `self._data_to_fit` 
         """
         # Use partial 
-        # compiled_smooth_cost = Partial(smooth_cost, self.predict_function)
+        # compiled_smooth_cost = Partial(smooth_cost, self._predict_function)
 
         solver = ProximalGradient(
-            smooth_cost,
-            prox,
+            self._objective_function,
+            self._proximal_function,
             tol=1e-6,
             maxiter=1000
         )
@@ -890,7 +898,6 @@ class Multidms:
             #lower_bound=fit_params['lower_bound'],
             #hinge_scale=fit_params['hinge_scale']
         )
-        self._update_model_effects_dfs(**kwargs)
         
 
     # TODO
