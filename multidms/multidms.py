@@ -8,9 +8,8 @@ dms experiments under various conditions.
 
 """
 
-
-
-from functools import partial
+from functools import partial as o_partial
+# from jax.tree_util import Partial
 import collections
 import copy  # noqa: F401
 import inspect
@@ -40,13 +39,14 @@ jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from jax.experimental import sparse
 import jaxopt
+from jaxopt import ProximalGradient
 
 # local
 # TODO import only what you need, here.
-# import multidms
+import multidms
 #import multidms.plot
-#import multidms.utils
-from multidms.model import ϕ, identity
+import multidms.utils
+from multidms.model import identity_activation
 
 
 class stub_MultidmsFitError(Exception):
@@ -54,7 +54,7 @@ class stub_MultidmsFitError(Exception):
 
     pass
 
-
+# TODO update model description based upon hugh's recent updates
 class Multidms:
     r"""Represent and model one or more dms experiments
     and identify variant predicted fitness, and 
@@ -164,29 +164,32 @@ class Multidms:
         compute the phenotype of each variant given the mutations present.
     * $c$ is the same as above.
     
-    In the matrix algebra, the sum of $β\ *m$ and $S*\ {m,h}$ gives a vector of mutational effects, with one entry per mutation.
-    Multiplying the matrix $X_h$ by this vector gives a new vector with one entry per variant, where values are the sum of mutational effects, weighted by the variant-specific weights in $X_h$.
-    Adding the $c$ value to this vector will give a vector of predicted latent phenotypes for each variant.
+    In the matrix algebra, the sum of $β\ *m$ and $S*\ {m,h}$ 
+    gives a vector of mutational effects, with one entry per mutation.
+    Multiplying the matrix $X_h$ by this vector gives a new 
+    vector with one entry per variant, where values are the 
+    sum of mutational effects, weighted by the variant-specific weights in $X_h$.
+    Adding the $c$ value to this vector will give a vector of 
+    predicted latent phenotypes for each variant.
     
-    Next, the global-epistasis function can be used to convert a vector of predicted latent phenotypes to a vector of predicted functional scores.
+    Next, the global-epistasis function can be used to convert 
+        a vector of predicted latent phenotypes to a vector of 
+        predicted functional scores.
     
     $$F\ *{h,pred} = g*\ {\alpha}(P_h)$$
     
-    Finally, this vector could be fed into a loss function and compared with a vector of observed functional scores.
+    Finally, this vector could be fed into a loss function and 
+    compared with a vector of observed functional scores.
 
     Note
     ----
-    You can initialize a :class:`Multidms` object in two (?) ways:
+    You can initialize a :class:`Multidms` object with variants data from one or
+    more conditions, as well as a jit-compiled predictive function, objective
+    function to minimize, and a proximal function for non smooth constraints on
+    the model.
 
-    1. functional dataframe
+    1. functional score dataframe
         TODO
-        With data to fit the condition activities and mutation-shift values,
-        and initial guesses for the condition activities and mutation-shift
-        values. To do this, initialize with ``data_to_fit`` holding the data,
-        ``activity_wt_df`` holding initial guesses of activities, and
-        ``mut_shift_df`` or ``site_escape_df`` holding initial guesses for
-        mutation shifts (see also ``init_missing`` and
-        ``data_mut_shift_overlap``). Then call :meth:`Multidms.fit`.
 
     Parameters
     ----------
@@ -238,30 +241,26 @@ class Multidms:
     ----------
     conditions : tuple
         Names of all conditions.
-
     mutations : pandas.DataFrame
         A dataframe containing all relevant substitutions and all relevant.
-    mutations_times_seen : frozendict.frozendict or None
-        If `data_to_fit` is not `None`, keyed by all mutations with shift values
-        and values are number of variants in which the mutation is seen. It is formally
-        calculated as the number of variants with mutation across all concentrations
-        divided by the number of concentrations, so can have non-integer values if
-        there are variants only observed at some concentrations.
+    mutations_df : pandas.DataFrame
         1. mutation_shifts : TODO
         2. mutation_betas : TODO
         3. mutation_functional_effects : TODO
-    reference : TODO
+    reference : str
+        The reference factor level in conditions. All mutations will be converted to
+        be with respect to this contition's inferred wildtype sequence. See
+        The class description for more.
     alphabet : tuple 
         Allowed characters in mutation strings.
-    sites : tuple TODO 
-        List of all sites. These are the sites provided via the ``sites`` parameter,
-        or inferred from ``data_to_fit`` or ``mut_shift_df`` if that isn't provided.
-        If `sequential_integer_sites` is `False`, these are str, otherwise int.
-    sequential_integer_sites : bool TODO
-        True if sites are sequential and integer, False otherwise.
+    site_map : tuple 
+        Inferred from ``data_to_fit``, this attribute will provide the wildtype
+        amino acid at all sites, for all conditions.
+    letter_suffixed_sites=False,
+        True if sites are allowed to have trailing charicter suffixes, False otherwise.
     condition_colors : dict TODO
         Maps each condition to its color.
-    data_to_fit : pandas.DataFrame or None TODO 
+    data_to_fit : pandas.DataFrame
         Data to fit as passed when initializing this :class:`Multidms` object.
         If using ``collapse_identical_variants``, then identical variants
         are collapsed on columns 'concentration', 'aa_substitutions',
@@ -270,357 +269,77 @@ class Multidms:
 
     Example
     -------
-    # TODO make example - check notebook
-    Simple example with two conditions (`e1` and `e2`) and a few mutations where
-    we know the activities and mutation-level shift values ahead of time:
+    Simple example with two conditions (`1` and `2`)
 
-    >>> activity_wt_df = pandas.DataFrame({'condition':  ['e1', 'e2'],
-    ...                                'activity': [ 2.0,  1.0]})
-    >>> func_scores_df = pandas.DataFrame({
-    ...   'aa_substitutions': ['M1C', 'M1C', 'G2A', 'G2A', 'A4K', 'A4K', 'A4L', 'A4L'],
-    ...   'condition':  [ 'e1',  'e2',  'e1',  'e2',  'e1',  'e2',  'e1',  'e2'],
-    ...   })
-    >>> model = Multidms(
-    ...     activity_wt_df=activity_wt_df, #TODO or "infer"
-    ...     mut_shift_df=func_score_df,
-    ...     collapse_identical_variants="mean",
+    >>> import pandas as pd
+    >>> import multidms
+    >>> func_score_data = {
+    ...     'condition' : ["1","1","1","1", "2","2","2","2","2","2"],
+    ...     'aa_substitutions' : ['M1E', 'G3R', 'G3P', 'M1W', 'M1E', 'P3R', 'P3G', 'M1E P3G', 'M1E P3R', 'P2T'],
+    ...     'func_score' : [2, -7, -0.5, 2.3, 1, -5, 0.4, 2.7, -2.7, 0.3],
+    ... }
+    >>> func_score_df = pd.DataFrame(func_score_data)
+    >>> func_score_df
+      condition aa_substitutions  func_score
+      0         1              M1E         2.0
+      1         1              G3R        -7.0
+      2         1              G3P        -0.5
+      3         1              M1W         2.3
+      4         2              M1E         1.0
+      5         2              P3R        -5.0
+      6         2              P3G         0.4
+      7         2          M1E P3G         2.7
+      8         2          M1E P3R        -2.7
+      9         2              P2T         0.3
+
+    >>> from multidms.model import global_epistasis
+
+    Using the predcompiled model, `global epistasis`, we can initialize the 
+    `Multidms` Object
+
+    >>> mdms = multidms.Multidms(
+    ...     func_score_df,
+    ...     *multidms.model.global_epistasis.values(),
+    ...     alphabet = multidms.AAS_WITHSTOP,
+    ...     reference = "1"
     ... )
-    >>> model.conditions
-    TODO
-    ('e1', 'e2')
-    >>> model.mutations
-    TODO
-    ('M1C', 'G2A', 'A4K', 'A4L')
-    >>> model.mutations_times_seen is None
-    TODO
-    True
-    >>> model.sites_df
-    TODO
-    >>> model.activity_wt_df
-    TODO
-      condition  activity
-    0      e1       2.0
-    1      e2       1.0
-    >>> model.mutations_df
-    TODO 
-      condition  site wildtype mutant mutation  shift
-    0      e1     1        M      C      M1C     2.0
-    1      e1     2        G      A      G2A     3.0
-    2      e1     4        A      K      A4K     0.0
-    3      e1     4        A      L      A4L     0.0
-    4      e2     1        M      C      M1C     0.0
-    5      e2     2        G      A      G2A     0.0
-    6      e2     4        A      K      A4K     2.5
-    7      e2     4        A      L      A4L     1.5
 
-    We can also summarize the mutation-level shift at the site level:
+    This object initializes a few useful attributes
 
-    >>> pandas.set_option("display.max_columns", None)
-    >>> pandas.set_option("display.width", 89)
-    >>> model.mut_shift_site_summary_df()
-    TODO
-      condition  site wildtype  mean  total positive  max  min  total negative  n mutations
-    0      e1     1        M   2.0             2.0  2.0  2.0             0.0            1
-    1      e1     2        G   3.0             3.0  3.0  3.0             0.0            1
-    2      e1     4        A   0.0             0.0  0.0  0.0             0.0            2
-    3      e2     1        M   0.0             0.0  0.0  0.0             0.0            1
-    4      e2     2        G   0.0             0.0  0.0  0.0             0.0            1
-    5      e2     4        A   2.0             4.0  2.5  1.5             0.0            2
+    >>> mdms.conditions
+    ('1', '2')
 
-    Note that we can **not** initialize a :class:`Multidms` object if we are
-    missing shift estimates for any mutations for any conditions:
+    >>> mdms.mutations
+    ('M1E', 'M1W', 'G3P', 'G3R')
 
-    >>> Multidms(activity_wt_df=activity_wt_df,
-    ...            mut_shift_df=mut_escape_df.head(n=5))
-    Traceback (most recent call last):
-      ...
-    ValueError: invalid set of mutations for condition='e2'
+    >>> mdms.site_map
+       1  2
+       3  G  P
+       1  M  M
 
-    Now make a data frame with some variants:
-
-    >>> variants_df = pandas.DataFrame.from_records(
-    ...         [('AA', ''),
-    ...          ('AC', 'M1C'),
-    ...          ('AG', 'G2A'),
-    ...          ('AT', 'A4K'),
-    ...          ('TA', 'A4L'),
-    ...          ('CA', 'M1C G2A'),
-    ...          ('CG', 'M1C A4K'),
-    ...          ('CC', 'G2A A4K'),
-    ...          ('TC', 'G2A A4L'),
-    ...          ('CT', 'M1C G2A A4K'),
-    ...          ('TG', 'M1C G2A A4L'),
-    ...          ('GA', 'M1C'),
-    ...          ],
-    ...         columns=['barcode', 'aa_substitutions'])
-
-    Get the shift probabilities predicted on these variants from
-    the values in the :class:`Multidms` object:
-
-    >>> shift_probs = model.prob_escape(variants_df=variants_df,
-    ...                                  concentrations=[1.0, 2.0, 4.0])
-    >>> shift_probs.round(3)
-       barcode aa_substitutions  concentration  predicted_prob_shift
-    0       AA                             1.0                  0.032
-    1       AT              A4K            1.0                  0.097
-    2       TA              A4L            1.0                  0.074
-    3       AG              G2A            1.0                  0.197
-    4       CC          G2A A4K            1.0                  0.598
-    5       TC          G2A A4L            1.0                  0.455
-    6       AC              M1C            1.0                  0.134
-    7       GA              M1C            1.0                  0.134
-    8       CG          M1C A4K            1.0                  0.409
-    9       CA          M1C G2A            1.0                  0.256
-    10      CT      M1C G2A A4K            1.0                  0.779
-    11      TG      M1C G2A A4L            1.0                  0.593
-    12      AA                             2.0                  0.010
-    13      AT              A4K            2.0                  0.044
-    14      TA              A4L            2.0                  0.029
-    15      AG              G2A            2.0                  0.090
-    16      CC          G2A A4K            2.0                  0.398
-    17      TC          G2A A4L            2.0                  0.260
-    18      AC              M1C            2.0                  0.052
-    19      GA              M1C            2.0                  0.052
-    20      CG          M1C A4K            2.0                  0.230
-    21      CA          M1C G2A            2.0                  0.141
-    22      CT      M1C G2A A4K            2.0                  0.629
-    23      TG      M1C G2A A4L            2.0                  0.411
-    24      AA                             4.0                  0.003
-    25      AT              A4K            4.0                  0.017
-    26      TA              A4L            4.0                  0.010
-    27      AG              G2A            4.0                  0.034
-    28      CC          G2A A4K            4.0                  0.214
-    29      TC          G2A A4L            4.0                  0.118
-    30      AC              M1C            4.0                  0.017
-    31      GA              M1C            4.0                  0.017
-    32      CG          M1C A4K            4.0                  0.106
-    33      CA          M1C G2A            4.0                  0.070
-    34      CT      M1C G2A A4K            4.0                  0.441
-    35      TG      M1C G2A A4L            4.0                  0.243
-
-    We can also get predicted shift probabilities by including concentrations
-    in the data frame passed to :meth:`Multidms.prob_shift`:
-
-    >>> model.prob_shift(
-    ...         variants_df=pandas.concat([variants_df.assign(concentration=c)
-    ...                                for c in [1.0, 2.0, 4.0]])
-    ...         ).equals(shift_probs)
-    True
-
-    We can also compute the IC50s:
-
-    >>> model.icXX(variants_df).round(3)
-       barcode aa_substitutions   IC50
-    0       AA                   0.085
-    1       AC              M1C  0.230
-    2       GA              M1C  0.230
-    3       AG              G2A  0.296
-    4       AT              A4K  0.128
-    5       TA              A4L  0.117
-    6       CA          M1C G2A  0.355
-    7       CG          M1C A4K  0.722
-    8       CC          G2A A4K  1.414
-    9       TC          G2A A4L  0.858
-    10      CT      M1C G2A A4K  3.237
-    11      TG      M1C G2A A4L  1.430
-
-    Or the IC90s:
-
-    >>> model.icXX(variants_df, x=0.9, col='IC90').round(3)
-       barcode aa_substitutions    IC90
-    0       AA                    0.464
-    1       AC              M1C   1.260
-    2       GA              M1C   1.260
-    3       AG              G2A   1.831
-    4       AT              A4K   0.976
-    5       TA              A4L   0.782
-    6       CA          M1C G2A   2.853
-    7       CG          M1C A4K   4.176
-    8       CC          G2A A4K   7.473
-    9       TC          G2A A4L   4.532
-    10      CT      M1C G2A A4K  18.717
-    11      TG      M1C G2A A4L   9.532
-
-    >>> model_data.mutations
-    ('M1C', 'G2A', 'A4K', 'A4L')
-    >>> dict(model_data.mutations_times_seen)
-    {'G2A': 6, 'M1C': 6, 'A4K': 4, 'A4L': 3}
-
-    The activities are evenly spaced from 1 to 0, while the mutation shifts
-    are all initialized to zero:
-
-    >>> model_data.condition_df
-      condition  activity
-    0       1       1.0
-    1       2       0.0
-    >>> model_data.mut_df
-      condition  site wildtype mutant mutation  shift  times_seen
-    0       1     1        M      C      M1C     0.0           6
-    1       1     2        G      A      G2A     0.0           6
-    2       1     4        A      K      A4K     0.0           4
-    3       1     4        A      L      A4L     0.0           3
-    4       2     1        M      C      M1C     0.0           6
-    5       2     2        G      A      G2A     0.0           6
-    6       2     4        A      K      A4K     0.0           4
-    7       2     4        A      L      A4L     0.0           3
-
-    You can initialize to random numbers by setting ``init_missing`` to seed
-    (in this example we also don't include all variants for one concentration):
-
-    >>> model_data2 = Multidms(
-    ...     data_to_fit=data_to_fit.head(30),
-    ...     n_conditions=2,
-    ...     init_missing=1,
-    ...     collapse_identical_variants="mean",
-    ... )
-    >>> model_data2.activity_wt_df.round(3)
-      condition  activity
-    0       1     0.417
-    1       2     0.720
-
-    You can set some or all mutation shifts to initial values:
-
-    >>> model_data3 = Multidms(
-    ...     data_to_fit=data_to_fit,
-    ...     activity_wt_df=activity_wt_df,
-    ...     mut_shift_df=pandas.DataFrame({'condition': ['e1'],
-    ...                                 'mutation': ['M1C'],
-    ...                                 'shift': [4]}),
-    ...     data_mut_shift_overlap='fill_to_data',
-    ...     collapse_identical_variants="mean",
-    ... )
-    >>> model_data3.mut_shift_df
-      condition  site wildtype mutant mutation  shift  times_seen
-    0      e1     1        M      C      M1C     4.0           6
-    1      e1     2        G      A      G2A     0.0           6
-    2      e1     4        A      K      A4K     0.0           4
-    3      e1     4        A      L      A4L     0.0           3
-    4      e2     1        M      C      M1C     0.0           6
-    5      e2     2        G      A      G2A     0.0           6
-    6      e2     4        A      K      A4K     0.0           4
-    7      e2     4        A      L      A4L     0.0           3
-
-    You can initialize **sites** to shift values via ``site_activity_df``:
-
-    >>> model_data4 = Multidms(
-    ...     data_to_fit=data_to_fit,
-    ...     activity_wt_df=activity_wt_df,
-    ...     site_shift_df=pandas.DataFrame.from_records(
-    ...         [('e1', 1, 1.0), ('e1', 4, 0.0),
-    ...          ('e2', 1, 0.0), ('e2', 4, 2.0)],
-    ...         columns=['condition', 'site', 'shift'],
-    ...     ),
-    ...     data_mut_shift_overlap='fill_to_data',
-    ...     collapse_identical_variants="mean",
-    ... )
-    >>> model_data4.mut_shift_df
-      condition  site wildtype mutant mutation  shift  times_seen
-    0      e1     1        M      C      M1C     1.0           6
-    1      e1     2        G      A      G2A     0.0           6
-    2      e1     4        A      K      A4K     0.0           4
-    3      e1     4        A      L      A4L     0.0           3
-    4      e2     1        M      C      M1C     0.0           6
-    5      e2     2        G      A      G2A     0.0           6
-    6      e2     4        A      K      A4K     2.0           4
-    7      e2     4        A      L      A4L     2.0           3
-
-    Fit the data using :meth:`Multidms.fit`, and make sure the new
-    predicted shift probabilities are close to the real ones being fit.
-    Reduce weight on regularization since there is so little data in this
-    toy example:
-
-    >>> for m in [model_data, model_data2, model_data3, model_data4]:
-    ...     opt_res = m.fit(
-    ...         reg_shift_weight=0.001,
-    ...         reg_spread_weight=0.001,
-    ...         reg_activity_weight=0.0001,
-    ...     )
-    ...     pred_df = m.prob_shift(variants_df=data_to_fit)
-    ...     if not numpy.allclose(pred_df['prob_shift'],
-    ...                           pred_df['predicted_prob_shift'],
-    ...                           atol=0.01):
-    ...          raise ValueError(f"wrong predictions\n{pred_df}")
-    ...     if not numpy.allclose(
-    ...              activity_wt_df['activity'].sort_values(),
-    ...              m.activity_wt_df['activity'].sort_values(),
-    ...              atol=0.1,
-    ...              ):
-    ...          raise ValueError(f"wrong activities\n{m.activity_wt_df}")
-    ...     if not numpy.allclose(
-    ...              mut_shift_df['escape'].sort_values(),
-    ...              m.mut_shift_df['escape'].sort_values(),
-    ...              atol=0.05,
-    ...              ):
-    ...          raise ValueError(f"wrong shifts\n{m.mut_escape_df}")
-
-    >>> model_data.mut_shift_site_summary_df().round(1)
-      condition  site wildtype  mean  total positive  max  min  total negative  n mutations
-    0       1     1        M   0.0             0.0  0.0  0.0             0.0            1
-    1       1     2        G   0.0             0.0  0.0  0.0             0.0            1
-    2       1     4        A   2.0             4.0  2.5  1.5             0.0            2
-    3       2     1        M   2.0             2.0  2.0  2.0             0.0            1
-    4       2     2        G   3.0             3.0  3.0  3.0             0.0            1
-    5       2     4        A   0.0             0.0  0.0  0.0             0.0            2
-    >>> model_data.mut_shift_site_summary_df(min_times_seen=4).round(1)
-      condition  site wildtype  mean  total positive  max  min  total negative  n mutations
-    0       1     1        M   0.0             0.0  0.0  0.0             0.0            1
-    1       1     2        G   0.0             0.0  0.0  0.0             0.0            1
-    2       1     4        A   2.5             2.5  2.5  2.5             0.0            1
-    3       2     1        M   2.0             2.0  2.0  2.0             0.0            1
-    4       2     2        G   3.0             3.0  3.0  3.0             0.0            1
-    5       2     4        A   0.0             0.0  0.0  0.0             0.0            1
+    >>> mdms.mut_df
+      mutation         β wts  sites muts  times_seen  S_1       F_1  S_2       F_2
+      0      M1E  0.080868   M      1    E           4  0.0 -0.061761  0.0 -0.061761
+      1      M1W -0.386247   M      1    W           1  0.0 -0.098172  0.0 -0.098172
+      2      G3P -0.375656   G      3    P           2  0.0 -0.097148  0.0 -0.097148
+      3      G3R  1.668974   G      3    R           3  0.0 -0.012681  0.0 -0.012681
 
 
-    TODO
-    Example
-    -------
-    Filter variants by how often they are seen in data:
-
-    >>> model_data.filter_variants_by_seen_muts(variants_df)
-    ... # doctest: +NORMALIZE_WHITESPACE
-       barcode aa_substitutions
-    0       AA
-    1       AC              M1C
-    2       AG              G2A
-    3       AT              A4K
-    4       TA              A4L
-    5       CA          M1C G2A
-    6       CG          M1C A4K
-    7       CC          G2A A4K
-    8       TC          G2A A4L
-    9       CT      M1C G2A A4K
-    10      TG      M1C G2A A4L
-    11      GA              M1C
-
-    >>> model_data.filter_variants_by_seen_muts(variants_df, min_times_seen=5)
-    ... # doctest: +NORMALIZE_WHITESPACE
-      barcode aa_substitutions
-    0      AA
-    1      AC              M1C
-    2      AG              G2A
-    3      CA          M1C G2A
-    4      GA              M1C
-
-    >>> model_data.filter_variants_by_seen_muts(variants_df, min_times_seen=4)
-    ... # doctest: +NORMALIZE_WHITESPACE
-      barcode aa_substitutions
-    0      AA
-    1      AC              M1C
-    2      AG              G2A
-    3      AT              A4K
-    4      CA          M1C G2A
-    5      CG          M1C A4K
-    6      CC          G2A A4K
-    7      CT      M1C G2A A4K
-    8      GA              M1C
+    >>> mdms.variants_df
+      condition aa_substitutions  ...  predicted_func_score  corrected_func_score
+      0         1              G3P  ...             -0.097148                  -0.5
+      1         1              G3R  ...             -0.012681                  -7.0
+      2         1              M1E  ...             -0.061761                   2.0
+      3         1              M1W  ...             -0.098172                   2.3
+      4         2              M1E  ...             -0.089669                   1.0
+      5         2          M1E P3G  ...             -0.061761                   2.7
+      6         2          M1E P3R  ...             -0.011697                  -2.7
+      8         2              P3G  ...             -0.066929                   0.4
+      9         2              P3R  ...             -0.012681                  -5.0
 
 
+    >>> TODO Fitting 
     """
-
-    # TODO init_parameters : pandas.DataFrame or None
-    # Offer ability ot set parameters yourself?
-    # How would you eventually understand what 
-    # the parameters shapes should be?
 
     # TODO sites : array-like or 'infer' #2
     # Offer ability to provide your own refernce sites?
@@ -634,28 +353,26 @@ class Multidms:
     # TODO condition_colors : array-like or dict
     # Offer option to provide condition colors, or cmap / palette?
 
-    # kwargs
-    # condition_mut_shift_overlap="exact_match",
-    # collapse_identical_variants : str or None,
-
+    # TODO, what if we made classes for objective functions 
+    # etc, that gave us the compiled functions, as well as 
+    # attributes that define then i.e. number of parameters
+    # inputs and outputs needed etc?
 
     def __init__(
         self,
         data_to_fit : pandas.DataFrame,
+        predict_function,
+        object_function,
+        proximal_function,
         reference : str,
         alphabet=multidms.AAS,
         init_missing="zero",
         letter_suffixed_sites=False,
         condition_colors=DEFAULT_POSITIVE_COLORS,
-        latent_model=ϕ,
-        epistatic_model=identity,
-        output_activation=identity,
         **kwargs
     ):
         """See main class docstring."""
-        self.ϕ = latent_model
-        self.g = epistatic_model
-        self.t = output_activation
+        self.predict_function = predict_function
 
         # check init seed 
         # TODO Is this necessary?
@@ -695,9 +412,9 @@ class Multidms:
         # Check and initialize fitting data from func_score_df
         (
             self.binarymaps,
-            self.data_to_fit,
-            self.all_subs,
-            self.site_mapg,
+            self._data_to_fit,
+            self.mutations,
+            self.site_map,
         ) = self._create_condition_modeling_data(
             data_to_fit, 
             reference,
@@ -707,149 +424,106 @@ class Multidms:
         # set internal params with activities and shifts
         # TODO This should rely on the three functions passed in
         self.params = self._initialize_model_params(
-            self.data_to_fit["condition"].unique(), 
+            self._data_to_fit["condition"].unique(), 
             n_beta_shift_params=self.binarymaps['X'][reference].shape[1],
             include_alpha=True, # TODO would could just initialize them after ... ?
             #init_sig_range=sig_range, #TODO
             #init_sig_min=sig_lower
         )
 
-        # update variant data
-        # TODO add prediction columns, gamma corrected functional scores etc? 
-        # self._update_variant_df()
-
+        # TODO make this a property
         # initialize single mutational effects df
         mut_df = pandas.DataFrame(
             {
-                "mutation" : self.all_subs
+                "mutation" : self.mutations,
+                "β" : self.params["β"]
             }
         )
 
         # TODO JIT
         #parser = partial(multidms.utils.split_sub, parser=self._mutparser.parse_mut)
         mut_df["wts"], mut_df["sites"], mut_df["muts"] = zip(
-            *mut_df["mutation"].map(multidms.utils.split_sub)
+            *mut_df["mutation"].map(self._mutparser.parse_mut)
         )
-        print(mut_df)
 
         # compute times seen in data
-        #wts2, sites2, muts2 = self._muts_fromdata_to_fit(data_to_fit)
-        #if (self.sites is not None) and not set(sites2).issubset(self.sites):
-        #    raise ValueError("sites in `data_to_fit` not all in `sites`")
-        # ^^ ? 
+        # TODO Should this be seen times per condition?
+        #times_seen_per_condition = {}
+        #for condition, condition_df in self._data_to_fit.groupby("condition"):
         times_seen = (
-            data_to_fit["aa_substitutions"]
+            self._data_to_fit["var_wrt_ref"]
             .str.split()
             .explode()
-            .dropna()
             .value_counts()
-            #.sort_values(ascending=False)
         )
         if (times_seen == times_seen.astype(int)).all():
             times_seen = times_seen.astype(int)
-        print(times_seen)
+        times_seen.index.name = f"mutation"
+        times_seen.name = f"times_seen"
+        mut_df = mut_df.merge(
+                times_seen, 
+                left_on="mutation", right_on="mutation", 
+                how="outer" 
+        )
+
+        self._mutations_df = mut_df
 
         # add other current model properties.
-        self.mut_df = mut_df
-        self._update_single_mutant_effects_df()
+        # self._update_model_effects_dfs()
 
-    # TODO finish
-    def _update_variant_df(self):
-        """ update predictions, and gamma corrected function scores? """
-        pass
+    @property
+    def mutations_df(self):
+        """ Get all mutational attributes with the current parameters """
 
+        # update the betas
+        self._mutations_df.loc[:, "β"] = self.params["β"]
 
-    def _update_single_mutant_effects_df(self):
+        # make predictions
+        binary_single_subs = sparse.BCOO.fromdense(onp.identity(len(self.mutations)))
+        for condition in self.conditions:
+            
+            # collect relevant params
+            h_params = self.get_condition_params(condition)
 
-        # initialize the mutations_df
-        #print(len(self.params["β"]))
-        self.mut_df.loc[:, "β"] = self.params["β"]
+            # attach relevent params to mut effects df
+            self._mutations_df[f"S_{condition}"] = self.params[f"S_{condition}"]
+            
+            # predictions for all single subs
+            # TODO how should we handle fitting/prediction hyper params i.e. kwargs? 
+            self._mutations_df[f"F_{condition}"] = self.predict_function(
+                h_params, 
+                binary_single_subs
+                # self._ϕ, self._g, self._t,
+                # **kwargs
+            )
 
-        #df["predicted_latent_phenotype"] = onp.nan
-        #df[f"predicted_func_score"] = onp.nan
-        #df[f"corrected_func_score"] = df[f"func_score"]
-        #
-        #print(f"\nRunning Predictions")
-        #print(f"-------------------")
-        #
-        ## sub string, wt, site, mut, Beta, {S_c}, {F_c}
-        ## TODO number of times seen?
-        #
-        #mut_effect_df = pd.DataFrame({
-        #    "substitution" : all_subs,
-        #    "β" : params["β"]
-        #})
-        #
-        #mut_effect_df["wt"], mut_effect_df["site"], mut_effect_df["mut"] = zip(
-        #  *mut_effect_df["substitution"].map(multidms.utils.split_sub)
-        #)
-        #
-        #binary_single_subs = sparse.BCOO.fromdense(onp.identity(len(all_subs)))
-        #
-        #for homolog, hdf in df.groupby(experiment_column):
-        #
-        #    # collect relevant params
-        #    h_params = {
-        #        "β":params["β"],
-        #        "C_ref":params["C_ref"],
-        #        "S":params[f"S_{homolog}"],
-        #        "C":params[f"C_{homolog}"],
-        #    }
-        #
-        #    if fit_params["model"] == "non-linear": h_params["α"] = params["α"]
-        #
-        #    # latent predictions on all variants
-        #    z_h = multidms.model.ϕ(h_params, X[homolog])
-        #    df.loc[hdf.index, "predicted_latent_phenotype"] = z_h
-        #
-        #    # full model predictions
-        #    y_h_pred = pred_func(
-        #        h_params,
-        #        X[homolog],
-        #        lower_bound=fit_params['lower_bound'],
-        #        hinge_scale=fit_params['hinge_scale']
-        #    )
-        #    df.loc[hdf.index, f"predicted_func_score"] = y_h_pred
-        #
-        #    # add the corrected functional scores by tuned gamma
-        #    df.loc[hdf.index, f"corrected_func_score"] += params[f"γ_{homolog}"][0]
-        #
-        #    # attach relevent params to mut effects df
-        #    mut_effect_df[f"S_{homolog}"] = params[f"S_{homolog}"]
-        #
-        #    # predictions for all single subs
-        #    mut_effect_df[f"F_{homolog}"] = pred_func(
-        #        h_params,
-        #        binary_single_subs,
-        #        lower_bound=fit_params['lower_bound'],
-        #        hinge_scale=fit_params['hinge_scale']
-        #    )
-        #
-        #row = fit_params.copy()
-        #
-        #row["variant_prediction_df"] = df.drop("index", axis=1)
-        #row["mutation_effects_df"] = mut_effect_df
-        #row["site_map"] = site_map.copy()
-        #row["tuned_model_params"] = params.copy()
-        #
-        ## results = pd.Series(row)
-        #results.loc[len(results)] = pd.Series(row)
-        #
-        #print(f"\nDONE :)")
-        #print(f"-------------------")
+        return self._mutations_df
 
-        return None
+    @property
+    def data_to_fit(self):
+        """ Get all mutational attributes with the current parameters """
+
+        self._data_to_fit["predicted_latent_phenotype"] = onp.nan
+        self._data_to_fit[f"predicted_func_score"] = onp.nan
+        self._data_to_fit[f"corrected_func_score"] = self._data_to_fit[f"func_score"]
+        for condition, condition_dtf in self._data_to_fit.groupby("condition"):
+
+            # TODO how should we handle fitting/prediction hyper params i.e. kwargs? 
+            h_params = self.get_condition_params(condition)
+            y_h_pred = self.predict_function(
+                h_params, 
+                self.binarymaps['X'][condition]
+                # **kwargs
+            )
+
+            self._data_to_fit.loc[condition_dtf.index, f"predicted_func_score"] = y_h_pred
+            self._data_to_fit.loc[condition_dtf.index, f"corrected_func_score"] -= h_params[f"γ"]
+            
+        return self._data_to_fit
         
-
-
-
-
-        # TODO Compute times seen somewhere
-
-        # get wildtype, sites, and mutations
-
     # TODO impliment different condition overlap options
     # TODO move the column names to a config of some kind. JSON?
+    # TODO Break this up into jit-able helper functions and move to init
     def _create_condition_modeling_data(
         self,
         func_score_df:pandas.DataFrame,
@@ -924,7 +598,6 @@ class Multidms:
         
         """
 
-        # cols = ["concentration", "aa_substitutions"]
         cols = [
             condition_col,
             substitution_col,
@@ -934,8 +607,6 @@ class Multidms:
             cols.append(
                 "weight"
             )  # will be overwritten if `collapse_identical_variants`
-        #if get_pv:
-        #    cols.append("prob_shift")
         if not func_score_df[cols].notnull().all().all():
             raise ValueError(f"null entries in data frame of variants:\n{df[cols]}")
 
@@ -959,7 +630,7 @@ class Multidms:
             df = func_score_df.reset_index()
 
         # TODO JIT
-        parser = partial(multidms.utils.split_subs, parser=self._mutparser.parse_mut)
+        parser = o_partial(multidms.utils.split_subs, parser=self._mutparser.parse_mut)
         df["wts"], df["sites"], df["muts"] = zip(
             *df[substitution_col].map(parser)
         )
@@ -976,11 +647,10 @@ class Multidms:
         # Find all sites for which at least one condition lacks data
         # (this can happen if there is a gap in the alignment)
         na_rows = site_map.isna().any(axis=1)
+        # TODO let's move any print statements to 
         print(f"Found {sum(na_rows)} site(s) lacking data in at least one condition.")
         sites_to_throw = na_rows[na_rows].index
         site_map.dropna(inplace=True)
-        #print(site_map)
-        #return
         
         # Remove all variants with a mutation at one of the above
         # "disallowed" sites lacking data
@@ -1028,10 +698,6 @@ class Multidms:
                     var_map[reference_condition] != var_map[hom]
                 ).dropna().astype(str)
                 
-                #print(nis.info())
-                #return
-                #print("GGGGGGG")
-                #print(nis[reference_condition], nis.index, nis[hom])
                 muts = nis[reference_condition] + nis.index.astype(str) + nis[hom]
                 
                 mutated_seq = " ".join(muts.values)
@@ -1062,12 +728,14 @@ class Multidms:
             y[condition] = jnp.array(condition_func_score_df[func_score_col].values)
         
         df.drop(["wts", "sites", "muts"], axis=1, inplace=True)
-        return {'X':X, 'y':y}, df, ref_bmap.all_subs, site_map 
+
+        # TODO should we separate binarymaps and targets?
+        return {'X':X, 'y':y}, df, tuple(ref_bmap.all_subs), site_map 
 
 
     def _initialize_model_params(
             self,
-            homologs: dict, 
+            conditions: dict, 
             n_beta_shift_params: int,
             include_alpha=True,
             init_sig_range=10.,
@@ -1080,13 +748,13 @@ class Multidms:
         Parameters
         ----------
         
-        homologs : list
-            A list containing all possible target homolog 
+        conditions : list
+            A list containing all possible target condition 
             names.
         
         n_beta_shift_params: int
             The number of beta and shift parameters 
-            (for each homolog) to initialize.
+            (for each condition) to initialize.
         
         include_alpha : book
             Initialize parameters for the sigmoid from
@@ -1122,39 +790,120 @@ class Multidms:
         params["β"] = jax.random.normal(shape=(n_beta_shift_params,), key=key)
 
         # initialize shift parameters
-        for homolog in homologs:
+        for condition in conditions:
             # We expect most shift parameters to be close to zero
-            params[f"S_{homolog}"] = jnp.zeros(shape=(n_beta_shift_params,))
-            params[f"C_{homolog}"] = jnp.zeros(shape=(1,))
-            params[f"γ_{homolog}"] = jnp.zeros(shape=(1,))
+            params[f"S_{condition}"] = jnp.zeros(shape=(n_beta_shift_params,))
+            params[f"C_{condition}"] = jnp.zeros(shape=(1,))
+            params[f"γ_{condition}"] = jnp.zeros(shape=(1,))
 
+        # TODO Do we need this?
         if include_alpha:
             params["α"]=dict(
                 ge_scale=jnp.array([init_sig_range]),
                 ge_bias=jnp.array([init_sig_min])
             )
             
+        # TODO
         params["C_ref"] = jnp.array([5.0]) # 5.0 is a guess, could update
 
         return params
 
 
-    # TODO This could be a nice spot to get some useful information about
+    def get_condition_params(self, condition=None):
+        """ get the relent parameters for a model prediction"""
+
+        condition = self.reference if condition is None else condition
+        if condition not in self.conditions:
+            raise ValueError("condition does not exist in model")
+
+        return {
+            "α":self.params[f"α"],
+            "β":self.params["β"], 
+            "C_ref":self.params["C_ref"],
+            "S":self.params[f"S_{condition}"], 
+            "C":self.params[f"C_{condition}"],
+            "γ":self.params[f"γ_{condition}"]
+        }
+
+
+    # TODO finish documentation.
+    def condition_predict(self, X, condition=None):
+        """ condition specific prediction on X using the biophysical model
+        given current model parameters. """
+
+        # TODO assert X is correct shape.
+        # TODO assert that the substitutions exist?
+        # TODO require the user
+        h_params = get_condition_params(condition)
+        return self.predict_function(h_params, X)
+    
+
+    # TODO finish documentation.
+    # TODO lasso etc paramerters (**kwargs ?)
+    def fit(
+        self, 
+        smooth_cost, 
+        prox,
+        λ_lasso=1e-5,
+        λ_ridge=0,
+        **kwargs
+    ):
+        """ use jaxopt.ProximalGradiant to optimize parameters on
+        `self._data_to_fit` 
+        """
+        # Use partial 
+        # compiled_smooth_cost = Partial(smooth_cost, self.predict_function)
+
+        solver = ProximalGradient(
+            smooth_cost,
+            prox,
+            tol=1e-6,
+            maxiter=1000
+        )
+
+        # the reference shift and gamma parameters forced to be zero
+        lock_params = {
+            f"S_{self.reference}" : jnp.zeros(len(self.params['β'])),
+            f"γ_{self.reference}" : jnp.zeros(shape=(1,)),
+        }
+
+        # currently we lock C_h because of odd model behavior
+        for condition in self.conditions:
+            lock_params[f"C_{condition}"] = jnp.zeros(shape=(1,))
+
+        # lasso regularization on the Shift parameters
+        lasso_params = {}
+        for non_ref_condition in self.conditions:
+            if non_ref_condition == self.reference: continue
+            lasso_params[f"S_{non_ref_condition}"] = λ_lasso
+
+        # run the optimizer
+        self.params, state = solver.run(
+            self.params,
+            hyperparams_prox = dict(
+                lasso_params = lasso_params,
+                lock_params = lock_params
+            ),
+            data=(self.binarymaps['X'], self.binarymaps['y']),
+            λ_ridge=λ_ridge,
+            **kwargs
+            #lower_bound=fit_params['lower_bound'],
+            #hinge_scale=fit_params['hinge_scale']
+        )
+        self._update_model_effects_dfs(**kwargs)
+        
+
+    # TODO
     # wildtypes of each condition
     @property
-    def wt_df(self):
-        r"""pandas.DataFrame: Activities :math:`a_{\rm{wt,e}}` for conditions."""
+    def stub_wt_df(self):
+        r"""pandas.DataFrame: Activities :math:`a_{\rm{wt,e}}` for conditions.
+        This could be a nice spot to get some useful information about wts 
+        of each condition"""
         pass
 
-
     @property
-    def mutation_df(self):
-        r"""pandas.DataFrame: Escape :math:`\beta_{m,e}` for each mutation."""
-        pass
-
-
-    @property
-    def mutation_site_summary_df(
+    def stub_mutation_site_summary_df(
         self,
         *,
         min_times_seen=1,
@@ -1182,85 +931,13 @@ class Multidms:
         pass
 
 
-    def get_condition_params(self, condition=None):
-        """ get the relent parameters for a model prediction"""
-
-        condition = self.reference if condition is None else condition
-        if condition not in self.conditions:
-            raise ValueError("condition does not exist in model")
-
-        return {
-            "β":self.params["β"], 
-            "C_ref":self.params["C_ref"],
-            "S":self.params[f"S_{condition}"], 
-            "C":self.params[f"C_{condition}"],
-            "α":self.params[f"α"]
-        }
-
-
-    def condition_predict(self, X, condition=None):
-        """ condition specific prediction on X using the biophysical model
-        given current model parameters. """
-
-        # TODO assert X is correct shape.
-        # TODO assert that the substitutions exist?
-        # TODO require the user
-        h_params = get_condition_params(condition)
-
-        return self.predict(
-                h_params, X, self._ϕ, self._g, self._t
-        )
-
-    @partial(jax.jit, static_argnums=(0, 3, 4, 5))
-    def predict(
-        self,
-        h_params:dict, 
-        X_h:jnp.array, 
-        ϕ:jaxlib.xla_extension.CompiledFunction,
-        g:jaxlib.xla_extension.CompiledFunction,
-        t:jaxlib.xla_extension.CompiledFunction
-    ):
-        """ Biophysical model - compiled for optimization 
-        until model functions ϕ, g, and t are updated."""
-
-        return t(g(h_params['α'], ϕ(h_params, X_h)))
-
-    # TODO
-    #def fit(self):
-    #    pass 
-
 
     # TODO all plotting
-    def activity_wt_barplot(self, **kwargs):
-        r"""Bar plot of activity against each condition, :math:`a_{\rm{wt},e}`.
-
-        Parameters
-        ----------
-        **kwargs
-            Keyword args for :func:`multidms.plot.activity_wt_barplot`.
-
-        Returns
-        -------
-        altair.Chart
-            Interactive plot.
-
-        """
+    def plot(self, **kwargs):
         pass
 
-        """
-        kwargs["activity_wt_df"] = self.activity_wt_df
-        if "condition_colors" not in kwargs:
-            kwargs["condition_colors"] = self.condition_colors
-        return multidms.plot.activity_wt_barplot(**kwargs)
-        """
-
     # TODO
-    def filter_variants_by_seen_muts(
-        self,
-        variants_df,
-        min_times_seen=1,
-        subs_col="aa_substitutions",
-    ):
+    def filter_variants_by_seen_muts(self):
         """Remove variants that contain mutations not seen during model fitting.
 
         Parameters
@@ -1280,59 +957,13 @@ class Multidms:
         """
         pass
 
-        """
-        variants_df = variants_df.copy()
-
-        if subs_col not in variants_df.columns:
-            raise ValueError(f"`variants_df` lacks column {subs_col}")
-
-        filter_col = "_pass_filter"
-        if filter_col in variants_df.columns:
-            raise ValueError(f"`variants_df` cannot have column {filter_col}")
-
-        if min_times_seen == 1:
-            allowed_muts = self.mutations
-        elif self.mutations_times_seen is not None:
-            allowed_muts = {
-                m for (m, n) in self.mutations_times_seen.items() if n >= min_times_seen
-            }
-        else:
-            raise ValueError(f"Cannot use {min_times_seen=} without data to fit")
-
-        variants_df[filter_col] = variants_df[subs_col].map(
-            lambda s: set(s.split()).issubset(allowed_muts)
-        )
-
-        return (
-            variants_df.query("_pass_filter == True")
-            .drop(columns="_pass_filter")
-            .reset_index(drop=True)
-        )
-        """
 
     # TODO
     def _get_binarymap(
         self,
         variants_df,
     ):
-        """Get ``BinaryMap`` appropriate for use."""
         pass
-
-        """
-        bmap = binarymap.BinaryMap(
-            variants_df,
-            substitutions_col="aa_substitutions",
-            allowed_subs=self.mutations,
-            alphabet=self.alphabet,
-            sites_as_str=not self.sequential_integer_sites,
-        )
-        if tuple(bmap.all_subs) != self.mutations:
-            raise ValueError(
-                "Different mutations in BinaryMap and self:"
-                f"\n{bmap.all_subs=}\n{self.mutations=}"
-            )
-        return bmap
-        """
 
     # TODO
     def mut_shift_corr(self, ref_poly):
@@ -1354,44 +985,6 @@ class Multidms:
             Pairwise condition correlations for shift.
         """
         pass
-
-        """
-        if self.mut_shift_df is None or ref_poly.mut_escape_df is None:
-            raise ValueError("Both objects must have `mut_shift_df` initialized.")
-
-        df = pandas.concat(
-            [
-                self.mut_shift_df.assign(
-                    condition=lambda x: list(zip(itertools.repeat("self"), x["condition"]))
-                ),
-                ref_poly.mut_shift_df.assign(
-                    condition=lambda x: list(zip(itertools.repeat("ref"), x["condition"]))
-                ),
-            ]
-        )
-
-        corr = (
-            multidms.utils.tidy_to_corr(
-                df,
-                sample_col="condition",
-                label_col="mutation",
-                value_col="shift",
-            )
-            .assign(
-                ref_condition=lambda x: x["condition_2"].map(lambda tup: tup[1]),
-                ref_model=lambda x: x["condition_2"].map(lambda tup: tup[0]),
-                self_condition=lambda x: x["condition_1"].map(lambda tup: tup[1]),
-                self_model=lambda x: x["condition_1"].map(lambda tup: tup[0]),
-            )
-            .query("ref_model != self_model")[
-                ["ref_condition", "self_condition", "correlation"]
-            ]
-            .drop_duplicates()
-            .reset_index(drop=True)
-        )
-
-        return corr
-        """
 
 
 if __name__ == "__main__":
