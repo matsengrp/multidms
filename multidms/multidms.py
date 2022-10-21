@@ -304,7 +304,7 @@ class Multidms:
     ...     reference = "1"
     ... )
 
-    This object initializes a few useful attributes
+    This object initializes a few useful attributes and properties
 
     >>> mdms.conditions
     ('1', '2')
@@ -317,7 +317,7 @@ class Multidms:
        3  G  P
        1  M  M
 
-    >>> mdms.mut_df
+    >>> mdms.mutations_df
       mutation         β wts  sites muts  times_seen  S_1       F_1  S_2       F_2
       0      M1E  0.080868   M      1    E           4  0.0 -0.061761  0.0 -0.061761
       1      M1W -0.386247   M      1    W           1  0.0 -0.098172  0.0 -0.098172
@@ -325,7 +325,7 @@ class Multidms:
       3      G3R  1.668974   G      3    R           3  0.0 -0.012681  0.0 -0.012681
 
 
-    >>> mdms.variants_df
+    >>> mdms.data_to_fit
       condition aa_substitutions  ...  predicted_func_score  corrected_func_score
       0         1              G3P  ...             -0.097148                  -0.5
       1         1              G3R  ...             -0.012681                  -7.0
