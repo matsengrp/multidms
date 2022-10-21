@@ -13,7 +13,7 @@ from frozendict import frozendict
 import jaxopt
 import numpy as onp
 
-# activation function
+# activation functions
 @jax.jit
 def identity_activation(x, **kwargs):
     return x
@@ -31,6 +31,19 @@ def softplus_activation(act, lower_bound=-3.5, hinge_scale=0.1, **kwargs):
             )
         ) + lower_bound
     )
+
+
+@jax.jit
+def shifted_gelu(x, l=-3.5):
+    sp = x - l 
+    return (
+        (sp/2) * (
+            1 + jnp.tanh(
+                jnp.sqrt(2/jnp.pi) * (sp+(0.044715*(sp**3)))
+            )
+        ) + l
+    )
+
 
 # latent space predictions
 @jax.jit
