@@ -1,4 +1,96 @@
-#!/usr/bin/env python
+r"""
+==========
+model
+==========
+
+Defines JIT compiled functions for to use for 
+composing models and their respective objective functions.
+
+For the sake of modularity, abstraction, and code-reusibility,
+we would like to be able to modularize the 
+individual pieces of code that define a model.
+To this end, we are mainly constrained by the necessity of
+Just-in-time (JIT) compilation of our model code for effecient 
+training and parameter optimization.
+To achieve this, we must take advantage of the
+``jax.tree_util.Partial`` utility, which allows
+for jit-compiled functions to be "pytree compatible".
+In other words, by decorating functions with 
+``Partial``, we can clearly mark which arguments will
+in a function are themselves, statically compiled functions
+in order to achieve function composition.
+
+For a simple example using the ``Partial`` function,
+see https://jax.readthedocs.io/en/latest/_autosummary/jax.tree_util.Partial.html
+
+Here, we do it slightly differently than the example given
+by the documentation where they highlight the feeding 
+of partial functions into jit-compiled functions as 
+arguments that are pytree compatible.
+Instead, we first use partial in the more traditional sense
+such that _calling_ functions (i.e. functions that call on other 
+parameterized functions) are defined as being a "partially" jit-compiled
+function, until the relevant static arguments are provided using another
+call to Partial. 
+
+Consider the small example of a composed model formula f(t, g, x) = t(g(x))
+
+
+>>> import jax.numpy as jnp
+>>> import jax
+>>> jax.config.update("jax_enable_x64", True)
+>>> from jax.tree_util import Partial
+
+>>> @jax.jit
+>>> def identity(x):
+>>>     return x
+
+>>> @Partial(jax.jit, static_argnums=(0,1,))
+>>> def f(t, g, x):
+>>>     print(f"compiling")
+>>>     return t(g(x))
+
+Here, we defined a simple ``identity`` activation function that is fully
+jit-compiled, as well as the partially jit compiled calling function, ``f``,
+Where the 0th and 1st arguments have been marked as static arguments.
+Next, we'll compile ``f`` by providing the static arguments using another
+call to ``Partial``.
+
+>>> identity_f = Partial(f, identity, identity)
+
+Now, we can call upon the compiled function without any reference to our
+static arguments.
+
+>>> identity_f(5)
+  compiling
+  5
+
+Note that upon the first call our model was JIT-compiled, 
+but subsequent calls need not re-compile
+
+>>> identity_f(7)
+  7
+
+We may also want to evaluate the loss of our simple model using MSE.
+We can again use the partial function to define an abstract SSE loss
+which is compatible with any pre-compiled model function, ``f``.
+
+>>> @Partial(jax.jit, static_argnums=(0,))
+>>> def sse(f, x, y):
+>>>     print(f"compiling")
+>>>     return jnp.sum((f(x) - y)**2)
+
+And finally we provide some examples and targets to evauate the cost.
+
+>>> compiled_cost = Partial(sse, identity_f)
+>>> x = jnp.array([10, 12])
+>>> y = jnp.array([11, 11])
+>>> compiled_cost(x,y)
+  compiling
+  compiling
+  2
+"""
+
 
 import numpy as np
 import json
@@ -7,22 +99,24 @@ jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 import jaxlib
 from jax.experimental import sparse
-from jax.tree_util import Partial as jax_partial
-from functools import partial as functools_partial
+from jax.tree_util import Partial
 from frozendict import frozendict
 import jaxopt
 import numpy as onp
 
-# activation functions
 @jax.jit
-def identity_activation(x, **kwargs):
-    return x
+def identity_activation(act, **kwargs):
+    return act
 
 
 @jax.jit
 def softplus_activation(act, lower_bound=-3.5, hinge_scale=0.1, **kwargs):
     """A modified softplus that hinges at 'lower_bound'. 
-    the rate of change at the hinge is defined by 'hinge_scale'."""
+    The rate of change at the hinge is defined by 'hinge_scale'.
+
+    This is derived from 
+    https://jax.readthedocs.io/en/latest/_autosummary/jax.nn.softplus.html
+    """
 
     return (
         hinge_scale * (
@@ -34,45 +128,52 @@ def softplus_activation(act, lower_bound=-3.5, hinge_scale=0.1, **kwargs):
 
 
 @jax.jit
-def shifted_gelu(x, l=-3.5):
-    sp = x - l 
+def gelu_activation(act, lower_bound=-3.5):
+    """ A modified Gaussian error linear unit activation function,
+    where the lower bound asymptote is defined by `lower_bound`.
+
+    This is derived from 
+    https://jax.readthedocs.io/en/latest/_autosummary/jax.nn.gelu.html
+    """
+    sp = act - lower_bound
     return (
         (sp/2) * (
             1 + jnp.tanh(
                 jnp.sqrt(2/jnp.pi) * (sp+(0.044715*(sp**3)))
             )
-        ) + l
+        ) + lower_bound
     )
 
 
-# latent space predictions
 @jax.jit
-def ϕ_shift(h_params:dict, X_h:jnp.array):
-    """ Model for predicting latent space """
-    
-    return ((X_h @ (h_params["β"] + h_params["S"])) 
-            + h_params["C"] 
-            + h_params["C_ref"]
+def ϕ(d_params:dict, X_h:jnp.array):
+    """ Model for predicting latent space with
+    shift parameters."""
+   
+    return (
+            d_params["C_ref"]
+            + d_params["C_d"] 
+            + (X_h @ (d_params["β_m"] + d_params["s_md"])) 
            )
 
-
-# global epistasis models
+    
 @jax.jit
 def sigmoidal_global_epistasis(α:dict, z_h:jnp.array):
-
-    """ Model for global epistasis as 'flexible' sigmoid. """
+    """ A flexible sigmoid function for
+    modeling global epistasis."""
 
     activations = jax.nn.sigmoid(z_h[:, None])
     return (α["ge_scale"] @ activations.T) + α["ge_bias"]
 
 
-# JAX Engine
-@functools_partial(jax.jit, static_argnums=(0, 1, 2,))
+# ?? Should hugh's model include the t()? or should we
+# separate the f, and t functions and make that explicit?
+@Partial(jax.jit, static_argnums=(0, 1, 2,))
 def abstract_epistasis(
     ϕ:jaxlib.xla_extension.CompiledFunction,
     g:jaxlib.xla_extension.CompiledFunction,
     t:jaxlib.xla_extension.CompiledFunction,
-    h_params:dict, 
+    d_params:dict, 
     X_h:jnp.array, 
     **kwargs
 ):
@@ -82,7 +183,7 @@ def abstract_epistasis(
     with the required functions fixed 
     using `jax.tree_util.Partial."""
 
-    return t(g(h_params['α'], ϕ(h_params, X_h)), **kwargs)
+    return t(g(d_params['α'], ϕ(d_params, X_h)), **kwargs)
 
 
 @jax.jit
@@ -111,37 +212,38 @@ def lasso_lock_prox(
     return params
 
 
-@functools_partial(jax.jit, static_argnums=(0,))
+@Partial(jax.jit, static_argnums=(0,))
 def gamma_corrected_cost_smooth(f, params, data, δ=1, λ_ridge=0, **kwargs):
-    """Cost (Objective) function summed across all homologs"""
+    """Cost (Objective) function summed across all conditions"""
 
     X, y = data
     loss = 0   
     
-    # Sum the huber loss across all homologs
-    for homolog, X_h in X.items():   
+    # Sum the huber loss across all conditions
+    for condition, X_d in X.items():   
         
-        # Subset the params for homolog-specific prediction
-        h_params = {
+        # Subset the params for condition-specific prediction
+        d_params = {
             "α":params["α"],
-            "β":params["β"], 
+            "β_m":params["β"], 
             "C_ref":params["C_ref"],
-            "S":params[f"S_{homolog}"], 
-            "C":params[f"C_{homolog}"],
+            "s_md":params[f"S_{condition}"], 
+            "C_d":params[f"C_{condition}"],
+            "γ_d":params[f"γ_{condition}"]
         }
        
         # compute predictions 
-        y_h_predicted = f(h_params, X_h, **kwargs)
+        y_d_predicted = f(d_params, X_d, **kwargs)
         
         # compute the Huber loss between observed and predicted
         # functional scores
         loss += jaxopt.loss.huber_loss(
-            y[homolog] + params[f"γ_{homolog}"], y_h_predicted, δ
+            y[condition] + d_params[f"γ_d"], y_d_predicted, δ
         ).mean()
         
         # compute a regularization term that penalizes non-zero
         # shift parameters and add it to the loss function
-        ridge_penalty = λ_ridge * (params[f"S_{homolog}"] ** 2).sum()
+        ridge_penalty = λ_ridge * (d_params["s_md"] ** 2).sum()
         loss += ridge_penalty
 
     return loss
@@ -151,13 +253,15 @@ def gamma_corrected_cost_smooth(f, params, data, δ=1, λ_ridge=0, **kwargs):
 Vanilla multidms model with shift parameters, sigmoidal epistatic function,
 and linear activation on the output.
 """
-compiled_pred = jax_partial(
+
+# OPTION 1
+compiled_pred = Partial(
         abstract_epistasis, # abstract function to compile
-        ϕ_shift,
+        ϕ,
         sigmoidal_global_epistasis, 
         identity_activation
 )
-compiled_cost = jax_partial(
+compiled_cost = Partial(
         gamma_corrected_cost_smooth, 
         compiled_pred
 )
@@ -166,3 +270,14 @@ global_epistasis = frozendict({
     "objective" : compiled_cost,
     "proximal" : lasso_lock_prox 
 })
+
+#class MultidmsModel:
+#    """
+#    This class takes available (partially and fully)
+#    jit compiled functions from the functions defined
+#    in 
+#    """
+#    pass
+
+
+

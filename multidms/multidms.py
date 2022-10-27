@@ -478,8 +478,6 @@ class Multidms:
 
         self._mutations_df = mut_df
 
-        # add other current model properties.
-        # self._update_model_effects_dfs()
 
     @property
     def mutations_df(self):
@@ -503,8 +501,6 @@ class Multidms:
             self._mutations_df[f"F_{condition}"] = self._predict_function(
                 h_params, 
                 binary_single_subs
-                # self._ϕ, self._g, self._t,
-                # **kwargs
             )
 
         return self._mutations_df
@@ -527,7 +523,7 @@ class Multidms:
             )
 
             self._data_to_fit.loc[condition_dtf.index, f"predicted_func_score"] = y_h_pred
-            self._data_to_fit.loc[condition_dtf.index, f"corrected_func_score"] -= h_params[f"γ"]
+            self._data_to_fit.loc[condition_dtf.index, f"corrected_func_score"] -= h_params[f"γ_d"]
             
         return self._data_to_fit
         
@@ -828,11 +824,11 @@ class Multidms:
 
         return {
             "α":self.params[f"α"],
-            "β":self.params["β"], 
+            "β_m":self.params["β"], 
             "C_ref":self.params["C_ref"],
-            "S":self.params[f"S_{condition}"], 
-            "C":self.params[f"C_{condition}"],
-            "γ":self.params[f"γ_{condition}"]
+            "s_md":self.params[f"S_{condition}"], 
+            "C_d":self.params[f"C_{condition}"],
+            "γ_d":self.params[f"γ_{condition}"]
         }
 
 
