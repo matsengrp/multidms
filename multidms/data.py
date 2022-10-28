@@ -194,7 +194,7 @@ class MultiDmsData:
 
     Parameters
     ----------
-    data_to_fit : pandas.DataFrame or None
+    variants_df : pandas.DataFrame or None
         TODO
         Should have columns named 'aa_substitutions', 'concentration', and
         'prob_shift'. The 'aa_substitutions' column defines each variant
@@ -209,7 +209,7 @@ class MultiDmsData:
         mutations written like "G7M".
     collapse_identical_variants : {'mean', 'median', False}
         TODO
-        If identical variants in ``data_to_fit`` (same 'aa_substitutions'),
+        If identical variants in ``variants_df`` (same 'aa_substitutions'),
         collapse them and make weight proportional to number of collapsed
         variants? Collapse by taking mean or median of 'prob_shift', or
         (if `False`) do not collapse at all. Collapsing will make fitting faster,
@@ -219,7 +219,7 @@ class MultiDmsData:
     sites : array-like or 'infer'
         TODO - this is good idea if we want to define the site map for the reference
         By default, sites are assumed to be sequential integer values are and inferred
-        from ``data_to_fit`` or ``mut_shift_df``. However, you can also have
+        from ``variants_df`` or ``mut_shift_df``. However, you can also have
         non-sequential integer sites, or sites with lower-case letter suffixes
         (eg, `214a`) if your protein is numbered against a reference that it has
         indels relative to. In that case, provide list of all expected in order
@@ -255,13 +255,13 @@ class MultiDmsData:
     alphabet : tuple 
         Allowed characters in mutation strings.
     site_map : tuple 
-        Inferred from ``data_to_fit``, this attribute will provide the wildtype
+        Inferred from ``variants_df``, this attribute will provide the wildtype
         amino acid at all sites, for all conditions.
     letter_suffixed_sites=False,
         True if sites are allowed to have trailing charicter suffixes, False otherwise.
     condition_colors : dict TODO
         Maps each condition to its color.
-    data_to_fit : pandas.DataFrame
+    variants_df : pandas.DataFrame
         Data to fit as passed when initializing this :class:`Multidms` object.
         If using ``collapse_identical_variants``, then identical variants
         are collapsed on columns 'concentration', 'aa_substitutions',
@@ -326,7 +326,7 @@ class MultiDmsData:
       3      G3R  1.668974   G      3    R           3  0.0 -0.012681  0.0 -0.012681
 
 
-    >>> mdms.data_to_fit
+    >>> mdms.variants_df
       condition aa_substitutions  ...  predicted_func_score  corrected_func_score
       0         1              G3P  ...             -0.097148                  -0.5
       1         1              G3R  ...             -0.012681                  -7.0
@@ -369,7 +369,7 @@ class MultiDmsData:
 
     def __init__(
         self,
-        data_to_fit: pandas.DataFrame,
+        variants_df: pandas.DataFrame,
         #predict_function,
         #objective_function,
         #proximal_function,
@@ -394,9 +394,9 @@ class MultiDmsData:
             raise ValueError(f"invalid {init_missing=}")    
 
         # Check and initialize conditions attribute
-        if pandas.isnull(data_to_fit["condition"]).any():
+        if pandas.isnull(variants_df["condition"]).any():
             raise ValueError("condition name cannot be null")
-        self.conditions = tuple(data_to_fit["condition"].unique())
+        self.conditions = tuple(variants_df["condition"].unique())
 
         if reference not in self.conditions:
             raise ValueError("reference must be in condition factor levels")
@@ -425,11 +425,11 @@ class MultiDmsData:
         # Check and initialize fitting data from func_score_df
         (
             self._binarymaps,
-            self._data_to_fit,
+            self._variants_df,
             self._mutations,
             self._site_map,
         ) = self._create_condition_modeling_data(
-            data_to_fit, 
+            variants_df, 
             reference,
             **kwargs    
         )
@@ -437,7 +437,7 @@ class MultiDmsData:
         ## set internal params with activities and shifts
         ## TODO This should rely on the three functions passed in
         #self.params = self._initialize_model_params(
-        #    self._data_to_fit["condition"].unique(), 
+        #    self._variants_df["condition"].unique(), 
         #    n_beta_shift_params=self._binarymaps['X'][reference].shape[1],
         #    include_alpha=True, # TODO would could just initialize them after ... ?
         #    #init_sig_range=sig_range, #TODO
@@ -456,9 +456,9 @@ class MultiDmsData:
         # compute times seen in data
         # TODO Should this be seen times per condition?
         #times_seen_per_condition = {}
-        #for condition, condition_df in self._data_to_fit.groupby("condition"):
+        #for condition, condition_df in self._variants_df.groupby("condition"):
         times_seen = (
-            self._data_to_fit["var_wrt_ref"]
+            self._variants_df["var_wrt_ref"]
             .str.split()
             .explode()
             .value_counts()
@@ -487,8 +487,8 @@ class MultiDmsData:
 
 
     @property
-    def data_to_fit(self):
-        return self._data_to_fit
+    def variants_df(self):
+        return self._variants_df
 
 
     @property
@@ -526,7 +526,7 @@ class MultiDmsData:
             This should be in the same format as described in BinaryMap.
 
         collapse_identical_variants : {'mean', 'median', False}
-            If identical variants in ``data_to_fit`` (same 'aa_substitutions'),
+            If identical variants in ``variants_df`` (same 'aa_substitutions'),
             collapse them and make weight proportional to number of collapsed
             variants? Collapse by taking mean or median of 'prob_escape', or
             (if `False`) do not collapse at all. Collapsing will make fitting faster,

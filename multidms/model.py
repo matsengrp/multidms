@@ -116,7 +116,8 @@ def identity_activation(d_params, act, **kwargs):
 
 @jax.jit
 def softplus_activation(d_params, act, lower_bound=-3.5, hinge_scale=0.1, **kwargs):
-    """A modified softplus that hinges at 'lower_bound'. 
+    """
+    A modified softplus that hinges at 'lower_bound'. 
     The rate of change at the hinge is defined by 'hinge_scale'.
 
     This is derived from 
@@ -127,21 +128,23 @@ def softplus_activation(d_params, act, lower_bound=-3.5, hinge_scale=0.1, **kwar
         hinge_scale * (
             jnp.log(
                 1 + jnp.exp(
-                    (act - (lower_bound + h_params["γ"])) / hinge_scale)
+                    (act - (lower_bound + d_params["γ_d"])) / hinge_scale)
             )
-        ) + lower_bound + h_params["γ"]
+        ) + lower_bound + d_params["γ_d"]
     )
 
 
 @jax.jit
 def gelu_activation(d_params, act, lower_bound=-3.5):
-    """ A modified Gaussian error linear unit activation function,
+    """ 
+    A modified Gaussian error linear unit activation function,
     where the lower bound asymptote is defined by `lower_bound`.
 
     This is derived from 
     https://jax.readthedocs.io/en/latest/_autosummary/jax.nn.gelu.html
     """
-    sp = act - (lower_bound + h_params["γ"])
+
+    sp = act - (lower_bound + d_params["γ_d"])
     return (
         (sp/2) * (
             1 + jnp.tanh(
@@ -358,7 +361,7 @@ class MultiDmsModel:
 
         # all the checks are done for date.
 
-        # This object overides the mutations_df and data_to_fit
+        # This object overides the mutations_df and variants_df
         # properties from this model object, we'll return
         # copies of the relevant snippets of data plus
         # the attributes defined by a model fit within this object.
@@ -436,7 +439,7 @@ class MultiDmsModel:
                 gamma_corrected_cost_smooth, 
                 compiled_pred
         )
-        self.model = frozendict({
+        self._model = frozendict({
             "ϕ" : latent_models[latent_model],
             "f" : compiled_pred,
             "objective" : compiled_cost,
@@ -450,36 +453,36 @@ class MultiDmsModel:
         updated with all model predictions"""
         # HERE
         # TODO How about fit_data? bc it may have already been fit.
-        data_to_fit = copy.copy(self._data.data_to_fit)
+        variants_df = copy.copy(self._data.variants_df)
 
-        data_to_fit["predicted_latent"] = onp.nan
-        data_to_fit[f"predicted_func_score"] = onp.nan
-        data_to_fit[f"corrected_func_score"] = data_to_fit[f"func_score"]
-        for condition, condition_dtf in data_to_fit.groupby("condition"):
+        variants_df["predicted_latent"] = onp.nan
+        variants_df[f"predicted_func_score"] = onp.nan
+        variants_df[f"corrected_func_score"] = variants_df[f"func_score"]
+        for condition, condition_dtf in variants_df.groupby("condition"):
 
-            h_params = self.get_condition_params(condition)
+            d_params = self.get_condition_params(condition)
 
-            y_h_pred = self.model['f'](
-                h_params, 
+            y_h_pred = self._model['f'](
+                d_params, 
                 self._data.binarymaps['X'][condition]
             )
-            data_to_fit.loc[condition_dtf.index, f"predicted_func_score"] = y_h_pred
+            variants_df.loc[condition_dtf.index, f"predicted_func_score"] = y_h_pred
 
             if self.gamma_corrected:
-                data_to_fit.loc[condition_dtf.index, f"corrected_func_score"] += h_params[f"γ_d"]
+                variants_df.loc[condition_dtf.index, f"corrected_func_score"] += d_params[f"γ_d"]
 
             # TODO is there any reason we would gamma correct the latent pred?
-            y_h_latent = self.model['ϕ'](
-                h_params, 
+            y_h_latent = self._model['ϕ'](
+                d_params, 
                 self._data.binarymaps['X'][condition]
             )
-            data_to_fit.loc[condition_dtf.index, f"predicted_latent"] = y_h_latent
+            variants_df.loc[condition_dtf.index, f"predicted_latent"] = y_h_latent
 
             # TODO I imagine the 
-            data_to_fit.loc[condition_dtf.index, f"predicted_func_score"] = y_h_pred
+            variants_df.loc[condition_dtf.index, f"predicted_func_score"] = y_h_pred
 
         # TODO assert that none of the values are nan? 
-        return data_to_fit
+        return variants_df
 
 
     @property
@@ -497,15 +500,15 @@ class MultiDmsModel:
         for condition in self._data.conditions:
             
             # collect relevant params
-            h_params = self.get_condition_params(condition)
+            d_params = self.get_condition_params(condition)
 
             # attach relevent params to mut effects df
             mutations_df[f"S_{condition}"] = self.params[f"S_{condition}"]
 
             
             # predictions for all single subs
-            mutations_df[f"F_{condition}"] = self.model['f'](
-                h_params, 
+            mutations_df[f"F_{condition}"] = self._model['f'](
+                d_params, 
                 binary_single_subs
             )
 
@@ -514,7 +517,7 @@ class MultiDmsModel:
 
     @property
     def loss(self):
-        data=(self._data.binarymaps['X'], self._data.binarymaps['y']),
+        data=(self._data.binarymaps['X'], self._data.binarymaps['y'])
         return self._model['objective'](self.params, data)
 
 
@@ -549,8 +552,8 @@ class MultiDmsModel:
         # TODO assert X is correct shape.
         # TODO assert that the substitutions exist?
         # TODO require the user
-        h_params = get_condition_params(condition)
-        return self.model['f'](h_params, X)
+        d_params = get_condition_params(condition)
+        return self._model['f'](d_params, X)
 
 
     # TODO finish documentation.
@@ -561,8 +564,8 @@ class MultiDmsModel:
         # TODO assert X is correct shape.
         # TODO assert that the substitutions exist?
         # TODO require the user
-        h_params = get_condition_params(condition)
-        return self.model['ϕ'](h_params, X)
+        d_params = get_condition_params(condition)
+        return self._model['ϕ'](d_params, X)
 
 
     # TODO finish documentation.
@@ -577,8 +580,8 @@ class MultiDmsModel:
         """ Use jaxopt.ProximalGradiant to optimize parameters """
 
         solver = ProximalGradient(
-            self.model["objective"],
-            self.model["proximal"],
+            self._model["objective"],
+            self._model["proximal"],
             tol=tol,
             maxiter=maxiter
         )
@@ -616,20 +619,5 @@ class MultiDmsModel:
                 lock_params = lock_params
             ),
             data=(self._data.binarymaps['X'], self._data.binarymaps['y']),
-            #data=self._data.binarymaps,
             **kwargs
         )
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
