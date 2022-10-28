@@ -8,8 +8,9 @@ dms experiments under various conditions.
 
 """
 
-from functools import partial as o_partial
+# from functools import partial as o_partial
 # from jax.tree_util import Partial
+from functools import partial
 import collections
 import copy  # noqa: F401
 import inspect
@@ -43,10 +44,10 @@ from jaxopt import ProximalGradient
 
 # local
 # TODO import only what you need, here.
-import multidms
+# import multidms
 #import multidms.plot
 import multidms.utils
-from multidms.model import identity_activation
+#from multidms.model import identity_activation
 
 
 class stub_MultidmsFitError(Exception):
@@ -423,10 +424,10 @@ class MultiDmsData:
 
         # Check and initialize fitting data from func_score_df
         (
-            self.binarymaps,
+            self._binarymaps,
             self._data_to_fit,
-            self.mutations,
-            self.site_map,
+            self._mutations,
+            self._site_map,
         ) = self._create_condition_modeling_data(
             data_to_fit, 
             reference,
@@ -437,20 +438,14 @@ class MultiDmsData:
         ## TODO This should rely on the three functions passed in
         #self.params = self._initialize_model_params(
         #    self._data_to_fit["condition"].unique(), 
-        #    n_beta_shift_params=self.binarymaps['X'][reference].shape[1],
+        #    n_beta_shift_params=self._binarymaps['X'][reference].shape[1],
         #    include_alpha=True, # TODO would could just initialize them after ... ?
         #    #init_sig_range=sig_range, #TODO
         #    #init_sig_min=sig_lower
         #)
 
-        # TODO make this a property
         # initialize single mutational effects df
-        mut_df = pandas.DataFrame(
-            {
-                "mutation" : self.mutations,
-                "β" : self.params["β"]
-            }
-        )
+        mut_df = pandas.DataFrame({"mutation" : self._mutations})
 
         # TODO JIT
         #parser = partial(multidms.utils.split_sub, parser=self._mutparser.parse_mut)
@@ -480,26 +475,30 @@ class MultiDmsData:
 
         self._mutations_df = mut_df
 
-    
+
+    @property
+    def mutations(self): 
+        return self._mutations
+
+
     @property
     def mutations_df(self):
-        """ Get all mutational attributes with the current parameters """
         return self._mutations_df
+
 
     @property
     def data_to_fit(self):
-        """ Get all mutational attributes with the current parameters """
         return self._data_to_fit
+
 
     @property
     def site_map(self):
-        """ Get site map which provides wildtype aa at each included site in data """
         return self._site_map
 
+    # TODO change name, this is (X, y)
     @property
     def binarymaps(self):
-        """ get all binarymaps for each condition, ready for fitting"""
-        return self.binarymaps
+        return self._binarymaps
 
     # TODO impliment different condition overlap options
     # TODO move the column names to a config of some kind. JSON?
@@ -610,7 +609,7 @@ class MultiDmsData:
             df = func_score_df.reset_index()
 
         # TODO JIT
-        parser = o_partial(multidms.utils.split_subs, parser=self._mutparser.parse_mut)
+        parser = partial(multidms.utils.split_subs, parser=self._mutparser.parse_mut)
         df["wts"], df["sites"], df["muts"] = zip(
             *df[substitution_col].map(parser)
         )
