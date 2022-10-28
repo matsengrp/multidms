@@ -104,8 +104,10 @@ from frozendict import frozendict
 import jaxopt
 import numpy as onp
 
+import multidms
+
 @jax.jit
-def identity_activation(act, **kwargs):
+def identity_activation(d_params, act, **kwargs):
     return act
 
 
@@ -254,7 +256,7 @@ Vanilla multidms model with shift parameters, sigmoidal epistatic function,
 and linear activation on the output.
 """
 
-# OPTION 1
+"""
 compiled_pred = Partial(
         abstract_epistasis, # abstract function to compile
         ϕ,
@@ -270,14 +272,334 @@ global_epistasis = frozendict({
     "objective" : compiled_cost,
     "proximal" : lasso_lock_prox 
 })
+"""
 
-#class MultidmsModel:
-#    """
-#    This class takes available (partially and fully)
-#    jit compiled functions from the functions defined
-#    in 
-#    """
-#    pass
+"""
+latent models must take in a binarymap
+representation of variants, and predict
+a single value representing the latent
+phenotype prediction.
+"""
+latent_models = {
+    "phi" : ϕ
+}
+
+"""
+epistatic and output activations have the same shape
+input and output, however, epistatic models
+are parameterized by "α", which can differ depending
+on the function chosen. For example, the identity
+function requires no alpha parameters, sigmoid requires 2,
+and perceptron may have up to n hidden nodes and layers.
+"""
+epistatic_models = {
+    "sigmoid" : sigmoidal_global_epistasis,
+    "identity" : identity_activation 
+}
+output_activations = {
+    "softplus" : softplus_activation,
+    "gelu" : gelu_activation
+}
+
+
+class MultiDmsModel:
+    """
+    A class for compiling, and fitting 
+    multidms models and objective functions
+    as a composition of (fully and partially) 
+    jit-compiled functions.
+    """
+
+    # TODO, should the user provide available strings?
+    def __init__(
+        self,
+        data:multidms.MultiDmsData,
+        latent_model="phi",
+        epistatic_model="identity",
+        output_activation="identity",
+        # objective_function=,
+        # proximal_function=,
+        init_sig_range=10.,
+        init_sig_min=-10.,
+        PRNGKey = 0
+    ):
+        """
+        initialize a set of starting parameters for the JAX model.
+        
+        Parameters
+        ----------
+        
+        conditions : list
+            A list containing all possible target condition 
+            names.
+        
+        n_beta_shift_params: int
+            The number of beta and shift parameters 
+            (for each condition) to initialize.
+        
+        include_alpha : book
+            Initialize parameters for the sigmoid from
+            the global epistasis function
+        
+        init_sig_range : float
+            The range of observed phenotypes in the raw
+            data, used to initialize the range of the
+            sigmoid from the global epistasis function
+        
+        init_sig_min : float
+            The lower bound of observed phenotypes in
+            the raw data, used to initialize the minimum
+            value of the sigmoid from the global epistasis
+            funciton
+            
+        latent_bias : float
+            bias parameter applied to the output of the
+            linear model (latent prediction).
+        
+        Returns
+        -------
+        
+        dict :
+            all relevant parameters to be tuned with the JAX model.
+        """
+        
+        # DATA
+        # store all the relevant data as a reference to the
+        # original MultiDmsData object
+
+        # when we return the mutations_df or data_to_fit
+        # propertied from this model object, we'll return
+        # copies of the relevant snippets of data plus
+        # the attributes defined by a model fit within this object.
+        self.data = data
+        
+        # PARAMS
+        # we now initialize parameters based upon models
+        # chosen. After this, we will simply 
+        self.params = {}
+        key = jax.random.PRNGKey(seed)
+
+        # initialize beta parameters from normal distribution.
+
+        # TODO do we even have another model?
+        # we could always lock shifts to zero in prox function
+        if latent_model == "phi":
+
+            n_beta_shift_parameters = len(self.data.all_subs)
+            self.params["β"] = jax.random.normal(shape=(n_beta_shift_self.params,), key=key)
+
+            # initialize shift parameters
+            for condition in data.conditions:
+                # We expect most shift parameters to be close to zero
+                self.params[f"S_{condition}"] = jnp.zeros(shape=(n_beta_shift_self.params,))
+                self.params[f"C_{condition}"] = jnp.zeros(shape=(1,))
+
+            # all mode
+            self.params["C_ref"] = jnp.array([5.0]) # 5.0 is a guess, could update
+
+        if gamma_corrected:
+            self.params[f"γ_{condition}"] = jnp.zeros(shape=(1,))
+
+        # TODO softplus, perceptron, ispline
+        if epistatic_model = "identity":
+            continue
+        elif epistatic_model = "sigmoid":
+
+            self.params["α"]=dict(
+                ge_scale=jnp.array([init_sig_range]),
+                ge_bias=jnp.array([init_sig_min])
+            )
+        else:
+            raise ValueError(f"{epistatic_model} not recognized},"
+                "please use one from: {epistatic_models.values()}"
+                )
+
+        # COMPILED MODEL
+        # Here is where we compile the main features of the model.
+        # you could imagine 'abstract epistasis' could also be
+        # a parameter and thus this class could be abstracted to
+        # multiple biophysical models.
+        compiled_pred = Partial(
+                abstract_epistasis, # abstract function to compile
+                latent_models[latent_model],
+                epistatic_models[epistatic_model], 
+                output_activations[output_activation]
+        )
+        compiled_cost = Partial(
+                gamma_corrected_cost_smooth, 
+                compiled_pred
+        )
+        self.model = frozendict({
+            "ϕ" : latent_mode
+            "f" : compiled_pred,
+            "objective" : compiled_cost,
+            "proximal" : lasso_lock_prox 
+        })
+
+
+    @property
+    def data_to_fit(self):
+        """ Get all functional score attributes from self.data
+        updated with all model predictions"""
+        # HERE
+        # TODO How about fit_data? bc it may have already been fit.
+        data_to_fit = copy.copy(self.data._data_to_fit)
+
+        data_to_fit["predicted_latent"] = onp.nan
+        data_to_fit[f"predicted_func_score"] = onp.nan
+        data_to_fit[f"corrected_func_score"] = data_to_fit[f"func_score"]
+        for condition, condition_dtf in data_to_fit.groupby("condition"):
+
+            h_params = self.get_condition_params(condition)
+
+            y_h_pred = self.model['f'](
+                h_params, 
+                self.data.binarymaps['X'][condition]
+            )
+            data_to_fit.loc[condition_dtf.index, f"predicted_func_score"] = y_h_pred
+
+            if gamma_corrected:
+                data_to_fit.loc[condition_dtf.index, f"corrected_func_score"] += h_params[f"γ_d"]
+
+            # TODO is there any reason we would gamma correct the latent pred?
+            y_h_latent = self.model['ϕ'](
+                h_params, 
+                self.data.binarymaps['X'][condition]
+
+            )
+            data_to_fit.loc[condition_dtf.index, f"predicted_latent"] = y_h_latent
+
+            # TODO I imagine the 
+            data_to_fit.loc[condition_dtf.index, f"predicted_func_score"] = y_h_pred
+
+        # TODO assert that none of the values are nan? 
+        return data_to_fit
+
+
+    @property
+    def mutations_df(self):
+        """ Get all single mutational attributes from self.data
+        updated with all model specific attributes"""
+
+        mutations_df = copy.copy(self.data._mutations_df)
+
+        # update the betas
+        mutations_df.loc[:, "β"] = self.params["β"]
+
+        # make predictions
+        binary_single_subs = sparse.BCOO.fromdense(onp.identity(len(self.mutations)))
+        for condition in self.conditions:
+            
+            # collect relevant params
+            h_params = self.get_condition_params(condition)
+
+            # attach relevent params to mut effects df
+            mutations_df[f"S_{condition}"] = self.params[f"S_{condition}"]
+
+            
+            # predictions for all single subs
+            mutations_df[f"F_{condition}"] = self.model['f'](
+                h_params, 
+                binary_single_subs
+            )
+
+        return mutations_df
+
+
+    def get_condition_params(self, condition=None):
+        """ get the relent parameters for a model prediction"""
+
+        condition = self.data.reference if condition is None else condition
+
+        if condition not in self.conditions:
+            raise ValueError("condition does not exist in model")
+
+        return {
+            "α":self.params[f"α"],
+            "β_m":self.params["β"], 
+            "C_ref":self.params["C_ref"],
+            "s_md":self.params[f"S_{condition}"], 
+            "C_d":self.params[f"C_{condition}"],
+            "γ_d":self.params[f"γ_{condition}"]
+        }
+
+
+    # TODO finish documentation.
+    def f(self, X, condition=None):
+        """ condition specific prediction on X using the biophysical model
+        given current model parameters. """
+
+        # TODO assert X is correct shape.
+        # TODO assert that the substitutions exist?
+        # TODO require the user
+        h_params = get_condition_params(condition)
+        return self.model['f'](h_params, X)
+
+    # TODO latent prediction
+    #def phi(self, X, condition): 
+    
+
+    # TODO finish documentation.
+    # TODO lasso etc paramerters (**kwargs ?)
+    def fit(
+        self, 
+        λ_lasso=1e-5,
+        λ_ridge=0,
+        **kwargs
+    ):
+        """ use jaxopt.ProximalGradiant to optimize parameters on
+        `self._data_to_fit` 
+        """
+        # Use partial 
+        # compiled_smooth_cost = Partial(smooth_cost, self.model['f'])
+
+        solver = ProximalGradient(
+            self._objective_function,
+            self._proximal_function,
+            tol=1e-6,
+            maxiter=1000
+        )
+
+        # the reference shift and gamma parameters forced to be zero
+        lock_params = {
+            f"S_{self.reference}" : jnp.zeros(len(self.params['β'])),
+            f"γ_{self.reference}" : jnp.zeros(shape=(1,)),
+        }
+
+        # currently we lock C_h because of odd model behavior
+        for condition in self.conditions:
+            lock_params[f"C_{condition}"] = jnp.zeros(shape=(1,))
+
+        # lasso regularization on the Shift parameters
+        lasso_params = {}
+        for non_ref_condition in self.conditions:
+            if non_ref_condition == self.reference: continue
+            lasso_params[f"S_{non_ref_condition}"] = λ_lasso
+
+        # run the optimizer
+        self.params, state = solver.run(
+            self.params,
+            hyperparams_prox = dict(
+                lasso_params = lasso_params,
+                lock_params = lock_params
+            ),
+            data=(self.binarymaps['X'], self.binarymaps['y']),
+            λ_ridge=λ_ridge,
+            **kwargs
+            #lower_bound=fit_params['lower_bound'],
+            #hinge_scale=fit_params['hinge_scale']
+        )
+        
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -55,7 +55,7 @@ class stub_MultidmsFitError(Exception):
     pass
 
 # TODO update model description based upon hugh's recent updates
-class Multidms:
+class MultiDmsData:
     r"""Represent and model one or more dms experiments
     and identify variant predicted fitness, and 
     individual mutation effects and shifts.
@@ -368,10 +368,10 @@ class Multidms:
 
     def __init__(
         self,
-        data_to_fit : pandas.DataFrame,
-        predict_function,
-        objective_function,
-        proximal_function,
+        data_to_fit: pandas.DataFrame,
+        #predict_function,
+        #objective_function,
+        #proximal_function,
         reference : str,
         alphabet=multidms.AAS,
         init_missing="zero",
@@ -380,9 +380,9 @@ class Multidms:
         **kwargs
     ):
         """See main class docstring."""
-        self._predict_function = predict_function
-        self._objective_function = objective_function
-        self._proximal_function = proximal_function
+        #self._predict_function = predict_function
+        #self._objective_function = objective_function
+        #self._proximal_function = proximal_function
 
         # check init seed 
         # TODO Is this necessary?
@@ -413,6 +413,8 @@ class Multidms:
         if len(set(alphabet)) != len(alphabet):
             raise ValueError("duplicate letters in `alphabet`")
         self.alphabet = tuple(alphabet)
+
+        # TODO static object with compiled parse function.
         self._mutparser = MutationParser(
             alphabet,
             letter_suffixed_sites
@@ -431,15 +433,15 @@ class Multidms:
             **kwargs    
         )
 
-        # set internal params with activities and shifts
-        # TODO This should rely on the three functions passed in
-        self.params = self._initialize_model_params(
-            self._data_to_fit["condition"].unique(), 
-            n_beta_shift_params=self.binarymaps['X'][reference].shape[1],
-            include_alpha=True, # TODO would could just initialize them after ... ?
-            #init_sig_range=sig_range, #TODO
-            #init_sig_min=sig_lower
-        )
+        ## set internal params with activities and shifts
+        ## TODO This should rely on the three functions passed in
+        #self.params = self._initialize_model_params(
+        #    self._data_to_fit["condition"].unique(), 
+        #    n_beta_shift_params=self.binarymaps['X'][reference].shape[1],
+        #    include_alpha=True, # TODO would could just initialize them after ... ?
+        #    #init_sig_range=sig_range, #TODO
+        #    #init_sig_min=sig_lower
+        #)
 
         # TODO make this a property
         # initialize single mutational effects df
@@ -478,55 +480,27 @@ class Multidms:
 
         self._mutations_df = mut_df
 
-
+    
     @property
     def mutations_df(self):
         """ Get all mutational attributes with the current parameters """
-
-        # update the betas
-        self._mutations_df.loc[:, "β"] = self.params["β"]
-
-        # make predictions
-        binary_single_subs = sparse.BCOO.fromdense(onp.identity(len(self.mutations)))
-        for condition in self.conditions:
-            
-            # collect relevant params
-            h_params = self.get_condition_params(condition)
-
-            # attach relevent params to mut effects df
-            self._mutations_df[f"S_{condition}"] = self.params[f"S_{condition}"]
-            
-            # predictions for all single subs
-            # TODO how should we handle fitting/prediction hyper params i.e. kwargs? 
-            self._mutations_df[f"F_{condition}"] = self._predict_function(
-                h_params, 
-                binary_single_subs
-            )
-
         return self._mutations_df
 
     @property
     def data_to_fit(self):
         """ Get all mutational attributes with the current parameters """
-
-        self._data_to_fit["predicted_latent_phenotype"] = onp.nan
-        self._data_to_fit[f"predicted_func_score"] = onp.nan
-        self._data_to_fit[f"corrected_func_score"] = self._data_to_fit[f"func_score"]
-        for condition, condition_dtf in self._data_to_fit.groupby("condition"):
-
-            # TODO how should we handle fitting/prediction hyper params i.e. kwargs? 
-            h_params = self.get_condition_params(condition)
-            y_h_pred = self._predict_function(
-                h_params, 
-                self.binarymaps['X'][condition]
-                # **kwargs
-            )
-
-            self._data_to_fit.loc[condition_dtf.index, f"predicted_func_score"] = y_h_pred
-            self._data_to_fit.loc[condition_dtf.index, f"corrected_func_score"] -= h_params[f"γ_d"]
-            
         return self._data_to_fit
-        
+
+    @property
+    def site_map(self):
+        """ Get site map which provides wildtype aa at each included site in data """
+        return self._site_map
+
+    @property
+    def binarymaps(self):
+        """ get all binarymaps for each condition, ready for fitting"""
+        return self.binarymaps
+
     # TODO impliment different condition overlap options
     # TODO move the column names to a config of some kind. JSON?
     # TODO Break this up into jit-able helper functions and move to init
@@ -737,261 +711,3 @@ class Multidms:
 
         # TODO should we separate binarymaps and targets?
         return {'X':X, 'y':y}, df, tuple(ref_bmap.all_subs), site_map 
-
-
-    def _initialize_model_params(
-            self,
-            conditions: dict, 
-            n_beta_shift_params: int,
-            include_alpha=True,
-            init_sig_range=10.,
-            init_sig_min=-10.,
-            latent_bias=5.
-    ):
-        """
-        initialize a set of starting parameters for the JAX model.
-        
-        Parameters
-        ----------
-        
-        conditions : list
-            A list containing all possible target condition 
-            names.
-        
-        n_beta_shift_params: int
-            The number of beta and shift parameters 
-            (for each condition) to initialize.
-        
-        include_alpha : book
-            Initialize parameters for the sigmoid from
-            the global epistasis function
-        
-        init_sig_range : float
-            The range of observed phenotypes in the raw
-            data, used to initialize the range of the
-            sigmoid from the global epistasis function
-        
-        init_sig_min : float
-            The lower bound of observed phenotypes in
-            the raw data, used to initialize the minimum
-            value of the sigmoid from the global epistasis
-            funciton
-            
-        latent_bias : float
-            bias parameter applied to the output of the
-            linear model (latent prediction).
-        
-        Returns
-        -------
-        
-        dict :
-            all relevant parameters to be tuned with the JAX model.
-        """
-        
-        params = {}
-        seed = 0
-        key = jax.random.PRNGKey(seed)
-
-        # initialize beta parameters from normal distribution.
-        params["β"] = jax.random.normal(shape=(n_beta_shift_params,), key=key)
-
-        # initialize shift parameters
-        for condition in conditions:
-            # We expect most shift parameters to be close to zero
-            params[f"S_{condition}"] = jnp.zeros(shape=(n_beta_shift_params,))
-            params[f"C_{condition}"] = jnp.zeros(shape=(1,))
-            params[f"γ_{condition}"] = jnp.zeros(shape=(1,))
-
-        # TODO Do we need this?
-        if include_alpha:
-            params["α"]=dict(
-                ge_scale=jnp.array([init_sig_range]),
-                ge_bias=jnp.array([init_sig_min])
-            )
-            
-        # TODO
-        params["C_ref"] = jnp.array([5.0]) # 5.0 is a guess, could update
-
-        return params
-
-
-    def get_condition_params(self, condition=None):
-        """ get the relent parameters for a model prediction"""
-
-        condition = self.reference if condition is None else condition
-        if condition not in self.conditions:
-            raise ValueError("condition does not exist in model")
-
-        return {
-            "α":self.params[f"α"],
-            "β_m":self.params["β"], 
-            "C_ref":self.params["C_ref"],
-            "s_md":self.params[f"S_{condition}"], 
-            "C_d":self.params[f"C_{condition}"],
-            "γ_d":self.params[f"γ_{condition}"]
-        }
-
-
-    # TODO finish documentation.
-    def condition_predict(self, X, condition=None):
-        """ condition specific prediction on X using the biophysical model
-        given current model parameters. """
-
-        # TODO assert X is correct shape.
-        # TODO assert that the substitutions exist?
-        # TODO require the user
-        h_params = get_condition_params(condition)
-        return self._predict_function(h_params, X)
-    
-
-    # TODO finish documentation.
-    # TODO lasso etc paramerters (**kwargs ?)
-    def fit(
-        self, 
-        λ_lasso=1e-5,
-        λ_ridge=0,
-        **kwargs
-    ):
-        """ use jaxopt.ProximalGradiant to optimize parameters on
-        `self._data_to_fit` 
-        """
-        # Use partial 
-        # compiled_smooth_cost = Partial(smooth_cost, self._predict_function)
-
-        solver = ProximalGradient(
-            self._objective_function,
-            self._proximal_function,
-            tol=1e-6,
-            maxiter=1000
-        )
-
-        # the reference shift and gamma parameters forced to be zero
-        lock_params = {
-            f"S_{self.reference}" : jnp.zeros(len(self.params['β'])),
-            f"γ_{self.reference}" : jnp.zeros(shape=(1,)),
-        }
-
-        # currently we lock C_h because of odd model behavior
-        for condition in self.conditions:
-            lock_params[f"C_{condition}"] = jnp.zeros(shape=(1,))
-
-        # lasso regularization on the Shift parameters
-        lasso_params = {}
-        for non_ref_condition in self.conditions:
-            if non_ref_condition == self.reference: continue
-            lasso_params[f"S_{non_ref_condition}"] = λ_lasso
-
-        # run the optimizer
-        self.params, state = solver.run(
-            self.params,
-            hyperparams_prox = dict(
-                lasso_params = lasso_params,
-                lock_params = lock_params
-            ),
-            data=(self.binarymaps['X'], self.binarymaps['y']),
-            λ_ridge=λ_ridge,
-            **kwargs
-            #lower_bound=fit_params['lower_bound'],
-            #hinge_scale=fit_params['hinge_scale']
-        )
-        
-
-    # TODO
-    # wildtypes of each condition
-    @property
-    def stub_wt_df(self):
-        r"""pandas.DataFrame: Activities :math:`a_{\rm{wt,e}}` for conditions.
-        This could be a nice spot to get some useful information about wts 
-        of each condition"""
-        pass
-
-    @property
-    def stub_mutation_site_summary_df(
-        self,
-        *,
-        min_times_seen=1,
-        mutation_whitelist=None,
-        exclude_chars=frozenset(["*"]),
-    ):
-        """Site-level summaries of mutation shift.
-
-        Parameters
-        ----------
-        min_times_seen : int
-            Only include in summaries mutations seen in at least this many variants.
-        mutation_whitelist : None or set
-            Only include in summaries these mutations.
-        exclude_chars : set or list
-            Exclude mutations to these characters when calculating site summaries.
-            Useful if you want to ignore stop codons (``*``), and perhaps in some
-            cases also gaps (``-``).
-
-        Returns
-        -------
-        pandas.DataFrame
-
-        """
-        pass
-
-
-
-    # TODO all plotting
-    def plot(self, **kwargs):
-        pass
-
-    # TODO
-    def filter_variants_by_seen_muts(self):
-        """Remove variants that contain mutations not seen during model fitting.
-
-        Parameters
-        ----------
-        variants_df : pandas.DataFrame
-            Contains variants as rows.
-        min_times_seen : int
-            Require mutations to be seen >= this many times in data used to fit model.
-        subs_col : str
-            Column in `variants_df` with mutations in each variant.
-
-        Returns
-        -------
-        variants_df : pandas.DataFrame
-            Copy of input dataframe, with rows of variants
-            that have unseen mutations removed.
-        """
-        pass
-
-
-    # TODO
-    def _get_binarymap(
-        self,
-        variants_df,
-    ):
-        pass
-
-    # TODO
-    def mut_shift_corr(self, ref_poly):
-        """Correlation of mutation-shift values with another model.
-
-        For each condition, how well is this model's mutation-shift values
-        correlation with another model?
-
-        Mutations present in only one model are ignored.
-
-        Parameters
-        ------------
-        ref_poly : :class:`Multidms`
-            Other (reference) multidms model with which we calculate correlations.
-
-        Returns
-        ---------
-        corr_df : pandas.DataFrame
-            Pairwise condition correlations for shift.
-        """
-        pass
-
-
-if __name__ == "__main__":
-    pass
-    # TODO
-    #import doctest
-    #doctest.testmod()
