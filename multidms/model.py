@@ -158,8 +158,10 @@ def gelu_activation(d_params, act, lower_bound=-3.5):
 
 @jax.jit
 def ϕ(d_params:dict, X_h:jnp.array):
-    """ Model for predicting latent space with
-    shift parameters."""
+    """ 
+    Model for predicting latent space with
+    shift parameters.
+    """
    
     return (
             d_params["C_ref"]
@@ -170,8 +172,10 @@ def ϕ(d_params:dict, X_h:jnp.array):
     
 @jax.jit
 def sigmoidal_global_epistasis(α:dict, z_h:jnp.array):
-    """ A flexible sigmoid function for
-    modeling global epistasis."""
+    """ 
+    A flexible sigmoid function for
+    modeling global epistasis.
+    """
 
     activations = jax.nn.sigmoid(z_h[:, None])
     return (α["ge_scale"] @ activations.T) + α["ge_bias"]
@@ -188,11 +192,13 @@ def abstract_epistasis(
     X_h:jnp.array, 
     **kwargs
 ):
-    """ Biophysical model - compiled for optimization 
+    """ 
+    Biophysical model - compiled for optimization 
     until model functions ϕ, g, and t are updated. 
     Model may be composed & compiled
     with the required functions fixed 
-    using `jax.tree_util.Partial."""
+    using `jax.tree_util.Partial.
+    """
 
     return t(d_params, g(d_params['α'], ϕ(d_params, X_h)), **kwargs)
 
