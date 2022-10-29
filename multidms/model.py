@@ -35,7 +35,6 @@ call to Partial.
 
 Consider the small example of a composed model formula f(t, g, x) = t(g(x))
 
-
 >>> import jax.numpy as jnp
 >>> import jax
 >>> jax.config.update("jax_enable_x64", True)
@@ -89,6 +88,9 @@ And finally we provide some examples and targets to evauate the cost.
   compiling
   compiling
   2
+
+To obfuscate the complexity of this behaviow,
+We impliment the ``MultiDmsModel`` class for handeling 
 """
 
 
@@ -206,8 +208,8 @@ def lasso_lock_prox(
 ):
     
     # enforce monotonic epistasis
-    for param, value in params["α"].items():
-        params["α"][param] = params["α"][param].clip(0)
+    if "ge_scale" in params["α"]:
+        params["α"]["ge_scale"] = params["α"]["ge_scale"].clip(0)
     
     if hyperparams_prox["lasso_params"] is not None:
         for key, value in hyperparams_prox["lasso_params"].items():
@@ -288,11 +290,114 @@ output_activations = {
 
 
 class MultiDmsModel:
-    """
+    r"""
     A class for compiling, and fitting 
     multidms models and objective functions
     as a composition of (fully and partially) 
     jit-compiled functions.
+
+    Note
+    ----
+
+    MultiDmsModel
+    =============
+
+
+    ``multidms.model.latent_models``,
+    ``multidms.model.epistatic_models``,
+    and
+    ``multidms.model.output_activations``
+    provide JIT compiled functions for to use for 
+    composing models the abstract epistasis 
+    byphysical model and their respective 
+    objective functions.
+    For the sake of modularity, abstraction, and code-reusibility,
+    we would like to be able to separate and provide options for
+    the individual pieces of code that define a model such as this.
+    To this end, we are mainly constrained by the necessity of
+    Just-in-time (JIT) compilation of our model code for effecient 
+    training and parameter optimization.
+    To achieve this, we must take advantage of the
+    ``jax.tree_util.Partial`` utility, which allows
+    for jit-compiled functions to be "pytree compatible".
+    In other words, by decorating functions with 
+    ``Partial``, we can clearly mark which arguments will
+    in a function are themselves, statically compiled functions
+    in order to achieve function composition.
+
+    For a simple example using the ``Partial`` function,
+    see https://jax.readthedocs.io/en/latest/_autosummary/jax.tree_util.Partial.html
+
+    Here, we do it slightly differently than the example given
+    by the documentation where they highlight the feeding 
+    of partial functions into jit-compiled functions as 
+    arguments that are pytree compatible.
+    Instead, we first use partial in the more traditional sense
+    such that _calling_ functions (i.e. functions that call on other 
+    parameterized functions) are defined as being a "partially" jit-compiled
+    function, until the relevant static arguments are provided using another
+    call to Partial. 
+
+    Consider the small example of a composed model formula f(t, g, x) = t(g(x))
+
+    >>> import jax.numpy as jnp
+    >>> import jax
+    >>> jax.config.update("jax_enable_x64", True)
+    >>> from jax.tree_util import Partial
+
+    >>> @jax.jit
+    >>> def identity(x):
+    >>>     return x
+
+    >>> @Partial(jax.jit, static_argnums=(0,1,))
+    >>> def f(t, g, x):
+    >>>     print(f"compiling")
+    >>>     return t(g(x))
+
+    Here, we defined a simple ``identity`` activation function that is fully
+    jit-compiled, as well as the partially jit compiled calling function, ``f``,
+    Where the 0th and 1st arguments have been marked as static arguments.
+    Next, we'll compile ``f`` by providing the static arguments using another
+    call to ``Partial``.
+
+    >>> identity_f = Partial(f, identity, identity)
+
+    Now, we can call upon the compiled function without any reference to our
+    static arguments.
+
+    >>> identity_f(5)
+      compiling
+      5
+
+    Note that upon the first call our model was JIT-compiled, 
+    but subsequent calls need not re-compile
+
+    >>> identity_f(7)
+      7
+
+    We may also want to evaluate the loss of our simple model using MSE.
+    We can again use the partial function to define an abstract SSE loss
+    which is compatible with any pre-compiled model function, ``f``.
+
+    >>> @Partial(jax.jit, static_argnums=(0,))
+    >>> def sse(f, x, y):
+    >>>     print(f"compiling")
+    >>>     return jnp.sum((f(x) - y)**2)
+
+    And finally we provide some examples and targets to evauate the cost.
+
+    >>> compiled_cost = Partial(sse, identity_f)
+    >>> x = jnp.array([10, 12])
+    >>> y = jnp.array([11, 11])
+    >>> compiled_cost(x,y)
+      compiling
+      compiling
+      2
+
+    To obfuscate the complexity of this behaviow,
+    We impliment the ``MultiDmsModel`` class for handeling
+    
+    
     """
 
     # TODO, should the user provide available strings?
@@ -397,10 +502,9 @@ class MultiDmsModel:
             # all mode
             self.params["C_ref"] = jnp.array([5.0]) # 5.0 is a guess, could update
 
-
-
         # TODO softplus, perceptron, ispline
         if epistatic_model == "sigmoid":
+        #if epistatic_model == sigmoid_epistatic_model:
             self.params["α"]=dict(
                 ge_scale=jnp.array([init_sig_range]),
                 ge_bias=jnp.array([init_sig_min])
