@@ -26,6 +26,10 @@ substitution_column = 'aa_substitutions_reference'
 experiment_column = 'homolog_exp'
 scaled_func_score_column = 'log2e'
 
+
+def is_wt(string):
+    return True if len(string.split()) == 0 else False
+
    
 # TODO should we assert there's no mutations like, A154bT? 
 def split_sub(sub_string):
