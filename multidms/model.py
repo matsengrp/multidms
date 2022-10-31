@@ -22,7 +22,10 @@ from frozendict import frozendict
 from jaxopt import ProximalGradient
 from jaxopt.loss import huber_loss
 from jaxopt.prox import prox_lasso
+
+import pandas
 import numpy as onp
+import math
 from matplotlib import pyplot as plt
 import seaborn as sns
 from scipy.stats import pearsonr
@@ -98,6 +101,17 @@ def sigmoidal_global_epistasis(α:dict, z_h:jnp.array):
 
     activations = jax.nn.sigmoid(z_h[:, None])
     return (α["ge_scale"] @ activations.T) + α["ge_bias"]
+
+    
+@jax.jit
+def softplus_global_epistasis(α:dict, z_h:jnp.array):
+    """ 
+    A flexible sigmoid function for
+    modeling global epistasis.
+    """
+
+    activations = jax.nn.softplus(-1*z_h[:, None])
+    return ((-1*α["ge_scale"]) @ activations.T) + α["ge_bias"]
 
 
 @Partial(jax.jit, static_argnums=(0, 1))
@@ -222,6 +236,7 @@ and perceptron may have up to n hidden nodes and layers.
 """
 epistatic_models = {
     "sigmoid" : sigmoidal_global_epistasis,
+    "softplus" : softplus_global_epistasis,
     "identity" : identity_activation 
 }
 # TODO softplus, perceptron, ispline
@@ -233,6 +248,7 @@ output_activations = {
 
 
 # TODO update model description based upon hugh's recent updates
+# TODO finish documenting parameters, attributes, methods, and examples.
 # TODO plotting methods -> altair
 class MultiDmsModel:
     r"""
@@ -466,7 +482,6 @@ class MultiDmsModel:
 
     """
 
-    # TODO, should the user provide available strings?
     def __init__(
         self,
         data:MultiDmsData,
@@ -475,62 +490,21 @@ class MultiDmsModel:
         output_activation="identity",
         gamma_corrected=True,
         conditional_shifts=True,
-        conditional_c=False, # should we remove this entirely?
-        init_sig_range=10.,
-        init_sig_min=-10.,
+        conditional_c=False, # TODO should we remove this entirely?
+        init_g_range=None,
+        init_g_min=None,
         PRNGKey = 0
     ):
         """
-        initialize a set of starting parameters for the JAX model.
-        
-        Parameters
-        ----------
-
-        TODO
-        
-        init_sig_range : float
-            The range of observed phenotypes in the raw
-            data, used to initialize the range of the
-            sigmoid from the global epistasis function
-        
-        init_sig_min : float
-            The lower bound of observed phenotypes in
-            the raw data, used to initialize the minimum
-            value of the sigmoid from the global epistasis
-            funciton
-            
-        
-        Returns
-        -------
-        
-        dict :
-            all relevant parameters to be tuned with the JAX model.
+        See class docstring.
         """
+
         self.gamma_corrected = gamma_corrected
         self.conditional_shifts = conditional_shifts
         self.conditional_c = conditional_c
         
-        ######
-        # DATA
-        ######
-
-        # Store all the relevant data as a reference to the
-        # original MultiDmsData object.
-
-        # all the checks are done for date.
-
-        # This object overides the mutations_df and variants_df
-        # properties from this model object, we'll return
-        # copies of the relevant snippets of data plus
-        # the attributes defined by a model fit within this object.
         self._data = data
         
-        ########
-        # PARAMS
-        ########
-
-        # we now initialize parameters based upon models
-        # chosen. After this, we will simply 
         self.params = {}
         key = jax.random.PRNGKey(PRNGKey)
 
@@ -542,27 +516,34 @@ class MultiDmsModel:
 
         if latent_model == "phi":
 
-            # initialize beta parameters from normal distribution.
             n_beta_shift = len(self._data.mutations)
             self.params["β"] = jax.random.normal(shape=(n_beta_shift,), key=key)
-
-            # initialize shift parameters
             for condition in data.conditions:
-                # We expect most shift parameters to be close to zero
                 self.params[f"S_{condition}"] = jnp.zeros(shape=(n_beta_shift,))
                 self.params[f"C_{condition}"] = jnp.zeros(shape=(1,))
-
-            # all mode
             self.params["C_ref"] = jnp.array([5.0]) # 5.0 is a guess, could update
 
         if epistatic_model == "sigmoid":
-        #if epistatic_model == sigmoid_epistatic_model:
+            if init_g_range == None:
+                init_g_range = 5.
+            if init_g_min == None:
+                init_g_min = -5.
             self.params["α"]=dict(
-                ge_scale=jnp.array([init_sig_range]),
-                ge_bias=jnp.array([init_sig_min])
-        )
+                ge_scale=jnp.array([init_g_range]),
+                ge_bias=jnp.array([init_g_min])
+            )
+            
+        elif epistatic_model == "softplus":
+            if init_g_range == None:
+                init_g_range = 1.
+            if init_g_min == None:
+                init_g_min = 0.
+            self.params["α"]=dict(
+                ge_scale=jnp.array([init_g_range]),
+                ge_bias=jnp.array([init_g_min])
+            )
+
         elif epistatic_model == "identity":
-            # this will never be used ...
             self.params["α"]=dict(
                 ghost_param = jnp.zeros(shape=(1,))
             )
@@ -575,15 +556,6 @@ class MultiDmsModel:
 
         for condition in data.conditions:
             self.params[f"γ_{condition}"] = jnp.zeros(shape=(1,))
-
-        ################
-        # COMPILED MODEL
-        ################
-
-        # Here is where we compile the main features of the model.
-        # you could imagine 'abstract epistasis' could also be
-        # a parameter and thus this class could be abstracted to
-        # multiple biophysical models.
 
         compiled_pred = Partial(
                 abstract_epistasis, # abstract function to compile
@@ -630,7 +602,6 @@ class MultiDmsModel:
             variants_df.loc[condition_dtf.index, f"predicted_func_score"] = y_h_pred
             if self.gamma_corrected:
                 variants_df.loc[condition_dtf.index, f"corrected_func_score"] += d_params[f"γ_d"]
-            # TODO is there any reason we would gamma correct the latent pred?
             y_h_latent = self._model['ϕ'](
                 d_params, 
                 self._data.training_data['X'][condition]
@@ -660,6 +631,34 @@ class MultiDmsModel:
             )
 
         return mutations_df
+
+    @property
+    def wildtype_df(self):
+        """ 
+        Get a dataframe indexed by condition wildtype
+        containing the prediction features for each.
+        """
+        
+        wildtype_df = pandas.DataFrame(index=self._data.conditions)
+        wildtype_df = wildtype_df.assign(predicted_latent=onp.nan)
+        wildtype_df = wildtype_df.assign(predicted_func_score=onp.nan)
+        for condition, nis in self._data.non_identical_mutations.items():
+            
+            binmap = self._data.binarymaps[condition]
+            wt_binary = binmap.sub_str_to_binary(nis)
+            d_params = self.get_condition_params(condition)
+
+            wildtype_df.loc[f"{condition}", "predicted_latent"] = self._model['ϕ'](
+                d_params, 
+                wt_binary
+            )
+
+            wildtype_df.loc[f"{condition}", "predicted_func_score"] = self._model['f'](
+                d_params, 
+                wt_binary
+            )
+
+        return wildtype_df
 
 
     @property
@@ -702,7 +701,7 @@ class MultiDmsModel:
         return self._model['f'](d_params, X)
 
 
-    def latent_prediction(self, X, condition=None):
+    def predicted_latent(self, X, condition=None):
         """ condition specific prediction on X using the biophysical model
         given current model parameters. """
 
@@ -769,6 +768,8 @@ class MultiDmsModel:
         saveas=None,
         show=False,
         figsize=[6, 5],
+        xlim=None,
+        ylim=None,
         **kwargs
     ):
 
@@ -792,31 +793,42 @@ class MultiDmsModel:
             **kwargs
         )
 
-        for group, wt_exp_df in df.query(f"is_wt == True").groupby("condition"):
-            wt_pred = wt_exp_df[f"predicted_func_score"].apply(
-                lambda x: round(x, 5)
-            ).unique()
-            assert len(wt_pred) == 1
-            ax.axvline(wt_pred[0], label=group)
+        for condition, values in self.wildtype_df.iterrows():
+            ax.axvline(
+                values.predicted_func_score, 
+                label=condition, 
+                c=self._data.condition_colors[condition]
+            )
 
-        lb = df[['func_score', f"predicted_func_score"]].min().min()
-        ub = df[['func_score', f"predicted_func_score"]].max().max()
+        #xlb, xub = [1.2, 1.1] * onp.quantile(df.predicted_func_score, [0.05, 1.0])
+        #ylb, yub = [1.2, 1.1] * onp.quantile(df.corrected_func_score, [0.05, 1.0])
+        if ylim and xlim:
+            xlb, xub = xlim
+            ylb, yub = ylim
+        else:
+            print(f"inferring")
+            xlb, xub = [1.2, 1.2] * onp.quantile(df.predicted_func_score, [0.05, 0.99])
+            ylb, yub = [1.2, 1.2] * onp.quantile(df.corrected_func_score, [0.05, 0.99])
 
-        ax.plot([lb, ub], [lb, ub], "k--", lw=1)
+        
+
+        ax.plot([ylb, yub], [ylb, yub], "k--", lw=1)
         r = pearsonr(df[f'corrected_func_score'], df[f'predicted_func_score'])[0]
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         ax.annotate(f"$r = {r:.2f}$", (.1, .9), xycoords="axes fraction", fontsize=12)
         ax.set_ylabel("functional score")
         ax.set_xlabel("predicted functional score")
+        ax.set_xlim([xlb, xub])
+        ax.set_ylim([ylb, yub])
 
-        ax.legend(loc= "center right", bbox_to_anchor=(1.1, 1.00))
         ax.axhline(0, color="k", ls="--", lw=1)
         ax.axvline(0, color="k", ls="--", lw=1)
         
-        ax.set_ylabel("functional score - γ$_{h}$")
+        ax.set_ylabel("functional score + γ$_{d}$")
         plt.tight_layout()
-
         if saveas: fig.savefig(saveas)
         if show: plt.show()
+        return fig, ax
 
 
     def plot_epistasis(
@@ -848,33 +860,336 @@ class MultiDmsModel:
             **kwargs
         )
 
-        for group, wt_exp_df in df.query(f"is_wt == True").groupby("condition"):
-            # TODO replace with a wildtype call (method?)
-            wt_pred = wt_exp_df[f"predicted_latent"].apply(
-                lambda x: round(x, 5)
-            ).unique()
-            assert len(wt_pred) == 1
-            ax.axvline(wt_pred[0], label=group)
+        for condition, values in self.wildtype_df.iterrows():
+            ax.axvline(
+                values.predicted_latent, 
+                label=condition, 
+                c=self._data.condition_colors[condition]
+            )
 
-        ax.legend(loc= "center right", bbox_to_anchor=(1.1, 1.00))
+        xlb, xub = [1.2, 1.2] * onp.quantile(df.predicted_latent, [0.05, 0.99])
+        ylb, yub = [1.2, 1.2] * onp.quantile(df.corrected_func_score, [0.05, 0.99])
         
         ϕ_grid = onp.linspace(
-            1.1 * df.predicted_latent.min(),
-            1.1 * df.predicted_latent.max(),
+            xlb, xub,
             num=1000
         )
+        print(xub)
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
+        #for condition in self._data.conditions:
         params = self.get_condition_params(self._data.reference)
-        latent_preds = self._model["from_latent"](params, ϕ_grid)
+        #color = self._data.condition_colors[condition]
+        latent_preds = self._model["g"](params["α"], ϕ_grid)
         shape = (ϕ_grid, latent_preds)
-        ax.plot(*shape, color='k', lw=1)
+        ax.plot(*shape, color="k", lw=1)
+        #latent_preds = self._model["from_latent"](params, ϕ_grid)
+        #shape = (ϕ_grid, latent_preds)
+        #ax.plot(*shape, color="k", lw=1)
+
         ax.axhline(0, color="k", ls="--", lw=1)
         ax.axvline(0, color="k", ls="--", lw=1)
-        ax.set_ylabel("functional score - γ$_{h}$")
+        ax.set_xlim([xlb, xub])
+        ax.set_ylim([ylb, yub])
+        ax.set_ylabel("functional score + γ$_{d}$")
         plt.tight_layout()
 
         if saveas: fig.savefig(saveas)
         if show: plt.show()
+        return fig, ax
+
+
+    def plot_param_hist(
+        self,
+        param, 
+        show=True, 
+        saveas=False, 
+        times_seen_threshold=3,
+        figsize=[6, 5],
+    ):
+
+        """
+        plot the histogram of a parameter
+        """
+
+        if not param.startswith("β") and not param.startswith("S"):
+            raise ValueError("Parameter to visualize must be an existing beta, or shift parameter")
+
+        mut_effects_df = self.mutations_df
+        fig, ax = plt.subplots(figsize=figsize)
+
+        times_seen_cols = [c for c in mut_effects_df.columns if "times" in c]
+        #mut_effects_df = mut_effects_df.assign(
+        #    times_seen = mu_effects_df[times_seen_cols].sum(axis=1)
+        #)
+        #query_string = ""
+        for c in times_seen_cols:
+            mut_effects_df = mut_effects_df[mut_effects_df[c]>=times_seen_threshold]
+        #    query_string += f"{c} >= 5 &"
+        #print(query_string)
+        # query_string = " & ".join(query_string)
+        #mut_effects_df = mut_effects_df.query(query_string[:-1])
+        
+
+        
+
+        
+
+        # Plot data for all mutations
+        data = mut_effects_df[mut_effects_df['muts'] != '*']
+        bin_width = 0.25
+        min_val = math.floor(data[param].min()) - 0.25/2
+        max_val = math.ceil(data[param].max())
+        sns.histplot(
+            x=param, data=data, ax=ax,
+            stat='density', color=self._data.condition_colors[self._data.reference],
+            label='muts to amino acids',
+            binwidth=bin_width, binrange=(min_val, max_val),
+            alpha=0.5
+        )
+
+        # Plot data for mutations leading to stop codons
+        data = mut_effects_df[mut_effects_df['muts'] == '*']
+        if len(data) > 0:
+            sns.histplot(
+                x=param, data=data, ax=ax,
+                stat='density', color="orange",
+                label='muts to stop codons',
+                binwidth=bin_width, binrange=(min_val, max_val),
+                alpha=0.5
+            )
+
+        ax.set(xlabel=param)
+        plt.tight_layout()
+        ax.legend()
+
+        if saveas: fig.savefig(saveas)
+        if show: plt.show()
+        return fig, ax
+
+
+    def plot_param_heatmap(
+        self,
+        param, 
+        show=True, 
+        saveas=False, 
+        figsize=[20, 5],
+        vmin=-1,
+        vmax=1
+    ):
+
+        """
+        plot the heatmap of a parameters associated with specific sites and substitutions.
+        """
+
+        if not param.startswith("β") and not param.startswith("S"):
+            raise ValueError("Parameter to visualize must be an existing beta, or shift parameter")
+
+        mut_effects_df = self.mutations_df
+        mut_effects_df = self.mutations_df.copy()
+        mut_effects_df.sites = mut_effects_df.sites.astype(int)
+        mutation_effects = mut_effects_df.pivot(
+            index="muts",
+            columns="sites", values=param
+        )
+
+        fig, ax = plt.subplots(figsize=figsize)
+        sns.heatmap(
+            mutation_effects,
+            mask=mutation_effects.isnull(),
+            cmap="coolwarm_r",
+            center=0,
+            vmin=vmin,
+            vmax=vmax,
+            cbar_kws={"label": param},
+            ax=ax
+        )
+
+        plt.tight_layout()
+        if saveas: fig.savefig(saveas)
+        if show: plt.show()
+        return fig, ax
+
+
+    def plot_param_by_sites(
+        self,
+        param, 
+        show=True, 
+        saveas=False, 
+        figsize=[20, 5],
+        #vmin=-1,
+        #vmax=1
+    ):
+        """
+        summarize parameter values by associated sites.
+        """
+
+        if not param.startswith("β") and not param.startswith("S"):
+            raise ValueError("Parameter to visualize must be an existing beta, or shift parameter")
+
+        mut_effects_df = self.mutations_df.copy()
+        mut_effects_df.sites = mut_effects_df.sites.astype(int)
+
+        mutation_effects = mut_effects_df.pivot(
+            index="muts",
+            columns="sites", values=param
+        ).apply(lambda x: sum([abs(t) for t in x if t == t]), axis=0).reset_index()
+
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.axhline(0, color="k", ls="--", lw=1)
+
+        sns.lineplot(
+            data=mutation_effects,
+            x="sites", y=0,
+            ax=ax
+        )
+
+        #if param.startswith("S"):
+        #    condition = param[2:]
+        #    nis = self._data.non_identical_sites[condition]
+        #    ni_mut = [True if s in nis else False for s in mu]
+        #    
+        #    sns.scatterplot(
+        #        data=mutation_effects,
+        #        x="sites", y=0,
+        #        #hue = "non_identical",
+        #        ax=ax
+        #    )
+
+        # TODO more informative ylabel abs value
+        ax.set_ylabel(f"$\sum${param}", size=10)
+
+        plt.tight_layout()
+        if saveas: fig.savefig(saveas)
+        if show: plt.show()
+        return fig, ax
+
+
+    #def plot_fit_param_comp_scatter(
+    #    results,
+    #    fits_features,
+    #    show=True
+    #):
+
+    #    mut_effect_dfs = []
+    #    fit_features = []
+    #    for fit, feature in fits_features.items():
+    #        fit_mut_effects = results.loc[fit, "mutation_effects_df"].copy()
+    #        fit_mut_effects.sites = fit_mut_effects.sites.astype(int)
+    #        mut_effect_dfs.append(fit_mut_effects)
+    #        fit_features.append(feature)
+
+    #    comb_mut_effects = reduce(
+    #        lambda l, r: pd.merge(
+    #            l, r, how="inner", on="substitution"
+    #        ), mut_effect_dfs
+    #    )
+    #    comb_mut_effects["is_stop"] = [
+    #        True if "*" in s else False for s in comb_mut_effects.substitution
+    #    ]
+
+    #    if fit_features[0] == fit_features[1]:
+    #        x = f"{fit_features[0]}_x"
+    #        y = f"{fit_features[1]}_y"
+    #    else:
+    #        x = fit_features[0]
+    #        y = fit_features[1]
+
+    #    fig, ax = plt.subplots(figsize=[5,4])
+    #    r = pearsonr(comb_mut_effects[x], comb_mut_effects[y])[0]
+    #    sns.scatterplot(
+    #        data=comb_mut_effects,
+    #        x=x, y=y,
+    #        hue="is_stop",
+    #        alpha=0.6,
+    #        palette="deep",
+    #        ax=ax
+    #    )
+
+    #    min1, max1 = comb_mut_effects[x].min(), comb_mut_effects[x].max()
+    #    ax.plot([min1, max1], [min1, max1], ls="--", c="k")
+    #    ax.annotate(f"$r = {r:.2f}$", (.7, .1), xycoords="axes fraction", fontsize=12)
+    #    ax.set_title(f"feature comparison")
+    #    plt.tight_layout()
+    #    if show: plt.show()
+
+
+    #def plot_fit_param_sites_comp_scatter(results, idx_1, idx_2, show=True, save=False, printrow=False):
+
+    #    def split_sub(sub_string):
+    #        """String match the wt, sites, and sub aa
+    #        in a given string denoting a single substitution"""
+
+    #        pattern = r'(?P<aawt>[A-Z\*])(?P<sites>[\d\w]+)(?P<aamut>[A-Z\*])'
+    #        match = re.search(pattern, sub_string)
+    #        assert match != None, sub_string
+    #        return match.group('aawt'), match.group('sites'), match.group('aamut')
+
+    #    dfs = []
+    #    for fit in [idx_1, idx_2]:
+
+    #        fit_exp2 = results.loc[fit, "experiment_2"]
+    #        param = f"S_{fit_exp2}"
+    #        fit_subs = results.loc[fit, "all_subs"]
+    #        fit_shifts = results.loc[fit, "tuned_model_params"][param]
+    #        rows = []
+    #        for mutation, p in zip(fit_subs, fit_shifts):
+    #            wt, sites, mut = split_sub(mutation)
+    #            rows.append([int(sites), wt, mut, float(p)])
+
+    #        mutation_effects = pd.DataFrame(
+    #            rows,
+    #            columns=("sites", "wildtype", "mutant", param)
+    #        ).pivot(
+    #            index="mutant",
+    #            columns="sites", values=param
+    #        ).apply(
+    #            lambda x: sum([abs(t) for t in x if t == t]), axis=0
+    #        ).reset_index().rename({0:param}, axis=1)
+
+    #        dfs.append(pd.DataFrame(
+    #            mutation_effects
+    #        ))
+    #    df = reduce(
+    #        lambda l, r: pd.merge(
+    #            l, r, how="inner", on="sites"
+    #        ), dfs
+    #    )
+    #    r = pearsonr(df.iloc[:, 1], df.iloc[:, 2])[0]
+    #    fig, ax = plt.subplots(figsize=[6, 6])
+    #    sns.scatterplot(
+    #        data=df,
+    #        x=df.columns[1],
+    #        y=df.columns[2],
+    #        alpha=0.6,
+    #        palette="deep",
+    #        ax=ax
+    #    )
+    #    fit1_ref, fit1_e2 = results.loc[idx_1, ["experiment_ref", "experiment_2"]].values
+    #    fit2_ref, fit2_e2 = results.loc[idx_2, ["experiment_ref", "experiment_2"]].values
+    #    min1, max1 = df.iloc[:,1].min(), df.iloc[:,1].max()
+    #    ax.plot([min1, max1], [min1, max1], ls="--", c="k")
+    #    ax.annotate(f"$r = {r:.2f}$", (.7, .1), xycoords="axes fraction", fontsize=12)
+    #    ax.set_title(f"Shift parameter comparison")
+    #    ax.set_xlabel(f"S({fit1_ref} -> {fit1_e2})")
+    #    ax.set_ylabel(f"S({fit2_ref} -> {fit2_e2})")
+
+    #    plt.tight_layout()
+    #    if save:
+    #        saveas = "param-heatmap"
+    #        for key, value in row.items():
+    #            if key in ["tuned_model_params", "all_subs", "variant_prediction_df", "sites_map"]: continue
+    #            saveas += f"-{value}"
+    #        saveas = "".join(saveas.split()) + ".png"
+    #        fig.savefig(saveas)
+
+    #    if show: plt.show()
+
+            
+
+
+
+
 
 
 

@@ -23,6 +23,8 @@ import jax.numpy as jnp
 from jax.experimental import sparse
 import jaxopt
 from jaxopt import ProximalGradient
+from frozendict import frozendict
+from collections import namedtuple
 
 # local
 from functools import partial
@@ -255,6 +257,7 @@ class MultiDmsData:
         # TODO Break this up into (jit-able) helper functions and move to init
         (
             self._training_data,
+            self._binarymaps,
             self._variants_df,
             self._mutations,
             self._site_map,
@@ -285,9 +288,38 @@ class MultiDmsData:
                     times_seen, 
                     left_on="mutation", right_on="mutation", 
                     how="outer" 
-            )
+            ).fillna(0)
 
         self._mutations_df = mut_df
+        non_identical_mutations = {}
+        non_identical_sites = {}
+        for condition in self._conditions:
+
+            if condition == self._reference:
+                non_identical_mutations[condition] = ""
+                non_identical_sites[condition] = []
+                continue
+
+            nis = self._site_map.where(
+                self._site_map[self._reference] != self._site_map[condition]
+            ).dropna().astype(str)
+            muts = nis[self._reference] + nis.index.astype(str) + nis[condition]
+            muts_string = " ".join(muts.values)
+            non_identical_mutations[condition] = muts_string
+            non_identical_sites[condition] = nis.index.values
+
+        self._non_identical_mutations = frozendict(non_identical_mutations)
+        self._non_identical_sites = frozendict(non_identical_sites)
+
+
+    @property
+    def non_identical_mutations(self):
+        return self._non_identical_mutations
+
+
+    @property
+    def non_identical_sites(self):
+        return self._non_identical_sites
 
 
     @property
@@ -327,7 +359,7 @@ class MultiDmsData:
 
     @property
     def binarymaps(self):
-        return self._training_data['X']
+        return self._binarymaps
 
 
     @property
@@ -452,6 +484,7 @@ class MultiDmsData:
                 var_map = site_map[[self._reference, condition]].copy()
                 for wt, site, mut in zip(row.wts, row.sites, row.muts):
                     var_map.loc[site, condition] = mut
+                #nis = self._non_identical_sites[condition]
                 nis = var_map.where(
                     var_map[self._reference] != var_map[condition]
                 ).dropna().astype(str)
@@ -469,7 +502,7 @@ class MultiDmsData:
             for s in subs.split()
         }
         
-        X, y = {}, {}
+        binmaps, X, y = {}, {}, {}
         for condition, condition_func_score_df in df.groupby("condition"):
 
             ref_bmap = bmap.BinaryMap(
@@ -477,9 +510,10 @@ class MultiDmsData:
                 substitutions_col="var_wrt_ref",
                 allowed_subs=allowed_subs
             )
+            binmaps[condition] = ref_bmap
             X[condition] = sparse.BCOO.from_scipy_sparse(ref_bmap.binary_variants)
             y[condition] = jnp.array(condition_func_score_df["func_score"].values)
         
         df.drop(["wts", "sites", "muts"], axis=1, inplace=True)
 
-        return {'X':X, 'y':y}, df, tuple(ref_bmap.all_subs), site_map 
+        return {'X':X, 'y':y}, binmaps, df, tuple(ref_bmap.all_subs), site_map 
