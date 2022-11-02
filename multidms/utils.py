@@ -51,3 +51,43 @@ def split_subs(subs_string, parser=split_sub):
         wt, site, mut = parser(sub)
         wts.append(wt); sites.append(site); muts.append(mut)
     return wts, sites, muts
+
+
+# TODO document
+# TODO cleanup, remove all assignments of new columns ...
+def scale_func_score(
+    func_score_df, 
+    bottleneck=1e5, 
+    pseudocount = 0.1
+):
+   
+    ret = func_score_df.copy()
+    for (h, hdf) in func_score_df.groupby("condition"):
+
+        post_counts_sum = sum(hdf['post_count'])
+        scaling_factor = bottleneck / post_counts_sum
+
+        hdf['orig_post_count'] = hdf['post_count']
+        hdf['post_count'] *= scaling_factor
+        hdf['post_count_wt'] *= scaling_factor
+
+        hdf['pre_count_ps'] = hdf['pre_count'] + pseudocount
+        hdf['post_count_ps'] = hdf['post_count'] + pseudocount
+        hdf['pre_count_wt_ps'] = hdf['pre_count_wt'] + pseudocount
+        hdf['post_count_wt_ps'] = hdf['post_count_wt'] + pseudocount
+
+        total_pre_count = sum(hdf['pre_count_ps'])
+        total_post_count = sum(hdf['post_count_ps'])
+
+        hdf['pre_freq'] = hdf['pre_count_ps'] / total_pre_count
+        hdf['post_freq'] = hdf['post_count_ps'] / total_post_count
+        hdf['pre_freq_wt'] = hdf['pre_count_wt_ps'] / total_pre_count
+        hdf['post_freq_wt'] = hdf['post_count_wt_ps'] / total_post_count
+
+        hdf['wt_e'] = hdf['post_freq_wt'] / hdf['pre_freq_wt']
+        hdf['var_e'] = hdf['post_freq'] / hdf['pre_freq']
+        hdf['e'] = hdf['var_e'] / hdf['wt_e']
+
+        ret.loc[hdf.index, 'func_score'] = hdf['e'].apply(lambda x: math.log(x, 2))
+
+    return ret

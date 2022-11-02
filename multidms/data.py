@@ -25,6 +25,8 @@ import jaxopt
 from jaxopt import ProximalGradient
 from frozendict import frozendict
 from collections import namedtuple
+from matplotlib import pyplot as plt
+import seaborn as sns
 
 # local
 from functools import partial
@@ -291,6 +293,8 @@ class MultiDmsData:
             ).fillna(0)
 
         self._mutations_df = mut_df
+
+        # identify and write site map differences for each condition
         non_identical_mutations = {}
         non_identical_sites = {}
         for condition in self._conditions:
@@ -517,3 +521,33 @@ class MultiDmsData:
         df.drop(["wts", "sites", "muts"], axis=1, inplace=True)
 
         return {'X':X, 'y':y}, binmaps, df, tuple(ref_bmap.all_subs), site_map 
+
+
+    def plot_times_seen_hist(self, saveas=None, show=True, **kwargs):
+
+        times_seen_cols = [f"times_seen_{c}" for c in self._conditions]
+        fig, ax = plt.subplots()
+        sns.histplot(self._mutations_df[times_seen_cols], ax = ax, **kwargs)
+        if saveas: fig.saveas(saveas)
+        if show: plt.show()
+        return fig, ax
+
+
+    def plot_func_score_boxplot(self, saveas=None, show=True, **kwargs):
+
+        fig, ax = plt.subplots()
+        sns.boxplot(
+            self._variants_df, 
+            x = "condition",
+            y = "func_score",
+            ax = ax, 
+            notch=True, showcaps=False,
+            flierprops={"marker": "x"},
+            boxprops={"facecolor": (.4, .6, .8, .5)},
+            medianprops={"color": "coral"},
+            **kwargs
+        )
+ 
+        if saveas: fig.saveas(saveas)
+        if show: plt.show()
+        return fig, ax
