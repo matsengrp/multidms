@@ -157,6 +157,7 @@ def softplus_activation(d_params, act, lower_bound=-3.5, hinge_scale=0.1, **kwar
 
 
 @jax.jit
+<<<<<<< HEAD
 def gelu_activation(d_params, act, lower_bound=-3.5):
     """ 
     A modified Gaussian error linear unit activation function,
@@ -172,7 +173,7 @@ def gelu_activation(d_params, act, lower_bound=-3.5):
             1 + jnp.tanh(
                 jnp.sqrt(2/jnp.pi) * (sp+(0.044715*(sp**3)))
             )
-        ) + lower_bound
+        ) + lower_bound + d_params["γ_d"]
     )
 
 
