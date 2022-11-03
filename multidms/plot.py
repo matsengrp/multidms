@@ -116,10 +116,10 @@ def plot_pred_scatter(
 
         ax[1].set_xlabel("predicted_latent_phenotype (ϕ)")
         #ax[0].set_ylabel("functional score - γ$_{h}$")
-        ax[0].set_ylabel("true functional score")
+        ax[0].set_ylabel("γ corrected functional score")
         # ax[1].plot(*shape, color='k', lw=1)
-        ax[0].set_xlim(-5, 1.5)       
-        ax[0].set_ylim(-5, 2.5)       
+        ax[0].set_xlim(-6, 1.5)       
+        ax[0].set_ylim(-6, 2.5)       
         ax[1].set_xlim(-11, 8)       
         plt.tight_layout()
         ax[0].grid()
