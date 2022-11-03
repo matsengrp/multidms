@@ -29,7 +29,6 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 
 
-
 class MultiDmsData:
     r"""
     Prep data for multidms model(s),
@@ -63,7 +62,7 @@ class MultiDmsData:
         'aa_substitutions', and 'func_score'.
         See the class note for descriptions of each of the features.
     reference : str
-        Name of the factor level which annotates the reference condition
+        Name of the condition which annotates the reference.
         variants. Note that for model fitting this class will convert all
         amino acid substitutions for non-reference condition groups
         to relative to the reference condition. 
@@ -474,7 +473,7 @@ class MultiDmsData:
                 var_map = site_map[[self._reference, condition]].copy()
                 for wt, site, mut in zip(row.wts, row.sites, row.muts):
                     var_map.loc[site, condition] = mut
-                #nis = self._non_identical_sites[condition]
+
                 nis = var_map.where(
                     var_map[self._reference] != var_map[condition]
                 ).dropna().astype(str)

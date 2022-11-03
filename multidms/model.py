@@ -7,7 +7,8 @@ Defines JIT compiled functions for to use for
 composing global epistasis biophysical models
 and their respective objective functions.
 
-To obfuscate the complexity of this behavior,
+To hide the complexity of this behavior,
+as well as 
 We implement the ``MultiDmsModel`` class.
 
 `JIT` compiled model composition
@@ -38,12 +39,12 @@ in order to achieve function composition.
 For a simple example using the ``Partial`` function,
 see https://jax.readthedocs.io/en/latest/_autosummary/jax.tree_util.Partial.html
 
-Here, we do it slightly differently than the example given
-by the documentation where they highlight the feeding 
+Here, we do it slightly differently than this example (given
+by the documentation above) where they emphasize feeding 
 of partial functions into jit-compiled functions as 
-arguments that are pytree compatible.
-Instead, we first use partial in the more traditional sense
-such that _calling_ functions (i.e. functions that call on other 
+static arguments that are pytree compatible.
+Instead, we use partial in the more traditional sense.
+The _calling_ functions (i.e. functions that call on other 
 parameterized functions) are defined as being a "partially" jit-compiled
 function, until the relevant static arguments are provided using another
 call to Partial. 
@@ -103,6 +104,9 @@ And finally we provide some examples and targets to evauate the cost.
   compiling
   compiling
   2
+
+The compiled cost function is now suitable for 
+`jaxopt <https://jaxopt.github.io/stable/index.html>`_
 """
 
 from functools import reduce
@@ -1185,7 +1189,6 @@ class MultiDmsModel:
             ]
 
         combine_on = "mutation" if site_agg_func is None else "sites"
-        print(dfs[0])
         comb_mut_effects = reduce(
             lambda l, r: pandas.merge(
                 l, r, how="inner", on=combine_on
