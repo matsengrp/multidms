@@ -4,10 +4,105 @@ model
 ==========
 
 Defines JIT compiled functions for to use for 
-composing models and their respective objective functions.
+composing global epistasis biophysical models
+and their respective objective functions.
 
 To obfuscate the complexity of this behavior,
-We implement the ``MultiDmsModel`` class for handling 
+We implement the ``MultiDmsModel`` class.
+
+`JIT` compiled model composition
+--------------------------------
+
+``multidms.model.latent_models``,
+``multidms.model.epistatic_models``,
+and
+``multidms.model.output_activations``
+provide JIT compiled functions for to use for 
+composing models the abstract epistasis 
+byphysical model and their respective 
+objective functions.
+For the sake of modularity, abstraction, and code-reusibility,
+we would like to be able to separate and provide options for
+the individual pieces of code that define a model such as this.
+To this end, we are mainly constrained by the necessity of
+Just-in-time (JIT) compilation of our model code for effecient 
+training and parameter optimization.
+To achieve this, we must take advantage of the
+``jax.tree_util.Partial`` utility, which allows
+for jit-compiled functions to be "pytree compatible".
+In other words, by decorating functions with 
+``Partial``, we can clearly mark which arguments will
+in a function are themselves, statically compiled functions
+in order to achieve function composition.
+
+For a simple example using the ``Partial`` function,
+see https://jax.readthedocs.io/en/latest/_autosummary/jax.tree_util.Partial.html
+
+Here, we do it slightly differently than the example given
+by the documentation where they highlight the feeding 
+of partial functions into jit-compiled functions as 
+arguments that are pytree compatible.
+Instead, we first use partial in the more traditional sense
+such that _calling_ functions (i.e. functions that call on other 
+parameterized functions) are defined as being a "partially" jit-compiled
+function, until the relevant static arguments are provided using another
+call to Partial. 
+
+Consider the small example of a composed model formula f(t, g, x) = t(g(x))
+
+>>> import jax.numpy as jnp
+>>> import jax
+>>> jax.config.update("jax_enable_x64", True)
+>>> from jax.tree_util import Partial
+
+>>> @jax.jit
+>>> def identity(x):
+>>>     return x
+
+>>> @Partial(jax.jit, static_argnums=(0,1,))
+>>> def f(t, g, x):
+>>>     print(f"compiling")
+>>>     return t(g(x))
+
+Here, we defined a simple ``identity`` activation function that is fully
+jit-compiled, as well as the partially jit compiled calling function, ``f``,
+Where the 0th and 1st arguments have been marked as static arguments.
+Next, we'll compile ``f`` by providing the static arguments using another
+call to ``Partial``.
+
+>>> identity_f = Partial(f, identity, identity)
+
+Now, we can call upon the compiled function without any reference to our
+static arguments.
+
+>>> identity_f(5)
+  compiling
+  5
+
+Note that upon the first call our model was JIT-compiled, 
+but subsequent calls need not re-compile
+
+>>> identity_f(7)
+  7
+
+We may also want to evaluate the loss of our simple model using MSE.
+We can again use the partial function to define an abstract SSE loss
+which is compatible with any pre-compiled model function, ``f``.
+
+>>> @Partial(jax.jit, static_argnums=(0,))
+>>> def sse(f, x, y):
+>>>     print(f"compiling")
+>>>     return jnp.sum((f(x) - y)**2)
+
+And finally we provide some examples and targets to evauate the cost.
+
+>>> compiled_cost = Partial(sse, identity_f)
+>>> x = jnp.array([10, 12])
+>>> y = jnp.array([11, 11])
+>>> compiled_cost(x,y)
+  compiling
+  compiling
+  2
 """
 
 from functools import reduce
@@ -33,6 +128,7 @@ from scipy.stats import pearsonr
 from multidms import MultiDmsData
 from multidms.utils import is_wt
 
+
 @jax.jit
 def identity_activation(d_params, act, **kwargs):
     return act
@@ -42,9 +138,7 @@ def identity_activation(d_params, act, **kwargs):
 def softplus_activation(d_params, act, lower_bound=-3.5, hinge_scale=0.1, **kwargs):
     """
     A modified softplus that hinges at 'lower_bound'. 
-    The rate of change at the hinge is defined by 'hinge_scale'.
-
-    This is derived from 
+    The rate of change at the hinge is defined by 'hinge_scale'. This is derived from 
     https://jax.readthedocs.io/en/latest/_autosummary/jax.nn.softplus.html
     """
 
@@ -239,7 +333,7 @@ epistatic_models = {
     "softplus" : softplus_global_epistasis,
     "identity" : identity_activation 
 }
-# TODO softplus, perceptron, ispline
+
 output_activations = {
     "softplus" : softplus_activation,
     "gelu" : gelu_activation,
@@ -247,29 +341,13 @@ output_activations = {
 }
 
 
-# TODO update model description based upon hugh's recent updates
-# TODO finish documenting parameters, attributes, methods, and examples.
-# TODO plotting methods -> altair
 class MultiDmsModel:
     r"""
     Represent one or more DMS experiments
-    to obtain a predictive model for new variants,
-    and tuned parameters that provide insight into
+    to obtain tuned parameters that provide insight into
     individual mutational effects and conditional shifts
     of those effects on all non-reference conditions.
 
-    Class instantiation
-    -------------------
-
-    To instantiate the object:
-    
-    1. A ``multidms.MultiDmsData`` Object for fitting.
-    2. String arguments that exists within the pre-defined
-    set of functions for latent and epistatic models as well
-    as a final activation function. By default, we use the
-    linear model with shift parameters (see Model Overview),
-    and identity functions for the epistatic model 
-    as well as for the output activation (i.e. the linear model).
     
     Conceptual Overview of model
     ----------------------------
@@ -386,100 +464,94 @@ class MultiDmsModel:
     Finally, this vector could be fed into a loss function and 
     compared with a vector of observed functional scores.
 
-    `JIT` compiled model composition
-    ------------------------------
 
-    ``multidms.model.latent_models``,
-    ``multidms.model.epistatic_models``,
-    and
-    ``multidms.model.output_activations``
-    provide JIT compiled functions for to use for 
-    composing models the abstract epistasis 
-    byphysical model and their respective 
-    objective functions.
-    For the sake of modularity, abstraction, and code-reusibility,
-    we would like to be able to separate and provide options for
-    the individual pieces of code that define a model such as this.
-    To this end, we are mainly constrained by the necessity of
-    Just-in-time (JIT) compilation of our model code for effecient 
-    training and parameter optimization.
-    To achieve this, we must take advantage of the
-    ``jax.tree_util.Partial`` utility, which allows
-    for jit-compiled functions to be "pytree compatible".
-    In other words, by decorating functions with 
-    ``Partial``, we can clearly mark which arguments will
-    in a function are themselves, statically compiled functions
-    in order to achieve function composition.
+    Class instantiation
+    -------------------
 
-    For a simple example using the ``Partial`` function,
-    see https://jax.readthedocs.io/en/latest/_autosummary/jax.tree_util.Partial.html
+    To instantiate the object:
+    
+    1. A ``multidms.MultiDmsData`` Object for fitting.
+    2. String arguments that exists within the pre-defined
+    set of functions for latent and epistatic models as well
+    as a final activation function. By default, we use the
+    linear model with shift parameters (see Model Overview),
+    and identity functions for the epistatic model 
+    as well as for the output activation (i.e. the linear model).
 
-    Here, we do it slightly differently than the example given
-    by the documentation where they highlight the feeding 
-    of partial functions into jit-compiled functions as 
-    arguments that are pytree compatible.
-    Instead, we first use partial in the more traditional sense
-    such that _calling_ functions (i.e. functions that call on other 
-    parameterized functions) are defined as being a "partially" jit-compiled
-    function, until the relevant static arguments are provided using another
-    call to Partial. 
+    Parameters
+    ----------
 
-    Consider the small example of a composed model formula f(t, g, x) = t(g(x))
+    data : ``multidms.MultiDmsData``
+        a reference to the data you wish to fit & explore.
+        This is useful for accessing various attributes
+        of the data from a model class.
+        See the main class description for more
+        about the ``MultiDmsData`` Object.
+    latent_model : str
+        The latent phenotype model you wish to use.
+        Currently, only 'phi' is available. This
+        may be deprecated in future versions.
+    epistatic_model : str
+        The epistatic transform function you wish to
+        use for the model. i
+        See multidms.model.epistatic_models
+        for the dictionary mapping a given string
+        to a compiled model function.
+    output_activation : str,
+        The output activation function you would like to
+        use for the model. See multidms.model.output_activations
+        for the dictionary mapping a given string
+        to a compiled model function.
+    gamma_corrected : bool
+        If True, use the scalar gamma (γ_d) parameter to correct
+        for wildtype differences between conditions. For models
+        where all conditions have the same wildtype amino acid
+        sequence this behavior is generally not useful.
+    conditional_shifts : bool
+        If True, include conditional shift parameters.
+        In most scenerios where you have multiple conditions
+        in a dataset, this is a key feature of the model to
+        identify where mutational effects differ.
+        This may be set to False if you would like to fit
+        a more traditional global epistasis model.
+    conditional_c : bool
+        Initialize a latent bias parameter,like C_ref,  
+        but for each of the individual condition in a dataset.
+    PRNGKey : int
+        The starting PRNG key for all random
+        parameter initialization. See the ``Jax`` documentation,
+        for an explanation on how this differs from
+        a more traditional seed value.
+    init_g_range : float or None
+        If using a two-parameter epistatic,
+        model, use this as the starting range of the model.
+    init_g_min : float or None
+        If using a two-parameter epistatic model
+        (like sigmoidor softplus), use this as the 
+        starting minimum value of the model range.
 
-    >>> import jax.numpy as jnp
-    >>> import jax
-    >>> jax.config.update("jax_enable_x64", True)
-    >>> from jax.tree_util import Partial
+    Attributes
+    ----------
 
-    >>> @jax.jit
-    >>> def identity(x):
-    >>>     return x
-
-    >>> @Partial(jax.jit, static_argnums=(0,1,))
-    >>> def f(t, g, x):
-    >>>     print(f"compiling")
-    >>>     return t(g(x))
-
-    Here, we defined a simple ``identity`` activation function that is fully
-    jit-compiled, as well as the partially jit compiled calling function, ``f``,
-    Where the 0th and 1st arguments have been marked as static arguments.
-    Next, we'll compile ``f`` by providing the static arguments using another
-    call to ``Partial``.
-
-    >>> identity_f = Partial(f, identity, identity)
-
-    Now, we can call upon the compiled function without any reference to our
-    static arguments.
-
-    >>> identity_f(5)
-      compiling
-      5
-
-    Note that upon the first call our model was JIT-compiled, 
-    but subsequent calls need not re-compile
-
-    >>> identity_f(7)
-      7
-
-    We may also want to evaluate the loss of our simple model using MSE.
-    We can again use the partial function to define an abstract SSE loss
-    which is compatible with any pre-compiled model function, ``f``.
-
-    >>> @Partial(jax.jit, static_argnums=(0,))
-    >>> def sse(f, x, y):
-    >>>     print(f"compiling")
-    >>>     return jnp.sum((f(x) - y)**2)
-
-    And finally we provide some examples and targets to evauate the cost.
-
-    >>> compiled_cost = Partial(sse, identity_f)
-    >>> x = jnp.array([10, 12])
-    >>> y = jnp.array([11, 11])
-    >>> compiled_cost(x,y)
-      compiling
-      compiling
-      2
-
+    variants_df : pandas.DataFrame
+        A copy of this object's data.variants_df attribute,
+        but with the added model predictions (latent and epistatic) 
+        given the current parameters of this model.
+    mutations_df : pandas.DataFrame
+        A copy of this object's data.mutations_df attribute,
+        but with the added respective parameter values 
+        (Beta and contional shift) as well as 
+        model predictions (latent and epistatic) 
+        given the current parameters of this model.
+    mutation_site_summary_df : pandas.DataFrame 
+        Similar to the mutations_df attribute, but aggregate
+        the numerical columns by site using a chosen function.
+    wildtype_df : pandas.DataFrame
+        Get a dataframe indexed by condition wildtype
+        containing the prediction features for each.
+    loss : float
+        Compute and return the current loss of the model
+        with current parameters
     """
 
     def __init__(
@@ -614,8 +686,10 @@ class MultiDmsModel:
 
     @property
     def mutations_df(self):
-        """ Get all single mutational attributes from self._data
-        updated with all model specific attributes"""
+        """ 
+        Get all single mutational attributes from self._data
+        updated with all model specific attributes.
+        """
 
         mutations_df = self._data.mutations_df.copy()
         mutations_df.loc[:, "β"] = self.params["β"]
@@ -632,13 +706,17 @@ class MultiDmsModel:
         return mutations_df
 
 
-    def sites_df(self, agg=onp.mean):
-        """ Get all single mutational attributes from self._data
-        updated with all model specific attributes, summarize by site"""
+    def mutation_site_summary_df(self, agg=onp.mean):
+        """ 
+        Get all single mutational attributes from self._data
+        updated with all model specific attributes, then aggregate
+        all numerical columns by "sites" using
+        ``agg`` function. The mean values are given by default.
+        """
 
         numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']
-        sites_df = self.mutations_df.select_dtypes(include=numerics)
-        return sites_df.groupby("sites").aggregate(onp.mean)
+        mutation_site_summary_df = self.mutations_df.select_dtypes(include=numerics)
+        return mutation_site_summary_df.groupby("sites").aggregate(onp.mean)
 
 
     @property
@@ -703,9 +781,6 @@ class MultiDmsModel:
         """ condition specific prediction on X using the biophysical model
         given current model parameters. """
 
-        # TODO assert X is correct shape.
-        # TODO assert that the substitutions exist?
-        # TODO require the user
         d_params = get_condition_params(condition)
         return self._model['f'](d_params, X)
 
@@ -714,15 +789,10 @@ class MultiDmsModel:
         """ condition specific prediction on X using the biophysical model
         given current model parameters. """
 
-        # TODO assert X is correct shape.
-        # TODO assert that the substitutions exist?
-        # TODO require the user
         d_params = get_condition_params(condition)
         return self._model['ϕ'](d_params, X)
 
 
-    # TODO finish documentation.
-    # TODO lasso etc paramerters (**kwargs ?)
     def fit(
         self, 
         lasso_shift = 1e-5,
@@ -770,6 +840,7 @@ class MultiDmsModel:
             data=(self._data.training_data['X'], self._data.training_data['y']),
             **kwargs
         )
+
 
     def plot_pred_accuracy(
         self,
@@ -1074,7 +1145,7 @@ class MultiDmsModel:
         summarize shift parameter values by associated sites and conditions.
         """
 
-        sites_df = self.sites_df(sites_agg_func).reset_index()
+        mutation_site_summary_df = self.mutation_site_summary_df(sites_agg_func).reset_index()
 
         fig, ax = plt.subplots(figsize=figsize)
         ax.axhline(0, color="k", ls="--", lw=1)
@@ -1082,7 +1153,7 @@ class MultiDmsModel:
         for condition in self._data.conditions:
             if condition == self._data.reference: continue
             sns.lineplot(
-                data=sites_df,
+                data=mutation_site_summary_df,
                 x="sites", y=f"S_{condition}",
                 color=self._data.condition_colors[condition],
                 ax=ax
@@ -1109,8 +1180,8 @@ class MultiDmsModel:
             dfs = [self.mutations_df, other.mutations_df]
         else:
             dfs = [
-                self.sites_df(agg=site_agg_func).reset_index(), 
-                other.sites_df(agg=site_agg_func).reset_index()
+                self.mutation_site_summary_df(agg=site_agg_func).reset_index(), 
+                other.mutation_site_summary_df(agg=site_agg_func).reset_index()
             ]
 
         combine_on = "mutation" if site_agg_func is None else "sites"
@@ -1151,4 +1222,3 @@ class MultiDmsModel:
         if show: plt.show()
 
         return fig, ax
-

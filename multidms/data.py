@@ -5,11 +5,11 @@ multidms
 
 Defines :class:`Multidms` objects for handling data from one or more
 dms experiments under various conditions.
-
 """
 
+from functools import partial
+import multidms.utils
 
-# external
 import binarymap as bmap
 from polyclonal.plot import DEFAULT_POSITIVE_COLORS
 from polyclonal.utils import MutationParser
@@ -28,18 +28,15 @@ from collections import namedtuple
 from matplotlib import pyplot as plt
 import seaborn as sns
 
-# local
-from functools import partial
-import multidms.utils
 
 
-# TODO Logging and Error Handling?
-# TODO plotting methods for data summary.
 class MultiDmsData:
     r"""
     Prep data for multidms model(s),
-    Summarize, and provide 
-    common attributes.
+    Summarize, and provide static data attributes.
+    Individual objects of this type can be shared
+    by multiple ``multidms.MultiDmsModel`` Objects
+    for effeciently fitting various models to the same data.
 
     Note
     ----
@@ -106,25 +103,27 @@ class MultiDmsData:
         and a column 'weight' is added to represent number
         of collapsed variants. 
         Also, row-order may be changed.
+    mutations_df : pandas.DataFrame
+        A dataframe summarizing all valid single mutations
+        in a dataset. The dataframe will contain the
+        mutation definitions (wt, site, mut) as well as the number
+        of times seen in each condition.
+    mutations : tuple
+        A tuple with all mutations in the order reletive to their index into
+        the binarymap.
     reference : str
         The reference factor level in conditions. All mutations will be converted to
         be with respect to this condition's inferred wild type sequence. See
         The class description for more.
     conditions : tuple
         Names of all conditions.
-    condition_colors : dict TODO
+    condition_colors : dict
         Maps each condition to its color.
     alphabet : tuple 
         Allowed characters in mutation strings.
     site_map : tuple 
         Inferred from ``variants_df``, this attribute will provide the wild type
         amino acid at all sites, for all conditions.
-    mutations : pandas.DataFrame
-        A dataframe containing all relevant substitutions and all relevant.
-    mutations_df : pandas.DataFrame
-        1. mutation_shifts : TODO
-        2. mutation_betas : TODO
-        3. mutation_functional_effects : TODO
 
     Example
     -------
@@ -154,7 +153,7 @@ class MultiDmsData:
     Instantiate a ``MultiDmsData`` Object allowing for stop codon variants
     and declaring condition '1' as the reference condition.
 
-    >>> data = multidms.Multidms(
+    >>> data = multidms.MultiDmsData(
     ...     func_score_df,
     ...     alphabet = multidms.AAS_WITHSTOP,
     ...     reference = "1"
@@ -164,6 +163,7 @@ class MultiDmsData:
     operations that must be performed when converting
     amino acid substitutions to be with respect to a
     reference wild type sequence.
+
     After the object has finished being instantiated,
     we now have access to a few 'static' attributes
     of our data.
@@ -183,37 +183,24 @@ class MultiDmsData:
        1  M  M
 
     >>> data.mutations_df
-      mutation         β wts  sites muts  times_seen  S_1       F_1  S_2       F_2
-      0      M1E  0.080868   M      1    E           4  0.0 -0.061761  0.0 -0.061761
-      1      M1W -0.386247   M      1    W           1  0.0 -0.098172  0.0 -0.098172
-      2      G3P -0.375656   G      3    P           2  0.0 -0.097148  0.0 -0.097148
-      3      G3R  1.668974   G      3    R           3  0.0 -0.012681  0.0 -0.012681
-
+      mutation wts  sites muts  times_seen_1  times_seen_2
+    0      M1E   M      1    E             1           3.0
+    1      M1W   M      1    W             1           0.0
+    2      G3P   G      3    P             1           1.0
+    3      G3R   G      3    R             1           2.0
 
     >>> data.variants_df
-      condition aa_substitutions  ...  predicted_func_score  corrected_func_score
-      0         1              G3P  ...             -0.097148                  -0.5
-      1         1              G3R  ...             -0.012681                  -7.0
-      2         1              M1E  ...             -0.061761                   2.0
-      3         1              M1W  ...             -0.098172                   2.3
-      4         2              M1E  ...             -0.089669                   1.0
-      5         2          M1E P3G  ...             -0.061761                   2.7
-      6         2          M1E P3R  ...             -0.011697                  -2.7
-      8         2              P3G  ...             -0.066929                   0.4
-      9         2              P3R  ...             -0.012681                  -5.0
+      condition aa_substitutions  weight  func_score var_wrt_ref
+    0         1              G3P       1        -0.5         G3P
+    1         1              G3R       1        -7.0         G3R
+    2         1              M1E       1         2.0         M1E
+    3         1              M1W       1         2.3         M1W
+    4         2              M1E       1         1.0     G3P M1E
+    5         2          M1E P3G       1         2.7         M1E
+    6         2          M1E P3R       1        -2.7     G3R M1E
+    8         2              P3G       1         0.4            
+    9         2              P3R       1        -5.0         G3R
     """
-
-    # TODO sites : array-like or 'infer' #2
-    # Offer ability to provide your own refernce sites?
-    # Maybe we should also
-    # Right now the inference seems like the best way to go?
-    # except, it seems to me that we always want these models to
-    # to be sparse unless we want to predict?
-
-    # TODO what about the behavior to expect for throwing variants
-    # i.e. Currently, we throw all variants which include substitutions
-    # on sites that are not seen across all conditions. We could
-    # also provide a 
 
 
     def __init__(
@@ -256,7 +243,6 @@ class MultiDmsData:
             letter_suffixed_sites
         )
 
-        # TODO Break this up into (jit-able) helper functions and move to init
         (
             self._training_data,
             self._binarymaps,
@@ -375,7 +361,7 @@ class MultiDmsData:
     def mut_parser(self):
         return self._mut_parser
 
-    # TODO move the column names to a config of some kind. JSON?
+
     def _create_condition_modeling_data(
         self,
         func_score_df:pandas.DataFrame
@@ -467,13 +453,13 @@ class MultiDmsData:
         )
         n_var_pre_filter = len(df)
         df = df[df["allowed_variant"]]
+        df.drop("allowed_variant", axis=1, inplace=True)
     
         # convert the respective subs to be wrt reference
         df = df.assign(var_wrt_ref = df["aa_substitutions"])
         for condition, condition_func_df in df.groupby("condition"):
             
             if condition == self._reference: continue
-            # TODO Conditions with identical wild types should share a cache.
             variant_cache = {} 
             cache_hits = 0
             

@@ -15,12 +15,7 @@ from jaxopt import ProximalGradient
 from jax.experimental import sparse
 import jaxopt
 import numpy as onp
-#from tqdm.notebook import tqdm
 from tqdm import tqdm
-tqdm.pandas()
-
-
-# from multidms.model import *
 
 substitution_column = 'aa_substitutions_reference'
 experiment_column = 'homolog_exp'
@@ -31,7 +26,6 @@ def is_wt(string):
     return True if len(string.split()) == 0 else False
 
    
-# TODO should we assert there's no mutations like, A154bT? 
 def split_sub(sub_string):
     """String match the wt, site, and sub aa
     in a given string denoting a single substitution"""
@@ -53,8 +47,6 @@ def split_subs(subs_string, parser=split_sub):
     return wts, sites, muts
 
 
-# TODO document
-# TODO cleanup, remove all assignments of new columns ...
 def scale_func_score(
     func_score_df, 
     bottleneck=1e5, 
