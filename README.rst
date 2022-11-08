@@ -15,10 +15,12 @@ To contribute to this package, read the instructions in `CONTRIBUTING.rst <CONTR
 Developer install
 
 .. code-block:: 
+
    git clone git@github.com:matsengrp/multidms.git
    (cd multidms && pip install -e '.[dev])
 
 If planning on using CUDA supported GPU's:
 
 .. code-block:: 
+
    pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
