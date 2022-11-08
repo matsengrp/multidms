@@ -8,8 +8,17 @@ individual mutation effects and shifts.
 
 ``multidms`` is a Python package written by the `Matsen Group <https://matsen.fhcrc.org/>`_ in collaboration with the `Bloom lab <https://research.fhcrc.org/bloom/en.html>`_.
 
-See `Yu et al (2022) <https://www.biorxiv.org/content/10.1101/2022.09.17.508366v1>`_ for an explanation of the approach implemented in ``multidms``.
-
 The source code is `on GitHub <https://github.com/matsengrp/multidms>`_.
 
 To contribute to this package, read the instructions in `CONTRIBUTING.rst <CONTRIBUTING.rst>`_.
+
+Developer install
+```
+git clone git@github.com:matsengrp/multidms.git
+(cd multidms && pip install -e '.[dev])
+```
+
+If planning on using CUDA supported GPU's:
+```
+ pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+```
