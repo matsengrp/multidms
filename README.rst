@@ -13,12 +13,10 @@ The source code is `on GitHub <https://github.com/matsengrp/multidms>`_.
 To contribute to this package, read the instructions in `CONTRIBUTING.rst <CONTRIBUTING.rst>`_.
 
 Developer install
-```
-git clone git@github.com:matsengrp/multidms.git
-(cd multidms && pip install -e '.[dev])
-```
+.. code-block:: 
+    git clone git@github.com:matsengrp/multidms.git
+    (cd multidms && pip install -e '.[dev])
 
 If planning on using CUDA supported GPU's:
-```
- pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
-```
+.. code-block:: 
+    pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
