@@ -558,6 +558,64 @@ class MultiDmsModel:
     loss : float
         Compute and return the current loss of the model
         with current parameters
+
+    Parameters
+    ----------
+
+    data : MultiDmsData
+        A reference to the dataset which will define the parameters
+        of the model to be fit.
+    latent_model : str
+        A string encoding of the compiled function for
+        a latent prediction from binary one-hot encodings
+        of variants. Currently, we only support the 'phi'
+        model.
+        See Model Description section for more.
+    epistatic_model : str
+        A string encoding of the compiled function for
+        the function mapping latent phenotype, to 
+        some monotonic function. 
+        Set to 'identity' if you wish to effectively
+        skip this step in the model.
+        See Model Description section for more.
+    output_activation : str
+        A string encoding of the compiled function for
+        a final transformation on the data - primarily
+        we have this for our gamma corrected clipping
+        functions.
+        Set to 'identity' if you wish to effectively
+        skip this step in the model.
+        See Model Description section for more.
+    gamma_corrected : bool
+        If true (default), introduce the 'gamma' parameter 
+        for each non-reference parameter to
+        account for differences between wild type
+        behavior relative to it's variants. This 
+        is essentially a bias added to the functional
+        scores during fitting.
+        See Model Description section for more.
+    conditional_shifts : bool
+        If true (default) initialize and fit the shift
+        parameters for each non-reference condition.
+        See Model Description section for more.
+    conditional_c : bool
+        If True (default False) introduce a bias parameter
+        on the latent space parameter for each condition.
+        See Model Description section for more.
+    init_g_range : float or None
+        Initialize the range of two parameter
+        epistatic models.
+    init_g_range : float or None
+        Initialize the min of a two parameter
+        epistatic models.
+    PRNGKey : int
+        The initial seed key for random parameters
+        assigned to Beta's and any other randomly
+        initialized parameters. 
+    
+    Example
+    -------
+    
     """
 
     def __init__(
