@@ -615,7 +615,84 @@ class MultiDmsModel:
     
     Example
     -------
-    
+
+    To create a MultiDmsModel object, all you need is
+    the respective MultiDmsModel object for parameter fitting,
+    as well as the string encoded options for choosing a model.
+
+    >>> model = multidms.MultiDmsModel(
+    ...     data,
+    ...     epistatic_model="sigmoid",
+    ...     output_activation="softplus"
+    ... )
+
+    Upon initialization, you will now have access to the underlying data
+    and parameters.
+
+    >>> model.data.mutations
+    ('M1E', 'M1W', 'G3P', 'G3R')
+    >>> model.data.conditions
+    ('1', '2')
+    >>> model.data.reference
+    '1'
+    >>> model.data.condition_colors
+    {'1': '#0072B2', '2': '#009E73'}
+
+    The mutations_df and variants_df may of course also be accessed.
+
+    >>> model.data.mutations_df
+      mutation wts  sites muts  times_seen_1  times_seen_2
+    0      M1E   M      1    E             1           3.0
+    1      M1W   M      1    W             1           0.0
+    2      G3P   G      3    P             1           1.0
+    3      G3R   G      3    R             1           2.0
+
+    However, if accessed directly through the Model object, you will 
+    get the same information, along with model/parameter specific 
+    features included. These are automatically updated each time you 
+    request the property.
+
+    >>> model.mutations_df
+      mutation wts  sites muts  times_seen_1  ...         β  S_1       F_1  S_2       F_2
+    0      M1E   M      1    E             1  ...  0.080868  0.0 -0.030881  0.0 -0.030881
+    1      M1W   M      1    W             1  ... -0.386247  0.0 -0.049086  0.0 -0.049086
+    2      G3P   G      3    P             1  ... -0.375656  0.0 -0.048574  0.0 -0.048574
+    3      G3R   G      3    R             1  ...  1.668974  0.0 -0.006340  0.0 -0.006340
+
+    Notice the respective single mutation effects ("β"), conditional shifts (S_d),
+    and predicted functional score (F_d) of each mutation in the model are now 
+    easily accessible. Similarly, we can take a look at the variants_df for the model,
+
+    >>> model.variants_df
+      condition aa_substitutions  ...  predicted_func_score  corrected_func_score
+    0         1              G3P  ...             -0.048574                  -0.5
+    1         1              G3R  ...             -0.006340                  -7.0
+    2         1              M1E  ...             -0.030881                   2.0
+    3         1              M1W  ...             -0.049086                   2.3
+    4         2              M1E  ...             -0.044834                   1.0
+    5         2          M1E P3G  ...             -0.030881                   2.7
+    6         2          M1E P3R  ...             -0.005848                  -2.7
+    8         2              P3G  ...             -0.033464                   0.4
+    9         2              P3R  ...             -0.006340                  -5.0
+
+    We now have access to the predicted (and gamma corrected) functional scores
+    as predicted by the models current parameters. 
+
+    So far, these parameters and predictions results from them have not been tuned
+    to the dataset. Let's take a look at the loss on the training dataset
+    given our initialized parameters
+
+    >>> model.loss
+    DeviceArray(4.40537408, dtype=float64)
+
+    Next, we fit the model with some chosen hyperparameters.
+
+    >>> model.fit(maxiter=1000, lasso_shift=1e-5)
+    >>> model.loss
+    DeviceArray(1.01582782, dtype=float64)
+
+    The model tunes it's parameters in place, and the subsequent call to retrieve
+    the loss reflects our models loss given it's updated parameters.
     """
 
     def __init__(
