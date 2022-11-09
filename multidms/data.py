@@ -18,6 +18,7 @@ import pandas
 from tqdm import tqdm
 import jax
 import jaxlib
+
 jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from jax.experimental import sparse
@@ -49,7 +50,7 @@ class MultiDmsData:
         :math:`v` as a string of substitutions (e.g., 'M3A K5G').
         Note that while conditions may have differing wild types
         at a given site, the sites between conditions should reference
-        the same site when alignment is performed between 
+        the same site when alignment is performed between
         condition wild types.
     3. `func_score` - The functional score computed from experimental
         measurements.
@@ -58,20 +59,20 @@ class MultiDmsData:
     ----------
     variants_df : pandas.DataFrame or None
         The variant level information from all experiments you
-        wish to analyze. Should have columns named 'condition', 
+        wish to analyze. Should have columns named 'condition',
         'aa_substitutions', and 'func_score'.
         See the class note for descriptions of each of the features.
     reference : str
         Name of the condition which annotates the reference.
         variants. Note that for model fitting this class will convert all
         amino acid substitutions for non-reference condition groups
-        to relative to the reference condition. 
-        For example, if the wild type amino acid at site 30 is an 
-        A in the reference condition, and a G in a non-reference condition, 
-        then a Y30G mutation in the non-reference condition is recorded as an A30G 
-        mutation relative to the reference. This way, each condition informs 
+        to relative to the reference condition.
+        For example, if the wild type amino acid at site 30 is an
+        A in the reference condition, and a G in a non-reference condition,
+        then a Y30G mutation in the non-reference condition is recorded as an A30G
+        mutation relative to the reference. This way, each condition informs
         the exact same parameters, even at sites that differ in wild type amino acid.
-        These are encoded in a ``BinaryMap`` object for each condtion, 
+        These are encoded in a ``BinaryMap`` object for each condtion,
         where all sites that are non-identical to the reference are 1's.
         For motivation, see the `Model overview` section in `multidms.MultiDmsModel`
         class notes.
@@ -98,9 +99,9 @@ class MultiDmsData:
         less those variants which were thrown due to mutations
         outside the union of sites seen in across all condition variants.
         If using ``collapse_identical_variants``, then identical variants
-        are collapsed on columns 'condition', 'aa_substitutions', 
+        are collapsed on columns 'condition', 'aa_substitutions',
         and a column 'weight' is added to represent number
-        of collapsed variants. 
+        of collapsed variants.
         Also, row-order may be changed.
     mutations_df : pandas.DataFrame
         A dataframe summarizing all valid single mutations
@@ -118,9 +119,9 @@ class MultiDmsData:
         Names of all conditions.
     condition_colors : dict
         Maps each condition to its color.
-    alphabet : tuple 
+    alphabet : tuple
         Allowed characters in mutation strings.
-    site_map : tuple 
+    site_map : tuple
         Inferred from ``variants_df``, this attribute will provide the wild type
         amino acid at all sites, for all conditions.
 
@@ -197,19 +198,18 @@ class MultiDmsData:
     4         2              M1E       1         1.0     G3P M1E
     5         2          M1E P3G       1         2.7         M1E
     6         2          M1E P3R       1        -2.7     G3R M1E
-    8         2              P3G       1         0.4            
+    8         2              P3G       1         0.4
     9         2              P3R       1        -5.0         G3R
     """
-
 
     def __init__(
         self,
         variants_df: pandas.DataFrame,
-        reference : str,
+        reference: str,
         alphabet=multidms.AAS,
         collapse_identical_variants="mean",
         condition_colors=DEFAULT_POSITIVE_COLORS,
-        letter_suffixed_sites=False
+        letter_suffixed_sites=False,
     ):
         """See main class docstring."""
 
@@ -231,16 +231,13 @@ class MultiDmsData:
             raise ValueError("not enough `condition_colors`")
         else:
             self.condition_colors = dict(zip(self._conditions, condition_colors))
-        
+
         # Check and initialize alphabet & mut parser attributes
         if len(set(alphabet)) != len(alphabet):
             raise ValueError("duplicate letters in `alphabet`")
         self.alphabet = tuple(alphabet)
 
-        self._mutparser = MutationParser(
-            alphabet,
-            letter_suffixed_sites
-        )
+        self._mutparser = MutationParser(alphabet, letter_suffixed_sites)
 
         (
             self._training_data,
@@ -248,12 +245,10 @@ class MultiDmsData:
             self._variants_df,
             self._mutations,
             self._site_map,
-        ) = self._create_condition_modeling_data(
-            variants_df
-        )
+        ) = self._create_condition_modeling_data(variants_df)
 
         # initialize single mutational effects df
-        mut_df = pandas.DataFrame({"mutation" : self._mutations})
+        mut_df = pandas.DataFrame({"mutation": self._mutations})
 
         mut_df["wts"], mut_df["sites"], mut_df["muts"] = zip(
             *mut_df["mutation"].map(self._mutparser.parse_mut)
@@ -262,19 +257,14 @@ class MultiDmsData:
         # compute times seen in data
         for condition, condition_vars in self._variants_df.groupby("condition"):
             times_seen = (
-                condition_vars["var_wrt_ref"]
-                .str.split()
-                .explode()
-                .value_counts()
+                condition_vars["var_wrt_ref"].str.split().explode().value_counts()
             )
             if (times_seen == times_seen.astype(int)).all():
                 times_seen = times_seen.astype(int)
             times_seen.index.name = f"mutation"
             times_seen.name = f"times_seen_{condition}"
             mut_df = mut_df.merge(
-                    times_seen, 
-                    left_on="mutation", right_on="mutation", 
-                    how="outer" 
+                times_seen, left_on="mutation", right_on="mutation", how="outer"
             ).fillna(0)
 
         self._mutations_df = mut_df
@@ -289,9 +279,13 @@ class MultiDmsData:
                 non_identical_sites[condition] = []
                 continue
 
-            nis = self._site_map.where(
-                self._site_map[self._reference] != self._site_map[condition]
-            ).dropna().astype(str)
+            nis = (
+                self._site_map.where(
+                    self._site_map[self._reference] != self._site_map[condition]
+                )
+                .dropna()
+                .astype(str)
+            )
             muts = nis[self._reference] + nis.index.astype(str) + nis[condition]
             muts_string = " ".join(muts.values)
             non_identical_mutations[condition] = muts_string
@@ -300,71 +294,55 @@ class MultiDmsData:
         self._non_identical_mutations = frozendict(non_identical_mutations)
         self._non_identical_sites = frozendict(non_identical_sites)
 
-
     @property
     def non_identical_mutations(self):
         return self._non_identical_mutations
-
 
     @property
     def non_identical_sites(self):
         return self._non_identical_sites
 
-
     @property
     def conditions(self):
         return self._conditions
-
 
     @property
     def reference(self):
         return self._reference
 
-
     @property
-    def mutations(self): 
+    def mutations(self):
         return self._mutations
-
 
     @property
     def mutations_df(self):
         return self._mutations_df
 
-
     @property
     def variants_df(self):
         return self._variants_df
-
 
     @property
     def site_map(self):
         return self._site_map
 
-
     @property
     def training_data(self):
         return self._training_data
-
 
     @property
     def binarymaps(self):
         return self._binarymaps
 
-
     @property
     def targets(self):
-        return self._training_data['y']
-
+        return self._training_data["y"]
 
     @property
     def mut_parser(self):
         return self._mut_parser
 
-
-    def _create_condition_modeling_data(
-        self,
-        func_score_df:pandas.DataFrame
-    ):
+    def _create_condition_modeling_data(self, func_score_df: pandas.DataFrame):
         """
         data prep helper.
 
@@ -372,32 +350,28 @@ class MultiDmsData:
         -------
 
         tuple : (dict[BinaryMap], dict[jnp.array]), pandas.DataFrame, np.array, pd.DataFrame
-        
+
             This function return a tuple which can be unpacked into the following:
-            
+
             - (X, y) Where X and y are both dictionaries containing the prepped data
                 for training our JAX multidms model. The dictionary keys
                 stratify the datasets by condition
-                
+
             - A pandas dataframe which primary contains the information from
                 func_score_df, but has been curated to include only the variants
                 deemed appropriate for training, as well as the substitutions
                 converted to be wrt to the reference condition.
-                
+
             - A numpy array giving the substitutions (beta's) of the binary maps
                 in the order that is preserved to match the matrices in X.
-                
+
             - A pandas dataframe providing the site map indexed by alignment site to
-                a column for each condition wt amino acid. 
-        
+                a column for each condition wt amino acid.
+
         """
 
         # Configure new variants df
-        cols = [
-            "condition",
-            "aa_substitutions",
-            "func_score"
-        ]
+        cols = ["condition", "aa_substitutions", "func_score"]
         if "weight" in func_score_df.columns:
             cols.append(
                 "weight"
@@ -407,8 +381,8 @@ class MultiDmsData:
 
         if self._collapse_identical_variants:
             agg_dict = {
-                "weight" : "sum", 
-                "func_score" : self._collapse_identical_variants
+                "weight": "sum",
+                "func_score": self._collapse_identical_variants,
             }
             df = (
                 func_score_df[cols]
@@ -421,118 +395,134 @@ class MultiDmsData:
             df = func_score_df.reset_index()
 
         parser = partial(multidms.utils.split_subs, parser=self._mutparser.parse_mut)
-        df["wts"], df["sites"], df["muts"] = zip(
-            *df["aa_substitutions"].map(parser)
-        )
-    
-        # Use the "aa_substitutions" to infer the 
+        df["wts"], df["sites"], df["muts"] = zip(*df["aa_substitutions"].map(parser))
+
+        # Use the "aa_substitutions" to infer the
         # wild type for each condition
         site_map = pandas.DataFrame()
         for hom, hom_func_df in df.groupby("condition"):
             for idx, row in hom_func_df.iterrows():
-                for wt, site  in zip(row.wts, row.sites):
+                for wt, site in zip(row.wts, row.sites):
                     site_map.loc[site, hom] = wt
-        
+
         # Throw variants if the contain non overlapping
         # mutations with all other conditions ...
         na_rows = site_map.isna().any(axis=1)
         sites_to_throw = na_rows[na_rows].index
         site_map.dropna(inplace=True)
-        
+
         def flags_disallowed(disallowed_sites, sites_list):
-            """Check to see if a sites list contains 
+            """Check to see if a sites list contains
             any disallowed sites"""
             for site in sites_list:
                 if site in disallowed_sites:
                     return False
             return True
-        
+
         df["allowed_variant"] = df.sites.apply(
-            lambda sl: flags_disallowed(sites_to_throw,sl)
+            lambda sl: flags_disallowed(sites_to_throw, sl)
         )
         n_var_pre_filter = len(df)
         df = df[df["allowed_variant"]]
         df.drop("allowed_variant", axis=1, inplace=True)
-    
+
+        sequence_cache = {}
+        reference_sequence = "".join(site_map[self._reference])
+        reference_sequence_conditions = [self._reference]
+        for condition, sequence in site_map.items():
+            if condition == self._reference:
+                continue
+            sequence_key = "".join(sequence)
+            if sequence_key == reference_sequence:
+                reference_sequence_conditions.append(condition)
+                continue
+            if sequence_key not in sequence_cache:
+                sequence_cache[sequence_key] = {}
+
         # convert the respective subs to be wrt reference
-        df = df.assign(var_wrt_ref = df["aa_substitutions"])
+        df = df.assign(var_wrt_ref=df["aa_substitutions"])
         for condition, condition_func_df in df.groupby("condition"):
-            
-            if condition == self._reference: continue
-            variant_cache = {} 
+
+            if condition in reference_sequence_conditions:
+                continue
+
+            sequence_key = "".join(site_map[condition])
+            variant_cache = sequence_cache[sequence_key]
             cache_hits = 0
-            
-            for idx, row in tqdm(condition_func_df.iterrows(), total=len(condition_func_df)):
-                
+
+            for idx, row in tqdm(
+                condition_func_df.iterrows(), total=len(condition_func_df)
+            ):
                 key = tuple(list(zip(row.wts, row.sites, row.muts)))
                 if key in variant_cache:
-                    df.loc[idx, "var_wrt_ref"]  = variant_cache[key]
+                    df.loc[idx, "var_wrt_ref"] = variant_cache[key]
                     cache_hits += 1
                     continue
-                
+
                 var_map = site_map[[self._reference, condition]].copy()
                 for wt, site, mut in zip(row.wts, row.sites, row.muts):
                     var_map.loc[site, condition] = mut
 
-                nis = var_map.where(
-                    var_map[self._reference] != var_map[condition]
-                ).dropna().astype(str)
-                
+                nis = (
+                    var_map.where(var_map[self._reference] != var_map[condition])
+                    .dropna()
+                    .astype(str)
+                )
+
                 muts = nis[self._reference] + nis.index.astype(str) + nis[condition]
-                
+
                 mutated_seq = " ".join(muts.values)
                 df.loc[idx, "var_wrt_ref"] = mutated_seq
                 variant_cache[key] = mutated_seq
-  
 
         # Make BinaryMap representations for each condition
-        allowed_subs = {
-            s for subs in df.var_wrt_ref
-            for s in subs.split()
-        }
-        
+        allowed_subs = {s for subs in df.var_wrt_ref for s in subs.split()}
+
         binmaps, X, y = {}, {}, {}
         for condition, condition_func_score_df in df.groupby("condition"):
 
             ref_bmap = bmap.BinaryMap(
                 condition_func_score_df,
                 substitutions_col="var_wrt_ref",
-                allowed_subs=allowed_subs
+                allowed_subs=allowed_subs,
             )
             binmaps[condition] = ref_bmap
             X[condition] = sparse.BCOO.from_scipy_sparse(ref_bmap.binary_variants)
             y[condition] = jnp.array(condition_func_score_df["func_score"].values)
-        
+
         df.drop(["wts", "sites", "muts"], axis=1, inplace=True)
 
-        return {'X':X, 'y':y}, binmaps, df, tuple(ref_bmap.all_subs), site_map 
-
+        return {"X": X, "y": y}, binmaps, df, tuple(ref_bmap.all_subs), site_map
 
     def plot_times_seen_hist(self, saveas=None, show=True, **kwargs):
 
         times_seen_cols = [f"times_seen_{c}" for c in self._conditions]
         fig, ax = plt.subplots()
-        sns.histplot(self._mutations_df[times_seen_cols], ax = ax, **kwargs)
-        if saveas: fig.saveas(saveas)
-        if show: plt.show()
+        sns.histplot(self._mutations_df[times_seen_cols], ax=ax, **kwargs)
+        if saveas:
+            fig.saveas(saveas)
+        if show:
+            plt.show()
         return fig, ax
-
 
     def plot_func_score_boxplot(self, saveas=None, show=True, **kwargs):
 
         fig, ax = plt.subplots()
         sns.boxplot(
-            self._variants_df, 
-            x = "condition",
-            y = "func_score",
-            ax = ax, 
-            notch=True, showcaps=False,
+            self._variants_df,
+            x="condition",
+            y="func_score",
+            ax=ax,
+            notch=True,
+            showcaps=False,
             flierprops={"marker": "x"},
-            boxprops={"facecolor": (.4, .6, .8, .5)},
+            boxprops={"facecolor": (0.4, 0.6, 0.8, 0.5)},
             medianprops={"color": "coral"},
-            **kwargs
+            **kwargs,
         )
- 
-        if saveas: fig.saveas(saveas)
-        if show: plt.show()
+
+        if saveas:
+            fig.saveas(saveas)
+        if show:
+            plt.show()
         return fig, ax
