@@ -128,9 +128,11 @@ import pandas
 import numpy as onp
 import math
 from matplotlib import pyplot as plt
+import matplotlib.colors as colors
 import matplotlib.patches as patches
 import seaborn as sns
 from scipy.stats import pearsonr
+import polyclonal.plot
 
 from multidms import MultiDmsData
 from multidms.utils import is_wt
@@ -715,6 +717,9 @@ class MultiDmsModel:
         self.gamma_corrected = gamma_corrected
         self.conditional_shifts = conditional_shifts
         self.conditional_c = conditional_c
+        self.latent_model = latent_model
+        self.epistatic_model = epistatic_model
+        self.output_activation = output_activation
 
         self._data = data
 
@@ -991,7 +996,7 @@ class MultiDmsModel:
                 values.predicted_func_score,
                 label=condition,
                 c=self._data.condition_colors[condition],
-                lw=2
+                lw=2,
             )
 
         xlb, xub = [-1, 1] + onp.quantile(df.predicted_func_score, [0.05, 1.0])
@@ -1042,7 +1047,7 @@ class MultiDmsModel:
             fig, ax = plt.subplots(figsize=[3, 3])
 
         sns.scatterplot(
-            #data=df,
+            # data=df,
             data=df.sample(frac=1),
             x="predicted_latent",
             y=f"corrected_func_score",
@@ -1057,7 +1062,7 @@ class MultiDmsModel:
                 values.predicted_latent,
                 label=condition,
                 c=self._data.condition_colors[condition],
-                lw=2
+                lw=2,
             )
 
         xlb, xub = [-1, 1] + onp.quantile(df.predicted_latent, [0.05, 1.0])
@@ -1300,3 +1305,86 @@ class MultiDmsModel:
             plt.show()
 
         return fig, ax
+
+    def mut_shift_plot(
+        self,
+        *,
+        biochem_order_aas=True,
+        times_seen_threshold=3,
+        **kwargs,
+    ):
+        """Make plot of mutation escape values.
+        Parameters
+        ----------
+        biochem_order_aas : bool
+            Biochemically order amino-acid alphabet :attr:`PolyclonalCollection.alphabet`
+            by passing it through :func:`polyclonal.alphabets.biochem_order_aas`.
+        include_beta : bool
+            If True, include the beta values along with all shifts.
+        **kwargs
+            Keyword args for :func:`polyclonal.plot.lineplot_and_heatmap`
+        Returns
+        -------
+        altair.Chart
+            Interactive heat maps.
+        """
+
+        mut_df = self.mutations_df
+        times_seen_cols = [c for c in mut_df.columns if "times" in c]
+        for c in times_seen_cols:
+            mut_df = mut_df[mut_df[c] >= times_seen_threshold]
+
+        condition_colors = {
+            f"S_{con}".replace(".", "_"): colors.rgb2hex(tuple(col))
+            for con, col in self.data.condition_colors.items()
+            if con != self.data.reference
+        }
+
+        value_vars = [
+            f"S_{c}".replace(".", "_")
+            for c in self.data.conditions
+            if c != self.data.reference
+        ]
+
+        kwargs["category_colors"] = condition_colors
+
+        mut_df = (
+            mut_df.rename({c: c.replace(".", "_") for c in mut_df.columns}, axis=1)
+            .rename({"wts": "wildtype", "sites": "site", "muts": "mutant"}, axis=1)
+            .melt(
+                id_vars=["wildtype", "site", "mutant"],
+                value_vars=value_vars,
+                var_name="condition",
+            )
+        )
+
+        for condition, wts in self.data.site_map.items():
+            if condition != self.data.reference:
+                continue
+            con_wt = pandas.DataFrame(
+                {
+                    "wildtype": wts.values,
+                    "mutant": wts.values,
+                    "site": wts.index.values,
+                    "value": 0,
+                    "condition": value_vars[0],
+                }
+            )
+
+            mut_df = pandas.concat([mut_df, con_wt])
+
+        kwargs["data_df"] = mut_df
+        kwargs["stat_col"] = "value"
+        kwargs["category_col"] = "condition"
+        kwargs["heatmap_color_scheme"] = "redblue"
+        kwargs["init_floor_at_zero"] = False
+
+        if "alphabet" not in kwargs:
+            kwargs["alphabet"] = self.data.alphabet
+
+        if biochem_order_aas:
+            kwargs["alphabet"] = polyclonal.alphabets.biochem_order_aas(
+                kwargs["alphabet"]
+            )
+
+        return polyclonal.plot.lineplot_and_heatmap(**kwargs)
