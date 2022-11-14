@@ -1408,7 +1408,7 @@ class MultiDmsModel:
         )
 
         for condition, wts in self.data.site_map.items():
-            if condition == self.data.reference:
+            if condition != self.data.reference:
                 continue
             con_wt = pandas.DataFrame(
                 {
@@ -1416,9 +1416,10 @@ class MultiDmsModel:
                     "mutant": wts.values,
                     "site": wts.index.values,
                     "value": 0,
-                    "condition": f"S_{condition}".replace(".", "_"),
+                    "condition": value_vars[0]
                 }
             )
+            
             mut_df = pandas.concat([mut_df, con_wt])
 
         kwargs["data_df"] = mut_df
