@@ -1328,51 +1328,6 @@ class MultiDmsModel:
         altair.Chart
             Interactive heat maps.
         """
-        # if avg_type is None:
-        #    avg_type = self.default_avg_to_plot
-
-        # kwargs["data_df"] = pd.concat(
-        #    [
-        #        (
-        #            self.mut_escape_df.rename(
-        #                columns={f"escape_{avg_type}": "escape"}
-        #            ).drop(columns=["escape_median", "escape_mean"], errors="ignore")
-        #        ),
-        #        (
-        #            self.mut_escape_df[["site", "wildtype", "epitope"]]
-        #            .drop_duplicates()
-        #            .assign(escape=0, mutant=lambda x: x["wildtype"])
-        #        ),
-        #    ],
-        # )
-
-        # if df_to_merge is not None:
-        #    if isinstance(df_to_merge, pd.DataFrame):
-        #        df_to_merge = [df_to_merge]
-        #    elif not isinstance(df_to_merge, list):
-        #        raise ValueError("`df_to_merge` must be pandas.DataFrame or list")
-        #    for df in df_to_merge:
-        #        if not self.sequential_integer_sites and "site" in df.columns:
-        #            df = df.assign(site=lambda x: x["site"].astype(str))
-        #        kwargs["data_df"] = kwargs["data_df"].merge(df, how="left")
-
-        # col_name_map = {c:c.replace(".", "_") for c in mut_df.columns}
-        # mut_df = mut_df.rename(col_name_map, axis=1)
-        # mut_df = mut_df.rename({"wts":"wildtype", "sites":"site", "muts":"mutant"}, axis=1)
-        # value_vars=[
-        #    f"S_{c}".replace(".", "_")
-        #    for c in self.data.conditions if c != self.data.reference]
-        # ]
-        # if include_beta: value_vars = ['β'] + value_vars
-        # mut_df = mut_df.melt(
-        #    id_vars=['mutation', 'wildtype', 'site', 'mutant'],
-        #    value_vars=['β'] + [
-        #        f"S_{c}".replace(".", "_")
-        #        for c in self.data.conditions if c != self.data.reference]
-        #    ],
-        #    var_name='condition',
-        #    val_name='shift'
-        # )
 
         mut_df = self.mutations_df
         times_seen_cols = [c for c in mut_df.columns if "times" in c]
@@ -1390,10 +1345,6 @@ class MultiDmsModel:
             for c in self.data.conditions
             if c != self.data.reference
         ]
-
-        # if include_beta:
-        #    value_vars = ['β'] + value_vars
-        #    condition_colors['β'] = colors.rgb2hex((0.0, 0.0, 0.0))
 
         kwargs["category_colors"] = condition_colors
 
@@ -1416,10 +1367,10 @@ class MultiDmsModel:
                     "mutant": wts.values,
                     "site": wts.index.values,
                     "value": 0,
-                    "condition": value_vars[0]
+                    "condition": value_vars[0],
                 }
             )
-            
+
             mut_df = pandas.concat([mut_df, con_wt])
 
         kwargs["data_df"] = mut_df
