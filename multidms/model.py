@@ -3,12 +3,11 @@ r"""
 model
 ==========
 
-Defines JIT compiled functions for to use for 
+Defines JIT compiled functions for to use for
 composing global epistasis biophysical models
 and their respective objective functions.
 
 To hide the complexity of this behavior,
-as well as 
 We implement the ``MultiDmsModel`` class.
 
 `JIT` compiled model composition
@@ -18,20 +17,20 @@ We implement the ``MultiDmsModel`` class.
 ``multidms.model.epistatic_models``,
 and
 ``multidms.model.output_activations``
-provide JIT compiled functions for to use for 
-composing models the abstract epistasis 
-byphysical model and their respective 
+provide JIT compiled functions for to use for
+composing models the abstract epistasis
+byphysical model and their respective
 objective functions.
 For the sake of modularity, abstraction, and code-reusibility,
 we would like to be able to separate and provide options for
 the individual pieces of code that define a model such as this.
 To this end, we are mainly constrained by the necessity of
-Just-in-time (JIT) compilation of our model code for effecient 
+Just-in-time (JIT) compilation of our model code for effecient
 training and parameter optimization.
 To achieve this, we must take advantage of the
 ``jax.tree_util.Partial`` utility, which allows
 for jit-compiled functions to be "pytree compatible".
-In other words, by decorating functions with 
+In other words, by decorating functions with
 ``Partial``, we can clearly mark which arguments will
 in a function are themselves, statically compiled functions
 in order to achieve function composition.
@@ -40,14 +39,14 @@ For a simple example using the ``Partial`` function,
 see https://jax.readthedocs.io/en/latest/_autosummary/jax.tree_util.Partial.html
 
 Here, we do it slightly differently than this example (given
-by the documentation above) where they emphasize feeding 
-of partial functions into jit-compiled functions as 
+by the documentation above) where they emphasize feeding
+of partial functions into jit-compiled functions as
 static arguments that are pytree compatible.
 Instead, we use partial in the more traditional sense.
-The _calling_ functions (i.e. functions that call on other 
+The _calling_ functions (i.e. functions that call on other
 parameterized functions) are defined as being a "partially" jit-compiled
 function, until the relevant static arguments are provided using another
-call to Partial. 
+call to Partial.
 
 Consider the small example of a composed model formula f(t, g, x) = t(g(x))
 
@@ -80,7 +79,7 @@ static arguments.
   compiling
   5
 
-Note that upon the first call our model was JIT-compiled, 
+Note that upon the first call our model was JIT-compiled,
 but subsequent calls need not re-compile
 
 >>> identity_f(7)
@@ -105,7 +104,7 @@ And finally we provide some examples and targets to evauate the cost.
   compiling
   2
 
-The compiled cost function is now suitable for 
+The compiled cost function is now suitable for
 `jaxopt <https://jaxopt.github.io/stable/index.html>`_
 """
 
@@ -134,8 +133,8 @@ import seaborn as sns
 from scipy.stats import pearsonr
 import polyclonal.plot
 
-from multidms import MultiDmsData
 from multidms.utils import is_wt
+from multidms import MultiDmsData
 
 
 @jax.jit
@@ -178,7 +177,7 @@ def gelu_activation(d_params, act, lower_bound=-3.5):
 
 
 @jax.jit
-def ϕ(d_params: dict, X_h: jnp.array):
+def phi(d_params: dict, X_h: jnp.array):
     """
     Model for predicting latent space with
     shift parameters.
@@ -211,6 +210,16 @@ def softplus_global_epistasis(α: dict, z_h: jnp.array):
 
     activations = jax.nn.softplus(-1 * z_h[:, None])
     return ((-1 * α["ge_scale"]) @ activations.T) + α["ge_bias"]
+
+
+@jax.jit
+def perceptron_global_epistasis(α: dict, z_h: jnp.array):
+    """
+    A flexible sigmoid function for
+    modeling global epistasis.
+    """
+    activations = α["p_weights_1"] * z_h[:, None] + α["p_biases"]
+    return α["p_weights_2"] @ activations.T
 
 
 @Partial(jax.jit, static_argnums=(0, 1))
@@ -318,35 +327,6 @@ def gamma_corrected_cost_smooth(f, params, data, δ=1, λ_ridge=0, **kwargs):
         loss += ridge_penalty
 
     return loss
-
-
-"""
-latent models must take in a binarymap
-representation of variants, and predict
-a single value representing the latent
-phenotype prediction.
-"""
-latent_models = {"phi": ϕ}
-
-"""
-epistatic and output activations have the same shape
-input and output, however, epistatic models
-are parameterized by "α", which can differ depending
-on the function chosen. For example, the identity
-function requires no alpha parameters, sigmoid requires 2,
-and perceptron may have up to n hidden nodes and layers.
-"""
-epistatic_models = {
-    "sigmoid": sigmoidal_global_epistasis,
-    "softplus": softplus_global_epistasis,
-    "identity": identity_activation,
-}
-
-output_activations = {
-    "softplus": softplus_activation,
-    "gelu": gelu_activation,
-    "identity": identity_activation,
-}
 
 
 class MultiDmsModel:
@@ -478,7 +458,7 @@ class MultiDmsModel:
 
     To instantiate the object:
 
-    1. A ``multidms.MultiDmsData`` Object for fitting.
+    1. A ``multidms.multidms.MultiDmsData`` Object for fitting.
     2. String arguments that exists within the pre-defined
     set of functions for latent and epistatic models as well
     as a final activation function. By default, we use the
@@ -489,12 +469,12 @@ class MultiDmsModel:
     Parameters
     ----------
 
-    data : ``multidms.MultiDmsData``
+    data : ``multidms.multidms.MultiDmsData``
         a reference to the data you wish to fit & explore.
         This is useful for accessing various attributes
         of the data from a model class.
         See the main class description for more
-        about the ``MultiDmsData`` Object.
+        about the ``multidms.MultiDmsData`` Object.
     latent_model : str
         The latent phenotype model you wish to use.
         Currently, only 'phi' is available. This
@@ -564,7 +544,7 @@ class MultiDmsModel:
     Parameters
     ----------
 
-    data : MultiDmsData
+    data : multidms.MultiDmsData
         A reference to the dataset which will define the parameters
         of the model to be fit.
     latent_model : str
@@ -700,15 +680,16 @@ class MultiDmsModel:
     def __init__(
         self,
         data: MultiDmsData,
-        latent_model="phi",
-        epistatic_model="identity",
-        output_activation="identity",
+        latent_model=phi,
+        epistatic_model=identity_activation,
+        output_activation=identity_activation,
         gamma_corrected=True,
         conditional_shifts=True,
         conditional_c=False,
         init_g_range=None,
         init_g_min=None,
         PRNGKey=0,
+        n_percep_units=5,
     ):
         """
         See class docstring.
@@ -717,6 +698,7 @@ class MultiDmsModel:
         self.gamma_corrected = gamma_corrected
         self.conditional_shifts = conditional_shifts
         self.conditional_c = conditional_c
+
         self.latent_model = latent_model
         self.epistatic_model = epistatic_model
         self.output_activation = output_activation
@@ -726,13 +708,7 @@ class MultiDmsModel:
         self.params = {}
         key = jax.random.PRNGKey(PRNGKey)
 
-        if latent_model not in latent_models.keys():
-            raise ValueError(
-                f"{latent_model} not recognized,"
-                f"please use one from: {latent_models.keys()}"
-            )
-
-        if latent_model == "phi":
+        if latent_model == phi:
 
             n_beta_shift = len(self._data.mutations)
             self.params["β"] = jax.random.normal(shape=(n_beta_shift,), key=key)
@@ -741,7 +717,7 @@ class MultiDmsModel:
                 self.params[f"C_{condition}"] = jnp.zeros(shape=(1,))
             self.params["C_ref"] = jnp.array([5.0])  # 5.0 is a guess, could update
 
-        if epistatic_model == "sigmoid":
+        if epistatic_model == sigmoidal_global_epistasis:
             if init_g_range == None:
                 init_g_range = 5.0
             if init_g_min == None:
@@ -750,7 +726,7 @@ class MultiDmsModel:
                 ge_scale=jnp.array([init_g_range]), ge_bias=jnp.array([init_g_min])
             )
 
-        elif epistatic_model == "softplus":
+        elif epistatic_model == softplus_global_epistasis:
             if init_g_range == None:
                 init_g_range = 1.0
             if init_g_min == None:
@@ -759,35 +735,40 @@ class MultiDmsModel:
                 ge_scale=jnp.array([init_g_range]), ge_bias=jnp.array([init_g_min])
             )
 
-        elif epistatic_model == "identity":
+        elif epistatic_model == identity_activation:
             self.params["α"] = dict(ghost_param=jnp.zeros(shape=(1,)))
 
-        else:
-            raise ValueError(
-                f"{epistatic_model} not recognized,"
-                f"please use one from: {epistatic_models.keys()}"
+        elif epistatic_model == perceptron_global_epistasis:
+            key, key1, key2, key3 = jax.random.split(key, num=4)
+            self.params["α"] = dict(
+                p_weights_1=jax.random.normal(shape=(n_percep_units,), key=key1),
+                p_weights_2=jax.random.normal(shape=(n_percep_units,), key=key2),
+                p_biases=jax.random.normal(shape=(n_percep_units,), key=key3),
             )
+
+        else:
+            raise ValueError(f"{epistatic_model} not recognized,")
 
         for condition in data.conditions:
             self.params[f"γ_{condition}"] = jnp.zeros(shape=(1,))
 
         compiled_pred = Partial(
             abstract_epistasis,  # abstract function to compile
-            latent_models[latent_model],
-            epistatic_models[epistatic_model],
-            output_activations[output_activation],
+            latent_model,
+            epistatic_model,
+            output_activation,
         )
         compiled_from_latent = Partial(
             abstract_from_latent,
-            epistatic_models[epistatic_model],
-            output_activations[output_activation],
+            epistatic_model,
+            output_activation,
         )
         compiled_cost = Partial(gamma_corrected_cost_smooth, compiled_pred)
         self._model = frozendict(
             {
-                "ϕ": latent_models[latent_model],
+                "ϕ": latent_model,
                 "f": compiled_pred,
-                "g": epistatic_models[epistatic_model],
+                "g": epistatic_model,
                 "from_latent": compiled_from_latent,
                 "objective": compiled_cost,
                 "proximal": lasso_lock_prox,
@@ -941,15 +922,16 @@ class MultiDmsModel:
 
         if not self.conditional_shifts:
             for condition in self._data.conditions:
-                lock_params["S_{condition}"] = jnp.zeros(shape=(1,))
+                lock_params[f"S_{condition}"] = jnp.zeros(shape=(1,))
 
         if not self.gamma_corrected:
             for condition in self._data.conditions:
-                lock_params["γ_{condition}"] = jnp.zeros(shape=(1,))
+                lock_params[f"γ_{condition}"] = jnp.zeros(shape=(1,))
 
         if not self.conditional_c:
             for condition in self._data.conditions:
-                lock_params[f"C_{condition}"] = jnp.zeros(shape=(1,))
+                if condition != self._data.reference:
+                    lock_params[f"C_{condition}"] = jnp.zeros(shape=(1,))
 
         lasso_params = {}
         for non_ref_condition in self._data.conditions:
@@ -1145,7 +1127,7 @@ class MultiDmsModel:
             fig.savefig(saveas)
         if show:
             plt.show()
-        return fig, ax
+        return ax
 
     def plot_param_heatmap(
         self, param, show=True, saveas=False, times_seen_threshold=3, ax=None, **kwargs
