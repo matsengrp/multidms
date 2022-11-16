@@ -9,13 +9,10 @@ deep mutational scanning experiments.
 Importing this package imports the following objects
 into the package namespace:
 
- - :mod:`~multidms.multidms.Multidms`
+ - :mod:`~multidms.multidms.MultiDmsData`
 
- - :mod:`~multidms.multidms_collection.MultidmsCollection`
+ - :mod:`~multidms.multidms.MultiDmsModel`
 
- - :mod:`~multidms.multidms_collection.MultidmsAverage`
-
- - :mod:`~multidms.multidms_collection.MultidmsBootstrap`
 
 It also imports the following alphabets:
 
@@ -38,10 +35,9 @@ from polyclonal.alphabets import AAS
 from polyclonal.alphabets import AAS_WITHGAP
 from polyclonal.alphabets import AAS_WITHSTOP
 from polyclonal.alphabets import AAS_WITHSTOP_WITHGAP
+
 from multidms.data import MultiDmsData
 from multidms.model import MultiDmsModel
 
-# import multidms.data
-import multidms.utils
-
 # import multidms.model
+# import multidms.utils

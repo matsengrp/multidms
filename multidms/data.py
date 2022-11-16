@@ -15,7 +15,7 @@ from polyclonal.plot import DEFAULT_POSITIVE_COLORS
 from polyclonal.utils import MutationParser
 import numpy as onp
 import pandas
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import jax
 import jaxlib
 
@@ -377,7 +377,9 @@ class MultiDmsData:
                 "weight"
             )  # will be overwritten if `self._collapse_identical_variants`
         if not func_score_df[cols].notnull().all().all():
-            raise ValueError(f"null entries in data frame of variants:\n{df[cols]}")
+            raise ValueError(
+                f"null entries in data frame of variants:\n{func_score_df[cols]}"
+            )
 
         if self._collapse_identical_variants:
             agg_dict = {
@@ -439,7 +441,10 @@ class MultiDmsData:
             if sequence_key not in sequence_cache:
                 sequence_cache[sequence_key] = {}
 
+        # print(sequence_cache)
+
         # convert the respective subs to be wrt reference
+        # print(reference_sequence_conditions)
         df = df.assign(var_wrt_ref=df["aa_substitutions"])
         for condition, condition_func_df in df.groupby("condition"):
 

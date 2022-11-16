@@ -55,6 +55,15 @@ def scale_func_score(func_score_df, bottleneck=1e5, pseudocount=0.1):
     ret = func_score_df.copy()
     for (h, hdf) in func_score_df.groupby("condition"):
 
+        if "Delta" in h:
+            bottleneck = 1e5
+        elif "Omicron_BA.1" in h:
+            bottleneck = 1.9e5
+        elif "Omicron_BA.2" in h:
+            bottleneck = 1.9e5
+        else:
+            raise ValueError(f"Could not parse homolog {h}")
+
         post_counts_sum = sum(hdf["post_count"])
         scaling_factor = bottleneck / post_counts_sum
 
