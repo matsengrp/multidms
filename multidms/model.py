@@ -177,7 +177,7 @@ def gelu_activation(d_params, act, lower_bound=-3.5):
 
 
 @jax.jit
-def phi(d_params: dict, X_h: jnp.array):
+def ϕ(d_params: dict, X_h: jnp.array):
     """
     Model for predicting latent space with
     shift parameters.
@@ -477,7 +477,7 @@ class MultiDmsModel:
         about the ``multidms.MultiDmsData`` Object.
     latent_model : str
         The latent phenotype model you wish to use.
-        Currently, only 'phi' is available. This
+        Currently, only 'ϕ' is available. This
         may be deprecated in future versions.
     epistatic_model : str
         The epistatic transform function you wish to
@@ -550,7 +550,7 @@ class MultiDmsModel:
     latent_model : str
         A string encoding of the compiled function for
         a latent prediction from binary one-hot encodings
-        of variants. Currently, we only support the 'phi'
+        of variants. Currently, we only support the 'ϕ'
         model.
         See Model Description section for more.
     epistatic_model : str
@@ -680,7 +680,7 @@ class MultiDmsModel:
     def __init__(
         self,
         data: MultiDmsData,
-        latent_model=phi,
+        latent_model=ϕ,
         epistatic_model=identity_activation,
         output_activation=identity_activation,
         gamma_corrected=True,
@@ -708,7 +708,7 @@ class MultiDmsModel:
         self.params = {}
         key = jax.random.PRNGKey(PRNGKey)
 
-        if latent_model == phi:
+        if latent_model == ϕ:
 
             n_beta_shift = len(self._data.mutations)
             self.params["β"] = jax.random.normal(shape=(n_beta_shift,), key=key)
