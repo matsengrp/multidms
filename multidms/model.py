@@ -218,8 +218,8 @@ def perceptron_global_epistasis(α: dict, z_h: jnp.array):
     A flexible sigmoid function for
     modeling global epistasis.
     """
-    activations = α["p_weights_1"] * z_h[:, None] + α["p_biases"]
-    return α["p_weights_2"] @ activations.T
+    activations = jax.nn.sigmoid(α["p_weights_1"] * z_h[:, None] + α["p_biases"])
+    return (α["p_weights_2"] @ activations.T) + α['output_bias']
 
 
 @Partial(jax.jit, static_argnums=(0, 1))
@@ -281,6 +281,11 @@ def lasso_lock_prox(
     # enforce monotonic epistasis
     if "ge_scale" in params["α"]:
         params["α"]["ge_scale"] = params["α"]["ge_scale"].clip(0)
+
+    if "p_weights_1" in params["α"]:
+        params["α"]["p_weights_1"] = params["α"]["p_weights_1"].clip(0)
+        params["α"]["p_weights_2"] = params["α"]["p_weights_2"].clip(0)
+        # params["α"]["p_biases"] = params["α"]["p_biases"].clip(0)
 
     if hyperparams_prox["lasso_params"] is not None:
         for key, value in hyperparams_prox["lasso_params"].items():
@@ -739,11 +744,12 @@ class MultiDmsModel:
             self.params["α"] = dict(ghost_param=jnp.zeros(shape=(1,)))
 
         elif epistatic_model == perceptron_global_epistasis:
-            key, key1, key2, key3 = jax.random.split(key, num=4)
+            key, key1, key2, key3, key4 = jax.random.split(key, num=5)
             self.params["α"] = dict(
-                p_weights_1=jax.random.normal(shape=(n_percep_units,), key=key1),
-                p_weights_2=jax.random.normal(shape=(n_percep_units,), key=key2),
+                p_weights_1=jax.random.normal(shape=(n_percep_units,), key=key1).clip(0),
+                p_weights_2=jax.random.normal(shape=(n_percep_units,), key=key2).clip(0),
                 p_biases=jax.random.normal(shape=(n_percep_units,), key=key3),
+                output_bias=jax.random.normal(shape=(1,), key=key4)
             )
 
         else:
