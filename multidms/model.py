@@ -936,8 +936,10 @@ class MultiDmsModel:
 
         if not self.conditional_c:
             for condition in self._data.conditions:
-                if condition != self._data.reference:
-                    lock_params[f"C_{condition}"] = jnp.zeros(shape=(1,))
+                lock_params[f"C_{condition}"] = jnp.zeros(shape=(1,))
+        else:
+            lock_params[f"C_{self._data.reference}"] = jnp.zeros(shape=(1,))
+            
 
         lasso_params = {}
         for non_ref_condition in self._data.conditions:
@@ -1064,7 +1066,7 @@ class MultiDmsModel:
         ax.plot(*shape, color="k", lw=2)
 
         ax.axhline(0, color="k", ls="--", lw=2)
-        ax.axvline(0, color="k", ls="--", lw=2)
+        #ax.axvline(0, color="k", ls="--", lw=2)
         ax.set_xlim([xlb, xub])
         ax.set_ylim([ylb, yub])
         ax.set_ylabel("functional score + γ$_{d}$")
@@ -1209,6 +1211,7 @@ class MultiDmsModel:
             y=f"S_{condition}",
             color=self._data.condition_colors[condition],
             ax=ax,
+            #legend=True,
             **kwargs,
         )
         color = [
