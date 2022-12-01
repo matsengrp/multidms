@@ -29,6 +29,9 @@ from collections import namedtuple
 from matplotlib import pyplot as plt
 import seaborn as sns
 
+from multidms.utils import convert_subs_wrt_ref_seq_b
+from multidms.utils import convert_subs_wrt_ref_seq_n
+
 
 class MultiDmsData:
     r"""
@@ -210,6 +213,9 @@ class MultiDmsData:
         collapse_identical_variants="mean",
         condition_colors=DEFAULT_POSITIVE_COLORS,
         letter_suffixed_sites=False,
+        assert_site_integrity=False,                # TODO document
+        filter_non_shared_sites=True,               # TODO document
+        convert_muts_strategy="nis"
     ):
         """See main class docstring."""
 
@@ -237,15 +243,220 @@ class MultiDmsData:
             raise ValueError("duplicate letters in `alphabet`")
         self.alphabet = tuple(alphabet)
 
+        # create mutation parser.
         self._mutparser = MutationParser(alphabet, letter_suffixed_sites)
 
-        (
-            self._training_data,
-            self._binarymaps,
-            self._variants_df,
-            self._mutations,
-            self._site_map,
-        ) = self._create_condition_modeling_data(variants_df)
+        # Configure new variants df
+        cols = ["condition", "aa_substitutions", "func_score"]
+        if "weight" in variants_df.columns:
+            cols.append(
+                "weight"
+            )  # will be overwritten if `self._collapse_identical_variants`
+        if not variants_df[cols].notnull().all().all():
+            raise ValueError(
+                f"null entries in data frame of variants:\n{variants_df[cols]}"
+            )
+
+        # Create variants df attribute
+        if self._collapse_identical_variants:
+            agg_dict = {
+                "weight": "sum",
+                "func_score": self._collapse_identical_variants,
+            }
+            df = (
+                variants_df[cols]
+                .assign(weight=1)
+                .groupby(["condition", "aa_substitutions"], as_index=False)
+                .aggregate(agg_dict)
+            )
+
+        else:
+            df = variants_df.reset_index()
+
+        parser = partial(multidms.utils.split_subs, parser=self._mutparser.parse_mut)
+        df["wts"], df["sites"], df["muts"] = zip(*df["aa_substitutions"].map(parser))
+
+        # Use the "aa_substitutions" to infer the
+        # wild type for each condition
+        site_map = pandas.DataFrame()
+        for hom, hom_func_df in df.groupby("condition"):
+            for idx, row in hom_func_df.iterrows():
+                for wt, site in zip(row.wts, row.sites):
+                    site_map.loc[site, hom] = wt
+
+        if assert_site_integrity:
+            for hom, hom_func_df in df.groupby("condition"):
+                for idx, row in hom_func_df.iterrows():
+                    for wt, site in zip(row.wts, row.sites):
+                        assert site_map.loc[site, hom] == wt
+
+
+        # Throw variants if the contain non overlapping
+        # mutations with all other conditions.
+        #if filter_non_shared_sites:
+        # currently the only option,
+        # without site info for all conditions, we can't infer wt
+        if True:
+
+            na_rows = site_map.isna().any(axis=1)
+            sites_to_throw = na_rows[na_rows].index
+            site_map.dropna(inplace=True)
+
+            def flags_disallowed(disallowed_sites, sites_list):
+                """Check to see if a sites list contains
+                any disallowed sites"""
+                for site in sites_list:
+                    if site in disallowed_sites:
+                        return False
+                return True
+
+            df["allowed_variant"] = df.sites.apply(
+                lambda sl: flags_disallowed(sites_to_throw, sl)
+            )
+            n_var_pre_filter = len(df)
+            df = df[df["allowed_variant"]]
+            df.drop("allowed_variant", axis=1, inplace=True)
+
+        self._site_map = site_map.sort_index()
+
+        # identify and write site map differences for each condition
+        # TODO move this work to property
+        non_identical_mutations = {}
+        non_identical_sites = {}
+        reference_sequence_conditions = [self._reference]
+        for condition in self._conditions:
+
+            if condition == self._reference:
+                non_identical_mutations[condition] = ""
+                non_identical_sites[condition] = []
+                continue
+
+            nis = (
+                self._site_map.where(
+                    self._site_map[self._reference] != self._site_map[condition],
+                )
+                .dropna()
+                #.astype(str)
+            )
+            if len(nis) == 0:
+                non_identical_mutations[condition] = ""
+                non_identical_sites[condition] = []
+                reference_sequence_conditions.append(condition)
+            else:
+                muts = nis[self._reference] + nis.index.astype(str) + nis[condition]
+                muts_string = " ".join(muts.values)
+                non_identical_mutations[condition] = muts_string
+                non_identical_sites[condition] = nis
+
+        self._non_identical_mutations = frozendict(non_identical_mutations)
+        self._non_identical_sites = frozendict(non_identical_sites)
+
+        ####################
+        # CONSTRUCTION START
+        ####################
+
+        #(
+        # X    self._training_data,
+        # X    self._binarymaps,
+        #    self._variants_df,
+        # X    self._mutations,
+        # X    self._site_map,
+        #) = self._create_condition_modeling_data(variants_df)
+
+        # convert_subs_wrt_ref_seq(df):
+
+        #sequence_cache = {}
+        #reference_sequence = "".join(site_map[self._reference])
+        #for condition, sequence in site_map.items():
+        #    if condition == self._reference:
+        #        continue
+        #    sequence_key = "".join(sequence)
+        #    if sequence_key == reference_sequence:
+        #        reference_sequence_conditions.append(condition)
+        #        continue
+        #    if sequence_key not in sequence_cache:
+        #        sequence_cache[sequence_key] = {}
+
+        # print(sequence_cache)
+
+        # convert the respective subs to be wrt reference
+        # print(reference_sequence_conditions)
+        df = df.assign(var_wrt_ref=df["aa_substitutions"])
+
+        if False:
+
+            for condition, condition_func_df in df.groupby("condition"):
+
+                if condition in reference_sequence_conditions:
+                    continue
+
+                #sequence_key = "".join(site_map[condition])
+                #variant_cache = sequence_cache[sequence_key]
+                #cache_hits = 0
+
+                cond_var_map = site_map[[self._reference, condition]].copy()
+                cond_var_map.rename({self.reference:"ref", condition:"cond"}, axis=1, inplace=True)
+
+                idx = condition_func_df.index
+                vwr = convert_subs_wrt_ref_seq_n(cond_var_map, condition_func_df)
+                df.loc[idx, "var_wrt_ref"] = vwr 
+
+        else:
+
+            for condition, condition_func_df in df.groupby("condition"):
+
+                if condition in reference_sequence_conditions:
+                    continue
+
+                idx = condition_func_df.index
+                nis = non_identical_sites[condition].rename(
+                    {self.reference:"ref", condition:"cond"}, 
+                    axis=1
+                )
+
+                f = convert_subs_wrt_ref_seq_b
+                df.loc[idx, "var_wrt_ref"] = condition_func_df.apply(
+                        lambda x: f(nis, x.wts, x.sites, x.muts), 
+                        axis=1
+                )
+
+
+
+
+
+
+        ##################
+        # CONSTRUCTION END 
+        ##################
+
+
+        # Make BinaryMap representations for each condition
+        # TODO does binarymap sort this? I think so. 
+        allowed_subs = {s for subs in df.var_wrt_ref for s in subs.split()}
+
+        binmaps, X, y = {}, {}, {}
+        for condition, condition_func_score_df in df.groupby("condition"):
+
+            ref_bmap = bmap.BinaryMap(
+                condition_func_score_df,
+                substitutions_col="var_wrt_ref",
+                allowed_subs=allowed_subs,
+            )
+            binmaps[condition] = ref_bmap
+            X[condition] = sparse.BCOO.from_scipy_sparse(ref_bmap.binary_variants)
+            y[condition] = jnp.array(condition_func_score_df["func_score"].values)
+
+        df.drop(["wts", "sites", "muts"], axis=1, inplace=True)
+        self._variants_df = df
+
+        # TODO
+        # return {"X": X, "y": y}, binmaps, df, tuple(ref_bmap.all_subs), site_map
+
+        self._training_data = {"X": X, "y": y}
+        self._binarymaps = binmaps
+
+        # TODO This is the same ordering as 
+        self._mutations = tuple(ref_bmap.all_subs)
 
         # initialize single mutational effects df
         mut_df = pandas.DataFrame({"mutation": self._mutations})
@@ -268,31 +479,6 @@ class MultiDmsData:
             ).fillna(0)
 
         self._mutations_df = mut_df
-
-        # identify and write site map differences for each condition
-        non_identical_mutations = {}
-        non_identical_sites = {}
-        for condition in self._conditions:
-
-            if condition == self._reference:
-                non_identical_mutations[condition] = ""
-                non_identical_sites[condition] = []
-                continue
-
-            nis = (
-                self._site_map.where(
-                    self._site_map[self._reference] != self._site_map[condition]
-                )
-                .dropna()
-                .astype(str)
-            )
-            muts = nis[self._reference] + nis.index.astype(str) + nis[condition]
-            muts_string = " ".join(muts.values)
-            non_identical_mutations[condition] = muts_string
-            non_identical_sites[condition] = nis.index.values
-
-        self._non_identical_mutations = frozendict(non_identical_mutations)
-        self._non_identical_sites = frozendict(non_identical_sites)
 
     @property
     def non_identical_mutations(self):
@@ -342,162 +528,24 @@ class MultiDmsData:
     def mut_parser(self):
         return self._mut_parser
 
-    def _create_condition_modeling_data(self, func_score_df: pandas.DataFrame):
+    def _infer_site_map(self):
         """
-        data prep helper.
-
-        Returns
-        -------
-
-        tuple : (dict[BinaryMap], dict[jnp.array]), pandas.DataFrame, np.array, pd.DataFrame
-
-            This function return a tuple which can be unpacked into the following:
-
-            - (X, y) Where X and y are both dictionaries containing the prepped data
-                for training our JAX multidms model. The dictionary keys
-                stratify the datasets by condition
-
-            - A pandas dataframe which primary contains the information from
-                func_score_df, but has been curated to include only the variants
-                deemed appropriate for training, as well as the substitutions
-                converted to be wrt to the reference condition.
-
-            - A numpy array giving the substitutions (beta's) of the binary maps
-                in the order that is preserved to match the matrices in X.
-
-            - A pandas dataframe providing the site map indexed by alignment site to
-                a column for each condition wt amino acid.
-
+        infer a site map for each condition group
+        in a functional score dataframe.
         """
 
-        # Configure new variants df
-        cols = ["condition", "aa_substitutions", "func_score"]
-        if "weight" in func_score_df.columns:
-            cols.append(
-                "weight"
-            )  # will be overwritten if `self._collapse_identical_variants`
-        if not func_score_df[cols].notnull().all().all():
-            raise ValueError(
-                f"null entries in data frame of variants:\n{func_score_df[cols]}"
-            )
 
-        if self._collapse_identical_variants:
-            agg_dict = {
-                "weight": "sum",
-                "func_score": self._collapse_identical_variants,
-            }
-            df = (
-                func_score_df[cols]
-                .assign(weight=1)
-                .groupby(["condition", "aa_substitutions"], as_index=False)
-                .aggregate(agg_dict)
-            )
 
-        else:
-            df = func_score_df.reset_index()
+    def _convert_cache_nis(self, df: pandas.DataFrame):
+        """
+        convert conditional mutations to be with respect to a reference condition
+        using a method which builds the entire mutant sequence, and
+        find all non idetical sites when compared with the reference.
 
-        parser = partial(multidms.utils.split_subs, parser=self._mutparser.parse_mut)
-        df["wts"], df["sites"], df["muts"] = zip(*df["aa_substitutions"].map(parser))
+        cache the variants per condition
+        """
 
-        # Use the "aa_substitutions" to infer the
-        # wild type for each condition
-        site_map = pandas.DataFrame()
-        for hom, hom_func_df in df.groupby("condition"):
-            for idx, row in hom_func_df.iterrows():
-                for wt, site in zip(row.wts, row.sites):
-                    site_map.loc[site, hom] = wt
 
-        # Throw variants if the contain non overlapping
-        # mutations with all other conditions ...
-        na_rows = site_map.isna().any(axis=1)
-        sites_to_throw = na_rows[na_rows].index
-        site_map.dropna(inplace=True)
-
-        def flags_disallowed(disallowed_sites, sites_list):
-            """Check to see if a sites list contains
-            any disallowed sites"""
-            for site in sites_list:
-                if site in disallowed_sites:
-                    return False
-            return True
-
-        df["allowed_variant"] = df.sites.apply(
-            lambda sl: flags_disallowed(sites_to_throw, sl)
-        )
-        n_var_pre_filter = len(df)
-        df = df[df["allowed_variant"]]
-        df.drop("allowed_variant", axis=1, inplace=True)
-
-        sequence_cache = {}
-        reference_sequence = "".join(site_map[self._reference])
-        reference_sequence_conditions = [self._reference]
-        for condition, sequence in site_map.items():
-            if condition == self._reference:
-                continue
-            sequence_key = "".join(sequence)
-            if sequence_key == reference_sequence:
-                reference_sequence_conditions.append(condition)
-                continue
-            if sequence_key not in sequence_cache:
-                sequence_cache[sequence_key] = {}
-
-        # print(sequence_cache)
-
-        # convert the respective subs to be wrt reference
-        # print(reference_sequence_conditions)
-        df = df.assign(var_wrt_ref=df["aa_substitutions"])
-        for condition, condition_func_df in df.groupby("condition"):
-
-            if condition in reference_sequence_conditions:
-                continue
-
-            sequence_key = "".join(site_map[condition])
-            variant_cache = sequence_cache[sequence_key]
-            cache_hits = 0
-
-            for idx, row in tqdm(
-                condition_func_df.iterrows(), total=len(condition_func_df)
-            ):
-                key = tuple(list(zip(row.wts, row.sites, row.muts)))
-                if key in variant_cache:
-                    df.loc[idx, "var_wrt_ref"] = variant_cache[key]
-                    cache_hits += 1
-                    continue
-
-                var_map = site_map[[self._reference, condition]].copy()
-                for wt, site, mut in zip(row.wts, row.sites, row.muts):
-                    var_map.loc[site, condition] = mut
-
-                nis = (
-                    var_map.where(var_map[self._reference] != var_map[condition])
-                    .dropna()
-                    .astype(str)
-                )
-
-                muts = nis[self._reference] + nis.index.astype(str) + nis[condition]
-
-                mutated_seq = " ".join(muts.values)
-                df.loc[idx, "var_wrt_ref"] = mutated_seq
-                variant_cache[key] = mutated_seq
-
-        # Make BinaryMap representations for each condition
-        allowed_subs = {s for subs in df.var_wrt_ref for s in subs.split()}
-
-        binmaps, X, y = {}, {}, {}
-        for condition, condition_func_score_df in df.groupby("condition"):
-
-            ref_bmap = bmap.BinaryMap(
-                condition_func_score_df,
-                substitutions_col="var_wrt_ref",
-                allowed_subs=allowed_subs,
-            )
-            binmaps[condition] = ref_bmap
-            X[condition] = sparse.BCOO.from_scipy_sparse(ref_bmap.binary_variants)
-            y[condition] = jnp.array(condition_func_score_df["func_score"].values)
-
-        df.drop(["wts", "sites", "muts"], axis=1, inplace=True)
-
-        return {"X": X, "y": y}, binmaps, df, tuple(ref_bmap.all_subs), site_map
 
     def plot_times_seen_hist(self, saveas=None, show=True, **kwargs):
 
