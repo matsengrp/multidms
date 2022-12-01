@@ -441,6 +441,7 @@ class MultiDmsData:
                 condition_func_score_df,
                 substitutions_col="var_wrt_ref",
                 allowed_subs=allowed_subs,
+                alphabet=self.alphabet
             )
             binmaps[condition] = ref_bmap
             X[condition] = sparse.BCOO.from_scipy_sparse(ref_bmap.binary_variants)
@@ -544,6 +545,7 @@ class MultiDmsData:
 
         cache the variants per condition
         """
+        pass
 
 
 
