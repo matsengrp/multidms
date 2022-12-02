@@ -7,8 +7,12 @@ Defines :class:`Multidms` objects for handling data from one or more
 dms experiments under various conditions.
 """
 
+import os
 from functools import partial
-import multidms.utils
+from multidms import AAS
+from multidms.utils import convert_subs_wrt_ref_seq_b
+from multidms.utils import convert_subs_wrt_ref_seq_n
+from multidms.utils import split_subs
 
 import binarymap as bmap
 from polyclonal.plot import DEFAULT_POSITIVE_COLORS
@@ -16,21 +20,19 @@ from polyclonal.utils import MutationParser
 import numpy as onp
 import pandas
 from tqdm.auto import tqdm
+tqdm.pandas()
 import jax
 import jaxlib
-
 jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from jax.experimental import sparse
 import jaxopt
 from jaxopt import ProximalGradient
+from pandarallel import pandarallel
 from frozendict import frozendict
-from collections import namedtuple
 from matplotlib import pyplot as plt
 import seaborn as sns
 
-from multidms.utils import convert_subs_wrt_ref_seq_b
-from multidms.utils import convert_subs_wrt_ref_seq_n
 
 
 class MultiDmsData:
@@ -209,13 +211,14 @@ class MultiDmsData:
         self,
         variants_df: pandas.DataFrame,
         reference: str,
-        alphabet=multidms.AAS,
+        alphabet=AAS,
         collapse_identical_variants="mean",
         condition_colors=DEFAULT_POSITIVE_COLORS,
         letter_suffixed_sites=False,
         assert_site_integrity=False,                # TODO document
         filter_non_shared_sites=True,               # TODO document
-        verbose=False
+        verbose=False,
+        nb_workers=None
     ):
         """See main class docstring."""
 
@@ -273,7 +276,7 @@ class MultiDmsData:
         else:
             df = variants_df.reset_index()
 
-        parser = partial(multidms.utils.split_subs, parser=self._mutparser.parse_mut)
+        parser = partial(split_subs, parser=self._mutparser.parse_mut)
         df["wts"], df["sites"], df["muts"] = zip(*df["aa_substitutions"].map(parser))
 
         # Use the "aa_substitutions" to infer the
@@ -287,7 +290,8 @@ class MultiDmsData:
                     site_map.loc[site, hom] = wt
 
         if assert_site_integrity:
-            print("oy")
+            if verbose:
+                print(f"Asserting site integrity")
             for hom, hom_func_df in df.groupby("condition"):
                 for idx, row in hom_func_df.iterrows():
                     for wt, site in zip(row.wts, row.sites):
@@ -349,7 +353,7 @@ class MultiDmsData:
                 muts = nis[self._reference] + nis.index.astype(str) + nis[condition]
                 muts_string = " ".join(muts.values)
                 non_identical_mutations[condition] = muts_string
-                non_identical_sites[condition] = nis
+                non_identical_sites[condition] = nis[[self._reference, condition]]
 
         self._non_identical_mutations = frozendict(non_identical_mutations)
         self._non_identical_sites = frozendict(non_identical_sites)
@@ -404,13 +408,18 @@ class MultiDmsData:
                 vwr = convert_subs_wrt_ref_seq_n(cond_var_map, condition_func_df)
                 df.loc[idx, "var_wrt_ref"] = vwr 
 
-        else:
-            # tqdm.pandas()
-            from pandarallel import pandarallel
-            import os
-            pandarallel.initialize(progress_bar=verbose)#, nb_workers=os.cpu_count(), use_memory_fs=None)
+        
+        # if len(set(self._conditions) - set(reference_sequence_condtions)) != 0:
+        if True:
+
+
+            nb_workers = os.cpu_count() if not nb_workers else nb_workers
+            pandarallel.initialize(progress_bar=verbose, nb_workers=nb_workers, use_memory_fs=False)
 
             for condition, condition_func_df in df.groupby("condition"):
+
+                if verbose:
+                    print(f"Converting mutations for {condition}")
 
                 if condition in reference_sequence_conditions:
                     continue
