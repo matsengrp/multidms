@@ -215,7 +215,7 @@ class MultiDmsData:
         letter_suffixed_sites=False,
         assert_site_integrity=False,                # TODO document
         filter_non_shared_sites=True,               # TODO document
-        convert_muts_strategy="nis"
+        verbose=False
     ):
         """See main class docstring."""
 
@@ -280,11 +280,14 @@ class MultiDmsData:
         # wild type for each condition
         site_map = pandas.DataFrame()
         for hom, hom_func_df in df.groupby("condition"):
+            if verbose:
+                print(f"inferring site map for {hom}")
             for idx, row in hom_func_df.iterrows():
                 for wt, site in zip(row.wts, row.sites):
                     site_map.loc[site, hom] = wt
 
         if assert_site_integrity:
+            print("oy")
             for hom, hom_func_df in df.groupby("condition"):
                 for idx, row in hom_func_df.iterrows():
                     for wt, site in zip(row.wts, row.sites):
@@ -402,20 +405,28 @@ class MultiDmsData:
                 df.loc[idx, "var_wrt_ref"] = vwr 
 
         else:
+            # tqdm.pandas()
+            from pandarallel import pandarallel
+            pb = True if verbose else False
+            pandarallel.initialize(progress_bar=pb)
 
             for condition, condition_func_df in df.groupby("condition"):
 
                 if condition in reference_sequence_conditions:
                     continue
 
+
                 idx = condition_func_df.index
                 nis = non_identical_sites[condition].rename(
                     {self.reference:"ref", condition:"cond"}, 
                     axis=1
                 )
+                nis = self._site_map[[self._reference, condition]].copy()
+                nis.rename({self.reference:"ref", condition:"cond"}, axis=1, inplace=True)
+                #print(nis)
 
                 f = convert_subs_wrt_ref_seq_b
-                df.loc[idx, "var_wrt_ref"] = condition_func_df.apply(
+                df.loc[idx, "var_wrt_ref"] = condition_func_df.parallel_apply(
                         lambda x: f(nis, x.wts, x.sites, x.muts), 
                         axis=1
                 )

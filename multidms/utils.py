@@ -107,6 +107,11 @@ def convert_subs_wrt_ref_seq_b(
                 nis.drop(site, inplace=True)
     
     converted_muts = nis['ref'] + nis.index.astype(str) + nis['cond']
+    nis = (
+        var_map.where(var_map["ref"] != var_map['cond'])
+        .dropna()
+        .astype(str)
+    )
     return " ".join(converted_muts)
 
 
