@@ -96,6 +96,7 @@ def convert_subs_wrt_ref_seq_b(
     """
 
     nis = non_identical_sites.copy()
+    print(nis)
     for wt, site, mut in zip(wts, sites, muts):
         if site not in non_identical_sites.index.values:
             nis.loc[site] = wt, mut
@@ -107,11 +108,11 @@ def convert_subs_wrt_ref_seq_b(
                 nis.drop(site, inplace=True)
     
     converted_muts = nis['ref'] + nis.index.astype(str) + nis['cond']
-    nis = (
-        var_map.where(var_map["ref"] != var_map['cond'])
-        .dropna()
-        .astype(str)
-    )
+    #nis = (
+    #    var_map.where(var_map["ref"] != var_map['cond'])
+    #    .dropna()
+    #    .astype(str)
+    #)
     return " ".join(converted_muts)
 
 

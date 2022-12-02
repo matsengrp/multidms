@@ -407,8 +407,8 @@ class MultiDmsData:
         else:
             # tqdm.pandas()
             from pandarallel import pandarallel
-            pb = True if verbose else False
-            pandarallel.initialize(progress_bar=pb)
+            import os
+            pandarallel.initialize(progress_bar=verbose)#, nb_workers=os.cpu_count(), use_memory_fs=None)
 
             for condition, condition_func_df in df.groupby("condition"):
 
@@ -416,16 +416,17 @@ class MultiDmsData:
                     continue
 
 
-                idx = condition_func_df.index
                 nis = non_identical_sites[condition].rename(
                     {self.reference:"ref", condition:"cond"}, 
                     axis=1
                 )
-                nis = self._site_map[[self._reference, condition]].copy()
+                idx = condition_func_df.index
+                #nis = self._site_map[[self._reference, condition]].copy()
                 nis.rename({self.reference:"ref", condition:"cond"}, axis=1, inplace=True)
                 #print(nis)
 
                 f = convert_subs_wrt_ref_seq_b
+                #df.loc[idx, "var_wrt_ref"] = condition_func_df.apply(
                 df.loc[idx, "var_wrt_ref"] = condition_func_df.parallel_apply(
                         lambda x: f(nis, x.wts, x.sites, x.muts), 
                         axis=1
