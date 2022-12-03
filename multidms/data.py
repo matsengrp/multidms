@@ -10,8 +10,6 @@ dms experiments under various conditions.
 import os
 from functools import partial
 from multidms import AAS
-from multidms.utils import convert_subs_wrt_ref_seq_b
-from multidms.utils import convert_subs_wrt_ref_seq_n
 from multidms.utils import split_subs
 
 import binarymap as bmap
@@ -20,9 +18,11 @@ from polyclonal.utils import MutationParser
 import numpy as onp
 import pandas
 from tqdm.auto import tqdm
+
 tqdm.pandas()
 import jax
 import jaxlib
+
 jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from jax.experimental import sparse
@@ -32,7 +32,6 @@ from pandarallel import pandarallel
 from frozendict import frozendict
 from matplotlib import pyplot as plt
 import seaborn as sns
-
 
 
 class MultiDmsData:
@@ -215,10 +214,10 @@ class MultiDmsData:
         collapse_identical_variants="mean",
         condition_colors=DEFAULT_POSITIVE_COLORS,
         letter_suffixed_sites=False,
-        assert_site_integrity=False,                # TODO document
-        filter_non_shared_sites=True,               # TODO document
+        assert_site_integrity=False,  # TODO document
+        filter_non_shared_sites=True,  # TODO document
         verbose=False,
-        nb_workers=None
+        nb_workers=None,
     ):
         """See main class docstring."""
 
@@ -297,37 +296,30 @@ class MultiDmsData:
                     for wt, site in zip(row.wts, row.sites):
                         assert site_map.loc[site, hom] == wt
 
-
-        # Throw variants if the contain non overlapping
+        # Throw variants if they contain non overlapping
         # mutations with all other conditions.
-        #if filter_non_shared_sites:
-        # currently the only option,
-        # without site info for all conditions, we can't infer wt
-        if True:
+        na_rows = site_map.isna().any(axis=1)
+        sites_to_throw = na_rows[na_rows].index
+        site_map.dropna(inplace=True)
 
-            na_rows = site_map.isna().any(axis=1)
-            sites_to_throw = na_rows[na_rows].index
-            site_map.dropna(inplace=True)
+        def flags_disallowed(disallowed_sites, sites_list):
+            """Check to see if a sites list contains
+            any disallowed sites"""
+            for site in sites_list:
+                if site in disallowed_sites:
+                    return False
+            return True
 
-            def flags_disallowed(disallowed_sites, sites_list):
-                """Check to see if a sites list contains
-                any disallowed sites"""
-                for site in sites_list:
-                    if site in disallowed_sites:
-                        return False
-                return True
-
-            df["allowed_variant"] = df.sites.apply(
-                lambda sl: flags_disallowed(sites_to_throw, sl)
-            )
-            n_var_pre_filter = len(df)
-            df = df[df["allowed_variant"]]
-            df.drop("allowed_variant", axis=1, inplace=True)
+        df["allowed_variant"] = df.sites.apply(
+            lambda sl: flags_disallowed(sites_to_throw, sl)
+        )
+        n_var_pre_filter = len(df)
+        df = df[df["allowed_variant"]]
+        df.drop("allowed_variant", axis=1, inplace=True)
 
         self._site_map = site_map.sort_index()
 
         # identify and write site map differences for each condition
-        # TODO move this work to property
         non_identical_mutations = {}
         non_identical_sites = {}
         reference_sequence_conditions = [self._reference]
@@ -338,13 +330,9 @@ class MultiDmsData:
                 non_identical_sites[condition] = []
                 continue
 
-            nis = (
-                self._site_map.where(
-                    self._site_map[self._reference] != self._site_map[condition],
-                )
-                .dropna()
-                #.astype(str)
-            )
+            nis = self._site_map.where(
+                self._site_map[self._reference] != self._site_map[condition],
+            ).dropna()
             if len(nis) == 0:
                 non_identical_mutations[condition] = ""
                 non_identical_sites[condition] = []
@@ -358,101 +346,54 @@ class MultiDmsData:
         self._non_identical_mutations = frozendict(non_identical_mutations)
         self._non_identical_sites = frozendict(non_identical_sites)
 
-        ####################
-        # CONSTRUCTION START
-        ####################
-
-        #(
-        # X    self._training_data,
-        # X    self._binarymaps,
-        #    self._variants_df,
-        # X    self._mutations,
-        # X    self._site_map,
-        #) = self._create_condition_modeling_data(variants_df)
-
-        # convert_subs_wrt_ref_seq(df):
-
-        #sequence_cache = {}
-        #reference_sequence = "".join(site_map[self._reference])
-        #for condition, sequence in site_map.items():
-        #    if condition == self._reference:
-        #        continue
-        #    sequence_key = "".join(sequence)
-        #    if sequence_key == reference_sequence:
-        #        reference_sequence_conditions.append(condition)
-        #        continue
-        #    if sequence_key not in sequence_cache:
-        #        sequence_cache[sequence_key] = {}
-
-        # print(sequence_cache)
-
-        # convert the respective subs to be wrt reference
-        # print(reference_sequence_conditions)
         df = df.assign(var_wrt_ref=df["aa_substitutions"])
 
-        if False:
+        nb_workers = os.cpu_count() if not nb_workers else nb_workers
+        pandarallel.initialize(
+            progress_bar=verbose, nb_workers=nb_workers, use_memory_fs=False
+        )
 
-            for condition, condition_func_df in df.groupby("condition"):
+        def convert_subs_wrt_ref_seq(non_identical_sites, wts, sites, muts):
+            """
+            Given a dataframe of non identical sites
+            from a reference sequence and conditional sequence,
+            and a set mutations defined by ordered lists
+            of wts, sites, and thier respective mutations,
+            Compute the mutation string relative to
+            """
 
-                if condition in reference_sequence_conditions:
-                    continue
+            nis = non_identical_sites.copy()
 
-                #sequence_key = "".join(site_map[condition])
-                #variant_cache = sequence_cache[sequence_key]
-                #cache_hits = 0
+            for wt, site, mut in zip(wts, sites, muts):
+                if site not in non_identical_sites.index.values:
+                    nis.loc[site] = wt, mut
+                else:
+                    ref_wt = non_identical_sites.loc[site, "ref"]
+                    if mut != ref_wt:
+                        nis.loc[site] = ref_wt, mut
+                    else:
+                        nis.drop(site, inplace=True)
 
-                cond_var_map = site_map[[self._reference, condition]].copy()
-                cond_var_map.rename({self.reference:"ref", condition:"cond"}, axis=1, inplace=True)
+            converted_muts = nis["ref"] + nis.index.astype(str) + nis["cond"]
+            return " ".join(converted_muts)
 
-                idx = condition_func_df.index
-                vwr = convert_subs_wrt_ref_seq_n(cond_var_map, condition_func_df)
-                df.loc[idx, "var_wrt_ref"] = vwr 
+        for condition, condition_func_df in df.groupby("condition"):
+            if verbose:
+                print(f"Converting mutations for {condition}")
 
-        
-        # if len(set(self._conditions) - set(reference_sequence_condtions)) != 0:
-        if True:
+            if condition in reference_sequence_conditions:
+                continue
 
-
-            nb_workers = os.cpu_count() if not nb_workers else nb_workers
-            pandarallel.initialize(progress_bar=verbose, nb_workers=nb_workers, use_memory_fs=False)
-
-            for condition, condition_func_df in df.groupby("condition"):
-
-                if verbose:
-                    print(f"Converting mutations for {condition}")
-
-                if condition in reference_sequence_conditions:
-                    continue
-
-
-                nis = non_identical_sites[condition].rename(
-                    {self.reference:"ref", condition:"cond"}, 
-                    axis=1
-                )
-                idx = condition_func_df.index
-                #nis = self._site_map[[self._reference, condition]].copy()
-                nis.rename({self.reference:"ref", condition:"cond"}, axis=1, inplace=True)
-                #print(nis)
-
-                f = convert_subs_wrt_ref_seq_b
-                #df.loc[idx, "var_wrt_ref"] = condition_func_df.apply(
-                df.loc[idx, "var_wrt_ref"] = condition_func_df.parallel_apply(
-                        lambda x: f(nis, x.wts, x.sites, x.muts), 
-                        axis=1
-                )
-
-
-
-
-
-
-        ##################
-        # CONSTRUCTION END 
-        ##################
-
+            nis = non_identical_sites[condition].rename(
+                {self.reference: "ref", condition: "cond"}, axis=1
+            )
+            idx = condition_func_df.index
+            nis.rename({self.reference: "ref", condition: "cond"}, axis=1, inplace=True)
+            df.loc[idx, "var_wrt_ref"] = condition_func_df.parallel_apply(
+                lambda x: convert_subs_wrt_ref_seq(nis, x.wts, x.sites, x.muts), axis=1
+            )
 
         # Make BinaryMap representations for each condition
-        # TODO does binarymap sort this? I think so. 
         allowed_subs = {s for subs in df.var_wrt_ref for s in subs.split()}
 
         binmaps, X, y = {}, {}, {}
@@ -462,7 +403,7 @@ class MultiDmsData:
                 condition_func_score_df,
                 substitutions_col="var_wrt_ref",
                 allowed_subs=allowed_subs,
-                alphabet=self.alphabet
+                alphabet=self.alphabet,
             )
             binmaps[condition] = ref_bmap
             X[condition] = sparse.BCOO.from_scipy_sparse(ref_bmap.binary_variants)
@@ -470,14 +411,9 @@ class MultiDmsData:
 
         df.drop(["wts", "sites", "muts"], axis=1, inplace=True)
         self._variants_df = df
-
-        # TODO
-        # return {"X": X, "y": y}, binmaps, df, tuple(ref_bmap.all_subs), site_map
-
         self._training_data = {"X": X, "y": y}
         self._binarymaps = binmaps
 
-        # TODO This is the same ordering as 
         self._mutations = tuple(ref_bmap.all_subs)
 
         # initialize single mutational effects df
@@ -549,26 +485,6 @@ class MultiDmsData:
     @property
     def mut_parser(self):
         return self._mut_parser
-
-    def _infer_site_map(self):
-        """
-        infer a site map for each condition group
-        in a functional score dataframe.
-        """
-
-
-
-    def _convert_cache_nis(self, df: pandas.DataFrame):
-        """
-        convert conditional mutations to be with respect to a reference condition
-        using a method which builds the entire mutant sequence, and
-        find all non idetical sites when compared with the reference.
-
-        cache the variants per condition
-        """
-        pass
-
-
 
     def plot_times_seen_hist(self, saveas=None, show=True, **kwargs):
 

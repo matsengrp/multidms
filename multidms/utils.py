@@ -50,69 +50,6 @@ def split_subs(subs_string, parser=split_sub):
     return wts, sites, muts
 
 
-# TODO generalize to a single non-identical wt sequence
-def convert_subs_wrt_ref_seq_n(cond_var_map, condition_func_df):
-    """
-    Convert mutations seen in a set of variants defined by a 
-    wildtype sequence to be with respect another 'reference' wt sequence.
-    """
-
-    #ret=np.array([np.nan]*len(cond_func_df))
-
-    ret = []
-    for idx, row in tqdm(
-        condition_func_df.iterrows(), total=len(condition_func_df)
-    ):
-
-        #key = tuple(list(zip(row.wts, row.sites, row.muts)))
-        #if key in variant_cache:
-        #    df.loc[idx, "var_wrt_ref"] = variant_cache[key]
-        #    cache_hits += 1
-        #    continue
-
-        var_map = cond_var_map.copy()
-        for wt, site, mut in zip(row.wts, row.sites, row.muts):
-            var_map.loc[site, 'cond'] = mut
-
-        nis = (
-            var_map.where(var_map["ref"] != var_map['cond'])
-            .dropna()
-            .astype(str)
-        )
-        muts = nis['ref'] + nis.index.astype(str) + nis['cond']
-        ret.append(" ".join(muts.values))
-
-    return ret
-
-
-def convert_subs_wrt_ref_seq_b(
-    non_identical_sites,
-    wts, 
-    sites, 
-    muts
-):
-    """
-    
-    """
-
-    nis = non_identical_sites.copy()
-
-    for wt, site, mut in zip(wts, sites, muts):
-        if site not in non_identical_sites.index.values:
-            nis.loc[site] = wt, mut
-        else:
-            ref_wt = non_identical_sites.loc[site, 'ref']
-            if mut != ref_wt:
-                nis.loc[site] = ref_wt, mut
-            else:
-                nis.drop(site, inplace=True)
-    
-    converted_muts = nis['ref'] + nis.index.astype(str) + nis['cond']
-    return " ".join(converted_muts)
-
-
-
-
 def scale_func_score(func_score_df, bottleneck=1e5, pseudocount=0.1):
 
     ret = func_score_df.copy()
