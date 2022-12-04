@@ -219,7 +219,7 @@ def perceptron_global_epistasis(α: dict, z_h: jnp.array):
     modeling global epistasis.
     """
     activations = jax.nn.sigmoid(α["p_weights_1"] * z_h[:, None] + α["p_biases"])
-    return (α["p_weights_2"] @ activations.T) + α['output_bias']
+    return (α["p_weights_2"] @ activations.T) + α["output_bias"]
 
 
 @Partial(jax.jit, static_argnums=(0, 1))
@@ -746,10 +746,14 @@ class MultiDmsModel:
         elif epistatic_model == perceptron_global_epistasis:
             key, key1, key2, key3, key4 = jax.random.split(key, num=5)
             self.params["α"] = dict(
-                p_weights_1=jax.random.normal(shape=(n_percep_units,), key=key1).clip(0),
-                p_weights_2=jax.random.normal(shape=(n_percep_units,), key=key2).clip(0),
+                p_weights_1=jax.random.normal(shape=(n_percep_units,), key=key1).clip(
+                    0
+                ),
+                p_weights_2=jax.random.normal(shape=(n_percep_units,), key=key2).clip(
+                    0
+                ),
                 p_biases=jax.random.normal(shape=(n_percep_units,), key=key3),
-                output_bias=jax.random.normal(shape=(1,), key=key4)
+                output_bias=jax.random.normal(shape=(1,), key=key4),
             )
 
         else:
@@ -939,7 +943,6 @@ class MultiDmsModel:
                 lock_params[f"C_{condition}"] = jnp.zeros(shape=(1,))
         else:
             lock_params[f"C_{self._data.reference}"] = jnp.zeros(shape=(1,))
-            
 
         lasso_params = {}
         for non_ref_condition in self._data.conditions:
@@ -1066,7 +1069,7 @@ class MultiDmsModel:
         ax.plot(*shape, color="k", lw=2)
 
         ax.axhline(0, color="k", ls="--", lw=2)
-        #ax.axvline(0, color="k", ls="--", lw=2)
+        # ax.axvline(0, color="k", ls="--", lw=2)
         ax.set_xlim([xlb, xub])
         ax.set_ylim([ylb, yub])
         ax.set_ylabel("functional score + γ$_{d}$")
@@ -1211,7 +1214,7 @@ class MultiDmsModel:
             y=f"S_{condition}",
             color=self._data.condition_colors[condition],
             ax=ax,
-            #legend=True,
+            # legend=True,
             **kwargs,
         )
         color = [

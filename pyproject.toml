@@ -48,7 +48,8 @@ dependencies = [
     "notebook",
     "scipy",
     "tqdm",
-    "ipywidgets"
+    "ipywidgets",
+    "pandarallel"
 ]
 
 [project.optional-dependencies]
