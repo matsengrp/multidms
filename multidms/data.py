@@ -350,7 +350,7 @@ class MultiDmsData:
 
         nb_workers = os.cpu_count() if not nb_workers else nb_workers
         pandarallel.initialize(
-            progress_bar=verbose, nb_workers=nb_workers, use_memory_fs=False
+            progress_bar=verbose, nb_workers=nb_workers  # , use_memory_fs=False
         )
 
         def convert_subs_wrt_ref_seq(non_identical_sites, wts, sites, muts):
