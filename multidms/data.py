@@ -349,9 +349,7 @@ class MultiDmsData:
         df = df.assign(var_wrt_ref=df["aa_substitutions"])
 
         nb_workers = os.cpu_count() if not nb_workers else nb_workers
-        pandarallel.initialize(
-            progress_bar=verbose, nb_workers=nb_workers  # , use_memory_fs=False
-        )
+        pandarallel.initialize(progress_bar=verbose, nb_workers=nb_workers)
 
         def convert_subs_wrt_ref_seq(non_identical_sites, wts, sites, muts):
             """
@@ -388,7 +386,7 @@ class MultiDmsData:
                 {self.reference: "ref", condition: "cond"}, axis=1
             )
             idx = condition_func_df.index
-            nis.rename({self.reference: "ref", condition: "cond"}, axis=1, inplace=True)
+            # nis.rename({self.reference: "ref", condition: "cond"}, axis=1, inplace=True)
             df.loc[idx, "var_wrt_ref"] = condition_func_df.parallel_apply(
                 lambda x: convert_subs_wrt_ref_seq(nis, x.wts, x.sites, x.muts), axis=1
             )
