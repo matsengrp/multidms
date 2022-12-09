@@ -437,6 +437,7 @@ def lineplot_and_heatmap(
     )
 
     # wildtype text marks for heatmap
+    # if reference_wildtype:
     #heatmap_wildtype = (
     #    heatmap_base.encode(
     #        x=alt.X(
@@ -466,6 +467,8 @@ def lineplot_and_heatmap(
     #    )
     #    .mark_rect(color="gray", opacity=0.25)
     #)
+
+    heatmaps = []
 
     # Make heatmaps for each category and vertically concatenate. We do this in loop
     # rather than faceting to enable compound chart w wildtype marks and category
@@ -555,6 +558,7 @@ def lineplot_and_heatmap(
             )
 
             # wildtype markings
+            # + heatmap_wildtype
             + heatmap_base.transform_filter(alt.datum[category_col] == category)
             .encode(
                 x=alt.X(
@@ -653,23 +657,23 @@ def mut_shift_plot(
         
         # obtain and curate each of the replicate mutational dataframes
         mutations_dfs = []
-        for prefix, fit in fit_data.items():
+        for replicate, fit in fit_data.items():
             
             fit_mut_df = fit.mutations_df.set_index("mutation")
             
-            new_column_name_map = {c:f"{prefix}_{c}" for c in fit_mut_df.columns}
+            new_column_name_map = {c:f"{replicate}_{c}" for c in fit_mut_df.columns}
             fit_mut_df = fit_mut_df.rename(new_column_name_map, axis=1)
+
             times_seen_cols = [c for c in fit_mut_df.columns if "times" in c]
             for c in times_seen_cols:
                 fit_mut_df = fit_mut_df[fit_mut_df[c] >= times_seen_threshold]
             # TODO these could potentially be slider stats ... ?
-            # you would need to change the rep1 prefix for this to work
+            # you would need to change the rep1 replicate for this to work
             # with the wide_to_long call below
             fit_mut_df.drop(times_seen_cols, axis=1, inplace=True)
-            mutations_dfs.append(fit_mut_df)
+            mutations_dfs.append(fit_mut_df.assign(replicate=replicate))
 
-        #print(pd.concat())
-        
+        # return pandas.concat(mutations_dfs)
         
         # merge each of the replicate mutational dataframes
         mut_df = reduce(
@@ -687,13 +691,13 @@ def mut_shift_plot(
 
         
         ###############
-        # put the rest of this in lineplot_and_heatmap()
+        # put the rest of this in lineplot_and_heatmap()?
 
 
         # now compute replicate averages
         for c in fit.mutations_df.columns:
             if c == "mutation" or "times_seen" in c: continue
-            cols_to_combine = [f"{prefix}_{c}" for prefix in fit_data.keys()]
+            cols_to_combine = [f"{replicate}_{c}" for replicate in fit_data.keys()]
             if c in ["wts", "sites", "muts"]:
                 mut_df[c] = mut_df[cols_to_combine[0]]
                 mut_df.drop(cols_to_combine, axis=1, inplace=True)
@@ -706,6 +710,7 @@ def mut_shift_plot(
     else:
         raise ValueError("'fit_data' must be o type `multidms.MultiDmsModel` or dict")
 
+    # colors must be hex
     condition_colors = {
         f"S_{con}".replace(".", "_"): matplotlib.colors.rgb2hex(tuple(col))
         for con, col in fit.data.condition_colors.items()
@@ -713,43 +718,47 @@ def mut_shift_plot(
     }
     kwargs["category_colors"] = condition_colors
 
+    # All non reference shift parameters are the primary source of data
     value_vars = [
         f"S_{c}".replace(".", "_")
         for c in fit.data.conditions
         if c != fit.data.reference
     ]
 
+    # Beta can either be a tooltip, or a value condition
     if include_beta:
         condition_colors["β"] = matplotlib.colors.rgb2hex((0.,0.,0.))
         value_vars.insert(0, "β")
     else:
         mut_df = mut_df.rename({"value_β": "β"}, axis=1)
         id_vars.insert(0, "β")
-        for rep_prefix in list(fit_data.keys()):
-            mut_df = mut_df.rename({f"{rep_prefix}_β": f"β ({rep_prefix})"}, axis=1)
-            id_vars.insert(1, f"β ({rep_prefix})")
+        for rep_replicate in list(fit_data.keys()):
+            mut_df = mut_df.rename({f"{rep_replicate}_β": f"β ({rep_replicate})"}, axis=1)
+            id_vars.insert(1, f"β ({rep_replicate})")
 
     mut_df = (
         mut_df.rename({c: c.replace(".", "_") for c in mut_df.columns}, axis=1)
         .rename({"wts": "wildtype", "sites": "site", "muts": "mutant"}, axis=1)
     )
 
+    # stack all condition, but leave replicate values in their own column
     mut_df = pandas.wide_to_long(
         mut_df, 
         stubnames=list(fit_data.keys())+["value"], 
-        i=id_vars, # + [c for c in mut_df.columns if "times_seen" in c], 
+        i=id_vars,
         j="condition", 
         sep="_", 
         suffix=".+"        
     ).reset_index()
 
-    #for condition, condition_mut_df in mut_df.groupby("condition"):
-    #    cond_non_iden_sites = fit.data.non_identical_sites[condition]
-    #    for nis in con_non_iden_sites.iterrows():
-            #np.where(mut_df['col2'] == 'Z', 'green', 'red')
-    #        condition_mut
-    
-    #return
+    for condition in fit.data.conditions:
+        if condition == fit.data.reference: continue
+        cond_non_iden_sites = fit.data.non_identical_sites[condition]
+        for idx, nis in cond_non_iden_sites.iterrows():
+            nis_idx = mut_df.query(f"site == {idx} & condition == 'S_{condition}'").index
+            mut_df.loc[nis_idx, "wildtype"] = nis[condition]
+
+    # print(mut_df.query("site == 19"))
 
     #mut_df = (
     #    mut_df.rename({c: c.replace(".", "_") for c in mut_df.columns}, axis=1)
@@ -768,22 +777,42 @@ def mut_shift_plot(
     # but maybe not because the inner merge should guerentee that we
     # add all necesary wildtypes, and a few extra that get thrown out
     # by the altair code above.
-    for condition, wts in fit.data.site_map.items():
-        
-        is_ref = condition == fit.data.reference
-        if is_ref and not include_beta: continue
-        category_wt = f"S_{condition}".replace(".", "_") if not is_ref else "β"
-        con_wt_dict = {
-                "wildtype": wts.values,
-                "mutant": wts.values,
-                "site": wts.index.values,
-                "value": 0,
-                "condition": category_wt
-        }
-        for rep_prefix in list(fit_data.keys()):
-            con_wt_dict[rep_prefix] = 0 
-        con_wt = pandas.DataFrame(con_wt_dict)
-        mut_df = pandas.concat([mut_df, con_wt])
+    #category_wt = f"S_{condition}".replace(".", "_") if not is_ref else "β"
+    reference_wts = fit.data.site_map[fit.data.reference]
+    con_wt_dict = {
+            "wildtype": reference_wts.values,
+            "mutant": reference_wts.values,
+            "site": reference_wts.index.values,
+            "value": 0,
+            "condition": f"S_{condition}"
+    }
+    for rep_replicate in list(fit_data.keys()):
+        con_wt_dict[rep_replicate] = 0 
+    con_wt = pandas.DataFrame(con_wt_dict)
+
+    #for condition, wts in fit.data.site_map.items():
+    #    
+    #    is_ref = condition == fit.data.reference
+    #    if is_ref and not include_beta: continue
+    #    category_wt = f"S_{condition}".replace(".", "_") if not is_ref else "β"
+    #    con_wt_dict = {
+    #            "wildtype": wts.values,
+    #            "mutant": wts.values,
+    #            "site": wts.index.values,
+    #            "value": 0,
+    #            "condition": category_wt
+    #    }
+    #    for rep_prefix in list(fit_data.keys()):
+    #        con_wt_dict[rep_prefix] = 0 
+    #    con_wt = pandas.DataFrame(con_wt_dict)
+    #    mut_df = pandas.concat([mut_df, con_wt])
+
+    #break
+
+        # here, we'll want to drop the non identical sites.
+        # con_wt.drop()
+    
+    mut_df = pandas.concat([con_wt, mut_df])
 
     kwargs["data_df"] = mut_df
     kwargs["stat_col"] = "value"
@@ -791,8 +820,8 @@ def mut_shift_plot(
     kwargs["heatmap_color_scheme"] = "redblue"
     kwargs["init_floor_at_zero"] = False
 
-    for rep_prefix in list(fit_data.keys()):
-        kwargs["addtl_tooltip_stats"].append(rep_prefix)
+    for rep_replicate in list(fit_data.keys()):
+        kwargs["addtl_tooltip_stats"].append(rep_replicate)
 
     if "alphabet" not in kwargs:
         kwargs["alphabet"] = fit.data.alphabet
