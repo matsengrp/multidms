@@ -135,6 +135,7 @@ import polyclonal.plot
 
 from multidms.utils import is_wt
 from multidms import MultiDmsData
+import multidms.plot
 
 
 @jax.jit
@@ -823,16 +824,18 @@ class MultiDmsModel:
 
         mutations_df = self._data.mutations_df.copy()
         mutations_df.loc[:, "β"] = self.params["β"]
-        binary_single_subs = sparse.BCOO.fromdense(
-            onp.identity(len(self._data.mutations))
-        )
+        #binary_single_subs = sparse.BCOO.fromdense(
+        #    onp.identity(len(self._data.mutations))
+        #)
         for condition in self._data.conditions:
+            
 
-            d_params = self.get_condition_params(condition)
+            #d_params = self.get_condition_params(condition)
+            if condition == self._data.reference: continue
             mutations_df[f"S_{condition}"] = self.params[f"S_{condition}"]
-            mutations_df[f"F_{condition}"] = self._model["f"](
-                d_params, binary_single_subs
-            )
+            #mutations_df[f"F_{condition}"] = self._model["f"](
+            #    d_params, binary_single_subs
+            #)
 
         return mutations_df
 
@@ -1300,85 +1303,9 @@ class MultiDmsModel:
 
         return fig, ax
 
-    def mut_shift_plot(
-        self,
-        *,
-        biochem_order_aas=True,
-        times_seen_threshold=3,
-        **kwargs,
-    ):
-        """Make plot of mutation escape values.
-        Parameters
-        ----------
-        biochem_order_aas : bool
-            Biochemically order amino-acid alphabet :attr:`PolyclonalCollection.alphabet`
-            by passing it through :func:`polyclonal.alphabets.biochem_order_aas`.
-        include_beta : bool
-            If True, include the beta values along with all shifts.
-        **kwargs
-            Keyword args for :func:`polyclonal.plot.lineplot_and_heatmap`
-        Returns
-        -------
-        altair.Chart
-            Interactive heat maps.
+    def mut_shift_plot(self, **kwargs):
+        """
+        wrapper method to call multidms.plot.mut_shift_plot
         """
 
-        mut_df = self.mutations_df
-        times_seen_cols = [c for c in mut_df.columns if "times" in c]
-        for c in times_seen_cols:
-            mut_df = mut_df[mut_df[c] >= times_seen_threshold]
-
-        condition_colors = {
-            f"S_{con}".replace(".", "_"): colors.rgb2hex(tuple(col))
-            for con, col in self.data.condition_colors.items()
-            if con != self.data.reference
-        }
-
-        value_vars = [
-            f"S_{c}".replace(".", "_")
-            for c in self.data.conditions
-            if c != self.data.reference
-        ]
-
-        kwargs["category_colors"] = condition_colors
-
-        mut_df = (
-            mut_df.rename({c: c.replace(".", "_") for c in mut_df.columns}, axis=1)
-            .rename({"wts": "wildtype", "sites": "site", "muts": "mutant"}, axis=1)
-            .melt(
-                id_vars=["wildtype", "site", "mutant"],
-                value_vars=value_vars,
-                var_name="condition",
-            )
-        )
-
-        for condition, wts in self.data.site_map.items():
-            if condition != self.data.reference:
-                continue
-            con_wt = pandas.DataFrame(
-                {
-                    "wildtype": wts.values,
-                    "mutant": wts.values,
-                    "site": wts.index.values,
-                    "value": 0,
-                    "condition": value_vars[0],
-                }
-            )
-
-            mut_df = pandas.concat([mut_df, con_wt])
-
-        kwargs["data_df"] = mut_df
-        kwargs["stat_col"] = "value"
-        kwargs["category_col"] = "condition"
-        kwargs["heatmap_color_scheme"] = "redblue"
-        kwargs["init_floor_at_zero"] = False
-
-        if "alphabet" not in kwargs:
-            kwargs["alphabet"] = self.data.alphabet
-
-        if biochem_order_aas:
-            kwargs["alphabet"] = polyclonal.alphabets.biochem_order_aas(
-                kwargs["alphabet"]
-            )
-
-        return polyclonal.plot.lineplot_and_heatmap(**kwargs)
+        return multidms.plot.mut_shift_plot(self, **kwargs)
