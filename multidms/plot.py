@@ -473,29 +473,22 @@ def lineplot_and_heatmap(
     # Make heatmaps for each category and vertically concatenate. We do this in loop
     # rather than faceting to enable compound chart w wildtype marks and category
     # specific coloring.
-    heatmaps = alt.vconcat(
-        *[
+    for category in categories:
 
-            # heatmap background
-            heatmap_base.transform_filter(alt.datum[category_col] == category)
-            .encode(
+        background = heatmap_base.transform_filter(alt.datum[category_col] == category).encode(
                 x=alt.X(
                     "site:O",
                     sort=alt.EncodingSortField(field="_stat_site_order", order="ascending"),
                 )
-            )
-            .transform_impute(
+            ).transform_impute(
                 impute="_stat_dummy",
                 key="mutant",
                 keyvals=alphabet,
                 groupby=["site"],
                 value=None,
-            )
-            .mark_rect(color="gray", opacity=0.25)
+            ).mark_rect(color="gray", opacity=0.25)
 
-            # heatmap data
-            + heatmap_base.transform_filter(alt.datum[category_col] == category)
-            .encode(
+        data = heatmap_base.transform_filter(alt.datum[category_col] == category).encode(
                 x=alt.X(
                     "site:O",
                     sort=alt.EncodingSortField(
@@ -544,9 +537,7 @@ def lineplot_and_heatmap(
                 ),
                 stroke=alt.value("black"),
                 tooltip=heatmap_tooltips,
-            )
-            .mark_rect()
-            .properties(
+            ).mark_rect().properties(
                 width=alt.Step(cell_size),
                 height=alt.Step(cell_size),
                 title=alt.TitleParams(
@@ -557,23 +548,19 @@ def lineplot_and_heatmap(
                 ),
             )
 
-            # wildtype markings
-            # + heatmap_wildtype
-            + heatmap_base.transform_filter(alt.datum[category_col] == category)
-            .encode(
+        wildtype = heatmap_base.transform_filter(alt.datum[category_col] == category).encode(
                 x=alt.X(
                     "site:O",
                     sort=alt.EncodingSortField(field="_stat_site_order", order="ascending"),
                 ),
-            )
-            .transform_filter(alt.datum.wildtype == alt.datum.mutant)
-            .mark_text(text="x", color="black")
+            ).transform_filter(
+                alt.datum.wildtype == alt.datum.mutant
+            ).mark_text(text="x", color="black")
 
-            # TODO JARED
-            # Here, you could add (+) the same chart encoding as above,
-            # but instead, you could only hightlight the non identical sites
-            for category in categories
-        ],
+        heatmaps.append(background + data + wildtype)
+
+    heatmaps = alt.vconcat(
+        *heatmaps,
         spacing=10,
     ).resolve_scale(
         x="shared",

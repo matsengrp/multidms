@@ -829,7 +829,6 @@ class MultiDmsModel:
         #)
         for condition in self._data.conditions:
             
-
             #d_params = self.get_condition_params(condition)
             if condition == self._data.reference: continue
             mutations_df[f"S_{condition}"] = self.params[f"S_{condition}"]
