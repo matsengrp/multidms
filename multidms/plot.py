@@ -594,7 +594,7 @@ def lineplot_and_heatmap(
         #print(f"wildtype_{category}")
         #if reference_category is not None:
         if categorical_wildtype and f"wildtype_{category}" in addtl_tooltip_stats:
-            print("yo")
+            #print("yo")
 
             heatmap += heatmap_base.transform_filter(
                     alt.datum[category_col] == category
@@ -830,26 +830,25 @@ def mut_shift_plot(
     # but maybe not because the inner merge should guerentee that we
     # add all necesary wildtypes, and a few extra that get thrown out
     # by the altair code above.
-    #category_wt = f"S_{condition}".replace(".", "_") if not is_ref else "β"
 
+    category_wt = f"S_{condition}".replace(".", "_") if not include_beta else "β"
     reference_wts = fit.data.site_map[fit.data.reference]
     con_wt_dict = {
             "wildtype": reference_wts.values,
             "mutant": reference_wts.values,
             "site": reference_wts.index.values,
             "value": 0,
-            "condition": "β"
+            "condition": category_wt
     }
     for rep_replicate in list(fit_data.keys()):
         con_wt_dict[rep_replicate] = 0 
     con_wt = pandas.DataFrame(con_wt_dict)
+    mut_df = pandas.concat([con_wt, mut_df])
 
     #sm = fit.data.site_map[fit.data.reference].copy()
     #sm.index.name = "site"
     #sm = sm.reset_index().rename({fit.data.reference:"wildtype"}, axis=1)
     #kwargs["reference_wildtype"] = sm
-
-    
 
     #for condition, wts in fit.data.site_map.items():
     #    
@@ -873,7 +872,6 @@ def mut_shift_plot(
         # here, we'll want to drop the non identical sites.
         # con_wt.drop()
     
-    mut_df = pandas.concat([con_wt, mut_df])
 
     kwargs["data_df"] = mut_df
     kwargs["stat_col"] = "value"
