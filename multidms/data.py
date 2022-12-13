@@ -380,6 +380,8 @@ class MultiDmsData:
                 print(f"Converting mutations for {condition}")
 
             if condition in reference_sequence_conditions:
+                if verbose:
+                    print(f"is reference, skipping")
                 continue
 
             nis = non_identical_sites[condition].rename(
