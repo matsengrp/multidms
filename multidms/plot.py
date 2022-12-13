@@ -19,9 +19,7 @@ import multidms
 from polyclonal.plot import DEFAULT_NEGATIVE_COLOR, DEFAULT_POSITIVE_COLORS
 
 
-
 alt.data_transformers.disable_max_rows()
-
 
 
 def lineplot_and_heatmap(
@@ -134,14 +132,14 @@ def lineplot_and_heatmap(
         follow with a suffix matching a specific condition, then the heatmaps
         will be labeled with points at all non identical sites when compared
         with the 'wildtype' column (which will be used to mark 'x' on each category
-        heatmap). 
+        heatmap).
     """
 
     basic_req_cols = ["site", "wildtype", "mutant", stat_col, category_col]
 
     if addtl_tooltip_stats is None:
         addtl_tooltip_stats = []
-    
+
     if addtl_slider_stats is None:
         addtl_slider_stats = {}
     req_cols = basic_req_cols + addtl_tooltip_stats + list(addtl_slider_stats)
@@ -382,8 +380,7 @@ def lineplot_and_heatmap(
     site_prop_cols = lookup_dfs["site"].columns if "site" in lookup_dfs else ["site"]
 
     lineplot_base = (
-        base_chart
-        .transform_aggregate(
+        base_chart.transform_aggregate(
             **{f"_stat_{stat}": f"{stat}(_stat)" for stat in site_statistics},
             groupby=[*site_prop_cols, category_col],
         )
@@ -446,14 +443,17 @@ def lineplot_and_heatmap(
         ),
     )
 
-    wildtype = heatmap_base.transform_filter(alt.datum.mutant == alt.datum.wildtype).encode(
-        x=alt.X(
-            "site:O",
-            sort=alt.EncodingSortField(field="_stat_site_order", order="ascending"),
-        ),
-    ).transform_filter(
-        alt.datum.wildtype == alt.datum.mutant
-    ).mark_text(text="x", color="black")
+    wildtype = (
+        heatmap_base.transform_filter(alt.datum.mutant == alt.datum.wildtype)
+        .encode(
+            x=alt.X(
+                "site:O",
+                sort=alt.EncodingSortField(field="_stat_site_order", order="ascending"),
+            ),
+        )
+        .transform_filter(alt.datum.wildtype == alt.datum.mutant)
+        .mark_text(text="x", color="black")
+    )
 
     heatmaps = []
 
@@ -462,20 +462,29 @@ def lineplot_and_heatmap(
     # specific coloring.
     for category in categories:
 
-        background = heatmap_base.transform_filter(alt.datum[category_col] == category).encode(
+        background = (
+            heatmap_base.transform_filter(alt.datum[category_col] == category)
+            .encode(
                 x=alt.X(
                     "site:O",
-                    sort=alt.EncodingSortField(field="_stat_site_order", order="ascending"),
+                    sort=alt.EncodingSortField(
+                        field="_stat_site_order", order="ascending"
+                    ),
                 )
-            ).transform_impute(
+            )
+            .transform_impute(
                 impute="_stat_dummy",
                 key="mutant",
                 keyvals=alphabet,
                 groupby=["site"],
                 value=None,
-            ).mark_rect(color="gray", opacity=0.25)
+            )
+            .mark_rect(color="gray", opacity=0.25)
+        )
 
-        data = heatmap_base.transform_filter(alt.datum[category_col] == category).encode(
+        data = (
+            heatmap_base.transform_filter(alt.datum[category_col] == category)
+            .encode(
                 x=alt.X(
                     "site:O",
                     sort=alt.EncodingSortField(
@@ -524,7 +533,9 @@ def lineplot_and_heatmap(
                 ),
                 stroke=alt.value("black"),
                 tooltip=heatmap_tooltips,
-            ).mark_rect().properties(
+            )
+            .mark_rect()
+            .properties(
                 width=alt.Step(cell_size),
                 height=alt.Step(cell_size),
                 title=alt.TitleParams(
@@ -534,28 +545,30 @@ def lineplot_and_heatmap(
                     orient="left",
                 ),
             )
+        )
         heatmap = background + data + wildtype
         if categorical_wildtype and f"wildtype_{category}" in addtl_tooltip_stats:
 
-            heatmap += heatmap_base.transform_filter(
-                    alt.datum[category_col] == category
-                ).encode(
+            heatmap += (
+                heatmap_base.transform_filter(alt.datum[category_col] == category)
+                .encode(
                     x=alt.X(
                         "site:O",
-                        sort=alt.EncodingSortField(field="_stat_site_order", order="ascending"),
+                        sort=alt.EncodingSortField(
+                            field="_stat_site_order", order="ascending"
+                        ),
                     ),
-                ).transform_filter(
+                )
+                .transform_filter(
                     alt.datum[f"wildtype_{category}"] != alt.datum.wildtype
-                ).transform_filter(
-                    alt.datum[f"wildtype_{category}"] == alt.datum.mutant
-                ).mark_point(fill=category_colors[category])
+                )
+                .transform_filter(alt.datum[f"wildtype_{category}"] == alt.datum.mutant)
+                .mark_point(fill=category_colors[category])
+            )
 
         heatmaps.append(heatmap)
 
-    heatmaps = alt.vconcat(
-        *heatmaps,
-        spacing=10,
-    ).resolve_scale(
+    heatmaps = alt.vconcat(*heatmaps, spacing=10,).resolve_scale(
         x="shared",
         color="shared"
         if heatmap_color_scheme or len(categories) == 1
@@ -591,6 +604,10 @@ def mut_shift_plot(
     **kwargs,
 ):
     """Make plot of mutation escape values for one or more replicate fits.
+    You may either pass a single `multidms.MultiDmsData` object for
+    visualizing a single set of parameters or a collection of replicate
+    fits in the form of a dictionary where key's are the replicate
+    name (i.e. rep1, rep2) and values are the respective model objects.
 
     Parameters
     ----------
@@ -611,36 +628,41 @@ def mut_shift_plot(
         Interactive heat maps.
     """
 
-
     kwargs["addtl_tooltip_stats"] = []
-    id_vars=["wildtype", "site", "mutant"]
+    id_vars = ["wildtype", "site", "mutant"]
+    stubnames = ["value"]
 
     if type(fit_data) == multidms.model.MultiDmsModel:
-        
-        mut_df = fit_data.mutations_df        
+
+        mut_df = fit_data.mutations_df
         times_seen_cols = [c for c in mut_df.columns if "times" in c]
         for c in times_seen_cols:
             mut_df = mut_df[mut_df[c] >= times_seen_threshold]
+        mut_df.drop(times_seen_cols, axis=1, inplace=True)
         fit = fit_data
+
+        new_column_name_map = {
+            c: f"value_{c}" for c in mut_df.columns if c.startswith("S_")
+        }
+        if include_beta:
+            new_column_name_map["β"] = "value_β"
+        mut_df = mut_df.rename(new_column_name_map, axis=1)
 
     elif type(fit_data) == dict:
         if len(fit_data) <= 1:
-            raise ValueError("If passing a dictionary of fits, there must be more that one")
+            raise ValueError(
+                "If passing a dictionary of fits, there must be more that one"
+            )
 
-        # TODO check if the fits are comparible. 
-        # well as long as they're the same then we can pretty much 
-        # use the latest fit object in the iteration to get what we need
-        # 1. Check that the conditions and their parameters match
-        # 2. Make sure their inferred site maps are also subsets of each other 
-        # 3. Could also compare the condition colors, yea?
-        
+        stubnames = stubnames + list(fit_data.keys())
+
         # obtain and curate each of the replicate mutational dataframes
         mutations_dfs = []
         for replicate, fit in fit_data.items():
-            
+
             fit_mut_df = fit.mutations_df.set_index("mutation")
-            
-            new_column_name_map = {c:f"{replicate}_{c}" for c in fit_mut_df.columns}
+
+            new_column_name_map = {c: f"{replicate}_{c}" for c in fit_mut_df.columns}
             fit_mut_df = fit_mut_df.rename(new_column_name_map, axis=1)
 
             times_seen_cols = [c for c in fit_mut_df.columns if "times" in c]
@@ -651,19 +673,16 @@ def mut_shift_plot(
 
         # merge each of the replicate mutational dataframes
         mut_df = reduce(
-            lambda  left,right: pandas.merge(
-                left,
-                right,
-                left_index=True, 
-                right_index=True,
-                how='inner'
-            ), 
-            mutations_dfs
+            lambda left, right: pandas.merge(
+                left, right, left_index=True, right_index=True, how="inner"
+            ),
+            mutations_dfs,
         )
 
         # now compute replicate averages
         for c in fit.mutations_df.columns:
-            if c == "mutation" or "times_seen" in c: continue
+            if c == "mutation" or "times_seen" in c:
+                continue
             cols_to_combine = [f"{replicate}_{c}" for replicate in fit_data.keys()]
             if c in ["wts", "sites", "muts"]:
                 mut_df[c] = mut_df[cols_to_combine[0]]
@@ -671,8 +690,22 @@ def mut_shift_plot(
             else:
                 mut_df[f"value_{c}"] = mut_df[cols_to_combine].mean(axis=1)
 
+        # if not including beta, rename for tooltips instead
+        if not include_beta:
+            mut_df = mut_df.rename({"value_β": "β"}, axis=1)
+            for rep_replicate in list(fit_data.keys()):
+                mut_df = mut_df.rename(
+                    {f"{rep_replicate}_β": f"β ({rep_replicate})"}, axis=1
+                )
+                id_vars.insert(0, f"β ({rep_replicate})")
+                kwargs["addtl_tooltip_stats"].append(f"β ({rep_replicate})")
+
     else:
-        raise ValueError("'fit_data' must be o type `multidms.MultiDmsModel` or dict")
+        raise ValueError(
+            "'fit_data' must be o type `multidms.MultiDmsModel` or dict "
+            "for each replicate where the keys will be used to represent original "
+            "values shown along with the average"
+        )
 
     # colors must be hex
     condition_colors = {
@@ -681,71 +714,54 @@ def mut_shift_plot(
         if con != fit.data.reference
     }
 
-    # All non reference shift parameters are the primary source of data
-    #value_vars = [
-    #    f"S_{c}".replace(".", "_")
-    #    for c in fit.data.conditions
-    #    if c != fit.data.reference
-    #]
-
-    # Beta can either be a tooltip, or a value condition
     if include_beta:
-        condition_colors["β"] = matplotlib.colors.rgb2hex((0.,0.,0.))
-        #value_vars.insert(0, "β")
+        condition_colors["β"] = matplotlib.colors.rgb2hex((0.0, 0.0, 0.0))
     else:
-        mut_df = mut_df.rename({"value_β": "β"}, axis=1)
         id_vars.insert(0, "β")
         kwargs["addtl_tooltip_stats"].append(f"β")
-        for rep_replicate in list(fit_data.keys()):
-            mut_df = mut_df.rename({f"{rep_replicate}_β": f"β ({rep_replicate})"}, axis=1)
-            id_vars.insert(1, f"β ({rep_replicate})")
-            kwargs["addtl_tooltip_stats"].append(f"β ({rep_replicate})")
 
-    mut_df = (
-        mut_df.rename({c: c.replace(".", "_") for c in mut_df.columns}, axis=1)
-        .rename({"wts": "wildtype", "sites": "site", "muts": "mutant"}, axis=1)
-    )
+    mut_df = mut_df.rename(
+        {c: c.replace(".", "_") for c in mut_df.columns}, axis=1
+    ).rename({"wts": "wildtype", "sites": "site", "muts": "mutant"}, axis=1)
 
     # stack all condition, but leave replicate values in their own column
+    # sep = ""
+
     mut_df = pandas.wide_to_long(
-        mut_df, 
-        stubnames=list(fit_data.keys())+["value"], 
-        i=id_vars,
-        j="condition", 
-        sep="_", 
-        suffix=".+"        
+        mut_df, stubnames=stubnames, i=id_vars, j="condition", sep="_", suffix=".+"
     ).reset_index()
 
     for condition in fit.data.conditions:
         reference_wts = fit.data.site_map[fit.data.reference]
         is_ref = condition == fit.data.reference
-        if is_ref and not include_beta: continue
+        if is_ref and not include_beta:
+            continue
         category_wt = f"S_{condition}".replace(".", "_") if not is_ref else "β"
         con_wt_dict = {
-                "wildtype": reference_wts.values,
-                "mutant": reference_wts.values,
-                "site": reference_wts.index.values,
-                "value": 0,
-                "condition": category_wt
+            "wildtype": reference_wts.values,
+            "mutant": reference_wts.values,
+            "site": reference_wts.index.values,
+            "value": 0,
+            "condition": category_wt,
         }
-        for rep_prefix in list(fit_data.keys()):
-            con_wt_dict[rep_prefix] = 0 
+        if type(fit_data) == dict:
+            for rep_prefix in list(fit_data.keys()):
+                con_wt_dict[rep_prefix] = 0
         con_wt = pandas.DataFrame(con_wt_dict)
-        mut_df = pandas.concat([con_wt,mut_df])
+        mut_df = pandas.concat([con_wt, mut_df])
 
     if include_beta:
         mut_df = mut_df.sort_values(by="condition", ascending=False)
 
     for condition in fit.data.conditions:
-        if condition == fit.data.reference: continue
+        if condition == fit.data.reference:
+            continue
         mut_df[f"wildtype_S_{condition}"] = mut_df["wildtype"]
         cond_non_iden_sites = fit.data.non_identical_sites[condition]
         for idx, nis in cond_non_iden_sites.iterrows():
             nis_idx = mut_df.query(f"site == {idx}").index
             mut_df.loc[nis_idx, f"wildtype_S_{condition}"] = nis[condition]
         kwargs["addtl_tooltip_stats"].append(f"wildtype_S_{condition}")
-
-    
 
     kwargs["data_df"] = mut_df
     kwargs["stat_col"] = "value"
@@ -755,16 +771,15 @@ def mut_shift_plot(
     kwargs["categorical_wildtype"] = True
     kwargs["category_colors"] = condition_colors
 
-    for rep_replicate in list(fit_data.keys()):
-        kwargs["addtl_tooltip_stats"].append(rep_replicate)
+    if type(fit_data) == dict:
+        for rep_replicate in list(fit_data.keys()):
+            kwargs["addtl_tooltip_stats"].append(rep_replicate)
 
     if "alphabet" not in kwargs:
         kwargs["alphabet"] = fit.data.alphabet
 
     if biochem_order_aas:
-        kwargs["alphabet"] = polyclonal.alphabets.biochem_order_aas(
-            kwargs["alphabet"]
-        )
+        kwargs["alphabet"] = polyclonal.alphabets.biochem_order_aas(kwargs["alphabet"])
 
     return lineplot_and_heatmap(**kwargs)
 
