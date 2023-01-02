@@ -39,7 +39,7 @@ def lineplot_and_heatmap(
     site_zoom_bar_width=500,
     site_zoom_bar_color_col=None,
     plot_title=None,
-    show_single_category_label=False,
+    show_single_category_label=True,
     category_colors=None,
     heatmap_negative_color=None,
     heatmap_color_scheme=None,
@@ -748,7 +748,7 @@ def mut_shift_plot(
             for rep_prefix in list(fit_data.keys()):
                 con_wt_dict[rep_prefix] = 0
         con_wt = pandas.DataFrame(con_wt_dict)
-        mut_df = pandas.concat([con_wt, mut_df])
+        mut_df = pandas.concat([con_wt, mut_df], ignore_index=True)
 
     if include_beta:
         mut_df = mut_df.sort_values(by="condition", ascending=False)
@@ -756,12 +756,12 @@ def mut_shift_plot(
     for condition in fit.data.conditions:
         if condition == fit.data.reference:
             continue
-        mut_df[f"wildtype_S_{condition}"] = mut_df["wildtype"]
+        mut_df[f"wildtype_S_{condition}".replace(".", "_")] = mut_df["wildtype"].copy()
         cond_non_iden_sites = fit.data.non_identical_sites[condition]
         for idx, nis in cond_non_iden_sites.iterrows():
-            nis_idx = mut_df.query(f"site == {idx}").index
-            mut_df.loc[nis_idx, f"wildtype_S_{condition}"] = nis[condition]
-        kwargs["addtl_tooltip_stats"].append(f"wildtype_S_{condition}")
+            nis_idx = mut_df.query(f"site == {int(idx)}").index
+            mut_df.loc[nis_idx, f"wildtype_S_{condition}".replace(".", "_")] = nis[condition]
+        kwargs["addtl_tooltip_stats"].append(f"wildtype_S_{condition}".replace(".", "_"))
 
     kwargs["data_df"] = mut_df
     kwargs["stat_col"] = "value"
