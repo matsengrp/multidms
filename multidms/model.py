@@ -1134,6 +1134,8 @@ class MultiDmsModel:
                 **kwargs,
             )
 
+        ax.set_yscale("log")
+
         ax.set(xlabel=param)
         plt.tight_layout()
 
