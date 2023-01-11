@@ -122,6 +122,7 @@ from frozendict import frozendict
 from jaxopt import ProximalGradient
 from jaxopt.loss import huber_loss
 from jaxopt.prox import prox_lasso
+from jaxopt.linear_solve import solve_normal_cg
 
 import pandas
 import numpy as onp
@@ -329,10 +330,14 @@ def gamma_corrected_cost_smooth(f, params, data, δ=1, λ_ridge=0, **kwargs):
 
         # compute a regularization term that penalizes non-zero
         # shift parameters and add it to the loss function
-        ridge_penalty = λ_ridge * (d_params["s_md"] ** 2).sum()
-        loss += ridge_penalty
+        #ridge_penalty = λ_ridge * (d_params["s_md"] ** 2).sum()
+        #loss += ridge_penalty
 
-    return loss
+    lin_ssp = jnp.sum(jnp.array([(value ** 2).sum() for param, value in params.items() if param != "α"]))
+    non_lin_ssp = jnp.sum(jnp.array([(value ** 2).sum() for param, value in params["α"].items()]))
+    ridge_penalty = λ_ridge * (lin_ssp + non_lin_ssp)
+
+    return loss + ridge_penalty
 
 
 class MultiDmsModel:
@@ -694,6 +699,7 @@ class MultiDmsModel:
         conditional_c=False,
         init_g_range=None,
         init_g_min=None,
+        init_C_ref=5.0,
         PRNGKey=0,
         n_percep_units=5,
     ):
@@ -721,7 +727,7 @@ class MultiDmsModel:
             for condition in data.conditions:
                 self.params[f"S_{condition}"] = jnp.zeros(shape=(n_beta_shift,))
                 self.params[f"C_{condition}"] = jnp.zeros(shape=(1,))
-            self.params["C_ref"] = jnp.array([5.0])  # 5.0 is a guess, could update
+            self.params["C_ref"] = jnp.array([init_C_ref])  # 5.0 is a guess, could update
 
         if epistatic_model == sigmoidal_global_epistasis:
             if init_g_range == None:
@@ -921,17 +927,35 @@ class MultiDmsModel:
         d_params = get_condition_params(condition)
         return self._model["ϕ"](d_params, X)
 
-    def fit(self, lasso_shift=1e-5, tol=1e-6, maxiter=1000, **kwargs):
+
+    def fit_reference_beta(self, **kwargs):
+        """Fit the Model β's to the reference data"""
+
+        ref_X = self._data.training_data['X'][self._data.reference]
+        ref_y = self._data.training_data['y'][self._data.reference]
+
+        self.params['β'] = solve_normal_cg(
+            lambda β: ref_X @ β, 
+            ref_y, 
+            init=self.params['β'], 
+            **kwargs
+        )
+
+
+    def fit(self, lasso_shift=1e-5, tol=1e-6, maxiter=1000, lock_params={}, **kwargs):
         """Use jaxopt.ProximalGradiant to optimize parameters"""
 
         solver = ProximalGradient(
             self._model["objective"], self._model["proximal"], tol=tol, maxiter=maxiter
         )
 
-        lock_params = {
-            f"S_{self._data.reference}": jnp.zeros(len(self.params["β"])),
-            f"γ_{self._data.reference}": jnp.zeros(shape=(1,)),
-        }
+        lock_params[f"S_{self._data.reference}"] = jnp.zeros(len(self.params["β"]))
+        lock_params[f"γ_{self._data.reference}"] = jnp.zeros(shape=(1,))
+
+        #lock_params = {
+        #    f"S_{self._data.reference}": jnp.zeros(len(self.params["β"])),
+        #    f"γ_{self._data.reference}": jnp.zeros(shape=(1,)),
+        #}
 
         if not self.conditional_shifts:
             for condition in self._data.conditions:
@@ -957,7 +981,7 @@ class MultiDmsModel:
             self.params,
             hyperparams_prox=dict(lasso_params=lasso_params, lock_params=lock_params),
             data=(self._data.training_data["X"], self._data.training_data["y"]),
-            **kwargs,
+            **kwargs
         )
 
     def plot_pred_accuracy(
