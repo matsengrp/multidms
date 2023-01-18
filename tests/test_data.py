@@ -31,7 +31,6 @@ def test_non_identical_conversion():
         alphabet = multidms.AAS_WITHSTOP,
         reference = "1",
         assert_site_integrity=True,
-        filter_non_shared_sites=False
     )
     #print(data.site_map)
     #assert False
