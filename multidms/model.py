@@ -302,13 +302,14 @@ def lasso_lock_prox(
 
 
 @Partial(jax.jit, static_argnums=(0,))
-def gamma_corrected_cost_smooth(f, params, data, δ=1, λ_ridge=0, **kwargs):
+def gamma_corrected_cost_smooth(f, params, data, δ=1, λ_ridge_shift = 1e-6, λ_ridge_beta = 1e-6, **kwargs):
     """Cost (Objective) function summed across all conditions"""
 
     X, y = data
     loss = 0
 
     # Sum the huber loss across all conditions
+    shift_ridge_penalty = 0
     for condition, X_d in X.items():
 
         # Subset the params for condition-specific prediction
@@ -330,14 +331,11 @@ def gamma_corrected_cost_smooth(f, params, data, δ=1, λ_ridge=0, **kwargs):
 
         # compute a regularization term that penalizes non-zero
         # shift parameters and add it to the loss function
-        #ridge_penalty = λ_ridge * (d_params["s_md"] ** 2).sum()
-        #loss += ridge_penalty
+        loss += λ_ridge_shift * jnp.sum(d_params["s_md"] ** 2)
 
-    lin_ssp = jnp.sum(jnp.array([(value ** 2).sum() for param, value in params.items() if param != "α"]))
-    non_lin_ssp = jnp.sum(jnp.array([(value ** 2).sum() for param, value in params["α"].items()]))
-    ridge_penalty = λ_ridge * (lin_ssp + non_lin_ssp)
+    loss += λ_ridge_beta * jnp.sum(params["β"] ** 2)
 
-    return loss + ridge_penalty
+    return loss
 
 
 class MultiDmsModel:
@@ -1158,7 +1156,7 @@ class MultiDmsModel:
                 **kwargs,
             )
 
-        ax.set_yscale("log")
+        # ax.set_yscale("log")
 
         ax.set(xlabel=param)
         plt.tight_layout()

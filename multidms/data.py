@@ -215,7 +215,7 @@ class MultiDmsData:
         condition_colors=DEFAULT_POSITIVE_COLORS,
         letter_suffixed_sites=False,
         assert_site_integrity=False,  # TODO document
-        filter_non_shared_sites=True,  # TODO document
+        filter_non_shared_subs=True,  # TODO document
         verbose=False,
         nb_workers=None,
     ):
@@ -302,7 +302,10 @@ class MultiDmsData:
         sites_to_throw = na_rows[na_rows].index
         site_map.dropna(inplace=True)
 
-        def flags_disallowed(disallowed_sites, sites_list):
+        nb_workers = os.cpu_count() if not nb_workers else nb_workers
+        pandarallel.initialize(progress_bar=verbose, nb_workers=nb_workers)
+
+        def flags_invalid_sites(disallowed_sites, sites_list):
             """Check to see if a sites list contains
             any disallowed sites"""
             for site in sites_list:
@@ -311,7 +314,7 @@ class MultiDmsData:
             return True
 
         df["allowed_variant"] = df.sites.apply(
-            lambda sl: flags_disallowed(sites_to_throw, sl)
+            lambda sl: flags_invalid_sites(sites_to_throw, sl)
         )
         n_var_pre_filter = len(df)
         df = df[df["allowed_variant"]]
@@ -348,8 +351,6 @@ class MultiDmsData:
 
         df = df.assign(var_wrt_ref=df["aa_substitutions"])
 
-        nb_workers = os.cpu_count() if not nb_workers else nb_workers
-        pandarallel.initialize(progress_bar=verbose, nb_workers=nb_workers)
 
         def convert_subs_wrt_ref_seq(non_identical_sites, wts, sites, muts):
             """
@@ -395,7 +396,6 @@ class MultiDmsData:
 
         # Make BinaryMap representations for each condition
         allowed_subs = {s for subs in df.var_wrt_ref for s in subs.split()}
-
         binmaps, X, y = {}, {}, {}
         for condition, condition_func_score_df in df.groupby("condition"):
 
@@ -435,7 +435,7 @@ class MultiDmsData:
             mut_df = mut_df.merge(
                 times_seen, left_on="mutation", right_on="mutation", how="outer"
             ).fillna(0)
-
+        
         self._mutations_df = mut_df
 
     @property
