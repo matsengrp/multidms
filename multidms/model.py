@@ -114,6 +114,7 @@ import warnings
 import jax
 
 jax.config.update("jax_enable_x64", True)
+# jax.config.update("jax_debug_nans", True)
 import jax.numpy as jnp
 import jaxlib
 from jax.experimental import sparse
@@ -302,7 +303,7 @@ def lasso_lock_prox(
 
 
 @Partial(jax.jit, static_argnums=(0,))
-def gamma_corrected_cost_smooth(f, params, data, δ=1, λ_ridge_shift = 1e-6, λ_ridge_beta = 1e-6, **kwargs):
+def gamma_corrected_cost_smooth(f, params, data, δ=1, λ_ridge_gamma = 1e-3, λ_ridge_shift = 1e-6, λ_ridge_beta = 1e-6, **kwargs):
     """Cost (Objective) function summed across all conditions"""
 
     X, y = data
@@ -332,6 +333,8 @@ def gamma_corrected_cost_smooth(f, params, data, δ=1, λ_ridge_shift = 1e-6, λ
         # compute a regularization term that penalizes non-zero
         # shift parameters and add it to the loss function
         loss += λ_ridge_shift * jnp.sum(d_params["s_md"] ** 2)
+
+        loss += λ_ridge_gamma * jnp.sum((d_params["γ_d"] ** 2))
 
     loss += λ_ridge_beta * jnp.sum(params["β"] ** 2)
 
@@ -887,8 +890,14 @@ class MultiDmsModel:
 
     @property
     def loss(self):
+        kwargs = {
+            'λ_ridge_beta': 0.,
+            'λ_ridge_shift': 0.,
+            'λ_ridge_gamma': 0.
+        }
         data = (self._data.training_data["X"], self._data.training_data["y"])
-        return self._model["objective"](self.params, data)
+        return self._model["objective"](self.params, data, **kwargs)
+
 
     @property
     def data(self):
