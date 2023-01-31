@@ -16,6 +16,7 @@ import jax
 import jax.numpy as jnp
 import jaxlib
 from jax.experimental import sparse
+
 # from jax.tree_util import Partial
 from frozendict import frozendict
 from jaxopt import ProximalGradient
@@ -48,8 +49,8 @@ class MultiDmsModel:
 
     Note
     ----
-    For each variant :math:`v` from condition :math:`h`, 
-    we use a global-epistasis function :math:`g` to convert a latent phenotype 
+    For each variant :math:`v` from condition :math:`h`,
+    we use a global-epistasis function :math:`g` to convert a latent phenotype
     :math:`\phi` to a functional score :math:`f`:
 
     .. math::
@@ -107,7 +108,7 @@ class MultiDmsModel:
     latent_model : str
         A string encoding of the compiled function for
         a latent prediction from binary one-hot encodings
-        of variants. Currently, we only support the 'ϕ'
+        of variants. Currently, we only support the 'additive_model'
         model.
         See Model Description section for more.
     epistatic_model : str
@@ -158,7 +159,7 @@ class MultiDmsModel:
         model, this is the number of hidden units
         used in the transform.
 
-    TODO - re-write these examples after finalizing API 
+    TODO - re-write these examples after finalizing API
 
     Example
     -------
@@ -244,7 +245,7 @@ class MultiDmsModel:
     def __init__(
         self,
         data: MultiDmsData,
-        latent_model=ϕ,
+        latent_model=additive_model,
         epistatic_model=identity_activation,
         output_activation=identity_activation,
         gamma_corrected=True,
@@ -259,7 +260,6 @@ class MultiDmsModel:
         """
         See class docstring.
         """
-        print("IS NEWW")
 
         self.gamma_corrected = gamma_corrected
         self.conditional_shifts = conditional_shifts
@@ -270,16 +270,14 @@ class MultiDmsModel:
         self._params = {}
         key = jax.random.PRNGKey(PRNGKey)
 
-        if latent_model == ϕ:
+        if latent_model == additive_model:
 
             n_beta_shift = len(self._data.mutations)
             self._params["β"] = jax.random.normal(shape=(n_beta_shift,), key=key)
             for condition in data.conditions:
                 self._params[f"S_{condition}"] = jnp.zeros(shape=(n_beta_shift,))
                 self._params[f"C_{condition}"] = jnp.zeros(shape=(1,))
-            self._params["C_ref"] = jnp.array(
-                [init_C_ref]
-            )
+            self._params["C_ref"] = jnp.array([init_C_ref])
         else:
             raise ValueError(f"{latent_model} not recognized,")
 
@@ -328,20 +326,16 @@ class MultiDmsModel:
             abstract_epistasis,  # abstract function to compile
             latent_model,
             epistatic_model,
-            output_activation
+            output_activation,
         )
-        from_latent = partial(
-            abstract_from_latent,
-            epistatic_model,
-            output_activation
-        )
+        from_latent = partial(abstract_from_latent, epistatic_model, output_activation)
         cost = partial(gamma_corrected_cost_smooth, pred)
 
         self._model_components = frozendict(
             {
-                "ϕ": latent_model,
+                "additive_model": latent_model,
                 "g": epistatic_model,
-                "output_activation":output_activation,
+                "output_activation": output_activation,
                 "f": pred,
                 "from_latent": from_latent,
                 "objective": cost,
@@ -394,7 +388,7 @@ class MultiDmsModel:
                 variants_df.loc[
                     condition_dtf.index, f"corrected_func_score"
                 ] += d_params[f"γ_d"]
-            y_h_latent = jax.jit(self._model_components["ϕ"])(
+            y_h_latent = jax.jit(self._model_components["additive_model"])(
                 d_params, self._data.training_data["X"][condition]
             )
             variants_df.loc[condition_dtf.index, f"predicted_latent"] = y_h_latent
@@ -442,13 +436,13 @@ class MultiDmsModel:
             wt_binary = binmap.sub_str_to_binary(nis)
             d_params = self.get_condition_params(condition)
 
-            wildtype_df.loc[f"{condition}", "predicted_latent"] = jax.jit(self._model_components["ϕ"])(
-                d_params, wt_binary
-            )
+            wildtype_df.loc[f"{condition}", "predicted_latent"] = jax.jit(
+                self._model_components["additive_model"]
+            )(d_params, wt_binary)
 
-            wildtype_df.loc[f"{condition}", "predicted_func_score"] = jax.jit(self._model_components["f"])(
-                d_params, wt_binary
-            )
+            wildtype_df.loc[f"{condition}", "predicted_func_score"] = jax.jit(
+                self._model_components["f"]
+            )(d_params, wt_binary)
 
         return wildtype_df
 
@@ -478,7 +472,7 @@ class MultiDmsModel:
             mut_df = mut_df[mut_df[c] >= times_seen_threshold]
 
         return mut_df.groupby("sites").aggregate(agg_func)
-    
+
     def get_condition_params(self, condition=None):
         """get the relent parameters for a model prediction"""
 
@@ -508,7 +502,7 @@ class MultiDmsModel:
         given current model parameters."""
 
         d_params = get_condition_params(condition)
-        return jax.jit(self._model_components["ϕ"])(d_params, X)
+        return jax.jit(self._model_components["additive_model"])(d_params, X)
 
     def fit_reference_beta(self, **kwargs):
         """Fit the Model β's to the reference data"""
@@ -524,7 +518,10 @@ class MultiDmsModel:
         """Use jaxopt.ProximalGradiant to optimize parameters"""
 
         solver = ProximalGradient(
-            jax.jit(self._model_components["objective"]), jax.jit(self._model_components["proximal"]), tol=tol, maxiter=maxiter
+            jax.jit(self._model_components["objective"]),
+            jax.jit(self._model_components["proximal"]),
+            tol=tol,
+            maxiter=maxiter,
         )
 
         lock_params[f"S_{self._data.reference}"] = jnp.zeros(len(self._params["β"]))
@@ -666,11 +663,11 @@ class MultiDmsModel:
         xlb, xub = [-1, 1] + onp.quantile(df.predicted_latent, [0.05, 1.0])
         ylb, yub = [-1, 1] + onp.quantile(df.corrected_func_score, [0.05, 1.0])
 
-        ϕ_grid = onp.linspace(xlb, xub, num=1000)
+        additive_model_grid = onp.linspace(xlb, xub, num=1000)
 
         params = self.get_condition_params(self._data.reference)
-        latent_preds = self._model_components["g"](params["α"], ϕ_grid)
-        shape = (ϕ_grid, latent_preds)
+        latent_preds = self._model_components["g"](params["α"], additive_model_grid)
+        shape = (additive_model_grid, latent_preds)
         ax.plot(*shape, color="k", lw=2)
 
         ax.axhline(0, color="k", ls="--", lw=2)
@@ -678,7 +675,7 @@ class MultiDmsModel:
         ax.set_xlim([xlb, xub])
         ax.set_ylim([ylb, yub])
         ax.set_ylabel("functional score + γ$_{d}$")
-        ax.set_xlabel("predicted latent phenotype (ϕ)")
+        ax.set_xlabel("predicted latent phenotype (additive_model)")
         plt.tight_layout()
 
         if saveas:
