@@ -41,6 +41,8 @@ from polyclonal.alphabets import AAS_WITHSTOP_WITHGAP
 from multidms.data import MultiDmsData
 from multidms.model import MultiDmsModel
 
+import multidms.biophysical
+import multidms.utils
 
 # import multidms.model
 # import multidms.utils

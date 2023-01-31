@@ -1,7 +1,8 @@
 .. _autodoc:
 
 ..
-.. contents::
+    ..contents::
+
 
 =============
 API reference
