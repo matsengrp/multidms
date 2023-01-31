@@ -1,7 +1,7 @@
 """
-==========
-multidms
-==========
+============
+MultiDmsData
+============
 
 Defines :class:`Multidms` objects for handling data from one or more
 dms experiments under various conditions.

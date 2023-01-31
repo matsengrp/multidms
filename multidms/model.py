@@ -6,7 +6,7 @@ MultiDmsModel
 Defines :class:`MultiDmsModel` objects.
 """
 
-from functools import reduce
+from functools import reduce, partial
 import warnings
 
 import jax
@@ -16,7 +16,7 @@ import jax
 import jax.numpy as jnp
 import jaxlib
 from jax.experimental import sparse
-from jax.tree_util import Partial
+# from jax.tree_util import Partial
 from frozendict import frozendict
 from jaxopt import ProximalGradient
 from jaxopt.loss import huber_loss
@@ -259,28 +259,25 @@ class MultiDmsModel:
         """
         See class docstring.
         """
+        print("IS NEWW")
 
         self.gamma_corrected = gamma_corrected
         self.conditional_shifts = conditional_shifts
         self.conditional_c = conditional_c
 
-        # self.latent_model = latent_model
-        # self.epistatic_model = epistatic_model
-        # self.output_activation = output_activation
-
         self._data = data
 
-        self.params = {}
+        self._params = {}
         key = jax.random.PRNGKey(PRNGKey)
 
         if latent_model == ϕ:
 
             n_beta_shift = len(self._data.mutations)
-            self.params["β"] = jax.random.normal(shape=(n_beta_shift,), key=key)
+            self._params["β"] = jax.random.normal(shape=(n_beta_shift,), key=key)
             for condition in data.conditions:
-                self.params[f"S_{condition}"] = jnp.zeros(shape=(n_beta_shift,))
-                self.params[f"C_{condition}"] = jnp.zeros(shape=(1,))
-            self.params["C_ref"] = jnp.array(
+                self._params[f"S_{condition}"] = jnp.zeros(shape=(n_beta_shift,))
+                self._params[f"C_{condition}"] = jnp.zeros(shape=(1,))
+            self._params["C_ref"] = jnp.array(
                 [init_C_ref]
             )
         else:
@@ -291,7 +288,7 @@ class MultiDmsModel:
                 init_g_range = 5.0
             if init_g_min == None:
                 init_g_min = -5.0
-            self.params["α"] = dict(
+            self._params["α"] = dict(
                 ge_scale=jnp.array([init_g_range]), ge_bias=jnp.array([init_g_min])
             )
 
@@ -300,16 +297,16 @@ class MultiDmsModel:
                 init_g_range = 1.0
             if init_g_min == None:
                 init_g_min = 0.0
-            self.params["α"] = dict(
+            self._params["α"] = dict(
                 ge_scale=jnp.array([init_g_range]), ge_bias=jnp.array([init_g_min])
             )
 
         elif epistatic_model == identity_activation:
-            self.params["α"] = dict(ghost_param=jnp.zeros(shape=(1,)))
+            self._params["α"] = dict(ghost_param=jnp.zeros(shape=(1,)))
 
         elif epistatic_model == perceptron_global_epistasis:
             key, key1, key2, key3, key4 = jax.random.split(key, num=5)
-            self.params["α"] = dict(
+            self._params["α"] = dict(
                 p_weights_1=jax.random.normal(shape=(n_percep_units,), key=key1).clip(
                     0
                 ),
@@ -324,30 +321,57 @@ class MultiDmsModel:
             raise ValueError(f"{epistatic_model} not recognized,")
 
         for condition in data.conditions:
-            self.params[f"γ_{condition}"] = jnp.zeros(shape=(1,))
+            self._params[f"γ_{condition}"] = jnp.zeros(shape=(1,))
 
-        compiled_pred = Partial(
+        # TODO document
+        pred = partial(
             abstract_epistasis,  # abstract function to compile
             latent_model,
             epistatic_model,
-            output_activation,
+            output_activation
         )
-        compiled_from_latent = Partial(
+        from_latent = partial(
             abstract_from_latent,
             epistatic_model,
-            output_activation,
+            output_activation
         )
-        compiled_cost = Partial(gamma_corrected_cost_smooth, compiled_pred)
-        self._model = frozendict(
+        cost = partial(gamma_corrected_cost_smooth, pred)
+
+        self._model_components = frozendict(
             {
                 "ϕ": latent_model,
-                "f": compiled_pred,
                 "g": epistatic_model,
-                "from_latent": compiled_from_latent,
-                "objective": compiled_cost,
+                "output_activation":output_activation,
+                "f": pred,
+                "from_latent": from_latent,
+                "objective": cost,
                 "proximal": lasso_lock_prox,
             }
         )
+
+    # TODO non-zero params
+    @property
+    def params(self):
+        """
+        All current model parameters in a dictionary.
+        """
+        return self._params
+
+    @property
+    def data(self):
+        """
+        multidms.MultiDmsData Object this model references for fitting
+        it's parameters.
+        """
+        return self._data
+
+    @property
+    def model_components(self):
+        """
+        A frozendict which hold the individual components of the model
+        as well as the objective and forward functions.
+        """
+        return self._model_companents
 
     @property
     def variants_df(self):
@@ -362,7 +386,7 @@ class MultiDmsModel:
         for condition, condition_dtf in variants_df.groupby("condition"):
 
             d_params = self.get_condition_params(condition)
-            y_h_pred = self._model["f"](
+            y_h_pred = jax.jit(self._model_components["f"])(
                 d_params, self._data.training_data["X"][condition]
             )
             variants_df.loc[condition_dtf.index, f"predicted_func_score"] = y_h_pred
@@ -370,7 +394,7 @@ class MultiDmsModel:
                 variants_df.loc[
                     condition_dtf.index, f"corrected_func_score"
                 ] += d_params[f"γ_d"]
-            y_h_latent = self._model["ϕ"](
+            y_h_latent = jax.jit(self._model_components["ϕ"])(
                 d_params, self._data.training_data["X"][condition]
             )
             variants_df.loc[condition_dtf.index, f"predicted_latent"] = y_h_latent
@@ -386,7 +410,7 @@ class MultiDmsModel:
         """
 
         mutations_df = self._data.mutations_df.copy()
-        mutations_df.loc[:, "β"] = self.params["β"]
+        mutations_df.loc[:, "β"] = self._params["β"]
         # binary_single_subs = sparse.BCOO.fromdense(
         #    onp.identity(len(self._data.mutations))
         # )
@@ -395,28 +419,12 @@ class MultiDmsModel:
             # d_params = self.get_condition_params(condition)
             if condition == self._data.reference:
                 continue
-            mutations_df[f"S_{condition}"] = self.params[f"S_{condition}"]
-            # mutations_df[f"F_{condition}"] = self._model["f"](
+            mutations_df[f"S_{condition}"] = self._params[f"S_{condition}"]
+            # mutations_df[f"F_{condition}"] = self._model_components["f"](
             #    d_params, binary_single_subs
             # )
 
         return mutations_df
-
-    def mutation_site_summary_df(self, agg_func=onp.mean, times_seen_threshold=0):
-        """
-        Get all single mutational attributes from self._data
-        updated with all model specific attributes, then aggregate
-        all numerical columns by "sites" using
-        ``agg`` function. The mean values are given by default.
-        """
-
-        numerics = ["int16", "int32", "int64", "float16", "float32", "float64"]
-        mut_df = self.mutations_df.select_dtypes(include=numerics)
-        times_seen_cols = [c for c in mut_df.columns if "times" in c]
-        for c in times_seen_cols:
-            mut_df = mut_df[mut_df[c] >= times_seen_threshold]
-
-        return mut_df.groupby("sites").aggregate(agg_func)
 
     @property
     def wildtype_df(self):
@@ -434,16 +442,17 @@ class MultiDmsModel:
             wt_binary = binmap.sub_str_to_binary(nis)
             d_params = self.get_condition_params(condition)
 
-            wildtype_df.loc[f"{condition}", "predicted_latent"] = self._model["ϕ"](
+            wildtype_df.loc[f"{condition}", "predicted_latent"] = jax.jit(self._model_components["ϕ"])(
                 d_params, wt_binary
             )
 
-            wildtype_df.loc[f"{condition}", "predicted_func_score"] = self._model["f"](
+            wildtype_df.loc[f"{condition}", "predicted_func_score"] = jax.jit(self._model_components["f"])(
                 d_params, wt_binary
             )
 
         return wildtype_df
 
+    # TODO zero-out penalty parameters
     @property
     def loss(self):
         kwargs = {
@@ -452,13 +461,24 @@ class MultiDmsModel:
             'λ_ridge_gamma': 0.
         }
         data = (self._data.training_data["X"], self._data.training_data["y"])
-        return self._model["objective"](self.params, data, **kwargs)
+        return jax.jit(self._model_components["objective"])(self._params, data)
 
+    def mutation_site_summary_df(self, agg_func=onp.mean, times_seen_threshold=0):
+        """
+        Get all single mutational attributes from self._data
+        updated with all model specific attributes, then aggregate
+        all numerical columns by "sites" using
+        ``agg`` function. The mean values are given by default.
+        """
 
-    @property
-    def data(self):
-        return self._data
+        numerics = ["int16", "int32", "int64", "float16", "float32", "float64"]
+        mut_df = self.mutations_df.select_dtypes(include=numerics)
+        times_seen_cols = [c for c in mut_df.columns if "times" in c]
+        for c in times_seen_cols:
+            mut_df = mut_df[mut_df[c] >= times_seen_threshold]
 
+        return mut_df.groupby("sites").aggregate(agg_func)
+    
     def get_condition_params(self, condition=None):
         """get the relent parameters for a model prediction"""
 
@@ -468,12 +488,12 @@ class MultiDmsModel:
             raise ValueError("condition does not exist in model")
 
         return {
-            "α": self.params["α"],
-            "β_m": self.params["β"],
-            "C_ref": self.params["C_ref"],
-            "s_md": self.params[f"S_{condition}"],
-            "C_d": self.params[f"C_{condition}"],
-            "γ_d": self.params[f"γ_{condition}"],
+            "α": self._params["α"],
+            "β_m": self._params["β"],
+            "C_ref": self._params["C_ref"],
+            "s_md": self._params[f"S_{condition}"],
+            "C_d": self._params[f"C_{condition}"],
+            "γ_d": self._params[f"γ_{condition}"],
         }
 
     def f(self, X, condition=None):
@@ -481,14 +501,14 @@ class MultiDmsModel:
         given current model parameters."""
 
         d_params = get_condition_params(condition)
-        return self._model["f"](d_params, X)
+        return jax.jit(self._model_components["f"])(d_params, X)
 
     def predicted_latent(self, X, condition=None):
         """condition specific prediction on X using the biophysical model
         given current model parameters."""
 
         d_params = get_condition_params(condition)
-        return self._model["ϕ"](d_params, X)
+        return jax.jit(self._model_components["ϕ"])(d_params, X)
 
     def fit_reference_beta(self, **kwargs):
         """Fit the Model β's to the reference data"""
@@ -496,22 +516,22 @@ class MultiDmsModel:
         ref_X = self._data.training_data["X"][self._data.reference]
         ref_y = self._data.training_data["y"][self._data.reference]
 
-        self.params["β"] = solve_normal_cg(
-            lambda β: ref_X @ β, ref_y, init=self.params["β"], **kwargs
+        self._params["β"] = solve_normal_cg(
+            lambda β: ref_X @ β, ref_y, init=self._params["β"], **kwargs
         )
 
     def fit(self, lasso_shift=1e-5, tol=1e-6, maxiter=1000, lock_params={}, **kwargs):
         """Use jaxopt.ProximalGradiant to optimize parameters"""
 
         solver = ProximalGradient(
-            self._model["objective"], self._model["proximal"], tol=tol, maxiter=maxiter
+            jax.jit(self._model_components["objective"]), jax.jit(self._model_components["proximal"]), tol=tol, maxiter=maxiter
         )
 
-        lock_params[f"S_{self._data.reference}"] = jnp.zeros(len(self.params["β"]))
+        lock_params[f"S_{self._data.reference}"] = jnp.zeros(len(self._params["β"]))
         lock_params[f"γ_{self._data.reference}"] = jnp.zeros(shape=(1,))
 
         # lock_params = {
-        #    f"S_{self._data.reference}": jnp.zeros(len(self.params["β"])),
+        #    f"S_{self._data.reference}": jnp.zeros(len(self._params["β"])),
         #    f"γ_{self._data.reference}": jnp.zeros(shape=(1,)),
         # }
 
@@ -535,8 +555,8 @@ class MultiDmsModel:
                 continue
             lasso_params[f"S_{non_ref_condition}"] = lasso_shift
 
-        self.params, state = solver.run(
-            self.params,
+        self._params, state = solver.run(
+            self._params,
             hyperparams_prox=dict(lasso_params=lasso_params, lock_params=lock_params),
             data=(self._data.training_data["X"], self._data.training_data["y"]),
             **kwargs,
@@ -649,7 +669,7 @@ class MultiDmsModel:
         ϕ_grid = onp.linspace(xlb, xub, num=1000)
 
         params = self.get_condition_params(self._data.reference)
-        latent_preds = self._model["g"](params["α"], ϕ_grid)
+        latent_preds = self._model_components["g"](params["α"], ϕ_grid)
         shape = (ϕ_grid, latent_preds)
         ax.plot(*shape, color="k", lw=2)
 
