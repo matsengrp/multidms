@@ -113,7 +113,7 @@ import warnings
 
 import jax
 
-jax.config.update("jax_enable_x64", True)
+# jax.config.update("jax_enable_x64", True)
 # jax.config.update("jax_debug_nans", True)
 import jax.numpy as jnp
 import jaxlib
@@ -310,7 +310,6 @@ def gamma_corrected_cost_smooth(f, params, data, δ=1, λ_ridge_gamma = 1e-3, λ
     loss = 0
 
     # Sum the huber loss across all conditions
-    shift_ridge_penalty = 0
     for condition, X_d in X.items():
 
         # Subset the params for condition-specific prediction
