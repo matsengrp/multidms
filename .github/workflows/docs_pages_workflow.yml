@@ -36,13 +36,13 @@ jobs:
         apt-get update
         apt-get install -y git python3-pip
         git clone --depth 1 "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" .
-        git config --global --add safe.directory /__w/phippery/phippery
+        git config --global --add safe.directory /__w/multidms/multidms
       shell: bash
 
         # TODO, do we really need to install phippery? 
         # could we just install all the other pre-reqs
 
-    - name: Install phippery
+    - name: Install multidms
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -55,4 +55,4 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: "docs/buildDocs.sh"
       shell: bash
-
+      
