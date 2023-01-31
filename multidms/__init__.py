@@ -41,5 +41,6 @@ from polyclonal.alphabets import AAS_WITHSTOP_WITHGAP
 from multidms.data import MultiDmsData
 from multidms.model import MultiDmsModel
 
+
 # import multidms.model
 # import multidms.utils

@@ -62,6 +62,8 @@ dev = [
     "black",
     "sphinx",
     "sphinx_rtd_theme",
+    "nbsphinx",
+    "nbsphinx_link",
     "bumpver"
 ]
 

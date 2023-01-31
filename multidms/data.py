@@ -351,7 +351,6 @@ class MultiDmsData:
 
         df = df.assign(var_wrt_ref=df["aa_substitutions"])
 
-
         def convert_subs_wrt_ref_seq(non_identical_sites, wts, sites, muts):
             """
             Given a dataframe of non identical sites
@@ -435,7 +434,7 @@ class MultiDmsData:
             mut_df = mut_df.merge(
                 times_seen, left_on="mutation", right_on="mutation", how="outer"
             ).fillna(0)
-        
+
         self._mutations_df = mut_df
 
     @property

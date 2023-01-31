@@ -758,11 +758,16 @@ def mut_shift_plot(
             continue
         mut_df[f"wildtype_S_{condition}".replace(".", "_")] = mut_df["wildtype"].copy()
         cond_non_iden_sites = fit.data.non_identical_sites[condition]
-        if type(cond_non_iden_sites) == list: continue
+        if type(cond_non_iden_sites) == list:
+            continue
         for idx, nis in cond_non_iden_sites.iterrows():
             nis_idx = mut_df.query(f"site == {int(idx)}").index
-            mut_df.loc[nis_idx, f"wildtype_S_{condition}".replace(".", "_")] = nis[condition]
-        kwargs["addtl_tooltip_stats"].append(f"wildtype_S_{condition}".replace(".", "_"))
+            mut_df.loc[nis_idx, f"wildtype_S_{condition}".replace(".", "_")] = nis[
+                condition
+            ]
+        kwargs["addtl_tooltip_stats"].append(
+            f"wildtype_S_{condition}".replace(".", "_")
+        )
 
     kwargs["data_df"] = mut_df
     kwargs["stat_col"] = "value"

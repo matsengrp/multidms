@@ -1,111 +1,9 @@
 r"""
-==========
-model
-==========
+=============
+MultiDmsModel
+=============
 
-Defines JIT compiled functions for to use for
-composing global epistasis biophysical models
-and their respective objective functions.
-
-To hide the complexity of this behavior,
-We implement the ``MultiDmsModel`` class.
-
-`JIT` compiled model composition
---------------------------------
-
-``multidms.model.latent_models``,
-``multidms.model.epistatic_models``,
-and
-``multidms.model.output_activations``
-provide JIT compiled functions for to use for
-composing models the abstract epistasis
-byphysical model and their respective
-objective functions.
-For the sake of modularity, abstraction, and code-reusibility,
-we would like to be able to separate and provide options for
-the individual pieces of code that define a model such as this.
-To this end, we are mainly constrained by the necessity of
-Just-in-time (JIT) compilation of our model code for effecient
-training and parameter optimization.
-To achieve this, we must take advantage of the
-``jax.tree_util.Partial`` utility, which allows
-for jit-compiled functions to be "pytree compatible".
-In other words, by decorating functions with
-``Partial``, we can clearly mark which arguments will
-in a function are themselves, statically compiled functions
-in order to achieve function composition.
-
-For a simple example using the ``Partial`` function,
-see https://jax.readthedocs.io/en/latest/_autosummary/jax.tree_util.Partial.html
-
-Here, we do it slightly differently than this example (given
-by the documentation above) where they emphasize feeding
-of partial functions into jit-compiled functions as
-static arguments that are pytree compatible.
-Instead, we use partial in the more traditional sense.
-The _calling_ functions (i.e. functions that call on other
-parameterized functions) are defined as being a "partially" jit-compiled
-function, until the relevant static arguments are provided using another
-call to Partial.
-
-Consider the small example of a composed model formula f(t, g, x) = t(g(x))
-
->>> import jax.numpy as jnp
->>> import jax
->>> jax.config.update("jax_enable_x64", True)
->>> from jax.tree_util import Partial
-
->>> @jax.jit
->>> def identity(x):
->>>     return x
-
->>> @Partial(jax.jit, static_argnums=(0,1,))
->>> def f(t, g, x):
->>>     print(f"compiling")
->>>     return t(g(x))
-
-Here, we defined a simple ``identity`` activation function that is fully
-jit-compiled, as well as the partially jit compiled calling function, ``f``,
-Where the 0th and 1st arguments have been marked as static arguments.
-Next, we'll compile ``f`` by providing the static arguments using another
-call to ``Partial``.
-
->>> identity_f = Partial(f, identity, identity)
-
-Now, we can call upon the compiled function without any reference to our
-static arguments.
-
->>> identity_f(5)
-  compiling
-  5
-
-Note that upon the first call our model was JIT-compiled,
-but subsequent calls need not re-compile
-
->>> identity_f(7)
-  7
-
-We may also want to evaluate the loss of our simple model using MSE.
-We can again use the partial function to define an abstract SSE loss
-which is compatible with any pre-compiled model function, ``f``.
-
->>> @Partial(jax.jit, static_argnums=(0,))
->>> def sse(f, x, y):
->>>     print(f"compiling")
->>>     return jnp.sum((f(x) - y)**2)
-
-And finally we provide some examples and targets to evauate the cost.
-
->>> compiled_cost = Partial(sse, identity_f)
->>> x = jnp.array([10, 12])
->>> y = jnp.array([11, 11])
->>> compiled_cost(x,y)
-  compiling
-  compiling
-  2
-
-The compiled cost function is now suitable for
-`jaxopt <https://jaxopt.github.io/stable/index.html>`_
+Defines :class:`MultiDmsModel` objects.
 """
 
 from functools import reduce
@@ -138,206 +36,7 @@ import polyclonal.plot
 from multidms.utils import is_wt
 from multidms import MultiDmsData
 import multidms.plot
-
-
-@jax.jit
-def identity_activation(d_params, act, **kwargs):
-    return act
-
-
-@jax.jit
-def softplus_activation(d_params, act, lower_bound=-3.5, hinge_scale=0.1, **kwargs):
-    """
-    A modified softplus that hinges at 'lower_bound'.
-    The rate of change at the hinge is defined by 'hinge_scale'. This is derived from
-    https://jax.readthedocs.io/en/latest/_autosummary/jax.nn.softplus.html
-    """
-
-    return (
-        hinge_scale
-        * (jnp.log(1 + jnp.exp((act - (lower_bound + d_params["γ_d"])) / hinge_scale)))
-        + lower_bound
-        + d_params["γ_d"]
-    )
-
-
-@jax.jit
-def gelu_activation(d_params, act, lower_bound=-3.5):
-    """
-    A modified Gaussian error linear unit activation function,
-    where the lower bound asymptote is defined by `lower_bound`.
-
-    This is derived from
-    https://jax.readthedocs.io/en/latest/_autosummary/jax.nn.gelu.html
-    """
-
-    sp = act - (lower_bound + d_params["γ_d"])
-    return (
-        (sp / 2) * (1 + jnp.tanh(jnp.sqrt(2 / jnp.pi) * (sp + (0.044715 * (sp**3)))))
-        + lower_bound
-        + d_params["γ_d"]
-    )
-
-
-@jax.jit
-def ϕ(d_params: dict, X_h: jnp.array):
-    """
-    Model for predicting latent space with
-    shift parameters.
-    """
-
-    return (
-        d_params["C_ref"]
-        + d_params["C_d"]
-        + (X_h @ (d_params["β_m"] + d_params["s_md"]))
-    )
-
-
-@jax.jit
-def sigmoidal_global_epistasis(α: dict, z_h: jnp.array):
-    """
-    A flexible sigmoid function for
-    modeling global epistasis.
-    """
-
-    activations = jax.nn.sigmoid(z_h[:, None])
-    return (α["ge_scale"] @ activations.T) + α["ge_bias"]
-
-
-@jax.jit
-def softplus_global_epistasis(α: dict, z_h: jnp.array):
-    """
-    A flexible sigmoid function for
-    modeling global epistasis.
-    """
-
-    activations = jax.nn.softplus(-1 * z_h[:, None])
-    return ((-1 * α["ge_scale"]) @ activations.T) + α["ge_bias"]
-
-
-@jax.jit
-def perceptron_global_epistasis(α: dict, z_h: jnp.array):
-    """
-    A flexible sigmoid function for
-    modeling global epistasis.
-    """
-    activations = jax.nn.sigmoid(α["p_weights_1"] * z_h[:, None] + α["p_biases"])
-    return (α["p_weights_2"] @ activations.T) + α["output_bias"]
-
-
-@Partial(jax.jit, static_argnums=(0, 1))
-def abstract_from_latent(
-    g: jaxlib.xla_extension.CompiledFunction,
-    t: jaxlib.xla_extension.CompiledFunction,
-    d_params: dict,
-    z_h: jnp.array,
-    **kwargs,
-):
-    """
-    Biophysical model - compiled for optimization
-    until model functions ϕ, g, and t are updated.
-    Model may be composed & compiled
-    with the required functions fixed
-    using `jax.tree_util.Partial.
-    """
-
-    return t(d_params, g(d_params["α"], z_h), **kwargs)
-
-
-@Partial(
-    jax.jit,
-    static_argnums=(
-        0,
-        1,
-        2,
-    ),
-)
-def abstract_epistasis(
-    ϕ: jaxlib.xla_extension.CompiledFunction,
-    g: jaxlib.xla_extension.CompiledFunction,
-    t: jaxlib.xla_extension.CompiledFunction,
-    d_params: dict,
-    X_h: jnp.array,
-    **kwargs,
-):
-    """
-    Biophysical model - compiled for optimization
-    until model functions ϕ, g, and t are updated.
-    Model may be composed & compiled
-    with the required functions fixed
-    using `jax.tree_util.Partial.
-    """
-
-    return t(d_params, g(d_params["α"], ϕ(d_params, X_h)), **kwargs)
-
-
-@jax.jit
-def lasso_lock_prox(
-    params,
-    hyperparams_prox=dict(
-        lasso_params=None,
-        lock_params=None,
-    ),
-    scaling=1.0,
-):
-
-    # enforce monotonic epistasis
-    if "ge_scale" in params["α"]:
-        params["α"]["ge_scale"] = params["α"]["ge_scale"].clip(0)
-
-    if "p_weights_1" in params["α"]:
-        params["α"]["p_weights_1"] = params["α"]["p_weights_1"].clip(0)
-        params["α"]["p_weights_2"] = params["α"]["p_weights_2"].clip(0)
-        # params["α"]["p_biases"] = params["α"]["p_biases"].clip(0)
-
-    if hyperparams_prox["lasso_params"] is not None:
-        for key, value in hyperparams_prox["lasso_params"].items():
-            params[key] = prox_lasso(params[key], value, scaling)
-
-    # Any params to constrain during fit
-    if hyperparams_prox["lock_params"] is not None:
-        for key, value in hyperparams_prox["lock_params"].items():
-            params[key] = value
-
-    return params
-
-
-@Partial(jax.jit, static_argnums=(0,))
-def gamma_corrected_cost_smooth(f, params, data, δ=1, λ_ridge_gamma = 1e-3, λ_ridge_shift = 1e-6, λ_ridge_beta = 1e-6, **kwargs):
-    """Cost (Objective) function summed across all conditions"""
-
-    X, y = data
-    loss = 0
-
-    # Sum the huber loss across all conditions
-    for condition, X_d in X.items():
-
-        # Subset the params for condition-specific prediction
-        d_params = {
-            "α": params["α"],
-            "β_m": params["β"],
-            "C_ref": params["C_ref"],
-            "s_md": params[f"S_{condition}"],
-            "C_d": params[f"C_{condition}"],
-            "γ_d": params[f"γ_{condition}"],
-        }
-
-        # compute predictions
-        y_d_predicted = f(d_params, X_d, **kwargs)
-
-        # compute the Huber loss between observed and predicted
-        # functional scores
-        loss += huber_loss(y[condition] + d_params[f"γ_d"], y_d_predicted, δ).mean()
-
-        # compute a regularization term that penalizes non-zero
-        # shift parameters and add it to the loss function
-        loss += λ_ridge_shift * jnp.sum(d_params["s_md"] ** 2)
-
-        loss += λ_ridge_gamma * jnp.sum((d_params["γ_d"] ** 2))
-
-    loss += λ_ridge_beta * jnp.sum(params["β"] ** 2)
-
-    return loss
+from multidms.biophysical import *
 
 
 class MultiDmsModel:
@@ -347,191 +46,39 @@ class MultiDmsModel:
     individual mutational effects and conditional shifts
     of those effects on all non-reference conditions.
 
+    Note
+    ----
+    For each variant :math:`v` from condition :math:`h`, 
+    we use a global-epistasis function :math:`g` to convert a latent phenotype 
+    :math:`\phi` to a functional score :math:`f`:
 
-    Conceptual Overview of model
-    ----------------------------
+    .. math::
 
-    The ``multidms`` model applies to a case where you have DMS datasets
-    for two or more conditions and are interested in identifying shifts
-    in mutational effects between conditions.
-    To do so, the model defines one condition as a reference condition.
-    For each mutation, the model fits one parameter that quantifies
-    the effect of the mutation in the reference condition.
-    For each non-reference condition, it also fits a shift
-    parameter that quantifies the shift in the mutation's
-    effect in the non-reference condition relative to the reference.
-    Shift parameters can be regularized, encouraging most of them to be
-    close to zero. This regularization step is a useful way to eliminate
-    the effects of experimental noise, and is most useful in cases where
-    you expect most mutations to have the same effects between conditions,
-    such as for conditions that are close relatives.
+        f(v,h) = g_{\alpha}(\phi(v,h)) + γ_h
 
-    The model uses a global-epistasis function to disentangle the effects
-    of multiple mutations on the same variant. To do so, it assumes
-    that mutational effects additively influence a latent biophysical
-    property the protein (e.g., $\Delta G$ of folding).
-    The mutational-effect parameters described above operate at this latent level.
-
-    The global-epistasis function then assumes a sigmoidal relationship between
-    a protein's latent property and its functional score measured in the experiment
-    (e.g., log enrichment score). Ultimately, mutational parameters, as well as ones
-    controlling the shape of the sigmoid, are all jointly fit to maximize agreement
-    between predicted and observed functional scores acorss all variants of all conditions.
-
-    Detailed description of the model
-    ---------------------------------
-
-    For each variant $v$ from condition $h$, we use a global-epistasis function
-    $g$ to convert a latent phenotype $\phi$ to a functional score $f$:
-
-    $$f(v,h) = g_{\alpha}(\phi(v,h)) + γ_h$$
-
-    where $g$ is a sigmoid and $\alpha$ is a set of parameters,
-    ``ge_scale``\ , and ``ge_bias`` which define the shape of the sigmoid.
+    where :math:`g` is a post-latent model
+    and :math:`\alpha` is the set of parameters that define the model
 
     The latent phenotype is computed in the following way:
 
-    $$\phi(v,h) = c + \sum_{m \in v} (x\ *m + s*\ {m,h})$$
+    .. math::
+
+        \phi(v,h) = c + \sum_{m \in v} (x\ *m + s*\ {m,h})
 
     where:
 
-
-    * $c$ is the wild type latent phenotype for the reference condition.
-    * $x_m$ is the latent phenotypic effect of mutation $m$. See details below.
-    * $s_{m,h}$ is the shift of the effect of mutation $m$ in condition $h$.
+    * :math:`c` is the wild type latent phenotype for the reference condition.
+    * :math:`x_m` is the latent phenotypic effect of mutation $m$. See details below.
+    * :math:`s_{m,h}` is the shift of the effect of mutation $m$ in condition $h$.
       These parameters are fixed to zero for the reference condition. For
-      non-reference conditions, they are defined in the same way as $x_m$ parameters.
-    * $v$ is the set of all mutations relative to the reference wild type sequence
-      (including all mutations that separate condition $h$ from the reference condition).
+      non-reference conditions, they are defined in the same way as :math:`x_m` parameters.
+    * :math:`v` is the set of all mutations relative to the reference wild type sequence
+      (including all mutations that separate condition :math:`h` from the reference condition).
 
-    The $x_m$ variable is defined such that mutations are always relative to the
-    reference condition. For example, if the wild type amino acid at site 30 is an
-    A in the reference condition, and a G in a non-reference condition,
-    then a Y30G mutation in the non-reference condition is recorded as an A30G
-    mutation relative to the reference. This way, each condition informs
-    the exact same parameters, even at sites that differ in wild type amino acid.
-    These are encoded in a ``BinaryMap`` object, where all sites that are non-identical
-    to the reference are 1's.
-
-    Ultimately, we fit parameters using a loss function with one term that
-    scores differences between predicted and observed values and another that
-    uses L1 regularization to penalize non-zero $s_{m,h}$ values:
-
-    $$ L\ *{\text{total}} = \sum*\ {h} \left[\sum\ *{v} L*\ {\text{fit}}(y\ *{v,h}, f(v,h)) + \lambda \sum*\ {m} |s_{m,h}|\right]$$
-
-    where:
-
-
-    * $L_{\text{total}}$ is the total loss function.
-    * $L_{\text{fit}}$ is a loss function that penalizes differences
-        in predicted vs. observed functional scores.
-    * $y_{v,h}$ is the experimentally measured functional score of
-        variant $v$ from condition $h$.
-
-    Model using matrix algebra
-    --------------------------
-
-    We compute a vector or predicted latent phenotypes $P_{h}$ as:
-
-    $$P_{h} = c + (X_h \cdot (β + S_h))$$
-
-    where:
-
-
-    * $β$ is a vector of all $β_m$ values.
-    * $S\ *h$ is a matrix of all $s*\ {m,h}$ values.
-    * $X_h$ is a sparse matrix, where rows are variants,
-        columns are mutations (all defined relative to the reference condition),
-        and values are weights of 0's and 1's. These weights are used to
-        compute the phenotype of each variant given the mutations present.
-    * $c$ is the same as above.
-
-    In the matrix algebra, the sum of $β\ *m$ and $S*\ {m,h}$
-    gives a vector of mutational effects, with one entry per mutation.
-    Multiplying the matrix $X_h$ by this vector gives a new
-    vector with one entry per variant, where values are the
-    sum of mutational effects, weighted by the variant-specific weights in $X_h$.
-    Adding the $c$ value to this vector will give a vector of
-    predicted latent phenotypes for each variant.
-
-    Next, the global-epistasis function can be used to convert
-        a vector of predicted latent phenotypes to a vector of
-        predicted functional scores.
-
-    $$F\ *{h,pred} = g*\ {\alpha}(P_h)$$
-
-    Finally, this vector could be fed into a loss function and
-    compared with a vector of observed functional scores.
-
-
-    Class instantiation
-    -------------------
-
-    To instantiate the object:
-
-    1. A ``multidms.multidms.MultiDmsData`` Object for fitting.
-    2. String arguments that exists within the pre-defined
-    set of functions for latent and epistatic models as well
-    as a final activation function. By default, we use the
-    linear model with shift parameters (see Model Overview),
-    and identity functions for the epistatic model
-    as well as for the output activation (i.e. the linear model).
-
-    Parameters
-    ----------
-
-    data : ``multidms.multidms.MultiDmsData``
-        a reference to the data you wish to fit & explore.
-        This is useful for accessing various attributes
-        of the data from a model class.
-        See the main class description for more
-        about the ``multidms.MultiDmsData`` Object.
-    latent_model : str
-        The latent phenotype model you wish to use.
-        Currently, only 'ϕ' is available. This
-        may be deprecated in future versions.
-    epistatic_model : str
-        The epistatic transform function you wish to
-        use for the model. i
-        See multidms.model.epistatic_models
-        for the dictionary mapping a given string
-        to a compiled model function.
-    output_activation : str,
-        The output activation function you would like to
-        use for the model. See multidms.model.output_activations
-        for the dictionary mapping a given string
-        to a compiled model function.
-    gamma_corrected : bool
-        If True, use the scalar gamma (γ_d) parameter to correct
-        for wildtype differences between conditions. For models
-        where all conditions have the same wildtype amino acid
-        sequence this behavior is generally not useful.
-    conditional_shifts : bool
-        If True, include conditional shift parameters.
-        In most scenerios where you have multiple conditions
-        in a dataset, this is a key feature of the model to
-        identify where mutational effects differ.
-        This may be set to False if you would like to fit
-        a more traditional global epistasis model.
-    conditional_c : bool
-        Initialize a latent bias parameter,like C_ref,
-        but for each of the individual condition in a dataset.
-    PRNGKey : int
-        The starting PRNG key for all random
-        parameter initialization. See the ``Jax`` documentation,
-        for an explanation on how this differs from
-        a more traditional seed value.
-    init_g_range : float or None
-        If using a two-parameter epistatic,
-        model, use this as the starting range of the model.
-    init_g_min : float or None
-        If using a two-parameter epistatic model
-        (like sigmoidor softplus), use this as the
-        starting minimum value of the model range.
+    For more see the `biophysical model documentation <todo>`_
 
     Attributes
     ----------
-
     variants_df : pandas.DataFrame
         A copy of this object's data.variants_df attribute,
         but with the added model predictions (latent and epistatic)
@@ -550,11 +97,10 @@ class MultiDmsModel:
         containing the prediction features for each.
     loss : float
         Compute and return the current loss of the model
-        with current parameters
+        with current parameters.
 
     Parameters
     ----------
-
     data : multidms.MultiDmsData
         A reference to the dataset which will define the parameters
         of the model to be fit.
@@ -595,22 +141,29 @@ class MultiDmsModel:
         If True (default False) introduce a bias parameter
         on the latent space parameter for each condition.
         See Model Description section for more.
-    init_g_range : float or None
-        Initialize the range of two parameter
-        epistatic models.
-    init_g_range : float or None
-        Initialize the min of a two parameter
-        epistatic models.
+    init_g_range : float
+        Initialize the range of two-parameter epistatic models
+        (Sigmoid or Softplus).
+    init_g_min : float
+        Initialize the min of a two parameter epistatic models.
+        (Sigmoid or Softplus).
+    init_C_ref : float
+        Initialize the $C_{ref}$ parameter.
     PRNGKey : int
         The initial seed key for random parameters
         assigned to Beta's and any other randomly
         initialized parameters.
+    n_percep_units : int or None
+        If using a perceptron global epistasis
+        model, this is the number of hidden units
+        used in the transform.
+
+    TODO - re-write these examples after finalizing API 
 
     Example
     -------
-
     To create a MultiDmsModel object, all you need is
-    the respective MultiDmsModel object for parameter fitting,
+    the respective MultiDmsData object for parameter fitting,
     as well as the string encoded options for choosing a model.
 
     >>> model = multidms.MultiDmsModel(
@@ -711,9 +264,9 @@ class MultiDmsModel:
         self.conditional_shifts = conditional_shifts
         self.conditional_c = conditional_c
 
-        self.latent_model = latent_model
-        self.epistatic_model = epistatic_model
-        self.output_activation = output_activation
+        # self.latent_model = latent_model
+        # self.epistatic_model = epistatic_model
+        # self.output_activation = output_activation
 
         self._data = data
 
@@ -727,7 +280,11 @@ class MultiDmsModel:
             for condition in data.conditions:
                 self.params[f"S_{condition}"] = jnp.zeros(shape=(n_beta_shift,))
                 self.params[f"C_{condition}"] = jnp.zeros(shape=(1,))
-            self.params["C_ref"] = jnp.array([init_C_ref])  # 5.0 is a guess, could update
+            self.params["C_ref"] = jnp.array(
+                [init_C_ref]
+            )
+        else:
+            raise ValueError(f"{latent_model} not recognized,")
 
         if epistatic_model == sigmoidal_global_epistasis:
             if init_g_range == None:
@@ -933,20 +490,15 @@ class MultiDmsModel:
         d_params = get_condition_params(condition)
         return self._model["ϕ"](d_params, X)
 
-
     def fit_reference_beta(self, **kwargs):
         """Fit the Model β's to the reference data"""
 
-        ref_X = self._data.training_data['X'][self._data.reference]
-        ref_y = self._data.training_data['y'][self._data.reference]
+        ref_X = self._data.training_data["X"][self._data.reference]
+        ref_y = self._data.training_data["y"][self._data.reference]
 
-        self.params['β'] = solve_normal_cg(
-            lambda β: ref_X @ β, 
-            ref_y, 
-            init=self.params['β'], 
-            **kwargs
+        self.params["β"] = solve_normal_cg(
+            lambda β: ref_X @ β, ref_y, init=self.params["β"], **kwargs
         )
-
 
     def fit(self, lasso_shift=1e-5, tol=1e-6, maxiter=1000, lock_params={}, **kwargs):
         """Use jaxopt.ProximalGradiant to optimize parameters"""
@@ -958,10 +510,10 @@ class MultiDmsModel:
         lock_params[f"S_{self._data.reference}"] = jnp.zeros(len(self.params["β"]))
         lock_params[f"γ_{self._data.reference}"] = jnp.zeros(shape=(1,))
 
-        #lock_params = {
+        # lock_params = {
         #    f"S_{self._data.reference}": jnp.zeros(len(self.params["β"])),
         #    f"γ_{self._data.reference}": jnp.zeros(shape=(1,)),
-        #}
+        # }
 
         if not self.conditional_shifts:
             for condition in self._data.conditions:
@@ -987,7 +539,7 @@ class MultiDmsModel:
             self.params,
             hyperparams_prox=dict(lasso_params=lasso_params, lock_params=lock_params),
             data=(self._data.training_data["X"], self._data.training_data["y"]),
-            **kwargs
+            **kwargs,
         )
 
     def plot_pred_accuracy(
