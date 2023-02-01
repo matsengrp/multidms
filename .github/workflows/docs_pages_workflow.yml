@@ -3,64 +3,28 @@ name: docs_pages_workflow
 # execute this workflow automatically when a we push to master
 on:
   push:
-    branches: [ main ]
+    branches: 
+      - main
+      - gh_action_doc_test
  
 jobs:
  
   build_docs_job:
     runs-on: ubuntu-20.04
-    # container: debian:buster-slim
-    # container: debian:buster
-    #strategy:
-    #  matrix:
-    #    python-version: [3.9]
  
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
       with:
         python-version: '3.9'
-        #- uses: actions/checkout@v2
-        #- name: Set up Python 3.8
-        #  uses: actions/setup-python@v2
-        #  with:
-        #    python-version: 3.8
-
-          
-        #    - name: Install dependencies
-        #      run: |
-        #        python -m pip install --upgrade pip
-        #    - name: Install phippery
-        #      run: |
-        #          pip install -e ".[dev]"
- 
-        #- name: Prereqs
-        #  env:
-        #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        #  run: |
-        #    apt-get update
-        #    apt-get install -y git python3.8
-        #    git clone --depth 1 "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" .
-        #    git config --global --add safe.directory /__w/multidms/multidms
-        #  shell: bash
-
-        # TODO, do we really need to install phippery? 
-        # could we just install all the other pre-reqs
 
     - name: Install multidms
-      #  env:
-      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        echo $(python --version)
         python -m pip install --upgrade pip
         python -m pip install -e ".[dev]"
-        #python3 -m pip install --upgrade pip
-        #python3 -m pip install -e ".[dev]"
       shell: bash
       
     - name: Execute script to build our documentation and update pages
-      #env:
-      #  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: "docs/buildDocs.sh"
       shell: bash
       
