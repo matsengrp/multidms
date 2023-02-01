@@ -15,9 +15,6 @@ jobs:
  
     steps:
         #- uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
 
     - name: Prereqs
       env:
@@ -28,6 +25,10 @@ jobs:
         git clone --depth 1 "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" .
         git config --global --add safe.directory /__w/multidms/multidms
       shell: bash
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
 
     - name: Install multidms
       env:
