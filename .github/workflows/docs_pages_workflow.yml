@@ -21,14 +21,16 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         apt-get update
-        apt-get install -y git
+        apt-get install -y git python3-pip
+        apt upgrade python3-pip
+        echo $(python --version)
         git clone --depth 1 "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" .
         git config --global --add safe.directory /__w/multidms/multidms
       shell: bash
 
-    - uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
+      #- uses: actions/setup-python@v4
+      #  with:
+      #    python-version: '3.9'
 
     - name: Install multidms
       env:
