@@ -4,6 +4,8 @@ name: docs_pages_workflow
 on:
   push:
     branches: [ main ]
+  push:
+    branches: [ gh_action_doc_test ]
  
 jobs:
  
