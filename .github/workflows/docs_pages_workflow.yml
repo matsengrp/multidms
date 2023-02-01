@@ -11,17 +11,17 @@ jobs:
     runs-on: ubuntu-latest
     # container: debian:buster-slim
     container: debian:buster
-    strategy:
-      matrix:
-        python-version: [3.9]
+    #strategy:
+    #  matrix:
+    #    python-version: [3.9]
  
     steps:
+        #- uses: actions/checkout@v2
+        #- name: Set up Python 3.8
+        #  uses: actions/setup-python@v2
+        #  with:
+        #    python-version: 3.8
 
-        #    - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
           
         #    - name: Install dependencies
         #      run: |
@@ -35,7 +35,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         apt-get update
-        apt-get install -y git
+        apt-get install -y git python3.8
         git clone --depth 1 "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" .
         git config --global --add safe.directory /__w/multidms/multidms
       shell: bash
@@ -47,8 +47,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        python3 -m pip install --upgrade pip
-        python3 -m pip install -e ".[dev]"
+        python3.8 -m pip install --upgrade pip
+        python3.8 -m pip install -e ".[dev]"
         #python3 -m pip install --upgrade pip
         #python3 -m pip install -e ".[dev]"
       shell: bash
