@@ -13,10 +13,20 @@ jobs:
     runs-on: ubuntu-20.04
  
     steps:
-    - uses: actions/checkout@v3
+        #- uses: actions/checkout@v3
     - uses: actions/setup-python@v4
       with:
         python-version: '3.9'
+
+    - name: Prereqs
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        apt-get update
+        apt-get install -y git
+        git clone --depth 1 "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" .
+        git config --global --add safe.directory /__w/multidms/multidms
+      shell: bash
 
     - name: Install multidms
       env:
