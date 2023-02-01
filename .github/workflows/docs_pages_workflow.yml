@@ -21,11 +21,11 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        apt-get update
-        apt-get install -y git python3.8 python3-pip
-        # apt upgrade python3-pip
-        echo $(python --version)
-        echo '###################### YO ##################' 
+        sudo apt-get update
+        sudo apt-get install -y git python3.8 python3-pip
+        sudo # apt upgrade python3-pip
+        sudo echo $(python --version)
+        sudo echo '###################### YO ##################' 
         git clone --depth 1 "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" .
         git config --global --add safe.directory /__w/multidms/multidms
       shell: bash
