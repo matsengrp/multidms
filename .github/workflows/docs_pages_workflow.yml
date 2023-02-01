@@ -8,9 +8,9 @@ on:
 jobs:
  
   build_docs_job:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     # container: debian:buster-slim
-    container: debian:buster
+    # container: debian:buster
     #strategy:
     #  matrix:
     #    python-version: [3.9]
@@ -51,6 +51,7 @@ jobs:
       #  env:
       #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        echo $(python --version)
         python -m pip install --upgrade pip
         python -m pip install -e ".[dev]"
         #python3 -m pip install --upgrade pip
