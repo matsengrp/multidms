@@ -16,8 +16,11 @@ set -x
 # INSTALL DEPENDS #
 ###################
  
-apt-get update
-apt-get -y install git rsync python3-sphinx python3-sphinx-rtd-theme
+sudo apt-get update
+# apt-get -y install git rsync python3-sphinx python3-sphinx-rtd-theme
+# sudo apt-get apt-get -y install git rsync # python3-sphinx python3-sphinx-rtd-theme
+# echo $(rsync -h)
+# echo $(git --help)
  
 #####################
 # DECLARE VARIABLES #
