@@ -38,7 +38,7 @@ dependencies = [
     "jax",
     "jaxopt",
     "typing_extensions",
-    #"numpy",
+    "numpy",
     "pandas",
     "binarymap",
     #"scipy>=1.7.1",
@@ -47,7 +47,7 @@ dependencies = [
     "matplotlib",
     "seaborn",
     "notebook",
-    #"scipy",
+    "scipy",
     "tqdm",
     "ipywidgets",
     "pandarallel"
