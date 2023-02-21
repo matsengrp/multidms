@@ -35,27 +35,10 @@ def softplus_activation(d_params, act, lower_bound=-3.5, hinge_scale=0.1, **kwar
 
     return (
         hinge_scale
-        * (jnp.log(1 + jnp.exp((act - (lower_bound + d_params["γ_d"])) / hinge_scale)))
+        * (jnp.logaddexp(0, (act - (lower_bound + d_params["γ_d"])) / hinge_scale))
         + lower_bound
         + d_params["γ_d"]
     )
-
-
-# def gelu_activation(d_params, act, lower_bound=-3.5):
-#    """
-#    A modified Gaussian error linear unit activation function,
-#    where the lower bound asymptote is defined by 'lower_bound'.
-#
-#    This is derived from
-#    https://jax.readthedocs.io/en/latest/_autosummary/jax.nn.gelu.html
-#    """
-#
-#    sp = act - (lower_bound + d_params["γ_d"])
-#    return (
-#        (sp / 2) * (1 + jnp.tanh(jnp.sqrt(2 / jnp.pi) * (sp + (0.044715 * (sp**3)))))
-#        + lower_bound
-#        + d_params["γ_d"]
-#    )
 
 
 def additive_model(d_params: dict, X_h: jnp.array):
