@@ -159,18 +159,16 @@ class MultiDmsModel:
         model, this is the number of hidden units
         used in the transform.
 
-    TODO - re-write these examples after finalizing API
-
     Example
     -------
-    To create a MultiDmsModel object, all you need is
-    the respective MultiDmsData object for parameter fitting,
-    as well as the string encoded options for choosing a model.
+    To create a ``MultiDmsModel`` object, all you need is
+    the respective ``MultiDmsData`` object for parameter fitting,
+    and to specify the post-latent model options for the model.
 
     >>> model = multidms.MultiDmsModel(
     ...     data,
-    ...     epistatic_model="sigmoid",
-    ...     output_activation="softplus"
+    ...     epistatic_model=multidms.biophysical.sigmoidal_global_epistasis,
+    ...     output_activation=multidms.biophysical.softplus_activation
     ... )
 
     Upon initialization, you will now have access to the underlying data
