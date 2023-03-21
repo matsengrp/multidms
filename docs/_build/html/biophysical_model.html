@@ -4,11 +4,13 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
     <title>Biophysical model &#8212; multidms 0.0.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script src="_static/jquery.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/doctools.js"></script>
     <script src="_static/sphinx_highlight.js"></script>
@@ -36,17 +38,17 @@
           <div class="body" role="main">
             
   <section id="Biophysical-model">
-<h1>Biophysical model<a class="headerlink" href="#Biophysical-model" title="Permalink to this heading">¶</a></h1>
+<h1>Biophysical model<a class="headerlink" href="#Biophysical-model" title="Permalink to this heading"></a></h1>
 <p>Here we describe the biophysical model of conditional shifts that motivates the approach in this package.</p>
 <section id="Conceptual-Overview-of-model">
-<h2>Conceptual Overview of model<a class="headerlink" href="#Conceptual-Overview-of-model" title="Permalink to this heading">¶</a></h2>
+<h2>Conceptual Overview of model<a class="headerlink" href="#Conceptual-Overview-of-model" title="Permalink to this heading"></a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">multidms</span></code> model applies to a case where you have DMS datasets for two or more conditions and are interested in identifying shifts in mutational effects between conditions. To do so, the model defines one condition as a reference condition. For each mutation, the model fits one parameter that quantifies the effect of the mutation in the reference condition. For each non-reference condition, it also fits a shift parameter that quantifies the shift in the mutation’s effect in the
 non-reference condition relative to the reference. Shift parameters can be regularized, encouraging most of them to be close to zero. This regularization step is a useful way to eliminate the effects of experimental noise, and is most useful in cases where you expect most mutations to have the same effects between conditions, such as for conditions that are close relatives.</p>
 <p>The model uses a global-epistasis function to disentangle the effects of multiple mutations on the same variant. To do so, it assumes that mutational effects additively influence a latent biophysical property the protein (e.g., <span class="math notranslate nohighlight">\(\Delta G\)</span> of folding). The mutational-effect parameters described above operate at this latent level.</p>
 <p>The global-epistasis function then assumes a sigmoidal relationship between a protein’s latent property and its functional score measured in the experiment (e.g., log enrichment score). Ultimately, mutational parameters, as well as ones controlling the shape of the sigmoid, are all jointly fit to maximize agreement between predicted and observed functional scores acorss all variants of all conditions.</p>
 </section>
 <section id="Detailed-description-of-the-model">
-<h2>Detailed description of the model<a class="headerlink" href="#Detailed-description-of-the-model" title="Permalink to this heading">¶</a></h2>
+<h2>Detailed description of the model<a class="headerlink" href="#Detailed-description-of-the-model" title="Permalink to this heading"></a></h2>
 <p>For each variant <span class="math notranslate nohighlight">\(v\)</span> from condition <span class="math notranslate nohighlight">\(h\)</span>, we use a global-epistasis function <span class="math notranslate nohighlight">\(g\)</span> to convert a latent phenotype <span class="math notranslate nohighlight">\(\phi\)</span> to a functional score <span class="math notranslate nohighlight">\(f\)</span>:</p>
 <div class="math notranslate nohighlight">
 \[f(v,h) = g_{\alpha}(\phi(v,h)) + γ_h\]</div>
@@ -69,12 +71,12 @@ where all sites that are non-identical to the reference are 1’s.</p>
 <p>where:</p>
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(L_{\text{total}}\)</span> is the total loss function.</p></li>
-<li><p><span class="math notranslate nohighlight">\(L_{\text{fit}}\)</span> is a loss function that penalizes differences in predicted vs. observed functional scores.</p></li>
+<li><p><span class="math notranslate nohighlight">\(L_{\text{fit}}\)</span> is a loss function that penalizes differences in predicted vs. observed functional scores.</p></li>
 <li><p><span class="math notranslate nohighlight">\(y_{v,h}\)</span> is the experimentally measured functional score of variant <span class="math notranslate nohighlight">\(v\)</span> from condition <span class="math notranslate nohighlight">\(h\)</span>.</p></li>
 </ul>
 </section>
 <section id="Model-using-matrix-algebra">
-<h2>Model using matrix algebra<a class="headerlink" href="#Model-using-matrix-algebra" title="Permalink to this heading">¶</a></h2>
+<h2>Model using matrix algebra<a class="headerlink" href="#Model-using-matrix-algebra" title="Permalink to this heading"></a></h2>
 <p>We compute a vector or predicted latent phenotypes <span class="math notranslate nohighlight">\(P_{h}\)</span> as:</p>
 <div class="math notranslate nohighlight">
 \[P_{h} = c + (X_h \cdot (β + S_h))\]</div>
