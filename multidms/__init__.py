@@ -30,7 +30,7 @@ It also imports the following alphabets:
 
 # TODO __author__ = "`the Matsen & Bloom labs <https://research.fhcrc.org/bloom/en.html>`_"
 __email__ = "jgallowa@fredhutch.org"
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __url__ = "https://github.com/matsengrp/multidms"
 
 from polyclonal.alphabets import AAS

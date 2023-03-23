@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "multidms"
-version = "0.0.1"
+version = "0.1.0"
 description = "Represent and model one or more dms experiments and identify variant predicted fitness, and individual mutation effects and shifts."
 readme = "README.rst"
 authors = [
@@ -77,7 +77,7 @@ repository = "https://github.com/matsengrp/multidms"
 packages = ["multidms"]
 
 [tool.bumpver]
-current_version = "0.0.1"
+current_version = "0.1.0"
 version_pattern = "MAJOR.MINOR.PATCH"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
