@@ -357,7 +357,7 @@ class MultiDmsData:
             from a reference sequence and conditional sequence,
             and a set mutations defined by ordered lists
             of wts, sites, and thier respective mutations,
-            Compute the mutation string relative to
+            Compute the mutation string relative to the reference wildtype.
             """
 
             nis = non_identical_sites.copy()

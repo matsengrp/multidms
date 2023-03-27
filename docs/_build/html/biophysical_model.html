@@ -1,0 +1,193 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>Biophysical model &#8212; multidms 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script src="_static/jquery.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="multidms fitting pipeline" href="fit_delta_BA1_example.html" />
+    <link rel="prev" title="Installation" href="installation.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="Biophysical-model">
+<h1>Biophysical model<a class="headerlink" href="#Biophysical-model" title="Permalink to this heading"></a></h1>
+<p>Here we describe the biophysical model of conditional shifts that motivates the approach in this package.</p>
+<section id="Conceptual-Overview-of-model">
+<h2>Conceptual Overview of model<a class="headerlink" href="#Conceptual-Overview-of-model" title="Permalink to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">multidms</span></code> model applies to a case where you have DMS datasets for two or more conditions and are interested in identifying shifts in mutational effects between conditions. To do so, the model defines one condition as a reference condition. For each mutation, the model fits one parameter that quantifies the effect of the mutation in the reference condition. For each non-reference condition, it also fits a shift parameter that quantifies the shift in the mutation’s effect in the
+non-reference condition relative to the reference. Shift parameters can be regularized, encouraging most of them to be close to zero. This regularization step is a useful way to eliminate the effects of experimental noise, and is most useful in cases where you expect most mutations to have the same effects between conditions, such as for conditions that are close relatives.</p>
+<p>The model uses a global-epistasis function to disentangle the effects of multiple mutations on the same variant. To do so, it assumes that mutational effects additively influence a latent biophysical property the protein (e.g., <span class="math notranslate nohighlight">\(\Delta G\)</span> of folding). The mutational-effect parameters described above operate at this latent level.</p>
+<p>The global-epistasis function then assumes a sigmoidal relationship between a protein’s latent property and its functional score measured in the experiment (e.g., log enrichment score). Ultimately, mutational parameters, as well as ones controlling the shape of the sigmoid, are all jointly fit to maximize agreement between predicted and observed functional scores acorss all variants of all conditions.</p>
+</section>
+<section id="Detailed-description-of-the-model">
+<h2>Detailed description of the model<a class="headerlink" href="#Detailed-description-of-the-model" title="Permalink to this heading"></a></h2>
+<p>For each variant <span class="math notranslate nohighlight">\(v\)</span> from condition <span class="math notranslate nohighlight">\(h\)</span>, we use a global-epistasis function <span class="math notranslate nohighlight">\(g\)</span> to convert a latent phenotype <span class="math notranslate nohighlight">\(\phi\)</span> to a functional score <span class="math notranslate nohighlight">\(f\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[f(v,h) = g_{\alpha}(\phi(v,h)) + γ_h\]</div>
+<p>where <span class="math notranslate nohighlight">\(g\)</span> is a post-latent model and <span class="math notranslate nohighlight">\(\alpha\)</span> is the set of parameters that define the model</p>
+<p>The latent phenotype is computed in the following way:</p>
+<div class="math notranslate nohighlight">
+\[\phi(v,h) = c_{r} + \sum_{m \in v} (x_{m} + s_{m,h})\]</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(c_{r}\)</span> is the wild type latent phenotype for the reference condition.</p></li>
+<li><p><span class="math notranslate nohighlight">\(x_m\)</span> is the latent phenotypic effect of mutation <span class="math notranslate nohighlight">\(m\)</span>. See details below.</p></li>
+<li><p><span class="math notranslate nohighlight">\(s_{m,h}\)</span> is the shift of the effect of mutation <span class="math notranslate nohighlight">\(m\)</span> in condition <span class="math notranslate nohighlight">\(h\)</span>. These parameters are fixed to zero for the reference condition. For non-reference conditions, they are defined in the same way as <span class="math notranslate nohighlight">\(x_m\)</span> parameters.</p></li>
+<li><p><span class="math notranslate nohighlight">\(v\)</span> is the set of all mutations relative to the reference wild type sequence (including all mutations that separate condition <span class="math notranslate nohighlight">\(h\)</span> from the reference condition).</p></li>
+</ul>
+<p>The <span class="math notranslate nohighlight">\(x_m\)</span> variable is defined such that mutations are always relative to the reference condition. For example, if the wild type amino acid at site 30 is an A in the reference condition, and a G in a non-reference condition, then a Y30G mutation in the non-reference condition is recorded as an A30G mutation relative to the reference. This way, each condition informs the exact same parameters, even at sites that differ in wild type amino acid. These are encoded in a <code class="docutils literal notranslate"><span class="pre">BinaryMap</span></code> object,
+where all sites that are non-identical to the reference are 1’s.</p>
+<p>Ultimately, we fit parameters using a loss function with one term that scores differences between predicted and observed values and another that uses L1 regularization to penalize non-zero <span class="math notranslate nohighlight">\(s_{m,h}\)</span> values:</p>
+<div class="math notranslate nohighlight">
+\[L\ *{\text{total}} = \sum*\ {h} \left[\sum\ *{v} L*\ {\text{fit}}(y\ *{v,h}, f(v,h)) + \lambda \sum*\ {m} |s_{m,h}|\right]\]</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(L_{\text{total}}\)</span> is the total loss function.</p></li>
+<li><p><span class="math notranslate nohighlight">\(L_{\text{fit}}\)</span> is a loss function that penalizes differences in predicted vs. observed functional scores.</p></li>
+<li><p><span class="math notranslate nohighlight">\(y_{v,h}\)</span> is the experimentally measured functional score of variant <span class="math notranslate nohighlight">\(v\)</span> from condition <span class="math notranslate nohighlight">\(h\)</span>.</p></li>
+</ul>
+</section>
+<section id="Model-using-matrix-algebra">
+<h2>Model using matrix algebra<a class="headerlink" href="#Model-using-matrix-algebra" title="Permalink to this heading"></a></h2>
+<p>We compute a vector or predicted latent phenotypes <span class="math notranslate nohighlight">\(P_{h}\)</span> as:</p>
+<div class="math notranslate nohighlight">
+\[P_{h} = c + (X_h \cdot (β + S_h))\]</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(β\)</span> is a vector of all <span class="math notranslate nohighlight">\(β_m\)</span> values.</p></li>
+<li><p><span class="math notranslate nohighlight">\(S\ *h\)</span> is a matrix of all <span class="math notranslate nohighlight">\(s*\ {m,h}\)</span> values.</p></li>
+<li><p><span class="math notranslate nohighlight">\(X_h\)</span> is a sparse matrix, where rows are variants, columns are mutations (all defined relative to the reference condition), and values are weights of 0’s and 1’s. These weights are used to compute the phenotype of each variant given the mutations present.</p></li>
+<li><p><span class="math notranslate nohighlight">\(c\)</span> is the same as above.</p></li>
+</ul>
+<p>In the matrix algebra, the sum of <span class="math notranslate nohighlight">\(β\ *m\)</span> and <span class="math notranslate nohighlight">\(S*\ {m,h}\)</span> gives a vector of mutational effects, with one entry per mutation. Multiplying the matrix <span class="math notranslate nohighlight">\(X_h\)</span> by this vector gives a new vector with one entry per variant, where values are the sum of mutational effects, weighted by the variant-specific weights in <span class="math notranslate nohighlight">\(X_h\)</span>. Adding the <span class="math notranslate nohighlight">\(c\)</span> value to this vector will give a vector of predicted latent phenotypes for each variant.</p>
+<p>Next, the global-epistasis function can be used to convert a vector of predicted latent phenotypes to a vector of predicted functional scores.</p>
+<div class="math notranslate nohighlight">
+\[F\ *{h,pred} = g*\ {\alpha}(P_h)\]</div>
+<p>Finally, this vector could be fed into a loss function and compared with a vector of observed functional scores.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/2020-logo-1000px-transparent.png" alt="Logo"/>
+    
+    <h1 class="logo logo-name">multidms</h1>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=matsengrp&repo=multidms&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="index.html">multidms documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Biophysical model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html"><code class="docutils literal notranslate"><span class="pre">multidms</span></code> fitting pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="autodoc.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="installation.html" title="previous chapter">Installation</a></li>
+      <li>Next: <a href="fit_delta_BA1_example.html" title="next chapter"><code class="docutils literal notranslate"><span class="pre">multidms</span></code> fitting pipeline</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, Jared Galloway, Hugh Haddox.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/biophysical_model.nblink.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/matsengrp/multidms" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>
