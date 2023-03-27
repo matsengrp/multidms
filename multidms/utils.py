@@ -19,6 +19,11 @@ import jaxopt
 import numpy as onp
 from tqdm import tqdm
 
+import pprint
+import time
+import copy
+import multidms.biophysical
+
 substitution_column = "aa_substitutions_reference"
 experiment_column = "homolog_exp"
 scaled_func_score_column = "log2e"
@@ -93,31 +98,38 @@ def scale_func_score(func_score_df, bottleneck=1e5, pseudocount=0.1):
 
     return ret
 
+# TODO cleanup and document
 def fit_wrapper(
     dataset,
     δ_huber = 1,
     λ_lasso_shift = 2e-5,
-    λ_ridge_beta = 1e-6,
-    λ_ridge_shift = 1e-6,
+    λ_ridge_beta = 0,
+    λ_ridge_shift = 0,
+    λ_ridge_gamma = 0,
     data_idx = 0,
-    epistatic_model = "identity",
-    output_activation = "identity",
+    epistatic_model = "Identity",
+    output_activation = "Identity",
     lock_beta = False, 
     lock_C_ref = False,
     gamma_corrected = True,
     conditional_c = False,
     init_C_ref = 0.0,
     warmup_beta = False,
+    tol=1e-3,
     num_training_steps = 10,
     iterations_per_step = 2000,
-    save_model_at = [2000, 10000, 20000]
+    save_model_at = [2000, 10000, 20000],
+    PRNGKey=0
 ):
+    """
+    """
     
     fit_attributes = locals().copy()
     biophysical_model = {
-        "identity" : multidms.model.identity_activation,
-        "Sigmoid" : multidms.model.sigmoidal_global_epistasis,
-        "Softplus" : multidms.model.softplus_activation
+        "Identity" : multidms.biophysical.identity_activation,
+        "Sigmoid" : multidms.biophysical.sigmoidal_global_epistasis,
+        "Perceptron" : multidms.biophysical.perceptron_global_epistasis,
+        "Softplus" : multidms.biophysical.softplus_activation
     }
     
     
@@ -127,7 +139,8 @@ def fit_wrapper(
         output_activation=biophysical_model[fit_attributes['output_activation']],
         conditional_c=fit_attributes['conditional_c'],
         gamma_corrected=fit_attributes['gamma_corrected'],
-        init_C_ref=fit_attributes['init_C_ref']
+        init_C_ref=fit_attributes['init_C_ref'],
+        PRNGKey=PRNGKey
     )
 
     if fit_attributes["warmup_beta"]:
@@ -137,46 +150,49 @@ def fit_wrapper(
     if fit_attributes["lock_beta"]:
         lock_params["β"] = imodel.params["β"]
 
-    if fit_attributes["lock_C_ref"]:
-        lock_params["C_ref"] = jnp.zeros(shape=(1,))
+    if fit_attributes["lock_C_ref"] != False:
+        lock_params["C_ref"] = jnp.array([fit_attributes["lock_C_ref"]])
 
-    fit_attributes['epoch_loss'] = []
+    fit_attributes['step_loss'] = onp.zeros(num_training_steps)
     print(f"running:")
     pprint.pprint(fit_attributes)
 
-    fit_attributes["total_iterations"] = 0
-    ret = pd.DataFrame()
+    total_iterations = 0
 
     for training_step in range(num_training_steps):
 
         start = time.time()
         imodel.fit(
-            lasso_shift=fit_attributes['λ_lasso_shift'],
-            λ_ridge_shift=fit_attributes['λ_ridge_shift'],
-            λ_ridge_beta=fit_attributes['λ_ridge_beta'],
+            lasso_shift = fit_attributes['λ_lasso_shift'],
+            λ_ridge_shift = fit_attributes['λ_ridge_shift'],
+            λ_ridge_beta = fit_attributes['λ_ridge_beta'],
+            λ_ridge_gamma = fit_attributes['λ_ridge_beta'],
             maxiter=iterations_per_step, 
-            tol=0.001,
+            tol=tol,
             δ=fit_attributes["δ_huber"],
             lock_params=lock_params
         )
         end = time.time()
 
         fit_time = round(end - start)
-        fit_attributes['total_iterations'] += iterations_per_step
-        fit_attributes['epoch_loss'].append(float(imodel.loss))
+        total_iterations += iterations_per_step
+        
+        if onp.isnan(float(imodel.loss)):
+            break
+            
+        fit_attributes['step_loss'][training_step] = float(imodel.loss)
 
         print(
             f"training_step {training_step}/{num_training_steps}, Loss: {imodel.loss}, Time: {fit_time} Seconds",
             flush=True
         )
 
-        if fit_attributes['total_iterations'] in save_model_at:
-            data_row = pd.Series(fit_attributes).to_frame().T
-            data_row["model_object"] = copy.copy(imodel)
-            ret = pd.concat([ret, data_row], ignore_index=True)
+        if total_iterations in save_model_at:
+            fit_attributes[f"model_{total_iterations}"] = copy.copy(imodel)
+              
+    fit_series = pd.Series(fit_attributes).to_frame().T
             
-    return ret
-
+    return fit_series
 
 def plot_loss_simple(models):
 
