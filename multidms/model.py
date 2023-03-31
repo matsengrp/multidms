@@ -46,40 +46,13 @@ class MultiDmsModel:
     to obtain tuned parameters that provide insight into
     individual mutational effects and conditional shifts
     of those effects on all non-reference conditions.
-
-    Note
-    ----
-    For each variant :math:`v` from condition :math:`h`,
-    we use a global-epistasis function :math:`g` to convert a latent phenotype
-    :math:`\phi` to a functional score :math:`f`:
-
-    .. math::
-
-        f(v,h) = g_{\alpha}(\phi(v,h)) + γ_h
-
-    where :math:`g` is a post-latent model
-    and :math:`\alpha` is the set of parameters that define the model
-
-    The latent phenotype is computed in the following way:
-
-    .. math::
-
-        \phi(v,h) = c + \sum_{m \in v} (x\ *m + s*\ {m,h})
-
-    where:
-
-    * :math:`c` is the wild type latent phenotype for the reference condition.
-    * :math:`x_m` is the latent phenotypic effect of mutation $m$. See details below.
-    * :math:`s_{m,h}` is the shift of the effect of mutation $m$ in condition $h$.
-      These parameters are fixed to zero for the reference condition. For
-      non-reference conditions, they are defined in the same way as :math:`x_m` parameters.
-    * :math:`v` is the set of all mutations relative to the reference wild type sequence
-      (including all mutations that separate condition :math:`h` from the reference condition).
-
-    For more see the `biophysical model documentation <todo>`_
+    For more see the biophysical model documentation
 
     Attributes
     ----------
+    data : multidms.MultiDmsData
+        A reference to the data object that will be used for
+        fitting the parameters initialized in this model.
     variants_df : pandas.DataFrame
         A copy of this object's data.variants_df attribute,
         but with the added model predictions (latent and epistatic)
@@ -105,27 +78,6 @@ class MultiDmsModel:
     data : multidms.MultiDmsData
         A reference to the dataset which will define the parameters
         of the model to be fit.
-    latent_model : str
-        A string encoding of the compiled function for
-        a latent prediction from binary one-hot encodings
-        of variants. Currently, we only support the 'additive_model'
-        model.
-        See Model Description section for more.
-    epistatic_model : str
-        A string encoding of the compiled function for
-        the function mapping latent phenotype, to
-        some monotonic function.
-        Set to 'identity' if you wish to effectively
-        skip this step in the model.
-        See Model Description section for more.
-    output_activation : str
-        A string encoding of the compiled function for
-        a final transformation on the data - primarily
-        we have this for our gamma corrected clipping
-        functions.
-        Set to 'identity' if you wish to effectively
-        skip this step in the model.
-        See Model Description section for more.
     gamma_corrected : bool
         If true (default), introduce the 'gamma' parameter
         for each non-reference parameter to
@@ -154,6 +106,18 @@ class MultiDmsModel:
         The initial seed key for random parameters
         assigned to Beta's and any other randomly
         initialized parameters.
+    latent_model : <class 'function'>
+        For experimenal purposes only. We currently suggest using the
+        default unless youi explicitly want to test differing model
+        architecture defined in `multidms.biophysical`
+    epistatic_model : <class 'function'>
+        For experimenal purposes only. We currently suggest using the
+        default unless youi explicitly want to test differing model
+        architecture defined in `multidms.biophysical`
+    output_activation : <class 'function'>
+        For experimenal purposes only. We currently suggest using the
+        default unless youi explicitly want to test differing model
+        architecture defined in `multidms.biophysical`
     n_percep_units : int or None
         If using a perceptron global epistasis
         model, this is the number of hidden units
@@ -162,14 +126,9 @@ class MultiDmsModel:
     Example
     -------
     To create a ``MultiDmsModel`` object, all you need is
-    the respective ``MultiDmsData`` object for parameter fitting,
-    and to specify the post-latent model options for the model.
+    the respective ``MultiDmsData`` object for parameter fitting.
 
-    >>> model = multidms.MultiDmsModel(
-    ...     data,
-    ...     epistatic_model=multidms.biophysical.sigmoidal_global_epistasis,
-    ...     output_activation=multidms.biophysical.softplus_activation
-    ... )
+    >>> model = multidms.MultiDmsModel(data)
 
     Upon initialization, you will now have access to the underlying data
     and parameters.
@@ -243,9 +202,6 @@ class MultiDmsModel:
     def __init__(
         self,
         data: MultiDmsData,
-        latent_model=additive_model,
-        epistatic_model=identity_activation,
-        output_activation=identity_activation,
         gamma_corrected=True,
         conditional_shifts=True,
         conditional_c=False,
@@ -253,6 +209,9 @@ class MultiDmsModel:
         init_g_min=None,
         init_C_ref=5.0,
         PRNGKey=0,
+        latent_model=additive_model,
+        epistatic_model=sigmoidal_global_epistasis,
+        output_activation=softplus_activation,
         n_percep_units=5,
     ):
         """

@@ -42,7 +42,7 @@
 <h1><code class="docutils literal notranslate"><span class="pre">multidms</span></code> fitting pipeline<a class="headerlink" href="#multidms-fitting-pipeline" title="Permalink to this heading"></a></h1>
 <p>Here, we demonstrate the pipeline for fitting a <code class="docutils literal notranslate"><span class="pre">multidms</span></code> model to data from <a class="reference external" href="https://github.com/dms-vep">two deep mutational scanning experiments</a> across Delta and Omicron BA.2 Spike protein.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
@@ -64,29 +64,25 @@
 </pre></div>
 </div>
 </div>
-<p>Read in dms data and list all available experimental conditions. The input dataframe should have a row for each observed variant in each condition defined by the columns “func_score” for the desired model target, “aa_substitutions” defining the aa genotype in the format &lt;wt_aa&gt;&lt;site&gt;&lt;mut_aa&gt;, and finally the condition defining the dms experiments from which a particular variant was observed in.</p>
+<section id="Inputs">
+<h2>Inputs<a class="headerlink" href="#Inputs" title="Permalink to this heading"></a></h2>
+<p>You can initialize a <code class="docutils literal notranslate"><span class="pre">MultiDmsData</span></code> object with a <code class="docutils literal notranslate"><span class="pre">pd.DataFrame</span></code> with a row for each variant sampled and annotations provided in the required columns:</p>
+<ol class="arabic simple">
+<li><p><strong>condition</strong> - Experimental condition from which a sample measurement was obtained.</p></li>
+<li><p><strong>aa_substitutions</strong> - Defines each variant <span class="math notranslate nohighlight">\(v\)</span> as a string of substitutions (e.g., ‘M3A K5G’). Note that while conditions may have differing wild types at a given site, the sites between conditions should reference the same site when alignment is performed between condition wild types. Finally, be sure wildtype variants have an empty string in this column</p></li>
+<li><p><strong>func_score</strong> - The functional score computed from experimental measurements.</p></li>
+</ol>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">func_score_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;Delta_BA1_BA2_func_score_df.csv&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">({</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">:</span><span class="s2">&quot;&quot;</span><span class="p">})</span>
-<span class="n">avail_conditions</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">func_score_df</span><span class="o">.</span><span class="n">condition</span><span class="o">.</span><span class="n">unique</span><span class="p">()))</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The following conditions are available for fitting: </span><span class="se">\n</span><span class="si">{</span><span class="n">avail_conditions</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="n">func_score_df</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">frac</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">()</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;condition&quot;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">func_score_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;func_score_df_example.csv&quot;</span><span class="p">)</span>
+<span class="n">func_score_df</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-The following conditions are available for fitting:
-Delta-1 Delta-2 Delta-3 Delta-4 Omicron_BA.1-1 Omicron_BA.1-2 Omicron_BA.1-3 Omicron_BA.2-1 Omicron_BA.2-2
-</pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -115,67 +111,84 @@ Delta-1 Delta-2 Delta-3 Delta-4 Omicron_BA.1-1 Omicron_BA.1-2 Omicron_BA.1-3 Omi
   </thead>
   <tbody>
     <tr>
-      <th>129893</th>
-      <td>-0.0720</td>
-      <td>A845I E1017G G1219L</td>
-      <td>Delta-4</td>
+      <th>0</th>
+      <td>-2.7109</td>
+      <td>L5P D142A G181R T1027V</td>
+      <td>Delta-3</td>
     </tr>
     <tr>
-      <th>207930</th>
-      <td>-0.8932</td>
-      <td>T376N F981R K986N T1136Q</td>
-      <td>Omicron_BA.1-1</td>
+      <th>1</th>
+      <td>0.4763</td>
+      <td>R357G T604I</td>
+      <td>Delta-3</td>
     </tr>
     <tr>
-      <th>156412</th>
-      <td>1.0645</td>
-      <td>S98P</td>
-      <td>Omicron_BA.1-1</td>
+      <th>2</th>
+      <td>-3.5000</td>
+      <td>C671Y G1167S</td>
+      <td>Delta-3</td>
     </tr>
     <tr>
-      <th>338561</th>
-      <td>-2.7228</td>
-      <td>A27L S1055Y</td>
-      <td>Omicron_BA.1-2</td>
+      <th>3</th>
+      <td>-0.8302</td>
+      <td>E619D I997V</td>
+      <td>Delta-3</td>
     </tr>
     <tr>
-      <th>263423</th>
-      <td>-0.3637</td>
-      <td>G219C</td>
-      <td>Omicron_BA.1-2</td>
+      <th>4</th>
+      <td>-2.0923</td>
+      <td>M902I G1246C</td>
+      <td>Delta-3</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>132188</th>
+      <td>0.8244</td>
+      <td>P521S T523A V785L S1249F</td>
+      <td>Omicron_BA.2-1</td>
+    </tr>
+    <tr>
+      <th>132189</th>
+      <td>-0.3023</td>
+      <td>K206N G213M Y1215H</td>
+      <td>Omicron_BA.2-1</td>
+    </tr>
+    <tr>
+      <th>132190</th>
+      <td>-2.8711</td>
+      <td>F133Y S1030C</td>
+      <td>Omicron_BA.2-1</td>
+    </tr>
+    <tr>
+      <th>132191</th>
+      <td>-0.2702</td>
+      <td>L18T G75P</td>
+      <td>Omicron_BA.2-1</td>
+    </tr>
+    <tr>
+      <th>132192</th>
+      <td>0.6209</td>
+      <td>G75M D427H Y501A A570V</td>
+      <td>Omicron_BA.2-1</td>
     </tr>
   </tbody>
 </table>
+<p>132193 rows × 3 columns</p>
 </div></div>
 </div>
-<p>Choose a reference and all other conditions to be included in the fit. Query the func_score_df sample conditions to be included in a fit.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reference_condition</span> <span class="o">=</span> <span class="s2">&quot;Delta-3&quot;</span>
-<span class="n">fit_included_conditions</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Delta-3&#39;</span><span class="p">,</span> <span class="s1">&#39;Omicron_BA.2-1&#39;</span><span class="p">]</span>
-<span class="n">func_score_df</span> <span class="o">=</span> <span class="n">func_score_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-    <span class="sa">f</span><span class="s2">&quot;condition.isin(</span><span class="si">{</span><span class="n">fit_included_conditions</span><span class="si">}</span><span class="s2">)&quot;</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<section id="MultiDmsData">
-<h2><code class="docutils literal notranslate"><span class="pre">MultiDmsData</span></code><a class="headerlink" href="#MultiDmsData" title="Permalink to this heading"></a></h2>
-<p>After the functional score dataframe for all variants has been prepped, you can now initialize a <code class="docutils literal notranslate"><span class="pre">mulidms.MultiDmsData</span></code> Object. This will; (1) infer the wildtype site map for each of the conditions observed in te input data (2) convert substitution string to be with respect to a reference (if necessary) (3) set static attributes and (4) prep model training data which can be shared by multiple <code class="docutils literal notranslate"><span class="pre">multidms.MulitDmsModel</span></code> objects.</p>
-<p><strong>Note</strong> The current implimentation for string mutation representations is quite slow, we’re working on improving this.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># uncomment to see docs</span>
-<span class="c1"># help(multidms.MultiDmsData)</span>
-</pre></div>
-</div>
-</div>
+</section>
+<section id="Instantiate-a-MultiDmsData-object">
+<h2>Instantiate a <code class="docutils literal notranslate"><span class="pre">MultiDmsData</span></code> object<a class="headerlink" href="#Instantiate-a-MultiDmsData-object" title="Permalink to this heading"></a></h2>
+<p>After the functional score dataframe for all variants has been prepped, you can now initialize a <code class="docutils literal notranslate"><span class="pre">mulidms.MultiDmsData</span></code> Object. This will; (1) infer the wildtype site map for each of the conditions observed in te input data (2) convert substitution string to be with respect to a reference (if necessary) (3) set static attributes and (4) prep model training data as <a class="reference external" href="https://github.com/jbloomlab/binarymap">binarymap objects</a>.</p>
+<p><strong>Note</strong>: We infer the wildtype sequence site map from the data provided. In the case where conditions have differing wildtypes, we convert non-identical site mutations to be relative to the reference wildtype. See the biophysical additive latent phenotype</p>
+<p><strong>Note</strong>: Once initialized the data object can be shared by multiple <code class="docutils literal notranslate"><span class="pre">multidms.MulitDmsModel</span></code> objects for independent fitting.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span> <span class="o">=</span> <span class="n">multidms</span><span class="o">.</span><span class="n">MultiDmsData</span><span class="p">(</span>
@@ -206,7 +219,7 @@ Converting mutations for Omicron_BA.2-1
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<script type="application/vnd.jupyter.widget-view+json">{"model_id": "c9df9b4d0d58442ebe39722f38a5c9dc", "version_major": 2, "version_minor": 0}</script></div>
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "f2b7a80ce2f94f078db9bc1552b187ce", "version_major": 2, "version_minor": 0}</script></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
@@ -218,7 +231,7 @@ No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for
 </div>
 <p>We can now view a few useful attributes</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span><span class="o">.</span><span class="n">site_map</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
@@ -226,7 +239,7 @@ No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -283,7 +296,7 @@ No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for
 </div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span><span class="o">.</span><span class="n">mutations</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span>
@@ -291,7 +304,7 @@ No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -300,7 +313,7 @@ No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span><span class="o">.</span><span class="n">mutations_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
@@ -308,7 +321,7 @@ No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -389,7 +402,7 @@ No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for
 </div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span><span class="o">.</span><span class="n">conditions</span>
@@ -397,7 +410,7 @@ No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -406,7 +419,7 @@ No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span><span class="o">.</span><span class="n">reference</span>
@@ -414,7 +427,7 @@ No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -423,7 +436,7 @@ No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span><span class="o">.</span><span class="n">binarymaps</span>
@@ -431,17 +444,17 @@ No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;Delta-3&#39;: &lt;binarymap.binarymap.BinaryMap at 0x7f8f02039510&gt;,
- &#39;Omicron_BA.2-1&#39;: &lt;binarymap.binarymap.BinaryMap at 0x7f8f01c3e350&gt;}
+{&#39;Delta-3&#39;: &lt;binarymap.binarymap.BinaryMap at 0x7f40d1b84250&gt;,
+ &#39;Omicron_BA.2-1&#39;: &lt;binarymap.binarymap.BinaryMap at 0x7f40d1b7e790&gt;}
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span><span class="o">.</span><span class="n">non_identical_sites</span>
@@ -449,7 +462,7 @@ No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -486,7 +499,7 @@ frozendict.frozendict({&#39;Delta-3&#39;: [], &#39;Omicron_BA.2-1&#39;:     Delt
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span><span class="o">.</span><span class="n">non_identical_mutations</span>
@@ -494,7 +507,7 @@ frozendict.frozendict({&#39;Delta-3&#39;: [], &#39;Omicron_BA.2-1&#39;:     Delt
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -508,7 +521,7 @@ frozendict.frozendict({&#39;Delta-3&#39;: &#39;&#39;, &#39;Omicron_BA.2-1&#39;: 
 <p>Next, we create a model object which initializes and stores the model parameters. These parameters are determined primarily by the substitutions observed in the data, and the (post-latent) epistatic and output activation functions you choose. These model functions are defined in the <code class="docutils literal notranslate"><span class="pre">multidms.biophysical</span></code> module. By default, the model will use identity functions for both of these model components - boiling things down to a linear model.</p>
 <p>Here we define a model with a <code class="docutils literal notranslate"><span class="pre">multidms.model.sigmoidal_global_epistasis</span></code> epistasis function, and fit the model. Note, running the fit on CPU’s can be quite slow with large amounts of data. Below, we run 500 iterations on the sample dataset (loaded at the top of this notebook). On CPU this reportedly takes ~ 6 minutes. However running on GPU’s reduces fitting time by 1-2 orders of magnitude.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">multidms</span><span class="o">.</span><span class="n">MultiDmsModel</span><span class="p">(</span>
@@ -528,7 +541,7 @@ frozendict.frozendict({&#39;Delta-3&#39;: &#39;&#39;, &#39;Omicron_BA.2-1&#39;: 
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-done. fitting time = 310.42 seconds
+done. fitting time = 540.78 seconds
 </pre></div></div>
 </div>
 <p>The Model object shares many similar properties from the data object, like mutations and variants dataframes, but the getters give you useful model-specific features like parameters and predictions.</p>
@@ -1128,7 +1141,6 @@ frozendict.frozendict({&#39;Delta-3&#39;: [], &#39;Omicron_BA.2-1&#39;:     Delt
 <li class="toctree-l1 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">multidms</span></code> fitting pipeline</a></li>
 <li class="toctree-l1"><a class="reference internal" href="autodoc.html">API reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
-<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 </ul>
 
 <div class="relations">

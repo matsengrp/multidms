@@ -36,7 +36,7 @@ import seaborn as sns
 
 class MultiDmsData:
     r"""
-    Prep data for multidms model(s),
+    Prep data for fitting parameters in as MultiDmsModel Object,
     Summarize, and provide static data attributes.
     Individual objects of this type can be shared
     by multiple ``multidms.MultiDmsModel`` Objects
@@ -44,7 +44,7 @@ class MultiDmsData:
 
     Note
     ----
-    You can initialize a :class:`Multidms` object with a ``pd.DataFrame``
+    You can initialize a :class:`MultiDmsData` object with a ``pd.DataFrame``
     with a row for each variant sampled and annotations
     provided in the required columns:
 

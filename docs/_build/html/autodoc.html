@@ -47,15 +47,15 @@ dms experiments under various conditions.</p>
 </section>
 <dl class="py class">
 <dt class="sig sig-object py" id="data.MultiDmsData">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data.</span></span><span class="sig-name descname"><span class="pre">MultiDmsData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variants_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alphabet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('A',</span> <span class="pre">'C',</span> <span class="pre">'D',</span> <span class="pre">'E',</span> <span class="pre">'F',</span> <span class="pre">'G',</span> <span class="pre">'H',</span> <span class="pre">'I',</span> <span class="pre">'K',</span> <span class="pre">'L',</span> <span class="pre">'M',</span> <span class="pre">'N',</span> <span class="pre">'P',</span> <span class="pre">'Q',</span> <span class="pre">'R',</span> <span class="pre">'S',</span> <span class="pre">'T',</span> <span class="pre">'V',</span> <span class="pre">'W',</span> <span class="pre">'Y')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collapse_identical_variants</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('#0072B2',</span> <span class="pre">'#009E73',</span> <span class="pre">'#CC79A7',</span> <span class="pre">'#56B4E9',</span> <span class="pre">'#F0E442')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">letter_suffixed_sites</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assert_site_integrity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_non_shared_subs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nb_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#data.MultiDmsData" title="Permalink to this definition"></a></dt>
-<dd><p>Prep data for multidms model(s),
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data.</span></span><span class="sig-name descname"><span class="pre">MultiDmsData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variants_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alphabet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('A',</span> <span class="pre">'C',</span> <span class="pre">'D',</span> <span class="pre">'E',</span> <span class="pre">'F',</span> <span class="pre">'G',</span> <span class="pre">'H',</span> <span class="pre">'I',</span> <span class="pre">'K',</span> <span class="pre">'L',</span> <span class="pre">'M',</span> <span class="pre">'N',</span> <span class="pre">'P',</span> <span class="pre">'Q',</span> <span class="pre">'R',</span> <span class="pre">'S',</span> <span class="pre">'T',</span> <span class="pre">'V',</span> <span class="pre">'W',</span> <span class="pre">'Y')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collapse_identical_variants</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('#0072B2',</span> <span class="pre">'#CC79A7',</span> <span class="pre">'#009E73',</span> <span class="pre">'#17BECF',</span> <span class="pre">'#BCDB22')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">letter_suffixed_sites</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assert_site_integrity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_non_shared_subs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nb_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#data.MultiDmsData" title="Permalink to this definition"></a></dt>
+<dd><p>Prep data for fitting parameters in as MultiDmsModel Object,
 Summarize, and provide static data attributes.
 Individual objects of this type can be shared
 by multiple <code class="docutils literal notranslate"><span class="pre">multidms.MultiDmsModel</span></code> Objects
 for effeciently fitting various models to the same data.</p>
 <section id="note">
 <h2>Note<a class="headerlink" href="#note" title="Permalink to this heading"></a></h2>
-<p>You can initialize a <code class="xref py py-class docutils literal notranslate"><span class="pre">Multidms</span></code> object with a <code class="docutils literal notranslate"><span class="pre">pd.DataFrame</span></code>
+<p>You can initialize a <a class="reference internal" href="#data.MultiDmsData" title="data.MultiDmsData"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiDmsData</span></code></a> object with a <code class="docutils literal notranslate"><span class="pre">pd.DataFrame</span></code>
 with a row for each variant sampled and annotations
 provided in the required columns:</p>
 <ol class="arabic simple">
@@ -312,38 +312,18 @@ of our data.</p>
 </section>
 <dl class="py class">
 <dt class="sig sig-object py" id="model.MultiDmsModel">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">model.</span></span><span class="sig-name descname"><span class="pre">MultiDmsModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data:</span> <span class="pre">~multidms.data.MultiDmsData</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_model=&lt;function</span> <span class="pre">additive_model&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epistatic_model=&lt;function</span> <span class="pre">identity_activation&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_activation=&lt;function</span> <span class="pre">identity_activation&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma_corrected=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditional_shifts=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditional_c=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_g_range=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_g_min=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_C_ref=5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PRNGKey=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_percep_units=5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#model.MultiDmsModel" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">model.</span></span><span class="sig-name descname"><span class="pre">MultiDmsModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data:</span> <span class="pre">~multidms.data.MultiDmsData</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma_corrected=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditional_shifts=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditional_c=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_g_range=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_g_min=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_C_ref=5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PRNGKey=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_model=&lt;function</span> <span class="pre">additive_model&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epistatic_model=&lt;function</span> <span class="pre">sigmoidal_global_epistasis&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_activation=&lt;function</span> <span class="pre">softplus_activation&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_percep_units=5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#model.MultiDmsModel" title="Permalink to this definition"></a></dt>
 <dd><p>Represent one or more DMS experiments
 to obtain tuned parameters that provide insight into
 individual mutational effects and conditional shifts
-of those effects on all non-reference conditions.</p>
+of those effects on all non-reference conditions.
+For more see the biophysical model documentation</p>
 <section id="id1">
-<h2>Note<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h2>
-<p>For each variant <span class="math notranslate nohighlight">\(v\)</span> from condition <span class="math notranslate nohighlight">\(h\)</span>,
-we use a global-epistasis function <span class="math notranslate nohighlight">\(g\)</span> to convert a latent phenotype
-<span class="math notranslate nohighlight">\(\phi\)</span> to a functional score <span class="math notranslate nohighlight">\(f\)</span>:</p>
-<div class="math notranslate nohighlight">
-\[f(v,h) = g_{\alpha}(\phi(v,h)) + γ_h\]</div>
-<p>where <span class="math notranslate nohighlight">\(g\)</span> is a post-latent model
-and <span class="math notranslate nohighlight">\(\alpha\)</span> is the set of parameters that define the model</p>
-<p>The latent phenotype is computed in the following way:</p>
-<div class="math notranslate nohighlight">
-\[\phi(v,h) = c + \sum_{m \in v} (x\ *m + s*\ {m,h})\]</div>
-<p>where:</p>
-<ul class="simple">
-<li><p><span class="math notranslate nohighlight">\(c\)</span> is the wild type latent phenotype for the reference condition.</p></li>
-<li><p><span class="math notranslate nohighlight">\(x_m\)</span> is the latent phenotypic effect of mutation $m$. See details below.</p></li>
-<li><p><span class="math notranslate nohighlight">\(s_{m,h}\)</span> is the shift of the effect of mutation $m$ in condition $h$.
-These parameters are fixed to zero for the reference condition. For
-non-reference conditions, they are defined in the same way as <span class="math notranslate nohighlight">\(x_m\)</span> parameters.</p></li>
-<li><p><span class="math notranslate nohighlight">\(v\)</span> is the set of all mutations relative to the reference wild type sequence
-(including all mutations that separate condition <span class="math notranslate nohighlight">\(h\)</span> from the reference condition).</p></li>
-</ul>
-<p>For more see the <a class="reference external" href="todo">biophysical model documentation</a></p>
-</section>
-<section id="id2">
-<h2>Attributes<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h2>
+<h2>Attributes<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h2>
 <dl class="simple">
+<dt>data<span class="classifier">multidms.MultiDmsData</span></dt><dd><p>A reference to the data object that will be used for
+fitting the parameters initialized in this model.</p>
+</dd>
 <dt>variants_df<span class="classifier">pandas.DataFrame</span></dt><dd><p>A copy of this object’s data.variants_df attribute,
 but with the added model predictions (latent and epistatic)
 given the current parameters of this model.</p>
@@ -365,32 +345,11 @@ with current parameters.</p>
 </dd>
 </dl>
 </section>
-<section id="id3">
-<h2>Parameters<a class="headerlink" href="#id3" title="Permalink to this heading"></a></h2>
+<section id="id2">
+<h2>Parameters<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h2>
 <dl class="simple">
 <dt>data<span class="classifier">multidms.MultiDmsData</span></dt><dd><p>A reference to the dataset which will define the parameters
 of the model to be fit.</p>
-</dd>
-<dt>latent_model<span class="classifier">str</span></dt><dd><p>A string encoding of the compiled function for
-a latent prediction from binary one-hot encodings
-of variants. Currently, we only support the ‘additive_model’
-model.
-See Model Description section for more.</p>
-</dd>
-<dt>epistatic_model<span class="classifier">str</span></dt><dd><p>A string encoding of the compiled function for
-the function mapping latent phenotype, to
-some monotonic function.
-Set to ‘identity’ if you wish to effectively
-skip this step in the model.
-See Model Description section for more.</p>
-</dd>
-<dt>output_activation<span class="classifier">str</span></dt><dd><p>A string encoding of the compiled function for
-a final transformation on the data - primarily
-we have this for our gamma corrected clipping
-functions.
-Set to ‘identity’ if you wish to effectively
-skip this step in the model.
-See Model Description section for more.</p>
 </dd>
 <dt>gamma_corrected<span class="classifier">bool</span></dt><dd><p>If true (default), introduce the ‘gamma’ parameter
 for each non-reference parameter to
@@ -420,22 +379,29 @@ See Model Description section for more.</p>
 assigned to Beta’s and any other randomly
 initialized parameters.</p>
 </dd>
+<dt>latent_model<span class="classifier">&lt;class ‘function’&gt;</span></dt><dd><p>For experimenal purposes only. We currently suggest using the
+default unless youi explicitly want to test differing model
+architecture defined in <cite>multidms.biophysical</cite></p>
+</dd>
+<dt>epistatic_model<span class="classifier">&lt;class ‘function’&gt;</span></dt><dd><p>For experimenal purposes only. We currently suggest using the
+default unless youi explicitly want to test differing model
+architecture defined in <cite>multidms.biophysical</cite></p>
+</dd>
+<dt>output_activation<span class="classifier">&lt;class ‘function’&gt;</span></dt><dd><p>For experimenal purposes only. We currently suggest using the
+default unless youi explicitly want to test differing model
+architecture defined in <cite>multidms.biophysical</cite></p>
+</dd>
 <dt>n_percep_units<span class="classifier">int or None</span></dt><dd><p>If using a perceptron global epistasis
 model, this is the number of hidden units
 used in the transform.</p>
 </dd>
 </dl>
 </section>
-<section id="id4">
-<h2>Example<a class="headerlink" href="#id4" title="Permalink to this heading"></a></h2>
+<section id="id3">
+<h2>Example<a class="headerlink" href="#id3" title="Permalink to this heading"></a></h2>
 <p>To create a <code class="docutils literal notranslate"><span class="pre">MultiDmsModel</span></code> object, all you need is
-the respective <code class="docutils literal notranslate"><span class="pre">MultiDmsData</span></code> object for parameter fitting,
-and to specify the post-latent model options for the model.</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">multidms</span><span class="o">.</span><span class="n">MultiDmsModel</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">data</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">epistatic_model</span><span class="o">=</span><span class="n">multidms</span><span class="o">.</span><span class="n">biophysical</span><span class="o">.</span><span class="n">sigmoidal_global_epistasis</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">output_activation</span><span class="o">=</span><span class="n">multidms</span><span class="o">.</span><span class="n">biophysical</span><span class="o">.</span><span class="n">softplus_activation</span>
-<span class="gp">... </span><span class="p">)</span>
+the respective <code class="docutils literal notranslate"><span class="pre">MultiDmsData</span></code> object for parameter fitting.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">multidms</span><span class="o">.</span><span class="n">MultiDmsModel</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Upon initialization, you will now have access to the underlying data
@@ -763,7 +729,6 @@ using ‘jax.tree_util.Partial’.</p>
 <li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html"><code class="docutils literal notranslate"><span class="pre">multidms</span></code> fitting pipeline</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
-<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 </ul>
 
 <div class="relations">

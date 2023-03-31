@@ -32,10 +32,10 @@ See below for information and examples of how to use this package.
     fit_delta_BA1_example
     autodoc
     acknowledgments
-    contributing
 ..   
-   jit model composition
+    jit model composition
     using with GPU's
+    contributing
 
 
 Indices and tables
