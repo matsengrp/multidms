@@ -44,19 +44,19 @@
 <p>We suggest reading the <a class="reference external" href="https://www.pnas.org/doi/10.1073/pnas.1804015115">Otwinowski et al. 2018</a> paper to understand the approach to modeling global epistasis before reading the rest of the documentation.</p>
 <section id="Model-overview">
 <h2>Model overview<a class="headerlink" href="#Model-overview" title="Permalink to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">multidms</span></code> extends the traditional global epistasis model by informing the parameters with multiple dms experiments under differing experimental conditions. Distinct experimental conditions, referred to using <span class="math notranslate nohighlight">\(h\)</span>, throught the documentation, may include sets of experiments which measure effects of mutations on different homologs of a single protein (i.e. SARS-CoV-2 Delta Vs. Omicron spike), as well as experimental conditions which share homology such as differing selection targets of the
-same protein. We make the assumption that the chosen set of experimental conditions mostly have same effect of mutations but some shifts in mutational effect due to biological mechanisms such as epistasis. Ultimitely, this model was designed to identify those shifts with the appropriate regularization applied to the shift parameters described in the additive latent model.</p>
+<p><code class="docutils literal notranslate"><span class="pre">multidms</span></code> extends the traditional global epistasis model by informing the parameters with multiple dms experiments under differing experimental conditions. For example, distinct experimental conditions (referred to as <span class="math notranslate nohighlight">\(h\)</span> throughout the documentation) may include sets of experiments that are performed with differing homology of wildtype sequence (i.e. SARS-CoV-2 Delta Vs. Omicron spike). This approach could also be used for experimental conditions which share homology of the wildtype
+but differing selection targets of the same protein. This model makes the assumption that differing conditions should result in <em>mostly</em> the same effect of mutations – but some shifts in mutational effect due to biological mechanisms (i.e. epistasis). Ultimately, this model was designed to identify those shifts using lasso regularization applied to the shift parameters described in the additive latent phenotype section below.</p>
 <p>At a high level, the model is a composition of three functions which describe the expected biophysical interactions underlying a given phenotype; (1) an additive model, <span class="math notranslate nohighlight">\(\phi\)</span>, describing a variant’s <em>latent</em> phenotype under a given condition, (2) a global epistasis model, <span class="math notranslate nohighlight">\(g\)</span>, to disentangle the effects of multiple mutations on the same variant, and (3) a final output activation function, <span class="math notranslate nohighlight">\(t\)</span>, accounting for an expected <em>lower bound</em> on the variant’s phenotype, where the
 observed functional score may sit below due to experimental sensitivity.</p>
 <div class="math notranslate nohighlight">
 \[f(v,h) = t_{\gamma}(g_{\alpha}(\phi_{\beta, S, C_{r}}(v,h))\]</div>
 <p>Where <span class="math notranslate nohighlight">\(\gamma\)</span>, <span class="math notranslate nohighlight">\(\alpha\)</span>, <span class="math notranslate nohighlight">\(\beta\)</span>, <span class="math notranslate nohighlight">\(S\)</span>, and <span class="math notranslate nohighlight">\(C_{r}\)</span> are <em>free</em> parameters inferred from experimental observations during the fitting process.</p>
-<p><strong>Note</strong> The motivation behind defining an abstract model in terms of it’s componants offers us (1) modularity for method testing and development, and (2) The flexibility of multiple options for model components that encompass the needs of differing research goals and experimental techniques. While there is only a single option in for the <span class="math notranslate nohighlight">\(\phi\)</span> latent prediction, we offer a few options both for the global epistasis, and output activation functions. Generally, the package defaults for
-these components descibed below should be sufficient for most purposes, and in this case feel free to ignore the <code class="docutils literal notranslate"><span class="pre">multidms.biophysical</span></code> module all-together as this functionality is generally hidden unless explicitly specified during the instantiation of a <code class="docutils literal notranslate"><span class="pre">MultiDmsModel</span></code> object.</p>
+<p><strong>Note</strong> The motivation behind defining an abstract model in terms of its components offers us (1) modularity for method testing and development, and (2) The flexibility of multiple options for model components that encompass the needs of differing research goals and experimental techniques. While there is only a single option in for the <span class="math notranslate nohighlight">\(\phi\)</span> latent prediction, we offer a few options both for the global epistasis (<span class="math notranslate nohighlight">\(g\)</span>) and output activation (<span class="math notranslate nohighlight">\(t\)</span>) functions. Generally, the
+package defaults for these components described below should be sufficient for most purposes, and in this case feel free to ignore the <code class="docutils literal notranslate"><span class="pre">multidms.biophysical</span></code> module all-together as this functionality is generally hidden unless explicitly specified during the instantiation of a <code class="docutils literal notranslate"><span class="pre">MultiDmsModel</span></code> object.</p>
 <p>Below, we’ll describe the individual components in more detail.</p>
 </section>
-<section id="Additive-latent-phenotype">
-<h2>Additive latent phenotype<a class="headerlink" href="#Additive-latent-phenotype" title="Permalink to this heading"></a></h2>
+<section id="Additive-latent-phenotype,-\phi">
+<h2>Additive latent phenotype, <span class="math notranslate nohighlight">\(\phi\)</span><a class="headerlink" href="#Additive-latent-phenotype,-\phi" title="Permalink to this heading"></a></h2>
 <p>The model defines one condition as a <em>reference</em> condition. For each mutation <span class="math notranslate nohighlight">\(m\)</span>, the model fits a single mutation effect parameter, <span class="math notranslate nohighlight">\(\beta_{m}\)</span>. Additionally, the model fits set of shift parameters, <span class="math notranslate nohighlight">\(S_{m,h}\)</span>, that quantifies the shift a given mutation’s effect. Each mutation is associated with an independent shift parameter for each non-reference condition. For example if there exists 3 total experimental conditions, <span class="math notranslate nohighlight">\(h_{1}\)</span>, <span class="math notranslate nohighlight">\(h_{2}\)</span>, &amp; <span class="math notranslate nohighlight">\(h_{3}\)</span>, then each
 mutation, <span class="math notranslate nohighlight">\(m\)</span>, will be get assigned a single <span class="math notranslate nohighlight">\(\beta_{m}\)</span> parameter, and two non-reference condition <em>shift</em> parameters <span class="math notranslate nohighlight">\(S_{m, h_{2}}\)</span>, <span class="math notranslate nohighlight">\(S_{m, h_{3}}\)</span> for the latent prediction</p>
 <p>Shift parameters can be regularized, encouraging most of them to be close to zero. This regularization step is a useful way to eliminate the effects of experimental noise, and is most useful in cases where you expect most mutations to have the same effects between conditions, such as for conditions that are close relatives.</p>
@@ -77,12 +77,13 @@ mutation, <span class="math notranslate nohighlight">\(m\)</span>, will be get a
 <section id="Sigmoidal-global-epistasis,-g">
 <h2>Sigmoidal global epistasis, <span class="math notranslate nohighlight">\(g\)</span><a class="headerlink" href="#Sigmoidal-global-epistasis,-g" title="Permalink to this heading"></a></h2>
 <p>In contrast to the common family of spline functions typically applied to these models, the global-epistasis function here assumes a sigmoidal relationship between a protein’s latent property and it’s functional score measured in the experiment (e.g., log enrichment score). Using free parameters, the sigmoid can flexibly conform to an optimal shape informed by the data. Note that this function is independent from the experimental condition from which a variant is observed.</p>
-<p>The sigmoidal function that relates a given <em>latent phenotype</em>, <span class="math notranslate nohighlight">\(z\)</span>, to it’s functional score is given by:</p>
+<p>The sigmoidal function that relates a given <em>latent phenotype</em>, <span class="math notranslate nohighlight">\(z\)</span>, to its functional score is given by:</p>
 <div class="math notranslate nohighlight">
 \[g(z) = \alpha_{scale} * \frac{1}{1 + e^{-z}} + \alpha_{bias}\]</div>
-<p>where <span class="math notranslate nohighlight">\(\alpha_{scale}\)</span> and <span class="math notranslate nohighlight">\(\alpha_{bias}\)</span> are free parameters</p>
+<p>where: * <span class="math notranslate nohighlight">\(\alpha_{scale}\)</span> is a free parameter defining the range of the sigmoid * <span class="math notranslate nohighlight">\(\alpha_{bias}\)</span> is a free parameter defining the lower bound of the sigmoid.</p>
+<p>Below is an interactive plot showing the effect of the sigmoidal global epistasis as a function of an adjustable <span class="math notranslate nohighlight">\(\alpha_{scale}\)</span>, and <span class="math notranslate nohighlight">\(\alpha_{bias}\)</span>:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[46]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[50]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">altair</span> <span class="k">as</span> <span class="nn">alt</span>
@@ -118,17 +119,17 @@ mutation, <span class="math notranslate nohighlight">\(m\)</span>, will be get a
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[46]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[50]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
-<div id="altair-viz-338e0186049f488ca282cc5a5a0080b6"></div>
+<div id="altair-viz-533c847c40d143efa8aae53488e20ae4"></div>
 <script type="text/javascript">
   var VEGA_DEBUG = (typeof VEGA_DEBUG == "undefined") ? {} : VEGA_DEBUG;
   (function(spec, embedOpt){
     let outputDiv = document.currentScript.previousElementSibling;
-    if (outputDiv.id !== "altair-viz-338e0186049f488ca282cc5a5a0080b6") {
-      outputDiv = document.getElementById("altair-viz-338e0186049f488ca282cc5a5a0080b6");
+    if (outputDiv.id !== "altair-viz-533c847c40d143efa8aae53488e20ae4") {
+      outputDiv = document.getElementById("altair-viz-533c847c40d143efa8aae53488e20ae4");
     }
     const paths = {
       "vega": "https://cdn.jsdelivr.net/npm/vega@5?noext",
@@ -178,11 +179,129 @@ mutation, <span class="math notranslate nohighlight">\(m\)</span>, will be get a
 </script></div>
 </div>
 </section>
-<section id="TODO---Output-activation,-t">
-<h2>TODO - Output activation, <span class="math notranslate nohighlight">\(t\)</span><a class="headerlink" href="#TODO---Output-activation,-t" title="Permalink to this heading"></a></h2>
+<section id="Output-activation,-t">
+<h2>Output activation, <span class="math notranslate nohighlight">\(t\)</span><a class="headerlink" href="#Output-activation,-t" title="Permalink to this heading"></a></h2>
+<p>DMS reported phenotypes are often the result of a fold-change calculation on barcode read counts after a selection stage as compared to the pre-selection barcode read counts. Often this means that a lower frequency of variants in the initial library will often result in far more extreme observation of phenotype than we expect the sensitivity of this protocol to detect. In this case, one option is to filter the data to exclude these low frequency barcodes – However in certain cases even a modest
+filtering threshold cuts out many of the individual mutations you may want to learn about from the dataset. In this case, it’s common for researchers to clip their data at some lower bound, <span class="math notranslate nohighlight">\(l\)</span>. This type of clipping causes a specific unwanted behavior in the model. Put simply, the model, <span class="math notranslate nohighlight">\(g(\phi(v,h))\)</span> <em>learns</em> this lower bound and thus is encouraged to limit it’s shape to conform to this lower bound.</p>
+<p>We account for this unwanted behavior by applying a final activation on <span class="math notranslate nohighlight">\(z'\)</span>, where the output of the global epistasis model <span class="math notranslate nohighlight">\(g(\phi(v,h)) = z\)</span>. In essence, this is a generic softplus activation, softplus(<span class="math notranslate nohighlight">\(z'\)</span>) = <span class="math notranslate nohighlight">\(\log(1 + e^{z'})\)</span>, a smooth approximation of the well-known ReLU activation function. Because sofplus is a rigid function with a lower bound at zero, we introduced; (1) a user defined parameter, <span class="math notranslate nohighlight">\(\lambda_{sp}\)</span> which scales the rate at which the “hinge”
+interpolates from the lower bound to the identity function, and (2) a user-defined parameter to shift the lower bound to where the data was clipped, <span class="math notranslate nohighlight">\(l\)</span>.</p>
+<p>Given the output of a our global epistasis function, <span class="math notranslate nohighlight">\(z'\)</span>, the final predicted phenotype of our model is computed like so:</p>
+<div class="math notranslate nohighlight">
+\[t(z') = \lambda_{sp}\log(1 + e^{\frac{z' - l}{\lambda_{sp}}}) + l\]</div>
+<p>Below is an interactive plot showing the effect of the modified softplus activation as a function of an adjustable <span class="math notranslate nohighlight">\(\lambda_{sp}\)</span> scaling parameter, and lower bound, <span class="math notranslate nohighlight">\(l\)</span>:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[51]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">altair</span> <span class="k">as</span> <span class="nn">alt</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;latent&quot;</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">)})</span>
+
+<span class="n">slider_lsp</span> <span class="o">=</span> <span class="n">alt</span><span class="o">.</span><span class="n">binding_range</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">var_lambda_sp</span> <span class="o">=</span> <span class="n">alt</span><span class="o">.</span><span class="n">param</span><span class="p">(</span><span class="n">bind</span><span class="o">=</span><span class="n">slider_lsp</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lambda_sp&quot;</span><span class="p">)</span>
+
+<span class="n">slider_lb</span> <span class="o">=</span> <span class="n">alt</span><span class="o">.</span><span class="n">binding_range</span><span class="p">(</span><span class="nb">min</span><span class="o">=-</span><span class="mi">10</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">var_lower_bound</span> <span class="o">=</span> <span class="n">alt</span><span class="o">.</span><span class="n">param</span><span class="p">(</span><span class="n">bind</span><span class="o">=</span><span class="n">slider_lb</span><span class="p">,</span> <span class="n">value</span><span class="o">=-</span><span class="mf">3.5</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lower_bound&quot;</span><span class="p">)</span>
+
+<span class="p">(</span>
+    <span class="n">alt</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">transform_calculate</span><span class="p">(</span>
+        <span class="n">phenotype</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">alt</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="n">alt</span><span class="o">.</span><span class="n">datum</span><span class="p">[</span><span class="s1">&#39;latent&#39;</span><span class="p">]</span><span class="o">-</span><span class="n">var_lower_bound</span><span class="p">)</span><span class="o">/</span><span class="n">var_lambda_sp</span><span class="p">))</span>
+        <span class="o">*</span> <span class="n">var_lambda_sp</span>
+        <span class="o">+</span> <span class="n">var_lower_bound</span>
+    <span class="p">)</span>
+    <span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+        <span class="n">x</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">X</span><span class="p">(</span><span class="s2">&quot;latent&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;global epistasis prediction (z&#39;)&quot;</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Scale</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">])),</span>
+        <span class="n">y</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Y</span><span class="p">(</span><span class="s2">&quot;phenotype:Q&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;predicted phenotype&quot;</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">alt</span><span class="o">.</span><span class="n">Scale</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">]))</span>
+    <span class="p">)</span>
+    <span class="o">.</span><span class="n">mark_line</span><span class="p">()</span>
+    <span class="o">.</span><span class="n">add_params</span><span class="p">(</span><span class="n">var_lambda_sp</span><span class="p">,</span> <span class="n">var_lower_bound</span><span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[51]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div id="altair-viz-8dc8da26022b45689d6443ea6eb2108e"></div>
+<script type="text/javascript">
+  var VEGA_DEBUG = (typeof VEGA_DEBUG == "undefined") ? {} : VEGA_DEBUG;
+  (function(spec, embedOpt){
+    let outputDiv = document.currentScript.previousElementSibling;
+    if (outputDiv.id !== "altair-viz-8dc8da26022b45689d6443ea6eb2108e") {
+      outputDiv = document.getElementById("altair-viz-8dc8da26022b45689d6443ea6eb2108e");
+    }
+    const paths = {
+      "vega": "https://cdn.jsdelivr.net/npm/vega@5?noext",
+      "vega-lib": "https://cdn.jsdelivr.net/npm/vega-lib?noext",
+      "vega-lite": "https://cdn.jsdelivr.net/npm/vega-lite@5.6.1?noext",
+      "vega-embed": "https://cdn.jsdelivr.net/npm/vega-embed@6?noext",
+    };
+
+    function maybeLoadScript(lib, version) {
+      var key = `${lib.replace("-", "")}_version`;
+      return (VEGA_DEBUG[key] == version) ?
+        Promise.resolve(paths[lib]) :
+        new Promise(function(resolve, reject) {
+          var s = document.createElement('script');
+          document.getElementsByTagName("head")[0].appendChild(s);
+          s.async = true;
+          s.onload = () => {
+            VEGA_DEBUG[key] = version;
+            return resolve(paths[lib]);
+          };
+          s.onerror = () => reject(`Error loading script: ${paths[lib]}`);
+          s.src = paths[lib];
+        });
+    }
+
+    function showError(err) {
+      outputDiv.innerHTML = `<div class="error" style="color:red;">${err}</div>`;
+      throw err;
+    }
+
+    function displayChart(vegaEmbed) {
+      vegaEmbed(outputDiv, spec, embedOpt)
+        .catch(err => showError(`Javascript Error: ${err.message}<br>This usually means there's a typo in your chart specification. See the javascript console for the full traceback.`));
+    }
+
+    if(typeof define === "function" && define.amd) {
+      requirejs.config({paths});
+      require(["vega-embed"], displayChart, err => showError(`Error loading script: ${err.message}`));
+    } else {
+      maybeLoadScript("vega", "5")
+        .then(() => maybeLoadScript("vega-lite", "5.6.1"))
+        .then(() => maybeLoadScript("vega-embed", "6"))
+        .catch(showError)
+        .then(() => displayChart(vegaEmbed));
+    }
+  })({"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "data": {"name": "data-5df0d8288b8899ccb5d4c64cc03b51be"}, "mark": {"type": "line"}, "encoding": {"x": {"field": "latent", "scale": {"domain": [-10, 10]}, "title": "global epistasis prediction (z')", "type": "quantitative"}, "y": {"field": "phenotype", "scale": {"domain": [-10, 10]}, "title": "predicted phenotype", "type": "quantitative"}}, "params": [{"name": "lambda_sp", "bind": {"input": "range", "max": 10, "min": 0.1}, "value": 1}, {"name": "lower_bound", "bind": {"input": "range", "max": 0, "min": -10}, "value": -3.5}], "transform": [{"calculate": "((log((1 + exp(((datum['latent'] - lower_bound) / lambda_sp)))) * lambda_sp) + lower_bound)", "as": "phenotype"}], "$schema": "https://vega.github.io/schema/vega-lite/v5.6.1.json", "datasets": {"data-5df0d8288b8899ccb5d4c64cc03b51be": [{"latent": -10.0}, {"latent": -9.797979797979798}, {"latent": -9.595959595959595}, {"latent": -9.393939393939394}, {"latent": -9.191919191919192}, {"latent": -8.98989898989899}, {"latent": -8.787878787878787}, {"latent": -8.585858585858587}, {"latent": -8.383838383838384}, {"latent": -8.181818181818182}, {"latent": -7.979797979797979}, {"latent": -7.777777777777778}, {"latent": -7.575757575757576}, {"latent": -7.373737373737374}, {"latent": -7.171717171717171}, {"latent": -6.96969696969697}, {"latent": -6.767676767676768}, {"latent": -6.565656565656566}, {"latent": -6.363636363636363}, {"latent": -6.161616161616162}, {"latent": -5.959595959595959}, {"latent": -5.757575757575758}, {"latent": -5.555555555555555}, {"latent": -5.353535353535354}, {"latent": -5.151515151515151}, {"latent": -4.94949494949495}, {"latent": -4.747474747474747}, {"latent": -4.545454545454546}, {"latent": -4.343434343434343}, {"latent": -4.141414141414142}, {"latent": -3.9393939393939394}, {"latent": -3.737373737373738}, {"latent": -3.5353535353535355}, {"latent": -3.333333333333333}, {"latent": -3.1313131313131315}, {"latent": -2.929292929292929}, {"latent": -2.7272727272727275}, {"latent": -2.525252525252525}, {"latent": -2.3232323232323235}, {"latent": -2.121212121212121}, {"latent": -1.9191919191919187}, {"latent": -1.717171717171718}, {"latent": -1.5151515151515156}, {"latent": -1.3131313131313131}, {"latent": -1.1111111111111107}, {"latent": -0.9090909090909101}, {"latent": -0.7070707070707076}, {"latent": -0.5050505050505052}, {"latent": -0.30303030303030276}, {"latent": -0.10101010101010033}, {"latent": 0.10101010101010033}, {"latent": 0.30303030303030276}, {"latent": 0.5050505050505052}, {"latent": 0.7070707070707076}, {"latent": 0.9090909090909083}, {"latent": 1.1111111111111107}, {"latent": 1.3131313131313131}, {"latent": 1.5151515151515156}, {"latent": 1.7171717171717162}, {"latent": 1.9191919191919187}, {"latent": 2.121212121212121}, {"latent": 2.3232323232323235}, {"latent": 2.525252525252524}, {"latent": 2.7272727272727266}, {"latent": 2.929292929292929}, {"latent": 3.1313131313131315}, {"latent": 3.333333333333334}, {"latent": 3.5353535353535346}, {"latent": 3.737373737373737}, {"latent": 3.9393939393939394}, {"latent": 4.141414141414142}, {"latent": 4.3434343434343425}, {"latent": 4.545454545454545}, {"latent": 4.747474747474747}, {"latent": 4.94949494949495}, {"latent": 5.1515151515151505}, {"latent": 5.353535353535353}, {"latent": 5.555555555555555}, {"latent": 5.757575757575758}, {"latent": 5.9595959595959584}, {"latent": 6.161616161616163}, {"latent": 6.363636363636363}, {"latent": 6.565656565656564}, {"latent": 6.767676767676768}, {"latent": 6.969696969696969}, {"latent": 7.171717171717173}, {"latent": 7.373737373737374}, {"latent": 7.575757575757574}, {"latent": 7.777777777777779}, {"latent": 7.979797979797979}, {"latent": 8.18181818181818}, {"latent": 8.383838383838384}, {"latent": 8.585858585858585}, {"latent": 8.787878787878789}, {"latent": 8.98989898989899}, {"latent": 9.19191919191919}, {"latent": 9.393939393939394}, {"latent": 9.595959595959595}, {"latent": 9.7979797979798}, {"latent": 10.0}]}}, {"mode": "vega-lite"});
+</script></div>
+</div>
+</section>
+<section id="Accounting-for-the-experimental-bias-using-\gamma_{h}">
+<h2>Accounting for the experimental bias using <span class="math notranslate nohighlight">\(\gamma_{h}\)</span><a class="headerlink" href="#Accounting-for-the-experimental-bias-using-\gamma_{h}" title="Permalink to this heading"></a></h2>
+<p>We expect that there exists some constant bias in the observed functional scores between differing experimental conditions. We believe this to be the case esspecially when experimental conditions have differing wildtypes. Ideally, in this scenerio we could spike-in the reference wildtype in each non reference experiment to guage exactly what that difference may be and adjust accordingly. However, this is not always feasible in the library design, and an analogous procedure for experiments
+sharing homology is unclear. To account for this bias, we introduce a free parameter, <span class="math notranslate nohighlight">\(\gamma\)</span></p>
+<p>TODO</p>
 </section>
 <section id="TODO---Fitting-procedure">
 <h2>TODO - Fitting procedure<a class="headerlink" href="#TODO---Fitting-procedure" title="Permalink to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
 </section>
 </section>
 
