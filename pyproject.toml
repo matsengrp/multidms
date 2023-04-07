@@ -53,6 +53,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    # "hide_code", TODO
     "pytest",
     "pytest-pep8",
     "pytest-datadir",

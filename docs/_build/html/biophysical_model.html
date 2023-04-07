@@ -40,20 +40,35 @@
             
   <section id="Biophysical-model">
 <h1>Biophysical model<a class="headerlink" href="#Biophysical-model" title="Permalink to this heading"></a></h1>
-<p>The <code class="docutils literal notranslate"><span class="pre">multidms</span></code> joint model applies to a case where you have DMS datasets for two or more experimental conditions and are interested in identifying shifts in mutational effects between conditions. Here we describe the biophysical model of conditional shifts that motivates the approach in this package.</p>
-<p>We suggest reading the <a class="reference external" href="https://www.pnas.org/doi/10.1073/pnas.1804015115">Otwinowski et al. 2018</a> paper to understand the approach to modeling global epistasis before reading the rest of the documentation.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">multidms</span></code> joint model applies primarily to a case where you have DMS datasets for two or more experimental conditions and are interested in identifying shifts in mutational effects between conditions. Here we describe the biophysical model of conditional shifts that motivates the approach in this package.</p>
+<p>We suggest reading the <a class="reference external" href="https://www.pnas.org/doi/10.1073/pnas.1804015115">Otwinowski et al. 2018</a> paper to understand the approach for modeling global epistasis before reading the rest of the documentation.</p>
 <section id="Model-overview">
 <h2>Model overview<a class="headerlink" href="#Model-overview" title="Permalink to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">multidms</span></code> extends the traditional global epistasis model by informing the parameters with multiple dms experiments under differing experimental conditions. For example, distinct experimental conditions (referred to as <span class="math notranslate nohighlight">\(h\)</span> throughout the documentation) may include sets of experiments that are performed with differing homology of wildtype sequence (i.e. SARS-CoV-2 Delta Vs. Omicron spike). This approach could also be used for experimental conditions which share homology of the wildtype
-but differing selection targets of the same protein. This model makes the assumption that differing conditions should result in <em>mostly</em> the same effect of mutations – but some shifts in mutational effect due to biological mechanisms (i.e. epistasis). Ultimately, this model was designed to identify those shifts using lasso regularization applied to the shift parameters described in the additive latent phenotype section below.</p>
+<p><code class="docutils literal notranslate"><span class="pre">multidms</span></code> extends the traditional global epistasis model by informing the parameters with multiple dms experiments under differing experimental conditions. For example, distinct experimental conditions (referred to as <span class="math notranslate nohighlight">\(h\)</span> throughout the documentation) may include sets of experiments that are performed with differing homology of wildtype sequence (i.e. SARS-CoV-2 Delta Vs. Omicron spike). This approach could also be used for experimental conditions which share homology of the wildtype,
+but are run with different selection targets. This model makes the assumption that differing conditions should result in <em>mostly</em> the same effect of mutations – but some <em>shifts</em> in mutational effect due to biological mechanisms (i.e. epistasis). Ultimately, this model was designed to identify those shifts using feature selection via <span class="math notranslate nohighlight">\(L1\)</span> regularization of the shift parameters described in the additive latent phenotype section below.</p>
 <p>At a high level, the model is a composition of three functions which describe the expected biophysical interactions underlying a given phenotype; (1) an additive model, <span class="math notranslate nohighlight">\(\phi\)</span>, describing a variant’s <em>latent</em> phenotype under a given condition, (2) a global epistasis model, <span class="math notranslate nohighlight">\(g\)</span>, to disentangle the effects of multiple mutations on the same variant, and (3) a final output activation function, <span class="math notranslate nohighlight">\(t\)</span>, accounting for an expected <em>lower bound</em> on the variant’s phenotype, where the
 observed functional score may sit below due to experimental sensitivity.</p>
+<p>Concretely, the predicted phenotype for a given variant <span class="math notranslate nohighlight">\(v\)</span> under condition <span class="math notranslate nohighlight">\(h\)</span> is given by</p>
 <div class="math notranslate nohighlight">
-\[f(v,h) = t_{\gamma}(g_{\alpha}(\phi_{\beta, S, C_{r}}(v,h))\]</div>
+\[\hat{y}_{v,h} = t_{\gamma}(g_{\alpha}(\phi_{\beta, S, C_{r}}(v,h))\]</div>
 <p>Where <span class="math notranslate nohighlight">\(\gamma\)</span>, <span class="math notranslate nohighlight">\(\alpha\)</span>, <span class="math notranslate nohighlight">\(\beta\)</span>, <span class="math notranslate nohighlight">\(S\)</span>, and <span class="math notranslate nohighlight">\(C_{r}\)</span> are <em>free</em> parameters inferred from experimental observations during the fitting process.</p>
-<p><strong>Note</strong> The motivation behind defining an abstract model in terms of its components offers us (1) modularity for method testing and development, and (2) The flexibility of multiple options for model components that encompass the needs of differing research goals and experimental techniques. While there is only a single option in for the <span class="math notranslate nohighlight">\(\phi\)</span> latent prediction, we offer a few options both for the global epistasis (<span class="math notranslate nohighlight">\(g\)</span>) and output activation (<span class="math notranslate nohighlight">\(t\)</span>) functions. Generally, the
+<p><strong>Note</strong> The motivation behind defining an abstract model in terms of its components offers us (1) modularity for method testing and development, and (2) The flexibility of multiple options for model components that encompass the needs of differing research goals and experimental techniques. While there is only a single option for the <span class="math notranslate nohighlight">\(\phi\)</span> latent prediction, we offer a few options both for the global epistasis (<span class="math notranslate nohighlight">\(g\)</span>) and output activation (<span class="math notranslate nohighlight">\(t\)</span>) functions. Generally, the
 package defaults for these components described below should be sufficient for most purposes, and in this case feel free to ignore the <code class="docutils literal notranslate"><span class="pre">multidms.biophysical</span></code> module all-together as this functionality is generally hidden unless explicitly specified during the instantiation of a <code class="docutils literal notranslate"><span class="pre">MultiDmsModel</span></code> object.</p>
 <p>Below, we’ll describe the individual components in more detail.</p>
+</section>
+<section id="Normalizing-observed-functional-scores-using-\gamma_{h}">
+<h2>Normalizing observed functional scores using <span class="math notranslate nohighlight">\(\gamma_{h}\)</span><a class="headerlink" href="#Normalizing-observed-functional-scores-using-\gamma_{h}" title="Permalink to this heading"></a></h2>
+<p>The first consideration is whether observed functional scores are directly comparable between conditions. In context of the model, <em>Predicted</em> functional scores are all directly comparable since all are generated from the same latent space via the same global-epistasis function. However, observed scores may not be comparable in the same way. For instance, a common way to compute functional scores is with log enrichment ratios, normalized so that the wildtype sequence has a value of zero. If the
+conditions being compared are DMS experiments conducted in the background of different homologs, then each homolog will necessarily have a functional score of zero within its experiment, even if those same homologs would have different functional scores when measured in the same experiment. Thus, log enrichment ratios are not always directly comparable between experiments. Ideally one or more of the same sequences would be included in the experimental design of DMS libraries to be compared, so
+that all scores can be normalized to the same sequence. However, if there are no such sequences, then it may be possible to computationally estimate how to renormalize scores.</p>
+<p>To this end, the model includes an additional parameter <span class="math notranslate nohighlight">\(\gamma_h\)</span> for each non-reference condition that allows functional scores, <span class="math notranslate nohighlight">\(y'_{v,h}\)</span> from that condition to be renormalized as follows:</p>
+<div class="math notranslate nohighlight">
+\[y'_{v,h} = y_{v,h} + \gamma_h\]</div>
+<p>where <span class="math notranslate nohighlight">\(\gamma_h\)</span> for the reference condition is locked at zero. There is a theoretical basis for adding <span class="math notranslate nohighlight">\(\gamma_h\)</span> to <span class="math notranslate nohighlight">\(y_{v,h}\)</span> if functional scores are log enrichment ratios. As mentioned above, log enrichment ratios are normalized so that the wildtype sequence from a given experiment has a value of zero, according to the formula:</p>
+<div class="math notranslate nohighlight">
+\[y_{v,h} = \log(E_{v,h}) - \log(E_{\text{wt},h})\]</div>
+<p>Thus, adding <span class="math notranslate nohighlight">\(\gamma_d\)</span> to <span class="math notranslate nohighlight">\(y_{v,d}\)</span> is akin to renormalizing the log enrichment ratios so that a different sequence has a functional score of zero. In theory, for each non-reference condition, there is a <span class="math notranslate nohighlight">\(\gamma_d\)</span> that renormalizes functional scores to be relative to the wildtype sequence of the reference condition. If these values are not experimentally measured, the model allows <span class="math notranslate nohighlight">\(\gamma_d\)</span> parameters to be fit during optimization, which assumes that the correct
+<span class="math notranslate nohighlight">\(\gamma_d\)</span> values will give the best model fit.</p>
 </section>
 <section id="Additive-latent-phenotype,-\phi">
 <h2>Additive latent phenotype, <span class="math notranslate nohighlight">\(\phi\)</span><a class="headerlink" href="#Additive-latent-phenotype,-\phi" title="Permalink to this heading"></a></h2>
@@ -67,23 +82,25 @@ mutation, <span class="math notranslate nohighlight">\(m\)</span>, will be get a
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(c_{r}\)</span> is the wild type latent phenotype for the reference condition.</p></li>
 <li><p><span class="math notranslate nohighlight">\(\beta_{m}\)</span> is the latent phenotypic effect of mutation <span class="math notranslate nohighlight">\(m\)</span>. See the note below</p></li>
-<li><p><span class="math notranslate nohighlight">\(s_{m,h}\)</span> is the shift of the effect of mutation <span class="math notranslate nohighlight">\(m\)</span> in condition <span class="math notranslate nohighlight">\(h\)</span>. These parameters are fixed to zero for the reference condition. For non-reference conditions, they are defined in the same way as <span class="math notranslate nohighlight">\(x_m\)</span> parameters.</p></li>
+<li><p><span class="math notranslate nohighlight">\(s_{m,h}\)</span> is the shift of the effect of mutation <span class="math notranslate nohighlight">\(m\)</span> in condition <span class="math notranslate nohighlight">\(h\)</span>. These parameters are fixed to zero for the reference condition. For non-reference conditions, they are defined in the same way as <span class="math notranslate nohighlight">\(\beta_m\)</span> parameters.</p></li>
 <li><p><span class="math notranslate nohighlight">\(v\)</span> is the set of all mutations relative to the reference wild type sequence (including all mutations that separate condition <span class="math notranslate nohighlight">\(h\)</span> from the reference condition).</p></li>
 </ul>
-<p><strong>Note</strong> This function is implimented in <code class="docutils literal notranslate"><span class="pre">multidms.biophysical.additive_model</span></code></p>
 <p><strong>Note</strong> The <span class="math notranslate nohighlight">\(\beta_m\)</span> variable is defined such that mutations are always relative to the reference condition. For example, if the wild type amino acid at site 30 is an A in the reference condition, and a G in a non-reference condition, then a Y30G mutation in the non-reference condition is recorded as an A30G mutation relative to the reference. This way, each condition informs the exact same parameters, even at sites that differ in wild type amino acid. These are encoded in a
 <code class="docutils literal notranslate"><span class="pre">BinaryMap</span></code> object, where all sites that are non-identical to the reference are 1’s.</p>
 </section>
-<section id="Sigmoidal-global-epistasis,-g">
-<h2>Sigmoidal global epistasis, <span class="math notranslate nohighlight">\(g\)</span><a class="headerlink" href="#Sigmoidal-global-epistasis,-g" title="Permalink to this heading"></a></h2>
-<p>In contrast to the common family of spline functions typically applied to these models, the global-epistasis function here assumes a sigmoidal relationship between a protein’s latent property and it’s functional score measured in the experiment (e.g., log enrichment score). Using free parameters, the sigmoid can flexibly conform to an optimal shape informed by the data. Note that this function is independent from the experimental condition from which a variant is observed.</p>
+<section id="global-epistasis,-g">
+<h2>global epistasis, <span class="math notranslate nohighlight">\(g\)</span><a class="headerlink" href="#global-epistasis,-g" title="Permalink to this heading"></a></h2>
+<p>Latent phenotypes as described above give rise to functional scores according to a global-epistasis function. If this function is non-linear, then the model allows mutations to non-additively effect functional scores, helping to account for global epistasis. Here, we’ll go into more detail about the options available in <code class="docutils literal notranslate"><span class="pre">multidms</span></code></p>
+<section id="Sigmoidal:">
+<h3>Sigmoidal:<a class="headerlink" href="#Sigmoidal:" title="Permalink to this heading"></a></h3>
+<p>By default, the global-epistasis function here assumes a sigmoidal relationship between a protein’s latent property and it’s functional score measured in the experiment (e.g., log enrichment score). Using free parameters, the sigmoid can flexibly conform to an optimal shape informed by the data. Note that this function is independent from the experimental condition from which a variant is observed.</p>
 <p>The sigmoidal function that relates a given <em>latent phenotype</em>, <span class="math notranslate nohighlight">\(z\)</span>, to its functional score is given by:</p>
 <div class="math notranslate nohighlight">
-\[g(z) = \alpha_{scale} * \frac{1}{1 + e^{-z}} + \alpha_{bias}\]</div>
+\[g(z) =  \frac{\alpha_{scale}}{1 + e^{-z}} + \alpha_{bias}\]</div>
 <p>where: * <span class="math notranslate nohighlight">\(\alpha_{scale}\)</span> is a free parameter defining the range of the sigmoid * <span class="math notranslate nohighlight">\(\alpha_{bias}\)</span> is a free parameter defining the lower bound of the sigmoid.</p>
 <p>Below is an interactive plot showing the effect of the sigmoidal global epistasis as a function of an adjustable <span class="math notranslate nohighlight">\(\alpha_{scale}\)</span>, and <span class="math notranslate nohighlight">\(\alpha_{bias}\)</span>:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[50]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">altair</span> <span class="k">as</span> <span class="nn">alt</span>
@@ -98,7 +115,7 @@ mutation, <span class="math notranslate nohighlight">\(m\)</span>, will be get a
 <span class="n">slider_s</span> <span class="o">=</span> <span class="n">alt</span><span class="o">.</span><span class="n">binding_range</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 <span class="n">var_s</span> <span class="o">=</span> <span class="n">alt</span><span class="o">.</span><span class="n">param</span><span class="p">(</span><span class="n">bind</span><span class="o">=</span><span class="n">slider_s</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;alpha_scale&quot;</span><span class="p">)</span>
 
-<span class="n">slider_b</span> <span class="o">=</span> <span class="n">alt</span><span class="o">.</span><span class="n">binding_range</span><span class="p">(</span><span class="nb">min</span><span class="o">=-</span><span class="mi">10</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span> <span class="c1">#, step=1)</span>
+<span class="n">slider_b</span> <span class="o">=</span> <span class="n">alt</span><span class="o">.</span><span class="n">binding_range</span><span class="p">(</span><span class="nb">min</span><span class="o">=-</span><span class="mi">10</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
 <span class="n">var_b</span> <span class="o">=</span> <span class="n">alt</span><span class="o">.</span><span class="n">param</span><span class="p">(</span><span class="n">bind</span><span class="o">=</span><span class="n">slider_b</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;alpha_bias&quot;</span><span class="p">)</span>
 
 <span class="p">(</span>
@@ -115,21 +132,21 @@ mutation, <span class="math notranslate nohighlight">\(m\)</span>, will be get a
     <span class="o">.</span><span class="n">mark_line</span><span class="p">()</span>
     <span class="o">.</span><span class="n">add_params</span><span class="p">(</span><span class="n">var_s</span><span class="p">,</span> <span class="n">var_b</span><span class="p">)</span>
 <span class="p">)</span>
-</pre></div>
+<br/></pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[50]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
-<div id="altair-viz-533c847c40d143efa8aae53488e20ae4"></div>
+<div id="altair-viz-a8413d12bb834e8484698cc55c08d6d7"></div>
 <script type="text/javascript">
   var VEGA_DEBUG = (typeof VEGA_DEBUG == "undefined") ? {} : VEGA_DEBUG;
   (function(spec, embedOpt){
     let outputDiv = document.currentScript.previousElementSibling;
-    if (outputDiv.id !== "altair-viz-533c847c40d143efa8aae53488e20ae4") {
-      outputDiv = document.getElementById("altair-viz-533c847c40d143efa8aae53488e20ae4");
+    if (outputDiv.id !== "altair-viz-a8413d12bb834e8484698cc55c08d6d7") {
+      outputDiv = document.getElementById("altair-viz-a8413d12bb834e8484698cc55c08d6d7");
     }
     const paths = {
       "vega": "https://cdn.jsdelivr.net/npm/vega@5?noext",
@@ -179,18 +196,40 @@ mutation, <span class="math notranslate nohighlight">\(m\)</span>, will be get a
 </script></div>
 </div>
 </section>
+<section id="Single-layer-neural-network-epistasis:">
+<h3>Single layer neural network epistasis:<a class="headerlink" href="#Single-layer-neural-network-epistasis:" title="Permalink to this heading"></a></h3>
+<p>If you prefer a less constrained shape for global epistasis, we also offer the ability to learn the shape of global epistasis using a single layer neural network. For this option, the user defines a number of units in the singular hidden layer of the model. For each hidden unit, we introduce three free parameters (2 weights and a bias). All weights are clipped at zero to maintain assumptions of monotonicity in the resulting epistasis function shape. The network applies a sigmoid activation to
+each internal unit before a final transformation and addition of a constant gives us our predicted functional score.</p>
+<p>Given a latent phenotype, z, the neural network function can then be defined:</p>
+<div class="math notranslate nohighlight">
+\[g(z) = b^{o}+ \sum_{i}^{n}(\frac{w^{o}_{i}}{1 + e^{w^{l}_{i}*z + b^{l}_{i}}})\]</div>
+<p>Where: * <span class="math notranslate nohighlight">\(n\)</span> is the number of units in the hidden layer * <span class="math notranslate nohighlight">\(w^{l}_{i}\)</span>, <span class="math notranslate nohighlight">\(w^{o}_{i}\)</span> are free parameters associated with the pre and post tranformations of unit <span class="math notranslate nohighlight">\(i\)</span> in the hidden layer of the network * <span class="math notranslate nohighlight">\(b^{l}_{i}\)</span> is a vector of free parameters of length n * <span class="math notranslate nohighlight">\(b^{o}\)</span> is a constant, singular free parameter</p>
+<p><strong>Note</strong> In the <code class="docutils literal notranslate"><span class="pre">multidms</span></code> API, This is accomplished by setting the “output_activation” parameter in the constructor for <code class="docutils literal notranslate"><span class="pre">MultiDmsModel</span></code> to be a pointer to the function <code class="docutils literal notranslate"><span class="pre">multidms.biophysical.single_layer_nn</span></code></p>
+</section>
+<section id="Identity-(no-epistasis):">
+<h3>Identity (no epistasis):<a class="headerlink" href="#Identity-(no-epistasis):" title="Permalink to this heading"></a></h3>
+<p>In some scenerios, deep mutational scanning data only contains single-mutation variants to be observed. It then becomes hopeless to learn anything useful about epiststatic effects. In this scenerio, we provide the option to functionally disable any global epistsis modeling by setting <span class="math notranslate nohighlight">\(g(z) = z\)</span>.</p>
+<p><strong>Note</strong> In the <code class="docutils literal notranslate"><span class="pre">multidms</span></code> API, This is accomplished by setting the “output_activation” parameter in the constructor for <code class="docutils literal notranslate"><span class="pre">MultiDmsModel</span></code> to be a pointer to the function definition <code class="docutils literal notranslate"><span class="pre">multidms.biophysical.identity_activation</span></code></p>
+</section>
+</section>
 <section id="Output-activation,-t">
 <h2>Output activation, <span class="math notranslate nohighlight">\(t\)</span><a class="headerlink" href="#Output-activation,-t" title="Permalink to this heading"></a></h2>
-<p>DMS reported phenotypes are often the result of a fold-change calculation on barcode read counts after a selection stage as compared to the pre-selection barcode read counts. Often this means that a lower frequency of variants in the initial library will often result in far more extreme observation of phenotype than we expect the sensitivity of this protocol to detect. In this case, one option is to filter the data to exclude these low frequency barcodes – However in certain cases even a modest
-filtering threshold cuts out many of the individual mutations you may want to learn about from the dataset. In this case, it’s common for researchers to clip their data at some lower bound, <span class="math notranslate nohighlight">\(l\)</span>. This type of clipping causes a specific unwanted behavior in the model. Put simply, the model, <span class="math notranslate nohighlight">\(g(\phi(v,h))\)</span> <em>learns</em> this lower bound and thus is encouraged to limit it’s shape to conform to this lower bound.</p>
-<p>We account for this unwanted behavior by applying a final activation on <span class="math notranslate nohighlight">\(z'\)</span>, where the output of the global epistasis model <span class="math notranslate nohighlight">\(g(\phi(v,h)) = z\)</span>. In essence, this is a generic softplus activation, softplus(<span class="math notranslate nohighlight">\(z'\)</span>) = <span class="math notranslate nohighlight">\(\log(1 + e^{z'})\)</span>, a smooth approximation of the well-known ReLU activation function. Because sofplus is a rigid function with a lower bound at zero, we introduced; (1) a user defined parameter, <span class="math notranslate nohighlight">\(\lambda_{sp}\)</span> which scales the rate at which the “hinge”
-interpolates from the lower bound to the identity function, and (2) a user-defined parameter to shift the lower bound to where the data was clipped, <span class="math notranslate nohighlight">\(l\)</span>.</p>
-<p>Given the output of a our global epistasis function, <span class="math notranslate nohighlight">\(z'\)</span>, the final predicted phenotype of our model is computed like so:</p>
+<p>The commonly reported fold-change functional score metric falls victim to the limits of detection of a given experiment to provide an accurate ratio when the starting frequency of a barcoded variant is low. Common solutions to this sensitivity problem include the use of highly multiplexed assays with variant-level barcode replicates, as well simply filtering out low frequency variants. Unfortunatly, even modest filtering thresholds for starting frequency and number of barcode replicates may cut
+out important data.</p>
+<p>Thus, it’s also common for researchers to simply <em>truncate</em> (i.e. <em>clip</em>) the functional at some lower bound <span class="math notranslate nohighlight">\(l\)</span>, where observations below are assumed largely to be artifacts of experimental sensitivity. In practice, this truncation helps to reduce the impact of outliers on the model’s performance.</p>
+<p>This clipping leads to unwanted behavior in our global epistasis model. Put simply, the model, <span class="math notranslate nohighlight">\(g(\phi(v,h))\)</span> <em>learns</em> this lower bound and thus is encouraged to limit it’s shape to conform to this lower bound. This behavior is particularly problematic when normalizing the observed functional scores with <span class="math notranslate nohighlight">\(\gamma_{h}\)</span>, described above. To provide intuition, consider a scenario where observed functional scores are truncated at a lower bound of -3 across all conditions. If
+<span class="math notranslate nohighlight">\(\gamma_d\)</span> is fit to -1.0 for one of the non-reference conditions, then the new floor of functional scores will be -4 for that condition, while the floor for the reference condition would still be -3. In this case, the global epistasis function could find itself in a pickle: if it allows predictions to go below -3, it could help model the floor of points in the non-reference condition, but hurt with modeling the floor of points in the reference condition.</p>
+<section id="Softplus">
+<h3>Softplus<a class="headerlink" href="#Softplus" title="Permalink to this heading"></a></h3>
+<p>By default, we avoid this unwanted behavior by applying a final activation on the output of the global epistasis model <span class="math notranslate nohighlight">\(g(\phi(v,h))\)</span>. In essence, this is a modified <em>softplus</em> activation, (<span class="math notranslate nohighlight">\(\text{softplus}(x)=\log(1 + e^{x})\)</span>) with a <em>lower bound</em> at <span class="math notranslate nohighlight">\(l + \gamma_{h}\)</span>, as well as a <em>ramping</em> coefficient, <span class="math notranslate nohighlight">\(\lambda_{\text{sp}}\)</span>.</p>
+<p>Concretely, if we let <span class="math notranslate nohighlight">\(z' = g(\phi(v,h))\)</span>, then the predicted functional score of our model is given by:</p>
 <div class="math notranslate nohighlight">
 \[t(z') = \lambda_{sp}\log(1 + e^{\frac{z' - l}{\lambda_{sp}}}) + l\]</div>
+<p>Functionally speaking, this truncates scores below a lower bound, while leaving scores above (mostly) unaltered. There is a small range of input values where the function smoothly transitions between a flat regime (where data is truncated) and a linear regime (where data is not truncated).</p>
+<p><strong>Note</strong> By default, we recommend leaving the <span class="math notranslate nohighlight">\(\lambda_{sp}\)</span> parameter at it’s default value of <span class="math notranslate nohighlight">\(0.1\)</span>. this ensures a sharp transition between regimes similar to a <a class="reference external" href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">ReLU</a> function, but retain the differentible property for gradient based optimization.</p>
 <p>Below is an interactive plot showing the effect of the modified softplus activation as a function of an adjustable <span class="math notranslate nohighlight">\(\lambda_{sp}\)</span> scaling parameter, and lower bound, <span class="math notranslate nohighlight">\(l\)</span>:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[51]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">altair</span> <span class="k">as</span> <span class="nn">alt</span>
@@ -226,17 +265,17 @@ interpolates from the lower bound to the identity function, and (2) a user-defin
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[51]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
-<div id="altair-viz-8dc8da26022b45689d6443ea6eb2108e"></div>
+<div id="altair-viz-72fba78112734383afc6f82aa5cefc54"></div>
 <script type="text/javascript">
   var VEGA_DEBUG = (typeof VEGA_DEBUG == "undefined") ? {} : VEGA_DEBUG;
   (function(spec, embedOpt){
     let outputDiv = document.currentScript.previousElementSibling;
-    if (outputDiv.id !== "altair-viz-8dc8da26022b45689d6443ea6eb2108e") {
-      outputDiv = document.getElementById("altair-viz-8dc8da26022b45689d6443ea6eb2108e");
+    if (outputDiv.id !== "altair-viz-72fba78112734383afc6f82aa5cefc54") {
+      outputDiv = document.getElementById("altair-viz-72fba78112734383afc6f82aa5cefc54");
     }
     const paths = {
       "vega": "https://cdn.jsdelivr.net/npm/vega@5?noext",
@@ -286,22 +325,28 @@ interpolates from the lower bound to the identity function, and (2) a user-defin
 </script></div>
 </div>
 </section>
-<section id="Accounting-for-the-experimental-bias-using-\gamma_{h}">
-<h2>Accounting for the experimental bias using <span class="math notranslate nohighlight">\(\gamma_{h}\)</span><a class="headerlink" href="#Accounting-for-the-experimental-bias-using-\gamma_{h}" title="Permalink to this heading"></a></h2>
-<p>We expect that there exists some constant bias in the observed functional scores between differing experimental conditions. We believe this to be the case esspecially when experimental conditions have differing wildtypes. Ideally, in this scenerio we could spike-in the reference wildtype in each non reference experiment to guage exactly what that difference may be and adjust accordingly. However, this is not always feasible in the library design, and an analogous procedure for experiments
-sharing homology is unclear. To account for this bias, we introduce a free parameter, <span class="math notranslate nohighlight">\(\gamma\)</span></p>
-<p>TODO</p>
+<section id="Identity-(no-activation):">
+<h3>Identity (no activation):<a class="headerlink" href="#Identity-(no-activation):" title="Permalink to this heading"></a></h3>
+<p>We offer the option to functionally <em>disable</em> this feature incase there’s no expected floor on the range of fitting data.</p>
+<p><strong>Note</strong> In the <code class="docutils literal notranslate"><span class="pre">multidms</span></code> API, This is accomplished by setting the “output_activation” parameter in the constructor for <code class="docutils literal notranslate"><span class="pre">MultiDmsModel</span></code> to be a pointer to the function definition <code class="docutils literal notranslate"><span class="pre">multidms.biophysical.identity_activation</span></code></p>
 </section>
-<section id="TODO---Fitting-procedure">
-<h2>TODO - Fitting procedure<a class="headerlink" href="#TODO---Fitting-procedure" title="Permalink to this heading"></a></h2>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
-</pre></div>
-</div>
-</div>
+</section>
+<section id="Fitting-procedure">
+<h2>Fitting procedure<a class="headerlink" href="#Fitting-procedure" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">multidms</span></code> is implimented in <em>python</em> using the <a class="reference external" href="https://github.com/google/jax">JAX</a> library allowing for the direct differentiation of the model functions. The <a class="reference external" href="https://jaxopt.github.io/stable/index.html">jaxopt</a> package is used for effecient optimization of all parameters with proximal gradient descent. Given DMS training data, The objective is to minimize the difference between <em>normalized observed</em> and <em>predected</em> functional scores (<span class="math notranslate nohighlight">\(y'_{v, h} - \hat{y}\)</span>). We apply a lasso
+(<span class="math notranslate nohighlight">\(l^{1}\)</span>) penalty to all <span class="math notranslate nohighlight">\(s_{v,h}\)</span> parameters for feature selection of high confidence values, and encouraging the rest to be <span class="math notranslate nohighlight">\(0\)</span>.</p>
+<p>The total loss on a dataset is computed as the sum of the individual losses for each condition in the dataset.</p>
+<div class="math notranslate nohighlight">
+\[L_{\text{total}} = \sum_{h} [L_{\text{fit},h} + L_{\text{reg},h}]\]</div>
+<p>conditional loss is then given by:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{align}
+L_{\text{fit},h} &amp;= \frac{\sum_{v} L_{\text{Huber}}(y'_{v,h}, t(v,h))}{n_h} \\
+L_{\text{reg},h} &amp;= \lambda \sum_{m} |s_{m,h}|
+\end{align}\end{split}\]</div>
+<p>where * <span class="math notranslate nohighlight">\(L_{\text{Huber}}\)</span> is a Huber loss function and * <span class="math notranslate nohighlight">\(n_{n}\)</span> is the number of variants in the condition.</p>
+<p>Dividing the numerator <span class="math notranslate nohighlight">\(L_{\text{fit},h}\)</span> by <span class="math notranslate nohighlight">\(n_d\)</span> makes it so that <span class="math notranslate nohighlight">\(L_{\text{fit},d}\)</span> returns the average loss across all variants. Ultimitely, this ensures that each condition contributes equally to <span class="math notranslate nohighlight">\(L_\text{total}\)</span>, regardless of the number of variants in that condition.</p>
+<p><strong>Note</strong> We find the qualitative results of model fits and their respective shift parameters are quite robust for a reasonable choice of <span class="math notranslate nohighlight">\(\lambda\)</span> applied to the lasso. In other words, this parameter can be set to reflect the user’s own preference for <a class="reference external" href="https://en.wikipedia.org/wiki/Lasso_(statistics)">accuracy-simplicity</a> tradeoff.</p>
 </section>
 </section>
 
