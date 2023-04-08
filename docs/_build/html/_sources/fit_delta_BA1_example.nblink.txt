@@ -1,3 +1,0 @@
-{
-    "path": "../notebooks/fit_delta_BA2_example.ipynb"
-}
