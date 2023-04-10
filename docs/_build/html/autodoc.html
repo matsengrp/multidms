@@ -312,7 +312,7 @@ of our data.</p>
 </section>
 <dl class="py class">
 <dt class="sig sig-object py" id="model.MultiDmsModel">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">model.</span></span><span class="sig-name descname"><span class="pre">MultiDmsModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data:</span> <span class="pre">~multidms.data.MultiDmsData</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma_corrected=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditional_shifts=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditional_c=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_g_range=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_g_min=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_C_ref=5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PRNGKey=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_model=&lt;function</span> <span class="pre">additive_model&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epistatic_model=&lt;function</span> <span class="pre">sigmoidal_global_epistasis&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_activation=&lt;function</span> <span class="pre">softplus_activation&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_percep_units=5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#model.MultiDmsModel" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">model.</span></span><span class="sig-name descname"><span class="pre">MultiDmsModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data:</span> <span class="pre">~multidms.data.MultiDmsData</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma_corrected=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditional_shifts=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditional_c=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_g_range=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_g_min=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_C_ref=5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PRNGKey=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_model=&lt;function</span> <span class="pre">additive_model&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epistatic_model=&lt;function</span> <span class="pre">sigmoidal_global_epistasis&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_activation=&lt;function</span> <span class="pre">softplus_activation&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_hidden_units=5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#model.MultiDmsModel" title="Permalink to this definition"></a></dt>
 <dd><p>Represent one or more DMS experiments
 to obtain tuned parameters that provide insight into
 individual mutational effects and conditional shifts
@@ -391,8 +391,8 @@ architecture defined in <cite>multidms.biophysical</cite></p>
 default unless youi explicitly want to test differing model
 architecture defined in <cite>multidms.biophysical</cite></p>
 </dd>
-<dt>n_percep_units<span class="classifier">int or None</span></dt><dd><p>If using a perceptron global epistasis
-model, this is the number of hidden units
+<dt>n_hidden_units<span class="classifier">int or None</span></dt><dd><p>If using <cite>biophysical.nn_global_epistasis</cite>
+this is the number of hidden units
 used in the transform.</p>
 </dd>
 </dl>
@@ -649,10 +649,9 @@ modeling global epistasis.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="biophysical.perceptron_global_epistasis">
-<span class="sig-prename descclassname"><span class="pre">biophysical.</span></span><span class="sig-name descname"><span class="pre">perceptron_global_epistasis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">α</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#biophysical.perceptron_global_epistasis" title="Permalink to this definition"></a></dt>
-<dd><p>A flexible sigmoid function for
-modeling global epistasis.</p>
+<dt class="sig sig-object py" id="biophysical.nn_global_epistasis">
+<span class="sig-prename descclassname"><span class="pre">biophysical.</span></span><span class="sig-name descname"><span class="pre">nn_global_epistasis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">α</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#biophysical.nn_global_epistasis" title="Permalink to this definition"></a></dt>
+<dd><p>A single-layer neural network for modeling global epistasis.</p>
 </dd></dl>
 
 <dl class="py function">
