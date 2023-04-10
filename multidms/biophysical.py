@@ -75,10 +75,9 @@ def softplus_global_epistasis(α: dict, z_h: jnp.array):
     return ((-1 * α["ge_scale"]) @ activations.T) + α["ge_bias"]
 
 
-def perceptron_global_epistasis(α: dict, z_h: jnp.array):
+def nn_global_epistasis(α: dict, z_h: jnp.array):
     """
-    A flexible sigmoid function for
-    modeling global epistasis.
+    A single-layer neural network for modeling global epistasis.
     """
     activations = jax.nn.sigmoid(α["p_weights_1"] * z_h[:, None] + α["p_biases"])
     return (α["p_weights_2"] @ activations.T) + α["output_bias"]

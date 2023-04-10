@@ -118,9 +118,9 @@ class MultiDmsModel:
         For experimenal purposes only. We currently suggest using the
         default unless youi explicitly want to test differing model
         architecture defined in `multidms.biophysical`
-    n_percep_units : int or None
-        If using a perceptron global epistasis
-        model, this is the number of hidden units
+    n_hidden_units : int or None
+        If using `biophysical.nn_global_epistasis`
+        this is the number of hidden units
         used in the transform.
 
     Example
@@ -212,7 +212,7 @@ class MultiDmsModel:
         latent_model=additive_model,
         epistatic_model=sigmoidal_global_epistasis,
         output_activation=softplus_activation,
-        n_percep_units=5,
+        n_hidden_units=5,
     ):
         """
         See class docstring.
@@ -259,16 +259,16 @@ class MultiDmsModel:
         elif epistatic_model == identity_activation:
             self._params["α"] = dict(ghost_param=jnp.zeros(shape=(1,)))
 
-        elif epistatic_model == perceptron_global_epistasis:
+        elif epistatic_model == nn_global_epistasis:
             key, key1, key2, key3, key4 = jax.random.split(key, num=5)
             self._params["α"] = dict(
-                p_weights_1=jax.random.normal(shape=(n_percep_units,), key=key1).clip(
+                p_weights_1=jax.random.normal(shape=(n_hidden_units,), key=key1).clip(
                     0
                 ),
-                p_weights_2=jax.random.normal(shape=(n_percep_units,), key=key2).clip(
+                p_weights_2=jax.random.normal(shape=(n_hidden_units,), key=key2).clip(
                     0
                 ),
-                p_biases=jax.random.normal(shape=(n_percep_units,), key=key3),
+                p_biases=jax.random.normal(shape=(n_hidden_units,), key=key3),
                 output_bias=jax.random.normal(shape=(1,), key=key4),
             )
 
