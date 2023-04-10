@@ -239,6 +239,8 @@ class MultiDmsData:
             raise ValueError("not enough `condition_colors`")
         else:
             self.condition_colors = dict(zip(self._conditions, condition_colors))
+        if not onp.all([type(c)==str for c in self.condition_colors.values()]):
+            raise ValueError("condition_color values must be hexidecimal")
 
         # Check and initialize alphabet & mut parser attributes
         if len(set(alphabet)) != len(alphabet):

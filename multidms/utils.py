@@ -128,7 +128,7 @@ def fit_wrapper(
     biophysical_model = {
         "Identity" : multidms.biophysical.identity_activation,
         "Sigmoid" : multidms.biophysical.sigmoidal_global_epistasis,
-        "Perceptron" : multidms.biophysical.perceptron_global_epistasis,
+        "NN" : multidms.biophysical.nn_global_epistasis,
         "Softplus" : multidms.biophysical.softplus_activation
     }
     
