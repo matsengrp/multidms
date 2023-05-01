@@ -11,13 +11,10 @@ import warnings
 
 import jax
 
-# jax.config.update("jax_enable_x64", True)
-# jax.config.update("jax_debug_nans", True)
 import jax.numpy as jnp
 import jaxlib
 from jax.experimental import sparse
 
-# from jax.tree_util import Partial
 from frozendict import frozendict
 from jaxopt import ProximalGradient
 from jaxopt.loss import huber_loss
@@ -353,6 +350,7 @@ class MultiDmsModel:
 
         return variants_df
 
+    # TODO add is wt?
     @property
     def mutations_df(self):
         """
@@ -583,7 +581,7 @@ class MultiDmsModel:
             plt.show()
         return ax
 
-    def plot_epistasis(self, hue=True, show=True, saveas=None, ax=None, **kwargs):
+    def plot_epistasis(self, hue=True, show=True, saveas=None, ax=None, sample=1.0, **kwargs):
 
         """
         Plot latent predictions against
@@ -599,8 +597,7 @@ class MultiDmsModel:
             fig, ax = plt.subplots(figsize=[3, 3])
 
         sns.scatterplot(
-            # data=df,
-            data=df.sample(frac=1),
+            data=df.sample(frac=sample),
             x="predicted_latent",
             y=f"corrected_func_score",
             hue="condition" if hue else None,

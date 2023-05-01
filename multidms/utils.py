@@ -56,48 +56,6 @@ def split_subs(subs_string, parser=split_sub):
     return wts, sites, muts
 
 
-def scale_func_score(func_score_df, bottleneck=1e5, pseudocount=0.1):
-
-    ret = func_score_df.copy()
-    for (h, hdf) in func_score_df.groupby("condition"):
-
-        if "Delta" in h:
-            bottleneck = 1e5
-        elif "Omicron_BA.1" in h:
-            bottleneck = 1.9e5
-        elif "Omicron_BA.2" in h:
-            bottleneck = 1.9e5
-        else:
-            raise ValueError(f"Could not parse homolog {h}")
-
-        post_counts_sum = sum(hdf["post_count"])
-        scaling_factor = bottleneck / post_counts_sum
-
-        hdf["orig_post_count"] = hdf["post_count"]
-        hdf["post_count"] *= scaling_factor
-        hdf["post_count_wt"] *= scaling_factor
-
-        hdf["pre_count_ps"] = hdf["pre_count"] + pseudocount
-        hdf["post_count_ps"] = hdf["post_count"] + pseudocount
-        hdf["pre_count_wt_ps"] = hdf["pre_count_wt"] + pseudocount
-        hdf["post_count_wt_ps"] = hdf["post_count_wt"] + pseudocount
-
-        total_pre_count = sum(hdf["pre_count_ps"])
-        total_post_count = sum(hdf["post_count_ps"])
-
-        hdf["pre_freq"] = hdf["pre_count_ps"] / total_pre_count
-        hdf["post_freq"] = hdf["post_count_ps"] / total_post_count
-        hdf["pre_freq_wt"] = hdf["pre_count_wt_ps"] / total_pre_count
-        hdf["post_freq_wt"] = hdf["post_count_wt_ps"] / total_post_count
-
-        hdf["wt_e"] = hdf["post_freq_wt"] / hdf["pre_freq_wt"]
-        hdf["var_e"] = hdf["post_freq"] / hdf["pre_freq"]
-        hdf["e"] = hdf["var_e"] / hdf["wt_e"]
-
-        ret.loc[hdf.index, "func_score"] = hdf["e"].apply(lambda x: math.log(x, 2))
-
-    return ret
-
 # TODO cleanup and document
 def fit_wrapper(
     dataset,
@@ -217,7 +175,7 @@ def plot_loss_simple(models):
     plt.show()
 
     
-def combine_replicate_muts(fit_dict, times_seen_threshold=3):
+def combine_replicate_muts(fit_dict, times_seen_threshold=3, how="inner"):
     """
     Take a dictionary of fit objects, with key's as the prefix for individual
     replicate values, and merge then such that all individual and average mutation
@@ -241,7 +199,7 @@ def combine_replicate_muts(fit_dict, times_seen_threshold=3):
     # merge each of the replicate mutational dataframes
     mut_df = reduce(
         lambda left, right: pd.merge(
-            left, right, left_index=True, right_index=True, how="inner"
+            left, right, left_index=True, right_index=True, how=how
         ),
         mutations_dfs,
     )
