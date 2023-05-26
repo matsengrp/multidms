@@ -64,6 +64,7 @@ def fit_wrapper(
     λ_ridge_beta = 0,
     λ_ridge_shift = 0,
     λ_ridge_gamma = 0,
+    λ_ridge_ch = 0,
     data_idx = 0,
     epistatic_model = "Identity",
     output_activation = "Identity",
@@ -122,13 +123,14 @@ def fit_wrapper(
         start = time.time()
         imodel.fit(
             lasso_shift = fit_attributes['λ_lasso_shift'],
-            λ_ridge_shift = fit_attributes['λ_ridge_shift'],
-            λ_ridge_beta = fit_attributes['λ_ridge_beta'],
-            λ_ridge_gamma = fit_attributes['λ_ridge_beta'],
             maxiter=iterations_per_step, 
             tol=tol,
             δ=fit_attributes["δ_huber"],
-            lock_params=lock_params
+            lock_params=lock_params,
+            λ_ridge_shift = fit_attributes['λ_ridge_shift'],
+            λ_ridge_beta = fit_attributes['λ_ridge_beta'],
+            λ_ridge_gamma = fit_attributes['λ_ridge_gamma'],
+            λ_ridge_ch = fit_attributes['λ_ridge_ch']
         )
         end = time.time()
 

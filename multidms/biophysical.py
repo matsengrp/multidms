@@ -149,7 +149,15 @@ def lasso_lock_prox(
 
 
 def gamma_corrected_cost_smooth(
-    f, params, data, δ=1, λ_ridge_shift=1e-6, λ_ridge_beta=1e-6, **kwargs
+    f, 
+    params, 
+    data, 
+    δ=1, 
+    λ_ridge_shift=0, 
+    λ_ridge_beta=0, 
+    λ_ridge_gamma=0, 
+    λ_ridge_cd=0, 
+    **kwargs
 ):
     """Cost (Objective) function summed across all conditions"""
 
@@ -157,7 +165,7 @@ def gamma_corrected_cost_smooth(
     loss = 0
 
     # Sum the huber loss across all conditions
-    shift_ridge_penalty = 0
+    # shift_ridge_penalty = 0
     for condition, X_d in X.items():
 
         # Subset the params for condition-specific prediction
@@ -178,8 +186,10 @@ def gamma_corrected_cost_smooth(
         loss += huber_loss(y[condition] + d_params[f"γ_d"], y_d_predicted, δ).mean()
 
         # compute a regularization term that penalizes non-zero
-        # shift parameters and add it to the loss function
+        # parameters and add it to the loss function
         loss += λ_ridge_shift * jnp.sum(d_params["s_md"] ** 2)
+        loss += λ_ridge_cd * jnp.sum(d_params["C_d"] ** 2)
+        loss += λ_ridge_gamma * jnp.sum(d_params["γ_d"] ** 2)
 
     loss += λ_ridge_beta * jnp.sum(params["β"] ** 2)
 
