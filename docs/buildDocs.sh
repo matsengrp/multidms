@@ -16,8 +16,11 @@ set -x
 # INSTALL DEPENDS #
 ###################
  
-sudo apt-get update
-# apt-get -y install git rsync python3-sphinx python3-sphinx-rtd-theme
+# sudo apt-get update
+apt-get -y install git rsync #python3-pip
+
+
+# apt-get -y install 
 # sudo apt-get apt-get -y install git rsync # python3-sphinx python3-sphinx-rtd-theme
 # echo $(rsync -h)
 # echo $(git --help)
@@ -88,5 +91,5 @@ popd # return to main repo sandbox root
  
 # exit cleanly
 exit 0
-EEOOFF
-chmod +x buildDocs.sh
+# EEOOFF
+# chmod +x buildDocs.sh
