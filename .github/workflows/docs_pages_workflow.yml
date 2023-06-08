@@ -10,7 +10,14 @@ on:
 jobs:
  
   build_docs_job:
-    runs-on: ubuntu-20.04
+      # runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    # container: debian:buster-slim
+    container: debian:buster
+    strategy:
+      matrix:
+        python-version: [3.8]
+ 
 
     steps:
 
@@ -19,7 +26,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         sudo apt-get update
-        sudo apt-get install -y git python3.8
+        sudo apt-get install -y git python3-pip # python3.8
         git clone --depth 1 "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" .
         git config --global --add safe.directory /__w/multidms/multidms
       shell: bash
