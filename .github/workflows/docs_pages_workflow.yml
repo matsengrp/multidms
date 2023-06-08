@@ -5,33 +5,36 @@ on:
   push:
     branches: 
       - main
-      - gh_action_doc_test
+      - test_docs_pages
  
 jobs:
  
   build_docs_job:
-      # runs-on: ubuntu-20.04
-    runs-on: ubuntu-latest
-    # container: debian:buster-slim
-    container: debian:buster
-    strategy:
-      matrix:
-        python-version: [3.8]
+    runs-on: ubuntu-20.04
+      #runs-on: ubuntu-latest
+      ## container: debian:buster-slim
+      #container: debian:buster
+      #strategy:
+      #  matrix:
+      #    python-version: [3.8]
  
-
     steps:
 
     - name: Prereqs
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-          # sudo apt-get update
-          # sudo apt-get install -y git python3-pip # python3.8
-        apt-get update
-        apt-get install -y git python3-pip # python3.8
+        sudo apt-get update
+        sudo apt-get install -y git python3.8
+        # apt-get install -y git # pip # python3-pip # python3.8
         git clone --depth 1 "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" .
         git config --global --add safe.directory /__w/multidms/multidms
+        wget https://github.com/jgm/pandoc/releases/download/2.14.0.3/pandoc-2.14.0.3-1-amd64.deb
+        sudo dpkg -i pandoc-2.14.0.3-1-amd64.deb
       shell: bash
+
+        # sudo apt-get update
+        # sudo apt-get install -y git python3-pip # python3.8
 
     - name: Install multidms
       env:
@@ -40,6 +43,8 @@ jobs:
         python3 -m pip install --upgrade pip
         python3 -m pip install -e ".[dev]"
       shell: bash
+        # python3 -m pip install --upgrade pip
+        # python3 -m pip install -e ".[dev]"
       
     - name: Execute script to build our documentation and update pages
       env:
