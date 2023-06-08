@@ -1,3 +1,0 @@
-{
-    "path": "../notebooks/biophysical_model.ipynb"
-}
