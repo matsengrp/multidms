@@ -11,13 +11,10 @@ import warnings
 
 import jax
 
-# jax.config.update("jax_enable_x64", True)
-# jax.config.update("jax_debug_nans", True)
 import jax.numpy as jnp
 import jaxlib
 from jax.experimental import sparse
 
-# from jax.tree_util import Partial
 from frozendict import frozendict
 from jaxopt import ProximalGradient
 from jaxopt.loss import huber_loss
@@ -118,9 +115,9 @@ class MultiDmsModel:
         For experimenal purposes only. We currently suggest using the
         default unless youi explicitly want to test differing model
         architecture defined in `multidms.biophysical`
-    n_percep_units : int or None
-        If using a perceptron global epistasis
-        model, this is the number of hidden units
+    n_hidden_units : int or None
+        If using `biophysical.nn_global_epistasis`
+        this is the number of hidden units
         used in the transform.
 
     Example
@@ -212,7 +209,7 @@ class MultiDmsModel:
         latent_model=additive_model,
         epistatic_model=sigmoidal_global_epistasis,
         output_activation=softplus_activation,
-        n_percep_units=5,
+        n_hidden_units=5,
     ):
         """
         See class docstring.
@@ -259,16 +256,16 @@ class MultiDmsModel:
         elif epistatic_model == identity_activation:
             self._params["α"] = dict(ghost_param=jnp.zeros(shape=(1,)))
 
-        elif epistatic_model == perceptron_global_epistasis:
+        elif epistatic_model == nn_global_epistasis:
             key, key1, key2, key3, key4 = jax.random.split(key, num=5)
             self._params["α"] = dict(
-                p_weights_1=jax.random.normal(shape=(n_percep_units,), key=key1).clip(
+                p_weights_1=jax.random.normal(shape=(n_hidden_units,), key=key1).clip(
                     0
                 ),
-                p_weights_2=jax.random.normal(shape=(n_percep_units,), key=key2).clip(
+                p_weights_2=jax.random.normal(shape=(n_hidden_units,), key=key2).clip(
                     0
                 ),
-                p_biases=jax.random.normal(shape=(n_percep_units,), key=key3),
+                p_biases=jax.random.normal(shape=(n_hidden_units,), key=key3),
                 output_bias=jax.random.normal(shape=(1,), key=key4),
             )
 
@@ -353,6 +350,7 @@ class MultiDmsModel:
 
         return variants_df
 
+    # TODO add is wt?
     @property
     def mutations_df(self):
         """
@@ -583,7 +581,7 @@ class MultiDmsModel:
             plt.show()
         return ax
 
-    def plot_epistasis(self, hue=True, show=True, saveas=None, ax=None, **kwargs):
+    def plot_epistasis(self, hue=True, show=True, saveas=None, ax=None, sample=1.0, **kwargs):
 
         """
         Plot latent predictions against
@@ -599,8 +597,7 @@ class MultiDmsModel:
             fig, ax = plt.subplots(figsize=[3, 3])
 
         sns.scatterplot(
-            # data=df,
-            data=df.sample(frac=1),
+            data=df.sample(frac=sample),
             x="predicted_latent",
             y=f"corrected_func_score",
             hue="condition" if hue else None,

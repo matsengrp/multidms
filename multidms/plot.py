@@ -709,7 +709,7 @@ def mut_shift_plot(
 
     # colors must be hex
     condition_colors = {
-        f"S_{con}".replace(".", "_"): matplotlib.colors.rgb2hex(tuple(col))
+        f"S_{con}".replace(".", "_"): col #matplotlib.colors.rgb2hex(tuple(col))
         for con, col in fit.data.condition_colors.items()
         if con != fit.data.reference
     }
