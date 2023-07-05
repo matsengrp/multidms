@@ -21,7 +21,7 @@ Developer install
    git clone git@github.com:matsengrp/multidms.git
    (cd multidms && pip install -e '.[dev]')
 
-If planning on using CUDA supported GPU's:
+If planning on using CUDA supported GPUs:
 
 .. code-block:: 
 
