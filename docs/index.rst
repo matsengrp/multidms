@@ -24,7 +24,7 @@ See below for information and examples of how to use this package.
     self
 
 .. toctree::
-    :maxdepth: 1
+    :maxdepth: 2
     :caption: Contents
     
     installation    
