@@ -350,33 +350,6 @@ class MultiDmsData:
         self._non_identical_sites = frozendict(non_identical_sites)
 
         df = df.assign(var_wrt_ref=df["aa_substitutions"])
-
-        ####################################
-        #def convert_subs_wrt_ref_seq(non_identical_sites, wts, sites, muts):
-        #    """
-        #    Given a dataframe of non identical sites
-        #    from a reference sequence and conditional sequence,
-        #    and a set mutations defined by ordered lists
-        #    of wts, sites, and thier respective mutations,
-        #    Compute the mutation string relative to the reference wildtype.
-        #    """
-
-        #    nis = non_identical_sites.copy()
-
-        #    for wt, site, mut in zip(wts, sites, muts):
-        #        if site not in non_identical_sites.index.values:
-        #            nis.loc[site] = wt, mut
-        #        else:
-        #            ref_wt = non_identical_sites.loc[site, "ref"]
-        #            if mut != ref_wt:
-        #                nis.loc[site] = ref_wt, mut
-        #            else:
-        #                nis.drop(site, inplace=True)
-
-        #    converted_muts = nis["ref"] + nis.index.astype(str) + nis["cond"]
-        #    return " ".join(converted_muts)
-        ####################################
-
         for condition, condition_func_df in df.groupby("condition"):
             if verbose:
                 print(f"Converting mutations for {condition}")
