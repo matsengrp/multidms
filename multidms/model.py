@@ -319,7 +319,7 @@ class MultiDmsModel:
         A frozendict which hold the individual components of the model
         as well as the objective and forward functions.
         """
-        return self._model_companents
+        return self._model_components
 
     @property
     def variants_df(self):
@@ -351,6 +351,7 @@ class MultiDmsModel:
         return variants_df
 
     # TODO add is wt?
+    # TODO cache the call to this function on self's hash
     @property
     def mutations_df(self):
         """
@@ -358,20 +359,25 @@ class MultiDmsModel:
         updated with all model specific attributes.
         """
 
+        # we're updating 
         mutations_df = self._data.mutations_df.copy()
-        mutations_df.loc[:, "β"] = self._params["β"]
-        # binary_single_subs = sparse.BCOO.fromdense(
-        #    onp.identity(len(self._data.mutations))
-        # )
-        for condition in self._data.conditions:
 
-            # d_params = self.get_condition_params(condition)
-            if condition == self._data.reference:
-                continue
-            mutations_df[f"S_{condition}"] = self._params[f"S_{condition}"]
-            # mutations_df[f"F_{condition}"] = self._model_components["f"](
-            #    d_params, binary_single_subs
-            # )
+        # add betas
+        mutations_df.loc[:, "β"] = self._params["β"]
+        binary_single_subs = sparse.BCOO.fromdense(
+           onp.identity(len(self._data.mutations))
+        )
+        for condition in self._data.conditions:
+            
+            # predicted functional score
+            d_params = self.get_condition_params(condition)
+            mutations_df[f"F_{condition}"] = self._model_components["f"](
+               d_params, binary_single_subs
+            )
+
+            # shifts
+            if condition != self._data.reference:
+                mutations_df[f"S_{condition}"] = self._params[f"S_{condition}"]
 
         return mutations_df
 
@@ -382,10 +388,10 @@ class MultiDmsModel:
         containing the prediction features for each.
         """
 
-        wildtype_df = pandas.DataFrame(index=self._data.conditions)
+        wildtype_df = pandas.DataFrame(index=self.data.conditions)
         wildtype_df = wildtype_df.assign(predicted_latent=onp.nan)
         wildtype_df = wildtype_df.assign(predicted_func_score=onp.nan)
-        for condition, nis in self._data.non_identical_mutations.items():
+        for condition, nis in self.data.non_identical_mutations.items():
 
             binmap = self._data.binarymaps[condition]
             wt_binary = binmap.sub_str_to_binary(nis)
@@ -409,8 +415,8 @@ class MultiDmsModel:
             'λ_ridge_shift': 0.,
             'λ_ridge_gamma': 0.
         }
-        data = (self._data.training_data["X"], self._data.training_data["y"])
-        return jax.jit(self._model_components["objective"])(self._params, data)
+        data = (self.data.training_data["X"], self.data.training_data["y"])
+        return jax.jit(self.model_components["objective"])(self.params, data)
 
     def mutation_site_summary_df(self, agg_func=onp.mean, times_seen_threshold=0):
         """
@@ -431,39 +437,149 @@ class MultiDmsModel:
     def get_condition_params(self, condition=None):
         """get the relent parameters for a model prediction"""
 
-        condition = self._data.reference if condition is None else condition
+        condition = self.data.reference if condition is None else condition
 
-        if condition not in self._data.conditions:
+        if condition not in self.data.conditions:
             raise ValueError("condition does not exist in model")
 
         return {
-            "α": self._params["α"],
-            "β_m": self._params["β"],
-            "C_ref": self._params["C_ref"],
-            "s_md": self._params[f"S_{condition}"],
-            "C_d": self._params[f"C_{condition}"],
-            "γ_d": self._params[f"γ_{condition}"],
+            "α": self.params["α"],
+            "β_m": self.params["β"],
+            "C_ref": self.params["C_ref"],
+            "s_md": self.params[f"S_{condition}"],
+            "C_d": self.params[f"C_{condition}"],
+            "γ_d": self.params[f"γ_{condition}"],
         }
 
     def f(self, X, condition=None):
         """condition specific prediction on X using the biophysical model
         given current model parameters."""
 
-        d_params = get_condition_params(condition)
-        return jax.jit(self._model_components["f"])(d_params, X)
+        d_params = self.get_condition_params(condition)
+        return jax.jit(self.model_components["f"])(d_params, X)
 
     def predicted_latent(self, X, condition=None):
         """condition specific prediction on X using the biophysical model
         given current model parameters."""
 
         d_params = get_condition_params(condition)
-        return jax.jit(self._model_components["additive_model"])(d_params, X)
+        return jax.jit(self.model_components["additive_model"])(d_params, X)
+
+    ######################
+    def add_phenotypes_to_df(
+        self,
+        df,
+        # *,
+        substitutions_col=None,
+        condition_col="condition",
+        latent_phenotype_col="latent_phenotype",
+        observed_phenotype_col="observed_phenotype",
+        phenotype_col_overwrite=False,
+        unknown_as_nan=False,
+    ):
+        """Add predicted phenotypes to data frame of variants.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Data frame containing variants.
+        substitutions_col : str or None
+            Column in `df` giving variants as substitution strings in format
+            that can be processed by :attr:`AbstractEpistasis.binarymap`.
+            If `None`, defaults to the `substitutions_col` attribute of
+            that binary map.
+        condition_col : str
+            Column in `df` giving the condition from which a variant was
+            observed. Values must exist in the self.data.conditions and
+            and error will be raised otherwise. Defaults to 'condition'.
+        latent_phenotype_col : str
+            Column(s) added to `df` containing predicted latent phenotypes.
+            If there are multiple latent phenotypes, this string is suffixed
+            with the latent phenotype number (i.e., 'latent_phenotype_1').
+        observed_phenotype_col : str
+            Column added to `df` containing predicted observed phenotypes.
+        phenotype_col_overwrite : bool
+            If the specified latent or observed phenotype column already
+            exist in `df`, overwrite it? If `False`, raise an error.
+        unknown_as_nan : bool
+            If some of the substitutions in a variant are not present in
+            the model (not in :attr:`AbstractEpistasis.binarymap`) set the
+            phenotypes to `nan` (not a number)? If `False`, raise an error.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A copy of `df` with the phenotypes added. Phenotypes are predicted
+            based on the current state of the model.
+
+        """
+        ref_bmap = self.data.binarymaps[self.data.reference]
+        if substitutions_col is None:
+            substitutions_col = ref_bmap.substitutions_col
+        if substitutions_col not in df.columns:
+            raise ValueError("`df` lacks `substitutions_col` " f"{substitutions_col}")
+        if condition_col not in df.columns:
+            raise ValueError("`df` lacks `condition_col` " f"{condition_col}")
+        
+        # before encoding the variants, we need to convert aa substitutions
+        # to be wrt to the reference condition site map.
+        nis_conv_df = (
+                df[[substitutions_col, condition_col]]
+                .copy()
+                .assign(var_wrt_ref = df[substitutions_col])
+        )
+
+
+        for condition, condition_df in nis_cond_df.groupby(condition_col):
+            if condition in self.data.reference_sequence_conditions: continue
+
+            nis_cond_df.loc[condition_df.index, "var_wrt_ref"] = (
+                condition_func_df.parallel_apply(
+                    lambda x: self.convert_split_subs_wrt_ref_seq(
+                        condition, x.wts, x.sites, x.muts
+                    ), 
+                    axis=1
+                )
+
+
+
+
+        
+
+        # build binary variants as csr matrix
+        row_ind = []  # row indices of elements that are one
+        col_ind = []  # column indices of elements that are one
+        nan_variant_indices = []  # indices of variants that are nan
+        # for ivariant, subs in enumerate(df[substitutions_col].values):
+        for ivariant, (idx, row) in enumerate(df.iterrows()):
+            try:
+                for isub in self.binarymap.sub_str_to_indices(subs):
+                    row_ind.append(ivariant)
+                    col_ind.append(isub)
+            except ValueError:
+                if unknown_as_nan:
+                    nan_variant_indices.append(ivariant)
+                else:
+                    raise ValueError(
+                        "Variant has substitutions not in model:"
+                        f"\n{subs}\nMaybe use `unknown_as_nan`?"
+                    )
+
+        # make predictions on sparse binarymap 
+        # append 
+        ret = df.copy()
+
+
+
+        pass
+
+
 
     def fit_reference_beta(self, **kwargs):
         """Fit the Model β's to the reference data"""
 
-        ref_X = self._data.training_data["X"][self._data.reference]
-        ref_y = self._data.training_data["y"][self._data.reference]
+        ref_X = self.data.training_data["X"][self.data.reference]
+        ref_y = self.data.training_data["y"][self.data.reference]
 
         self._params["β"] = solve_normal_cg(
             lambda β: ref_X @ β, ref_y, init=self._params["β"], **kwargs

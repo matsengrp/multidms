@@ -10,6 +10,7 @@ import numpy as np
 # 3  G  P
 
 
+
 func_score_df = pd.DataFrame({
     'condition' : [
         "1","1","1","1", 
@@ -24,16 +25,56 @@ func_score_df = pd.DataFrame({
     ]
 })
 
+# instatiate data object for asserting against
+
+data = multidms.MultiDmsData(
+    func_score_df,
+    alphabet = multidms.AAS_WITHSTOP,
+    reference = "1",
+    assert_site_integrity=True,
+)
+
+
+def test_mut_parser():
+    """ test that our parser approach works as intended """
+    pass
+
+def test_site_map_infer():
+    """ test that site maps are inferred correctly """
+    pass
+
+def test_bmap_mut_df_order():
+    """ 
+    Assert that the binarymap rows and columns match
+    mutations_df indicies exactly.
+    """
+    
+    # test the mutations order for both
+    mut_df = data.mutations_df
+    for condition in data.conditions:
+        bmap = data.binarymaps[condition]
+        assert np.all(mut_df.mutation == bmap.all_subs)
+
+    # make sure the indices into the bmap are ordered 0-n
+    for i, sub in enumerate(mut_df.mutation):
+        assert sub == bmap.i_to_sub(i)
+
+
+def test_bmap_var_df_order():
+    """ 
+    Assert that the binarymap rows and columns match
+    variants_df indicies exactly.
+    """
+
+
 def test_non_identical_conversion():
     """ Test the conversion to with respect reference wt sequence. """
-    data = multidms.MultiDmsData(
-        func_score_df,
-        alphabet = multidms.AAS_WITHSTOP,
-        reference = "1",
-        assert_site_integrity=True,
-    )
-    #print(data.site_map)
-    #assert False
+    #data = multidms.MultiDmsData(
+    #    func_score_df,
+    #    alphabet = multidms.AAS_WITHSTOP,
+    #    reference = "1",
+    #    assert_site_integrity=True,
+    #)
 
     assert np.all(data.binarymaps['1'].binary_variants.todense() == [
         [0, 0, 1, 0],
