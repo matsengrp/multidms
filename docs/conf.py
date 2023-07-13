@@ -26,14 +26,20 @@ extensions = [
     'sphinx_rtd_theme',
     "sphinx.ext.autodoc",
     #"sphinx.ext.doctest",
-    "sphinx.ext.mathjax",
-    "sphinx.ext.githubpages",
+    'sphinx.ext.mathjax',
+    'sphinx.ext.githubpages',
+    'sphinxcontrib.bibtex',
     #"sphinx.ext.viewcode",
     #"sphinx.ext.napoleon",
     # "matplotlib.sphinxext.plot_directive",
     "nbsphinx",
     "nbsphinx_link"
 ]
+
+bibtex_bibfiles = ['docs.bib']
+nbsphinx_epilog = r"""
+.. footbibliography::
+"""
 
 templates_path = ['_templates']
 # The suffix(es) of source filenames.
