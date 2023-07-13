@@ -84,7 +84,7 @@ html_theme_options = {
     "github_button": "true",
     "github_user": "matsengrp",
     "github_repo": "multidms",
-    "github_banner": "true",
+    "github_banner": "false",
     "travis_button": "false",
     "page_width": "1300px",
     "sidebar_width": "250px",
