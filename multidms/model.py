@@ -529,31 +529,28 @@ class MultiDmsModel:
                 .assign(var_wrt_ref = df[substitutions_col])
         )
 
-
         for condition, condition_df in nis_cond_df.groupby(condition_col):
             if condition in self.data.reference_sequence_conditions: continue
 
             nis_cond_df.loc[condition_df.index, "var_wrt_ref"] = (
                 condition_func_df.parallel_apply(
-                    lambda x: self.convert_split_subs_wrt_ref_seq(
+                    lambda x: self.data.convert_split_subs_wrt_ref_seq(
                         condition, x.wts, x.sites, x.muts
                     ), 
                     axis=1
                 )
 
-
-
-
-        
+        # You've converted the aa_subs, now create the new binarymaps
 
         # build binary variants as csr matrix
         row_ind = []  # row indices of elements that are one
         col_ind = []  # column indices of elements that are one
         nan_variant_indices = []  # indices of variants that are nan
         # for ivariant, subs in enumerate(df[substitutions_col].values):
-        for ivariant, (idx, row) in enumerate(df.iterrows()):
+        binarymap = self.data.binarymaps[self.data.reference]
+        for ivariant, (idx, row) in enumerate(nis_conv_df.iterrows()):
             try:
-                for isub in self.binarymap.sub_str_to_indices(subs):
+                for isub in binarymap.sub_str_to_indices(row["var_wrt_ref"]):
                     row_ind.append(ivariant)
                     col_ind.append(isub)
             except ValueError:
@@ -565,9 +562,22 @@ class MultiDmsModel:
                         f"\n{subs}\nMaybe use `unknown_as_nan`?"
                     )
 
+        binary_variants = scipy.sparse.csr_matrix(
+            (numpy.ones(len(row_ind), dtype="int8"), (row_ind, col_ind)),
+            shape=(len(nis_conv_df), binarymap.binarylength),
+            dtype="int8",
+        )
+
         # make predictions on sparse binarymap 
-        # append 
+        # and append them to this.
         ret = df.copy()
+
+        for condition, condition_df in nis_cond_df.groupby("condition"):
+            condition
+             = sparse.BCOO.from_scipy_sparse(ref_bmap.binary_variants)
+
+
+
 
 
 

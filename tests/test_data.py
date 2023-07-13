@@ -25,13 +25,16 @@ func_score_df = pd.DataFrame({
     ]
 })
 
+# TODO
+func_score_df.to_csv("test_func_score.csv")
+
 # instatiate data object for asserting against
 
 data = multidms.MultiDmsData(
     func_score_df,
     alphabet = multidms.AAS_WITHSTOP,
     reference = "1",
-    assert_site_integrity=True,
+    assert_site_integrity=True, # TODO testthis
 )
 
 
