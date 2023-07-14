@@ -61,47 +61,45 @@ def split_subs(subs_string, parser=split_sub):
 # TODO cleanup and document
 def fit_wrapper(
     dataset,
-    δ_huber = 1,
-    λ_lasso_shift = 2e-5,
-    λ_ridge_beta = 0,
-    λ_ridge_shift = 0,
-    λ_ridge_gamma = 0,
-    λ_ridge_ch = 0,
-    data_idx = 0,
-    epistatic_model = "Identity",
-    output_activation = "Identity",
-    lock_beta = False, 
-    lock_C_ref = False,
-    gamma_corrected = True,
-    conditional_c = False,
-    init_C_ref = 0.0,
-    warmup_beta = False,
+    δ_huber=1,
+    λ_lasso_shift=2e-5,
+    λ_ridge_beta=0,
+    λ_ridge_shift=0,
+    λ_ridge_gamma=0,
+    λ_ridge_ch=0,
+    data_idx=0,
+    epistatic_model="Identity",
+    output_activation="Identity",
+    lock_beta=False,
+    lock_C_ref=False,
+    gamma_corrected=True,
+    conditional_c=False,
+    init_C_ref=0.0,
+    warmup_beta=False,
     tol=1e-3,
-    num_training_steps = 10,
-    iterations_per_step = 2000,
-    save_model_at = [2000, 10000, 20000],
-    PRNGKey=0
+    num_training_steps=10,
+    iterations_per_step=2000,
+    save_model_at=[2000, 10000, 20000],
+    PRNGKey=0,
 ):
-    """
-    """
-    
+    """ """
+
     fit_attributes = locals().copy()
     biophysical_model = {
-        "Identity" : multidms.biophysical.identity_activation,
-        "Sigmoid" : multidms.biophysical.sigmoidal_global_epistasis,
-        "NN" : multidms.biophysical.nn_global_epistasis,
-        "Softplus" : multidms.biophysical.softplus_activation
+        "Identity": multidms.biophysical.identity_activation,
+        "Sigmoid": multidms.biophysical.sigmoidal_global_epistasis,
+        "NN": multidms.biophysical.nn_global_epistasis,
+        "Softplus": multidms.biophysical.softplus_activation,
     }
-    
-    
+
     imodel = multidms.MultiDmsModel(
         dataset,
-        epistatic_model=biophysical_model[fit_attributes['epistatic_model']],
-        output_activation=biophysical_model[fit_attributes['output_activation']],
-        conditional_c=fit_attributes['conditional_c'],
-        gamma_corrected=fit_attributes['gamma_corrected'],
-        init_C_ref=fit_attributes['init_C_ref'],
-        PRNGKey=PRNGKey
+        epistatic_model=biophysical_model[fit_attributes["epistatic_model"]],
+        output_activation=biophysical_model[fit_attributes["output_activation"]],
+        conditional_c=fit_attributes["conditional_c"],
+        gamma_corrected=fit_attributes["gamma_corrected"],
+        init_C_ref=fit_attributes["init_C_ref"],
+        PRNGKey=PRNGKey,
     )
 
     if fit_attributes["warmup_beta"]:
@@ -114,71 +112,63 @@ def fit_wrapper(
     if fit_attributes["lock_C_ref"] != False:
         lock_params["C_ref"] = jnp.array([fit_attributes["lock_C_ref"]])
 
-    fit_attributes['step_loss'] = onp.zeros(num_training_steps)
+    fit_attributes["step_loss"] = onp.zeros(num_training_steps)
     print(f"running:")
     pprint.pprint(fit_attributes)
 
     total_iterations = 0
 
     for training_step in range(num_training_steps):
-
         start = time.time()
         imodel.fit(
-            lasso_shift = fit_attributes['λ_lasso_shift'],
-            maxiter=iterations_per_step, 
+            lasso_shift=fit_attributes["λ_lasso_shift"],
+            maxiter=iterations_per_step,
             tol=tol,
             δ=fit_attributes["δ_huber"],
             lock_params=lock_params,
-            λ_ridge_shift = fit_attributes['λ_ridge_shift'],
-            λ_ridge_beta = fit_attributes['λ_ridge_beta'],
-            λ_ridge_gamma = fit_attributes['λ_ridge_gamma'],
-            λ_ridge_ch = fit_attributes['λ_ridge_ch']
+            λ_ridge_shift=fit_attributes["λ_ridge_shift"],
+            λ_ridge_beta=fit_attributes["λ_ridge_beta"],
+            λ_ridge_gamma=fit_attributes["λ_ridge_gamma"],
+            λ_ridge_ch=fit_attributes["λ_ridge_ch"],
         )
         end = time.time()
 
         fit_time = round(end - start)
         total_iterations += iterations_per_step
-        
+
         if onp.isnan(float(imodel.loss)):
             break
-            
-        fit_attributes['step_loss'][training_step] = float(imodel.loss)
+
+        fit_attributes["step_loss"][training_step] = float(imodel.loss)
 
         print(
             f"training_step {training_step}/{num_training_steps}, Loss: {imodel.loss}, Time: {fit_time} Seconds",
-            flush=True
+            flush=True,
         )
 
         if total_iterations in save_model_at:
             fit_attributes[f"model_{total_iterations}"] = copy.copy(imodel)
-              
+
     fit_series = pd.Series(fit_attributes).to_frame().T
-            
+
     return fit_series
 
+
 def plot_loss_simple(models):
-
-    fig, ax = plt.subplots(figsize=[7,7])
-    iterations = [(i+1)*2000 for i in range(10)]
+    fig, ax = plt.subplots(figsize=[7, 7])
+    iterations = [(i + 1) * 2000 for i in range(10)]
     for model, model_row in models.iterrows():
+        loss = model_row["epoch_loss"]
 
-        loss = model_row['epoch_loss']
-
-        ax.plot(
-            iterations, 
-            loss[0],
-            lw=3,
-            linestyle = "--",
-            label=f"model: {model}"
-        )
+        ax.plot(iterations, loss[0], lw=3, linestyle="--", label=f"model: {model}")
 
     ax.set_ylabel(f"Loss")
     ax.set_xlabel(f"Iterations")
-    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
 
     plt.show()
 
-    
+
 def combine_replicate_muts(fit_dict, times_seen_threshold=3, how="inner"):
     """
     Take a dictionary of fit objects, with key's as the prefix for individual
@@ -189,7 +179,6 @@ def combine_replicate_muts(fit_dict, times_seen_threshold=3, how="inner"):
     # obtain and curate each of the replicate mutational dataframes
     mutations_dfs = []
     for replicate, fit in fit_dict.items():
-
         fit_mut_df = fit.mutations_df.set_index("mutation")
 
         new_column_name_map = {c: f"{replicate}_{c}" for c in fit_mut_df.columns}
@@ -214,15 +203,15 @@ def combine_replicate_muts(fit_dict, times_seen_threshold=3, how="inner"):
         if c == "mutation" or "times_seen" in c:
             continue
         cols_to_combine = [f"{replicate}_{c}" for replicate in fit_dict.keys()]
-        
+
         # just keep one replicate wt, site, mut .. as they are shared.
         if c in ["wts", "sites", "muts"]:
             mut_df[c] = mut_df[cols_to_combine[0]]
             mut_df.drop(cols_to_combine, axis=1, inplace=True)
-            
+
         # take the average.
         else:
             mut_df[f"avg_{c}"] = mut_df[cols_to_combine].mean(axis=1)
-            column_order += (cols_to_combine + [f"avg_{c}"])
+            column_order += cols_to_combine + [f"avg_{c}"]
 
     return mut_df.loc[:, ["wts", "sites", "muts"] + column_order]

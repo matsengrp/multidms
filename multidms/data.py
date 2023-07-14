@@ -27,7 +27,6 @@ jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from jax.experimental import sparse
 from pandarallel import pandarallel
-from frozendict import frozendict
 from matplotlib import pyplot as plt
 import seaborn as sns
 
@@ -203,7 +202,8 @@ class MultiDmsData:
     8         2              P3G       1         0.4
     9         2              P3R       1        -5.0         G3R
     """
-    # TODO var "how" in {"inner", "outer", "sites" (?), or "reference"} 
+
+    # TODO var "how" in {"inner", "outer", "sites" (?), or "reference"}
     def __init__(
         self,
         variants_df: pandas.DataFrame,
@@ -237,7 +237,7 @@ class MultiDmsData:
             raise ValueError("not enough `condition_colors`")
         else:
             self.condition_colors = dict(zip(self._conditions, condition_colors))
-        if not onp.all([type(c)==str for c in self.condition_colors.values()]):
+        if not onp.all([type(c) == str for c in self.condition_colors.values()]):
             raise ValueError("condition_color values must be hexidecimal")
 
         # Check and initialize alphabet & mut parser attributes
@@ -276,7 +276,9 @@ class MultiDmsData:
             df = variants_df.copy()
 
         self._split_subs = partial(split_subs, parser=self._mutparser.parse_mut)
-        df["wts"], df["sites"], df["muts"] = zip(*df["aa_substitutions"].map(self._split_subs))
+        df["wts"], df["sites"], df["muts"] = zip(
+            *df["aa_substitutions"].map(self._split_subs)
+        )
 
         # Use the "aa_substitutions" to infer the
         # wild type for each condition
@@ -323,19 +325,19 @@ class MultiDmsData:
         self._site_map = site_map.sort_index()
 
         # identify and write site map differences for each condition
-        non_identical_mutations = {}
+        non_identical_mutations = {}  # TODO should we compute this lazily in a getter?
         non_identical_sites = {}
         self._reference_sequence_conditions = [self._reference]
         for condition in self._conditions:
-
             if condition == self._reference:
                 non_identical_mutations[condition] = ""
                 non_identical_sites[condition] = []
                 continue
 
             nis = self._site_map.where(
-                self._site_map[self._reference] != self._site_map[condition],
+                self._site_map[self.reference] != self.site_map[condition],
             ).dropna()
+
             if len(nis) == 0:
                 non_identical_mutations[condition] = ""
                 non_identical_sites[condition] = []
@@ -346,8 +348,8 @@ class MultiDmsData:
                 non_identical_mutations[condition] = muts_string
                 non_identical_sites[condition] = nis[[self._reference, condition]]
 
-        self._non_identical_mutations = frozendict(non_identical_mutations)
-        self._non_identical_sites = frozendict(non_identical_sites)
+        self._non_identical_mutations = non_identical_mutations
+        self._non_identical_sites = non_identical_sites
 
         df = df.assign(var_wrt_ref=df["aa_substitutions"])
         for condition, condition_func_df in df.groupby("condition"):
@@ -363,15 +365,14 @@ class MultiDmsData:
             df.loc[idx, "var_wrt_ref"] = condition_func_df.parallel_apply(
                 lambda x: self.convert_split_subs_wrt_ref_seq(
                     condition, x.wts, x.sites, x.muts
-                ), 
-                axis=1
+                ),
+                axis=1,
             )
 
         # Make BinaryMap representations for each condition
         allowed_subs = {s for subs in df.var_wrt_ref for s in subs.split()}
         binmaps, X, y = {}, {}, {}
         for condition, condition_func_score_df in df.groupby("condition"):
-
             ref_bmap = bmap.BinaryMap(
                 condition_func_score_df,
                 substitutions_col="var_wrt_ref",
@@ -468,7 +469,6 @@ class MultiDmsData:
         return self._split_subs
 
     def convert_split_subs_wrt_ref_seq(self, condition, wts, sites, muts):
-
         nis = self.non_identical_sites[condition]
         ret = self.non_identical_sites[condition].copy()
 
@@ -486,12 +486,13 @@ class MultiDmsData:
         return " ".join(converted_muts)
 
     def convert_subs_wrt_ref_seq(self, condition, aa_subs):
+        if condition not in self.conditions:
+            raise ValueError(f"condition {condition} does not exist in model")
         if condition in self.reference_sequence_conditions:
             return aa_subs
         return self.convert_split_subs_wrt_ref_seq(condition, *self.split_subs(aa_subs))
 
     def plot_times_seen_hist(self, saveas=None, show=True, **kwargs):
-
         times_seen_cols = [f"times_seen_{c}" for c in self._conditions]
         fig, ax = plt.subplots()
         sns.histplot(self._mutations_df[times_seen_cols], ax=ax, **kwargs)
@@ -502,7 +503,6 @@ class MultiDmsData:
         return fig, ax
 
     def plot_func_score_boxplot(self, saveas=None, show=True, **kwargs):
-
         fig, ax = plt.subplots()
         sns.boxplot(
             self._variants_df,

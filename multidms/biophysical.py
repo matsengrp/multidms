@@ -9,14 +9,11 @@ and their respective objective functions
 in `multidms.MultiDmsModel` Objects.
 """
 
-import jax
-
-jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
-import jaxlib
-from jax.tree_util import Partial
 from jaxopt.loss import huber_loss
 from jaxopt.prox import prox_lasso
+import jax
+jax.config.update("jax_enable_x64", True)
 
 
 def identity_activation(d_params, act, **kwargs):
@@ -84,8 +81,8 @@ def nn_global_epistasis(α: dict, z_h: jnp.array):
 
 
 def abstract_from_latent(
-    g: jaxlib.xla_extension.CompiledFunction,
-    t: jaxlib.xla_extension.CompiledFunction,
+    g,
+    t,
     d_params: dict,
     z_h: jnp.array,
     **kwargs,
@@ -101,9 +98,9 @@ def abstract_from_latent(
 
 
 def abstract_epistasis(
-    additive_model: jaxlib.xla_extension.CompiledFunction,
-    g: jaxlib.xla_extension.CompiledFunction,
-    t: jaxlib.xla_extension.CompiledFunction,
+    additive_model,
+    g,
+    t,
     d_params: dict,
     X_h: jnp.array,
     **kwargs,
@@ -126,7 +123,6 @@ def lasso_lock_prox(
     ),
     scaling=1.0,
 ):
-
     # enforce monotonic epistasis
     if "ge_scale" in params["α"]:
         params["α"]["ge_scale"] = params["α"]["ge_scale"].clip(0)
@@ -149,15 +145,15 @@ def lasso_lock_prox(
 
 
 def gamma_corrected_cost_smooth(
-    f, 
-    params, 
-    data, 
-    δ=1, 
-    λ_ridge_shift=0, 
-    λ_ridge_beta=0, 
-    λ_ridge_gamma=0, 
-    λ_ridge_cd=0, 
-    **kwargs
+    f,
+    params,
+    data,
+    δ=1,
+    λ_ridge_shift=0,
+    λ_ridge_beta=0,
+    λ_ridge_gamma=0,
+    λ_ridge_cd=0,
+    **kwargs,
 ):
     """Cost (Objective) function summed across all conditions"""
 
@@ -167,7 +163,6 @@ def gamma_corrected_cost_smooth(
     # Sum the huber loss across all conditions
     # shift_ridge_penalty = 0
     for condition, X_d in X.items():
-
         # Subset the params for condition-specific prediction
         d_params = {
             "α": params["α"],
