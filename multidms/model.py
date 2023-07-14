@@ -298,7 +298,6 @@ class MultiDmsModel:
             }
         )
 
-    # TODO non-zero params
     @property
     def params(self):
         """
@@ -572,7 +571,6 @@ class MultiDmsModel:
 
             variant_subs = condition_df[substitutions_col]
             if condition not in self.data.reference_sequence_conditions:
-                condition_df
 
                 variant_subs = (
                     condition_df.parallel_apply(
