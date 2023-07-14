@@ -79,7 +79,7 @@ class MultiDmsModel:
         If true (default), introduce the 'gamma' parameter
         for each non-reference parameter to
         account for differences between wild type
-        behavior relative to it's variants. This
+        behavior relative to its variants. This
         is essentially a bias added to the functional
         scores during fitting.
         See Model Description section for more.
@@ -101,19 +101,19 @@ class MultiDmsModel:
         Initialize the $C_{ref}$ parameter.
     PRNGKey : int
         The initial seed key for random parameters
-        assigned to Beta's and any other randomly
+        assigned to Betas and any other randomly
         initialized parameters.
     latent_model : <class 'function'>
         For experimenal purposes only. We currently suggest using the
-        default unless youi explicitly want to test differing model
+        default unless you explicitly want to test a model
         architecture defined in `multidms.biophysical`
     epistatic_model : <class 'function'>
         For experimenal purposes only. We currently suggest using the
-        default unless youi explicitly want to test differing model
+        default unless you explicitly want to test a model
         architecture defined in `multidms.biophysical`
     output_activation : <class 'function'>
         For experimenal purposes only. We currently suggest using the
-        default unless youi explicitly want to test differing model
+        default unless you explicitly want to test a model
         architecture defined in `multidms.biophysical`
     n_hidden_units : int or None
         If using `biophysical.nn_global_epistasis`
@@ -192,8 +192,8 @@ class MultiDmsModel:
     >>> model.loss
     DeviceArray(1.01582782, dtype=float64)
 
-    The model tunes it's parameters in place, and the subsequent call to retrieve
-    the loss reflects our models loss given it's updated parameters.
+    The model tunes its parameters in place, and the subsequent call to retrieve
+    the loss reflects our models loss given its updated parameters.
     """
 
     def __init__(
@@ -225,7 +225,6 @@ class MultiDmsModel:
         key = jax.random.PRNGKey(PRNGKey)
 
         if latent_model == additive_model:
-
             n_beta_shift = len(self._data.mutations)
             self._params["β"] = jax.random.normal(shape=(n_beta_shift,), key=key)
             for condition in data.conditions:
@@ -309,7 +308,7 @@ class MultiDmsModel:
     def data(self):
         """
         multidms.MultiDmsData Object this model references for fitting
-        it's parameters.
+        its parameters.
         """
         return self._data
 
@@ -332,7 +331,6 @@ class MultiDmsModel:
         variants_df[f"predicted_func_score"] = onp.nan
         variants_df[f"corrected_func_score"] = variants_df[f"func_score"]
         for condition, condition_dtf in variants_df.groupby("condition"):
-
             d_params = self.get_condition_params(condition)
             y_h_pred = jax.jit(self._model_components["f"])(
                 d_params, self._data.training_data["X"][condition]
@@ -364,7 +362,6 @@ class MultiDmsModel:
         #    onp.identity(len(self._data.mutations))
         # )
         for condition in self._data.conditions:
-
             # d_params = self.get_condition_params(condition)
             if condition == self._data.reference:
                 continue
@@ -386,7 +383,6 @@ class MultiDmsModel:
         wildtype_df = wildtype_df.assign(predicted_latent=onp.nan)
         wildtype_df = wildtype_df.assign(predicted_func_score=onp.nan)
         for condition, nis in self._data.non_identical_mutations.items():
-
             binmap = self._data.binarymaps[condition]
             wt_binary = binmap.sub_str_to_binary(nis)
             d_params = self.get_condition_params(condition)
@@ -404,11 +400,7 @@ class MultiDmsModel:
     # TODO zero-out penalty parameters
     @property
     def loss(self):
-        kwargs = {
-            'λ_ridge_beta': 0.,
-            'λ_ridge_shift': 0.,
-            'λ_ridge_gamma': 0.
-        }
+        kwargs = {"λ_ridge_beta": 0.0, "λ_ridge_shift": 0.0, "λ_ridge_gamma": 0.0}
         data = (self._data.training_data["X"], self._data.training_data["y"])
         return jax.jit(self._model_components["objective"])(self._params, data)
 
@@ -517,7 +509,6 @@ class MultiDmsModel:
     def plot_pred_accuracy(
         self, hue=True, show=True, saveas=None, annotate_corr=True, ax=None, **kwargs
     ):
-
         """
         Create a figure which visualizes the correlation
         between model predicted functional score of all
@@ -581,8 +572,9 @@ class MultiDmsModel:
             plt.show()
         return ax
 
-    def plot_epistasis(self, hue=True, show=True, saveas=None, ax=None, sample=1.0, **kwargs):
-
+    def plot_epistasis(
+        self, hue=True, show=True, saveas=None, ax=None, sample=1.0, **kwargs
+    ):
         """
         Plot latent predictions against
         gamma corrected ground truth measurements
@@ -641,7 +633,6 @@ class MultiDmsModel:
     def plot_param_hist(
         self, param, show=True, saveas=False, times_seen_threshold=3, ax=None, **kwargs
     ):
-
         """
         Plot the histogram of a parameter.
         """
@@ -701,7 +692,6 @@ class MultiDmsModel:
     def plot_param_heatmap(
         self, param, show=True, saveas=False, times_seen_threshold=3, ax=None, **kwargs
     ):
-
         """
         plot the heatmap of a parameters associated with specific sites and substitutions.
         """
@@ -810,7 +800,6 @@ class MultiDmsModel:
         show=True,
         site_agg_func=None,
     ):
-
         if not site_agg_func:
             dfs = [self.mutations_df, other.mutations_df]
         else:
