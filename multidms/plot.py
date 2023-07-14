@@ -461,7 +461,6 @@ def lineplot_and_heatmap(
     # rather than faceting to enable compound chart w wildtype marks and category
     # specific coloring.
     for category in categories:
-
         background = (
             heatmap_base.transform_filter(alt.datum[category_col] == category)
             .encode(
@@ -548,7 +547,6 @@ def lineplot_and_heatmap(
         )
         heatmap = background + data + wildtype
         if categorical_wildtype and f"wildtype_{category}" in addtl_tooltip_stats:
-
             heatmap += (
                 heatmap_base.transform_filter(alt.datum[category_col] == category)
                 .encode(
@@ -568,7 +566,10 @@ def lineplot_and_heatmap(
 
         heatmaps.append(heatmap)
 
-    heatmaps = alt.vconcat(*heatmaps, spacing=10,).resolve_scale(
+    heatmaps = alt.vconcat(
+        *heatmaps,
+        spacing=10,
+    ).resolve_scale(
         x="shared",
         color="shared"
         if heatmap_color_scheme or len(categories) == 1
@@ -633,7 +634,6 @@ def mut_shift_plot(
     stubnames = ["value"]
 
     if type(fit_data) == multidms.model.MultiDmsModel:
-
         mut_df = fit_data.mutations_df
         times_seen_cols = [c for c in mut_df.columns if "times" in c]
         for c in times_seen_cols:
@@ -659,7 +659,6 @@ def mut_shift_plot(
         # obtain and curate each of the replicate mutational dataframes
         mutations_dfs = []
         for replicate, fit in fit_data.items():
-
             fit_mut_df = fit.mutations_df.set_index("mutation")
 
             new_column_name_map = {c: f"{replicate}_{c}" for c in fit_mut_df.columns}
@@ -709,7 +708,7 @@ def mut_shift_plot(
 
     # colors must be hex
     condition_colors = {
-        f"S_{con}".replace(".", "_"): col #matplotlib.colors.rgb2hex(tuple(col))
+        f"S_{con}".replace(".", "_"): col  # matplotlib.colors.rgb2hex(tuple(col))
         for con, col in fit.data.condition_colors.items()
         if con != fit.data.reference
     }

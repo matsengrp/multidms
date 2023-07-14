@@ -23,6 +23,7 @@ from jaxopt.linear_solve import solve_normal_cg
 
 import pandas
 import numpy as onp
+import scipy
 import math
 from matplotlib import pyplot as plt
 import matplotlib.colors as colors
@@ -199,16 +200,16 @@ class MultiDmsModel:
     def __init__(
         self,
         data: MultiDmsData,
-        gamma_corrected=True,
+        gamma_corrected=False,
         conditional_shifts=True,
         conditional_c=False,
         init_g_range=None,
         init_g_min=None,
-        init_C_ref=5.0,
+        init_C_ref=0.0,
         PRNGKey=0,
         latent_model=additive_model,
         epistatic_model=sigmoidal_global_epistasis,
-        output_activation=softplus_activation,
+        output_activation=identity_activation,
         n_hidden_units=5,
     ):
         """
@@ -223,6 +224,7 @@ class MultiDmsModel:
 
         self._params = {}
         key = jax.random.PRNGKey(PRNGKey)
+
 
         if latent_model == additive_model:
             n_beta_shift = len(self._data.mutations)
@@ -286,7 +288,7 @@ class MultiDmsModel:
 
         self._model_components = frozendict(
             {
-                "additive_model": latent_model,
+                "latent_model": additive_model,  # TODO change this name
                 "g": epistatic_model,
                 "output_activation": output_activation,
                 "f": pred,
@@ -296,7 +298,6 @@ class MultiDmsModel:
             }
         )
 
-    # TODO non-zero params
     @property
     def params(self):
         """
@@ -318,59 +319,295 @@ class MultiDmsModel:
         A frozendict which hold the individual components of the model
         as well as the objective and forward functions.
         """
-        return self._model_companents
+        return self._model_components
+
+    def loss(self):
+        """
+        Compute model loss on all experimental training data
+        without ridge or lasso penalties included.
+        """
+        kwargs = {"λ_ridge_beta": 0.0, "λ_ridge_shift": 0.0, "λ_ridge_gamma": 0.0}
+        data = (self.data.training_data["X"], self.data.training_data["y"])
+        return jax.jit(self.model_components["objective"])(self.params, data, **kwargs)
 
     @property
     def variants_df(self):
-        """Get all functional score attributes from self._data
-        updated with all model predictions"""
+        """
+        Kept for backwards compatibility but will be removed in future versions.
+        Please use `get_variants_df` instead.
+        """
+        warnings.warn("deprecated", DeprecationWarning)
+        return self.get_variants_df(phenotype_as_effect=False)
 
+    def get_variants_df(self, phenotype_as_effect=True):
+        """
+        Training data with model predictions for latent,
+        and functional score phenotypes.
+
+        Parameters
+        ----------
+        phenotype_as_effect : bool
+            if True, phenotypes (both latent, and func_score)
+            are calculated as the _difference_ between predicted
+            phenotype of a given variant and the respective experimental
+            wildtype prediction. Otherwise, report the unmodified
+            model prediction.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A copy of the training data, `self.data.variants_df`,
+            with the phenotypes added. Phenotypes are predicted
+            based on the current state of the model.
+        """
+
+        # this is what well update and return
         variants_df = self._data.variants_df.copy()
 
-        variants_df["predicted_latent"] = onp.nan
-        variants_df[f"predicted_func_score"] = onp.nan
-        variants_df[f"corrected_func_score"] = variants_df[f"func_score"]
-        for condition, condition_dtf in variants_df.groupby("condition"):
+
+        # initialize new columns
+        for pheno in ["latent", "func_score"]:
+            variants_df[f"predicted_{pheno}"] = onp.nan
+
+        # if we're a gamma corrected model, also report the "corrected"
+        # observed func score, as we do during training.
+        if self.gamma_corrected:
+            variants_df[f"corrected_func_score"] = variants_df[f"func_score"]
+
+        # TODO if you cache this method, then you won't need to initialize
+        # get the wildtype predictions for each condition
+        if phenotype_as_effect:
+            wildtype_df = self.wildtype_df
+
+        models = {
+            "latent": jax.jit(self.model_components["latent_model"]),
+            "func_score": jax.jit(self.model_components["f"]),
+        }
+
+        for condition, condition_df in variants_df.groupby("condition"):
             d_params = self.get_condition_params(condition)
-            y_h_pred = jax.jit(self._model_components["f"])(
-                d_params, self._data.training_data["X"][condition]
-            )
-            variants_df.loc[condition_dtf.index, f"predicted_func_score"] = y_h_pred
+            X = self._data.training_data["X"][condition]
+
+            # prediction and effect
+            for pheno in ["latent", "func_score"]:
+                Y_pred = onp.array(models[pheno](d_params, X))
+                if phenotype_as_effect:
+                    print("Y_pred", Y_pred)
+                    print("WT_pred", wildtype_df.loc[condition, f"predicted_{pheno}"])
+
+                    Y_pred -= wildtype_df.loc[condition, f"predicted_{pheno}"]
+
+                variants_df.loc[condition_df.index, f"predicted_{pheno}"] = Y_pred
+
             if self.gamma_corrected:
                 variants_df.loc[
-                    condition_dtf.index, f"corrected_func_score"
+                    condition_df.index, f"corrected_func_score"
                 ] += d_params[f"γ_d"]
-            y_h_latent = jax.jit(self._model_components["additive_model"])(
-                d_params, self._data.training_data["X"][condition]
-            )
-            variants_df.loc[condition_dtf.index, f"predicted_latent"] = y_h_latent
-            variants_df.loc[condition_dtf.index, f"predicted_func_score"] = y_h_pred
 
         return variants_df
 
-    # TODO add is wt?
     @property
     def mutations_df(self):
         """
-        Get all single mutational attributes from self._data
-        updated with all model specific attributes.
+        Kept for backwards compatibility but will be removed in future versions.
+        Please use `get_mutations_df` instead.
+        """
+        warnings.warn("deprecated", DeprecationWarning)
+        return self.get_mutations_df(phenotype_as_effect=False)
+
+    def get_mutations_df(self, phenotype_as_effect=True):
+        """
+        Mutation attributes and phenotypic effects.
+
+        Parameters
+        ----------
+        phenotype_as_effect : bool
+            if True, phenotypes (both latent, and func_score)
+            are calculated as the _difference_ between predicted
+            phenotype of a given variant and the respective experimental
+            wildtype prediction. Otherwise, report the unmodified
+            model prediction.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A copy of the mutations data, `self.data.mutations_df`,
+            with the phenotypes added. Phenotypes are predicted
+            based on the current state of the model.
         """
 
-        mutations_df = self._data.mutations_df.copy()
+        # we're updating this
+        mutations_df = self.data.mutations_df.copy()
+
+        # for effect calculation
+        if phenotype_as_effect:
+            wildtype_df = self.wildtype_df
+
+        # add betas i.e. 'latent effect'
         mutations_df.loc[:, "β"] = self._params["β"]
-        # binary_single_subs = sparse.BCOO.fromdense(
-        #    onp.identity(len(self._data.mutations))
-        # )
+        X = sparse.BCOO.fromdense(onp.identity(len(self._data.mutations)))
         for condition in self._data.conditions:
-            # d_params = self.get_condition_params(condition)
-            if condition == self._data.reference:
-                continue
-            mutations_df[f"S_{condition}"] = self._params[f"S_{condition}"]
-            # mutations_df[f"F_{condition}"] = self._model_components["f"](
-            #    d_params, binary_single_subs
-            # )
+            # shift of latent effect
+            if condition != self._data.reference:
+                mutations_df[f"S_{condition}"] = self._params[f"S_{condition}"]
+
+            Y_pred = self.phenotype_frombinary(X, condition)
+            if phenotype_as_effect:
+                Y_pred -= wildtype_df.loc[condition, f"predicted_func_score"]
+            mutations_df[f"predicted_func_score"] = Y_pred
 
         return mutations_df
+
+    # TODO, should 'func_score' be swapped with 'phenotype' everywhere
+    def add_phenotypes_to_df(
+        self,
+        df,
+        substitutions_col="aa_substitutions",
+        condition_col="condition",
+        latent_phenotype_col="predicted_latent",
+        observed_phenotype_col="predicted_func_score",
+        converted_substitutions_col="aa_subs_wrt_ref",
+        overwrite_cols=False,
+        unknown_as_nan=False,
+        phenotype_as_effect=True,
+    ):
+        """Add predicted phenotypes to data frame of variants.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Data frame containing variants. Requirements are the same as
+            those used to initialize the `multidms.MultiDmsData` object
+        substitutions_col : str or None
+            Column in `df` giving variants as substitution strings in format
+            that can be processed by :attr:`AbstractEpistasis.binarymap`.
+            If `None`, defaults to the `substitutions_col` attribute of
+            that binary map.
+        condition_col : str
+            Column in `df` giving the condition from which a variant was
+            observed. Values must exist in the self.data.conditions and
+            and error will be raised otherwise. Defaults to 'condition'.
+        latent_phenotype_col : str
+            Column added to `df` containing predicted latent phenotypes.
+        observed_phenotype_col : str
+            Column added to `df` containing predicted observed phenotypes.
+        converted_substitutions_col : str or None
+            Columns added to `df` containing converted substitution strings
+            for non-reference conditions if they do not share a wildtype seq.
+        overwrite_cols : bool
+            If the specified latent or observed phenotype column already
+            exist in `df`, overwrite it? If `False`, raise an error.
+        unknown_as_nan : bool
+            If some of the substitutions in a variant are not present in
+            the model (not in :attr:`AbstractEpistasis.binarymap`) set the
+            phenotypes to `nan` (not a number)? If `False`, raise an error.
+        phenotype_as_effect : bool
+            if True, phenotypes (both latent, and func_score)
+            are calculated as the _difference_ between predicted
+            phenotype of a given variant and the respective experimental
+            wildtype prediction. Otherwise, report the unmodified
+            model prediction.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A copy of `df` with the phenotypes added. Phenotypes are predicted
+            based on the current state of the model.
+        """
+
+        ref_bmap = self.data.binarymaps[self.data.reference]
+        if substitutions_col is None:
+            substitutions_col = ref_bmap.substitutions_col
+        if substitutions_col not in df.columns:
+            raise ValueError("`df` lacks `substitutions_col` " f"{substitutions_col}")
+        if condition_col not in df.columns:
+            raise ValueError("`df` lacks `condition_col` " f"{condition_col}")
+
+        # return copy
+        ret = df.copy()
+
+        if phenotype_as_effect:
+            wildtype_df = self.wildtype_df
+
+        # initialize new columns
+        for col in [
+            latent_phenotype_col,
+            observed_phenotype_col,
+            converted_substitutions_col,
+        ]:
+            if col is None:
+                continue
+            if col in df.columns and not overwrite_cols:
+                raise ValueError(f"`df` already contains column {col}")
+            ret[col] = onp.nan
+
+        for condition, condition_df in df.groupby(condition_col):
+            variant_subs = condition_df[substitutions_col]
+            if condition not in self.data.reference_sequence_conditions:
+                variant_subs = condition_df.parallel_apply(
+                    lambda x: self.data.convert_subs_wrt_ref_seq(
+                        condition, x[substitutions_col]
+                    ),
+                    axis=1,
+                )
+
+            if converted_substitutions_col is not None:
+                ret.loc[condition_df.index, converted_substitutions_col] = variant_subs
+
+            # build binary variants as csr matrix, make prediction, and append
+            row_ind = []  # row indices of elements that are one
+            col_ind = []  # column indices of elements that are one
+            nan_variant_indices = []  # indices of variants that are nan
+
+            for ivariant, subs in enumerate(variant_subs):
+                try:
+                    for isub in ref_bmap.sub_str_to_indices(subs):
+                        row_ind.append(ivariant)
+                        col_ind.append(isub)
+                except ValueError:
+                    if unknown_as_nan:
+                        nan_variant_indices.append(ivariant)
+                    else:
+                        raise ValueError(
+                            "Variant has substitutions not in model:"
+                            f"\n{subs}\nMaybe use `unknown_as_nan`?"
+                        )
+
+            X = sparse.BCOO.from_scipy_sparse(
+                scipy.sparse.csr_matrix(
+                    (onp.ones(len(row_ind), dtype="int8"), (row_ind, col_ind)),
+                    shape=(len(condition_df), ref_bmap.binarylength),
+                    dtype="int8",
+                )
+            )
+
+            # latent predictions on binary variants, X
+            latent_predictions = onp.array(
+                self.latent_frombinary(X, condition=condition)
+            )
+            assert len(latent_predictions) == len(condition_df)
+            if phenotype_as_effect:
+                latent_predictions -= wildtype_df.loc[condition, f"predicted_latent"]
+            latent_predictions[nan_variant_indices] = onp.nan
+            ret.loc[
+                condition_df.index.values, latent_phenotype_col
+            ] = latent_predictions
+
+            # func_score predictions on binary variants, X
+            phenotype_predictions = onp.array(
+                self.phenotype_frombinary(X, condition=condition)
+            )
+            assert len(phenotype_predictions) == len(condition_df)
+            if phenotype_as_effect:
+                phenotype_predictions -= wildtype_df.loc[
+                    condition, f"predicted_func_score"
+                ]
+            phenotype_predictions[nan_variant_indices] = onp.nan
+            ret.loc[
+                condition_df.index.values, observed_phenotype_col
+            ] = phenotype_predictions
+
+        return ret
 
     @property
     def wildtype_df(self):
@@ -379,30 +616,19 @@ class MultiDmsModel:
         containing the prediction features for each.
         """
 
-        wildtype_df = pandas.DataFrame(index=self._data.conditions)
-        wildtype_df = wildtype_df.assign(predicted_latent=onp.nan)
-        wildtype_df = wildtype_df.assign(predicted_func_score=onp.nan)
-        for condition, nis in self._data.non_identical_mutations.items():
-            binmap = self._data.binarymaps[condition]
-            wt_binary = binmap.sub_str_to_binary(nis)
-            d_params = self.get_condition_params(condition)
-
-            wildtype_df.loc[f"{condition}", "predicted_latent"] = jax.jit(
-                self._model_components["additive_model"]
-            )(d_params, wt_binary)
-
-            wildtype_df.loc[f"{condition}", "predicted_func_score"] = jax.jit(
-                self._model_components["f"]
-            )(d_params, wt_binary)
+        wildtype_df = (
+            pandas.DataFrame(index=self.data.conditions)
+            .assign(predicted_latent=onp.nan)
+            .assign(predicted_func_score=onp.nan)
+        )
+        for condition in self.data.conditions:
+            for pheno, model in zip(
+                ["latent", "func_score"],
+                [self.latent_fromsubs, self.phenotype_fromsubs],
+            ):
+                wildtype_df.loc[condition, f"predicted_{pheno}"] = model("", condition)
 
         return wildtype_df
-
-    # TODO zero-out penalty parameters
-    @property
-    def loss(self):
-        kwargs = {"λ_ridge_beta": 0.0, "λ_ridge_shift": 0.0, "λ_ridge_gamma": 0.0}
-        data = (self._data.training_data["X"], self._data.training_data["y"])
-        return jax.jit(self._model_components["objective"])(self._params, data)
 
     def mutation_site_summary_df(self, agg_func=onp.mean, times_seen_threshold=0):
         """
@@ -423,39 +649,70 @@ class MultiDmsModel:
     def get_condition_params(self, condition=None):
         """get the relent parameters for a model prediction"""
 
-        condition = self._data.reference if condition is None else condition
-
-        if condition not in self._data.conditions:
-            raise ValueError("condition does not exist in model")
+        condition = self.data.reference if condition is None else condition
+        if condition not in self.data.conditions:
+            raise ValueError(f"condition {condition} does not exist in model")
 
         return {
-            "α": self._params["α"],
-            "β_m": self._params["β"],
-            "C_ref": self._params["C_ref"],
-            "s_md": self._params[f"S_{condition}"],
-            "C_d": self._params[f"C_{condition}"],
-            "γ_d": self._params[f"γ_{condition}"],
+            "α": self.params["α"],
+            "β_m": self.params["β"],
+            "C_ref": self.params["C_ref"],
+            "s_md": self.params[f"S_{condition}"],
+            "C_d": self.params[f"C_{condition}"],
+            "γ_d": self.params[f"γ_{condition}"],
         }
 
-    def f(self, X, condition=None):
+    def phenotype_fromsubs(self, aa_subs, condition=None):
+        """
+        take a single string of subs which are
+        not already converted wrt reference, convert them and
+        then make a functional score prediction and return the result.
+        """
+        converted_subs = self.data.convert_subs_wrt_ref_seq(condition, aa_subs)
+        X = jnp.array(
+            [
+                self.data.binarymaps[self.data.reference].sub_str_to_binary(
+                    converted_subs
+                )
+            ]
+        )
+        return self.phenotype_frombinary(X)
+
+    def latent_fromsubs(self, aa_subs, condition=None):
+        """
+        take a single string of subs which are
+        not already converted wrt reference, convert them and
+        then make a latent prediction and return the result.
+        """
+        converted_subs = self.data.convert_subs_wrt_ref_seq(condition, aa_subs)
+        X = jnp.array(
+            [
+                self.data.binarymaps[self.data.reference].sub_str_to_binary(
+                    converted_subs
+                )
+            ]
+        )
+        return self.latent_frombinary(X)
+
+    def phenotype_frombinary(self, X, condition=None):
         """condition specific prediction on X using the biophysical model
         given current model parameters."""
 
-        d_params = get_condition_params(condition)
-        return jax.jit(self._model_components["f"])(d_params, X)
+        d_params = self.get_condition_params(condition)
+        return jax.jit(self.model_components["f"])(d_params, X)
 
-    def predicted_latent(self, X, condition=None):
+    def latent_frombinary(self, X, condition=None):
         """condition specific prediction on X using the biophysical model
         given current model parameters."""
 
-        d_params = get_condition_params(condition)
-        return jax.jit(self._model_components["additive_model"])(d_params, X)
+        d_params = self.get_condition_params(condition)
+        return jax.jit(self.model_components["latent_model"])(d_params, X)
 
     def fit_reference_beta(self, **kwargs):
         """Fit the Model β's to the reference data"""
 
-        ref_X = self._data.training_data["X"][self._data.reference]
-        ref_y = self._data.training_data["y"][self._data.reference]
+        ref_X = self.data.training_data["X"][self.data.reference]
+        ref_y = self.data.training_data["y"][self.data.reference]
 
         self._params["β"] = solve_normal_cg(
             lambda β: ref_X @ β, ref_y, init=self._params["β"], **kwargs
@@ -473,11 +730,6 @@ class MultiDmsModel:
 
         lock_params[f"S_{self._data.reference}"] = jnp.zeros(len(self._params["β"]))
         lock_params[f"γ_{self._data.reference}"] = jnp.zeros(shape=(1,))
-
-        # lock_params = {
-        #    f"S_{self._data.reference}": jnp.zeros(len(self._params["β"])),
-        #    f"γ_{self._data.reference}": jnp.zeros(shape=(1,)),
-        # }
 
         if not self.conditional_shifts:
             for condition in self._data.conditions:
@@ -609,19 +861,18 @@ class MultiDmsModel:
         xlb, xub = [-1, 1] + onp.quantile(df.predicted_latent, [0.05, 1.0])
         ylb, yub = [-1, 1] + onp.quantile(df.corrected_func_score, [0.05, 1.0])
 
-        additive_model_grid = onp.linspace(xlb, xub, num=1000)
+        latent_model_grid = onp.linspace(xlb, xub, num=1000)
 
         params = self.get_condition_params(self._data.reference)
-        latent_preds = self._model_components["g"](params["α"], additive_model_grid)
-        shape = (additive_model_grid, latent_preds)
+        latent_preds = self._model_components["g"](params["α"], latent_model_grid)
+        shape = (latent_model_grid, latent_preds)
         ax.plot(*shape, color="k", lw=2)
 
         ax.axhline(0, color="k", ls="--", lw=2)
-        # ax.axvline(0, color="k", ls="--", lw=2)
         ax.set_xlim([xlb, xub])
         ax.set_ylim([ylb, yub])
-        ax.set_ylabel("functional score + γ$_{d}$")
-        ax.set_xlabel("predicted latent phenotype (additive_model)")
+        ax.set_ylabel("functional score")
+        ax.set_xlabel("predicted latent phenotype")
         plt.tight_layout()
 
         if saveas:
