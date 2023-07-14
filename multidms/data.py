@@ -209,7 +209,7 @@ class MultiDmsData:
         variants_df: pandas.DataFrame,
         reference: str,
         alphabet=AAS,
-        collapse_identical_variants="mean",
+        collapse_identical_variants=False,
         condition_colors=DEFAULT_POSITIVE_COLORS,
         letter_suffixed_sites=False,
         assert_site_integrity=False,  # TODO document
@@ -273,7 +273,7 @@ class MultiDmsData:
             )
 
         else:
-            df = variants_df.reset_index()
+            df = variants_df.copy()
 
         self._split_subs = partial(split_subs, parser=self._mutparser.parse_mut)
         df["wts"], df["sites"], df["muts"] = zip(*df["aa_substitutions"].map(self._split_subs))
@@ -359,12 +359,7 @@ class MultiDmsData:
                     print(f"is reference, skipping")
                 continue
 
-            #nis = non_identical_sites[condition].rename(
-            #    {self.reference: "ref", condition: "cond"}, axis=1
-            #)
-
             idx = condition_func_df.index
-            # nis.rename({self.reference: "ref", condition: "cond"}, axis=1, inplace=True)
             df.loc[idx, "var_wrt_ref"] = condition_func_df.parallel_apply(
                 lambda x: self.convert_split_subs_wrt_ref_seq(
                     condition, x.wts, x.sites, x.muts
@@ -416,103 +411,63 @@ class MultiDmsData:
 
         self._mutations_df = mut_df
 
-    # finish split subs in utils,
-    # then move all the methods you were going to do below, to
-    # the model method. There's really no use in having it here, right?
-
-    #####################################
-    #def convert_subs_wrt_ref_seq(self, non_reference_condition, )
-    #    """
-    #    given a pd.Series of aa substitutions strings,
-    #    parse the 
-    #    """
-    #    
-
-    #    pass
-
-    #def get_bmap(self, aa_subs):
-    #    """
-    #    given a pd.Series of substitutions, return the respective
-    #    binarymap encoding using the 
-    #    """
-    #    pass
-    #####################################
-
-    # TODO docstring
     @property
     def non_identical_mutations(self):
         return self._non_identical_mutations
 
-    # TODO docstring
     @property
     def non_identical_sites(self):
         return self._non_identical_sites
 
-    # TODO docstring
     @property
     def reference_sequence_conditions(self):
         return self._reference_sequence_conditions
 
-    # TODO docstring
     @property
     def conditions(self):
         return self._conditions
 
-    # TODO docstring
     @property
     def reference(self):
         return self._reference
 
-    # TODO docstring
     @property
     def mutations(self):
         return self._mutations
 
-    # TODO docstring
     @property
     def mutations_df(self):
         return self._mutations_df
 
-    # TODO docstring
     @property
     def variants_df(self):
         return self._variants_df
 
-    # TODO docstring
     @property
     def site_map(self):
         return self._site_map
 
-    # TODO docstring
     @property
     def training_data(self):
         return self._training_data
 
-    # TODO docstring
     @property
     def binarymaps(self):
         return self._binarymaps
 
-    # TODO docstring
     @property
     def targets(self):
         return self._training_data["y"]
 
-    # TODO docstring
     @property
     def mut_parser(self):
         return self._mut_parser
 
-    # TODO docstring
     @property
     def split_subs(self):
         return self._split_subs
 
-    # TODO docstring
     def convert_split_subs_wrt_ref_seq(self, condition, wts, sites, muts):
-        """
-        Compute the mutation string relative to the reference wildtype.
-        """
 
         nis = self.non_identical_sites[condition]
         ret = self.non_identical_sites[condition].copy()
@@ -529,6 +484,11 @@ class MultiDmsData:
 
         converted_muts = ret[self.reference] + ret.index.astype(str) + ret[condition]
         return " ".join(converted_muts)
+
+    def convert_subs_wrt_ref_seq(self, condition, aa_subs):
+        if condition in self.reference_sequence_conditions:
+            return aa_subs
+        return self.convert_split_subs_wrt_ref_seq(condition, *self.split_subs(aa_subs))
 
     def plot_times_seen_hist(self, saveas=None, show=True, **kwargs):
 

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# TODO docstrings and add to autodoc
+
 import pandas as pd
 import numpy as np
 import re
