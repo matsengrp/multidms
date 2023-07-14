@@ -62,7 +62,8 @@ dev = [
     "sphinx_rtd_theme",
     "nbsphinx",
     "nbsphinx_link",
-    "bumpver"
+    "bumpver",
+    "sphinxcontrib-bibtex"
 ]
 
 # Poetry

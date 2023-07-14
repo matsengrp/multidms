@@ -80,7 +80,7 @@ class MultiDmsModel:
         If true (default), introduce the 'gamma' parameter
         for each non-reference parameter to
         account for differences between wild type
-        behavior relative to it's variants. This
+        behavior relative to its variants. This
         is essentially a bias added to the functional
         scores during fitting.
         See Model Description section for more.
@@ -102,19 +102,19 @@ class MultiDmsModel:
         Initialize the $C_{ref}$ parameter.
     PRNGKey : int
         The initial seed key for random parameters
-        assigned to Beta's and any other randomly
+        assigned to Betas and any other randomly
         initialized parameters.
     latent_model : <class 'function'>
         For experimenal purposes only. We currently suggest using the
-        default unless youi explicitly want to test differing model
+        default unless you explicitly want to test a model
         architecture defined in `multidms.biophysical`
     epistatic_model : <class 'function'>
         For experimenal purposes only. We currently suggest using the
-        default unless youi explicitly want to test differing model
+        default unless you explicitly want to test a model
         architecture defined in `multidms.biophysical`
     output_activation : <class 'function'>
         For experimenal purposes only. We currently suggest using the
-        default unless youi explicitly want to test differing model
+        default unless you explicitly want to test a model
         architecture defined in `multidms.biophysical`
     n_hidden_units : int or None
         If using `biophysical.nn_global_epistasis`
@@ -193,8 +193,8 @@ class MultiDmsModel:
     >>> model.loss
     DeviceArray(1.01582782, dtype=float64)
 
-    The model tunes it's parameters in place, and the subsequent call to retrieve
-    the loss reflects our models loss given it's updated parameters.
+    The model tunes its parameters in place, and the subsequent call to retrieve
+    the loss reflects our models loss given its updated parameters.
     """
 
     def __init__(
@@ -225,7 +225,8 @@ class MultiDmsModel:
         self._params = {}
         key = jax.random.PRNGKey(PRNGKey)
 
-        if latent_model == latent_model:
+
+        if latent_model == additive_model:
             n_beta_shift = len(self._data.mutations)
             self._params["β"] = jax.random.normal(shape=(n_beta_shift,), key=key)
             for condition in data.conditions:
@@ -308,7 +309,7 @@ class MultiDmsModel:
     def data(self):
         """
         multidms.MultiDmsData Object this model references for fitting
-        it's parameters.
+        its parameters.
         """
         return self._data
 
@@ -362,6 +363,7 @@ class MultiDmsModel:
 
         # this is what well update and return
         variants_df = self._data.variants_df.copy()
+
 
         # initialize new columns
         for pheno in ["latent", "func_score"]:
