@@ -1,0 +1,11 @@
+condition,aa_substitutions,func_score
+1,M1E,2.0
+1,G3R,-7.0
+1,G3P,-0.5
+1,M1W,2.3
+2,M1E,1.0
+2,P3R,-5.0
+2,P3G,0.4
+2,M1E P3G,2.7
+2,M1E P3R,-2.7
+2,P2T,0.3
