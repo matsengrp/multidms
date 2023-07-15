@@ -26,23 +26,18 @@ It also imports the following alphabets:
 
 """
 
-# TODO
-
-# TODO __author__ = "`the Matsen & Bloom labs <https://research.fhcrc.org/bloom/en.html>`_"
+__author__ = "Jared Galloway"
 __email__ = "jgallowa@fredhutch.org"
 __version__ = "0.1.0"
 __url__ = "https://github.com/matsengrp/multidms"
 
-from polyclonal.alphabets import AAS
-from polyclonal.alphabets import AAS_WITHGAP
-from polyclonal.alphabets import AAS_WITHSTOP
-from polyclonal.alphabets import AAS_WITHSTOP_WITHGAP
+from polyclonal.alphabets import AAS  # noqa: F401
+from polyclonal.alphabets import AAS_WITHGAP  # noqa: F401
+from polyclonal.alphabets import AAS_WITHSTOP  # noqa: F401
+from polyclonal.alphabets import AAS_WITHSTOP_WITHGAP  # noqa: F401
 
-from multidms.data import MultiDmsData
-from multidms.model import MultiDmsModel
+from multidms.data import MultiDmsData  # noqa: F401
+from multidms.model import MultiDmsModel  # noqa: F401
 
-import multidms.biophysical
-import multidms.utils
-
-# import multidms.model
-# import multidms.utils
+import multidms.biophysical  # noqa: F401
+import multidms.utils  # noqa: F401

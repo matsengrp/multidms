@@ -6,36 +6,27 @@ MultiDmsModel
 Defines :class:`MultiDmsModel` objects.
 """
 
-from functools import reduce, partial
+import math
 import warnings
+from functools import partial, reduce
 
 import jax
-
 import jax.numpy as jnp
-import jaxlib
-from jax.experimental import sparse
-
-from frozendict import frozendict
-from jaxopt import ProximalGradient
-from jaxopt.loss import huber_loss
-from jaxopt.prox import prox_lasso
-from jaxopt.linear_solve import solve_normal_cg
-
-import pandas
 import numpy as onp
+import pandas
 import scipy
-import math
-from matplotlib import pyplot as plt
-import matplotlib.colors as colors
-import matplotlib.patches as patches
 import seaborn as sns
+from frozendict import frozendict
+from jax.experimental import sparse
+from jaxopt import ProximalGradient
+from jaxopt.linear_solve import solve_normal_cg
+from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
-import polyclonal.plot
 
-from multidms.utils import is_wt
-from multidms import MultiDmsData
 import multidms.plot
-from multidms.biophysical import *
+from multidms import MultiDmsData
+import multidms.biophysical
+from multidms.utils import is_wt
 
 
 class MultiDmsModel:
@@ -98,8 +89,8 @@ class MultiDmsModel:
     init_g_min : float
         Initialize the min of a two parameter epistatic models.
         (Sigmoid or Softplus).
-    init_C_ref : float
-        Initialize the $C_{ref}$ parameter.
+    init_beta_naught : float
+        Initialize the $alpha_{ref}$ parameter.
     PRNGKey : int
         The initial seed key for random parameters
         assigned to Betas and any other randomly
@@ -117,7 +108,7 @@ class MultiDmsModel:
         default unless you explicitly want to test a model
         architecture defined in `multidms.biophysical`
     n_hidden_units : int or None
-        If using `biophysical.nn_global_epistasis`
+        If using `biophysical.multidms.biophysical.nn_global_epistasis`
         this is the number of hidden units
         used in the transform.
 
@@ -155,13 +146,13 @@ class MultiDmsModel:
     request the property.
 
     >>> model.mutations_df
-      mutation wts  sites muts  times_seen_1  ...         β  S_1       F_1  S_2       F_2
+      mutation wts  sites muts  times_seen_1  ... beta  shift_1  F_1        shift_2   F_2
     0      M1E   M      1    E             1  ...  0.080868  0.0 -0.030881  0.0 -0.030881
     1      M1W   M      1    W             1  ... -0.386247  0.0 -0.049086  0.0 -0.049086
     2      G3P   G      3    P             1  ... -0.375656  0.0 -0.048574  0.0 -0.048574
     3      G3R   G      3    R             1  ...  1.668974  0.0 -0.006340  0.0 -0.006340
 
-    Notice the respective single mutation effects ("β"), conditional shifts (S_d),
+    Notice the respective single mutation effects ("beta"), conditional shifts (shift_d),
     and predicted functional score (F_d) of each mutation in the model are now
     easily accessible. Similarly, we can take a look at the variants_df for the model,
 
@@ -205,17 +196,14 @@ class MultiDmsModel:
         conditional_c=False,
         init_g_range=None,
         init_g_min=None,
-        init_C_ref=0.0,
+        init_beta_naught=0.0,
         PRNGKey=0,
-        latent_model=additive_model,
-        epistatic_model=sigmoidal_global_epistasis,
-        output_activation=identity_activation,
+        latent_model=multidms.biophysical.additive_model,
+        epistatic_model=multidms.biophysical.sigmoidal_global_epistasis,
+        output_activation=multidms.biophysical.identity_activation,
         n_hidden_units=5,
     ):
-        """
-        See class docstring.
-        """
-
+        """See class docstring."""
         self.gamma_corrected = gamma_corrected
         self.conditional_shifts = conditional_shifts
         self.conditional_c = conditional_c
@@ -225,41 +213,40 @@ class MultiDmsModel:
         self._params = {}
         key = jax.random.PRNGKey(PRNGKey)
 
-
-        if latent_model == additive_model:
+        if latent_model == multidms.biophysical.additive_model:
             n_beta_shift = len(self._data.mutations)
-            self._params["β"] = jax.random.normal(shape=(n_beta_shift,), key=key)
+            self._params["beta"] = jax.random.normal(shape=(n_beta_shift,), key=key)
             for condition in data.conditions:
-                self._params[f"S_{condition}"] = jnp.zeros(shape=(n_beta_shift,))
-                self._params[f"C_{condition}"] = jnp.zeros(shape=(1,))
-            self._params["C_ref"] = jnp.array([init_C_ref])
+                self._params[f"shift_{condition}"] = jnp.zeros(shape=(n_beta_shift,))
+                self._params[f"alpha_{condition}"] = jnp.zeros(shape=(1,))
+            self._params["beta_naught"] = jnp.array([init_beta_naught])
         else:
             raise ValueError(f"{latent_model} not recognized,")
 
-        if epistatic_model == sigmoidal_global_epistasis:
-            if init_g_range == None:
+        if epistatic_model == multidms.biophysical.sigmoidal_global_epistasis:
+            if init_g_range is None:
                 init_g_range = 5.0
-            if init_g_min == None:
+            if init_g_min is None:
                 init_g_min = -5.0
-            self._params["α"] = dict(
+            self._params["theta"] = dict(
                 ge_scale=jnp.array([init_g_range]), ge_bias=jnp.array([init_g_min])
             )
 
-        elif epistatic_model == softplus_global_epistasis:
-            if init_g_range == None:
+        elif epistatic_model == multidms.biophysical.softplus_global_epistasis:
+            if init_g_range is None:
                 init_g_range = 1.0
-            if init_g_min == None:
+            if init_g_min is None:
                 init_g_min = 0.0
-            self._params["α"] = dict(
+            self._params["theta"] = dict(
                 ge_scale=jnp.array([init_g_range]), ge_bias=jnp.array([init_g_min])
             )
 
-        elif epistatic_model == identity_activation:
-            self._params["α"] = dict(ghost_param=jnp.zeros(shape=(1,)))
+        elif epistatic_model == multidms.biophysical.identity_activation:
+            self._params["theta"] = dict(ghost_param=jnp.zeros(shape=(1,)))
 
-        elif epistatic_model == nn_global_epistasis:
+        elif epistatic_model == multidms.biophysical.nn_global_epistasis:
             key, key1, key2, key3, key4 = jax.random.split(key, num=5)
-            self._params["α"] = dict(
+            self._params["theta"] = dict(
                 p_weights_1=jax.random.normal(shape=(n_hidden_units,), key=key1).clip(
                     0
                 ),
@@ -274,35 +261,37 @@ class MultiDmsModel:
             raise ValueError(f"{epistatic_model} not recognized,")
 
         for condition in data.conditions:
-            self._params[f"γ_{condition}"] = jnp.zeros(shape=(1,))
+            self._params[f"gamma_{condition}"] = jnp.zeros(shape=(1,))
 
         # TODO document
         pred = partial(
-            abstract_epistasis,  # abstract function to compile
+            multidms.biophysical.abstract_epistasis,  # abstract function to compile
             latent_model,
             epistatic_model,
             output_activation,
         )
-        from_latent = partial(abstract_from_latent, epistatic_model, output_activation)
-        cost = partial(gamma_corrected_cost_smooth, pred)
+        from_latent = partial(
+            multidms.biophysical.abstract_from_latent,
+            epistatic_model,
+            output_activation,
+        )
+        cost = partial(multidms.biophysical.gamma_corrected_cost_smooth, pred)
 
         self._model_components = frozendict(
             {
-                "latent_model": additive_model,  # TODO change this name
+                "latent_model": multidms.biophysical.additive_model,
                 "g": epistatic_model,
                 "output_activation": output_activation,
                 "f": pred,
                 "from_latent": from_latent,
                 "objective": cost,
-                "proximal": lasso_lock_prox,
+                "proximal": multidms.biophysical.lasso_lock_prox,
             }
         )
 
     @property
     def params(self):
-        """
-        All current model parameters in a dictionary.
-        """
+        """All current model parameters in a dictionary."""
         return self._params
 
     @property
@@ -326,7 +315,11 @@ class MultiDmsModel:
         Compute model loss on all experimental training data
         without ridge or lasso penalties included.
         """
-        kwargs = {"λ_ridge_beta": 0.0, "λ_ridge_shift": 0.0, "λ_ridge_gamma": 0.0}
+        kwargs = {
+            "scale_coeff_ridge_beta": 0.0,
+            "scale_coeff_ridge_shift": 0.0,
+            "scale_coeff_ridge_gamma": 0.0,
+        }
         data = (self.data.training_data["X"], self.data.training_data["y"])
         return jax.jit(self.model_components["objective"])(self.params, data, **kwargs)
 
@@ -360,10 +353,8 @@ class MultiDmsModel:
             with the phenotypes added. Phenotypes are predicted
             based on the current state of the model.
         """
-
         # this is what well update and return
         variants_df = self._data.variants_df.copy()
-
 
         # initialize new columns
         for pheno in ["latent", "func_score"]:
@@ -372,7 +363,7 @@ class MultiDmsModel:
         # if we're a gamma corrected model, also report the "corrected"
         # observed func score, as we do during training.
         if self.gamma_corrected:
-            variants_df[f"corrected_func_score"] = variants_df[f"func_score"]
+            variants_df["corrected_func_score"] = variants_df["func_score"]
 
         # TODO if you cache this method, then you won't need to initialize
         # get the wildtype predictions for each condition
@@ -392,17 +383,14 @@ class MultiDmsModel:
             for pheno in ["latent", "func_score"]:
                 Y_pred = onp.array(models[pheno](d_params, X))
                 if phenotype_as_effect:
-                    print("Y_pred", Y_pred)
-                    print("WT_pred", wildtype_df.loc[condition, f"predicted_{pheno}"])
-
                     Y_pred -= wildtype_df.loc[condition, f"predicted_{pheno}"]
 
                 variants_df.loc[condition_df.index, f"predicted_{pheno}"] = Y_pred
 
             if self.gamma_corrected:
-                variants_df.loc[
-                    condition_df.index, f"corrected_func_score"
-                ] += d_params[f"γ_d"]
+                variants_df.loc[condition_df.index, "corrected_func_score"] += d_params[
+                    "gamma_d"
+                ]
 
         return variants_df
 
@@ -435,7 +423,6 @@ class MultiDmsModel:
             with the phenotypes added. Phenotypes are predicted
             based on the current state of the model.
         """
-
         # we're updating this
         mutations_df = self.data.mutations_df.copy()
 
@@ -444,17 +431,17 @@ class MultiDmsModel:
             wildtype_df = self.wildtype_df
 
         # add betas i.e. 'latent effect'
-        mutations_df.loc[:, "β"] = self._params["β"]
+        mutations_df.loc[:, "beta"] = self._params["beta"]
         X = sparse.BCOO.fromdense(onp.identity(len(self._data.mutations)))
         for condition in self._data.conditions:
             # shift of latent effect
             if condition != self._data.reference:
-                mutations_df[f"S_{condition}"] = self._params[f"S_{condition}"]
+                mutations_df[f"shift_{condition}"] = self._params[f"shift_{condition}"]
 
             Y_pred = self.phenotype_frombinary(X, condition)
             if phenotype_as_effect:
-                Y_pred -= wildtype_df.loc[condition, f"predicted_func_score"]
-            mutations_df[f"predicted_func_score"] = Y_pred
+                Y_pred -= wildtype_df.loc[condition, "predicted_func_score"]
+            mutations_df["predicted_func_score"] = Y_pred
 
         return mutations_df
 
@@ -514,7 +501,6 @@ class MultiDmsModel:
             A copy of `df` with the phenotypes added. Phenotypes are predicted
             based on the current state of the model.
         """
-
         ref_bmap = self.data.binarymaps[self.data.reference]
         if substitutions_col is None:
             substitutions_col = ref_bmap.substitutions_col
@@ -587,7 +573,7 @@ class MultiDmsModel:
             )
             assert len(latent_predictions) == len(condition_df)
             if phenotype_as_effect:
-                latent_predictions -= wildtype_df.loc[condition, f"predicted_latent"]
+                latent_predictions -= wildtype_df.loc[condition, "predicted_latent"]
             latent_predictions[nan_variant_indices] = onp.nan
             ret.loc[
                 condition_df.index.values, latent_phenotype_col
@@ -600,7 +586,7 @@ class MultiDmsModel:
             assert len(phenotype_predictions) == len(condition_df)
             if phenotype_as_effect:
                 phenotype_predictions -= wildtype_df.loc[
-                    condition, f"predicted_func_score"
+                    condition, "predicted_func_score"
                 ]
             phenotype_predictions[nan_variant_indices] = onp.nan
             ret.loc[
@@ -615,7 +601,6 @@ class MultiDmsModel:
         Get a dataframe indexed by condition wildtype
         containing the prediction features for each.
         """
-
         wildtype_df = (
             pandas.DataFrame(index=self.data.conditions)
             .assign(predicted_latent=onp.nan)
@@ -637,7 +622,6 @@ class MultiDmsModel:
         all numerical columns by "sites" using
         ``agg`` function. The mean values are given by default.
         """
-
         numerics = ["int16", "int32", "int64", "float16", "float32", "float64"]
         mut_df = self.mutations_df.select_dtypes(include=numerics)
         times_seen_cols = [c for c in mut_df.columns if "times" in c]
@@ -647,19 +631,18 @@ class MultiDmsModel:
         return mut_df.groupby("sites").aggregate(agg_func)
 
     def get_condition_params(self, condition=None):
-        """get the relent parameters for a model prediction"""
-
+        """Get the relent parameters for a model prediction"""
         condition = self.data.reference if condition is None else condition
         if condition not in self.data.conditions:
             raise ValueError(f"condition {condition} does not exist in model")
 
         return {
-            "α": self.params["α"],
-            "β_m": self.params["β"],
-            "C_ref": self.params["C_ref"],
-            "s_md": self.params[f"S_{condition}"],
-            "C_d": self.params[f"C_{condition}"],
-            "γ_d": self.params[f"γ_{condition}"],
+            "theta": self.params["theta"],
+            "beta_m": self.params["beta"],
+            "beta_naught": self.params["beta_naught"],
+            "s_md": self.params[f"shift_{condition}"],
+            "alpha_d": self.params[f"alpha_{condition}"],
+            "gamma_d": self.params[f"gamma_{condition}"],
         }
 
     def phenotype_fromsubs(self, aa_subs, condition=None):
@@ -695,32 +678,30 @@ class MultiDmsModel:
         return self.latent_frombinary(X)
 
     def phenotype_frombinary(self, X, condition=None):
-        """condition specific prediction on X using the biophysical model
-        given current model parameters."""
-
+        """Condition specific prediction on X using the biophysical model
+        given current model parameters.
+        """
         d_params = self.get_condition_params(condition)
         return jax.jit(self.model_components["f"])(d_params, X)
 
     def latent_frombinary(self, X, condition=None):
-        """condition specific prediction on X using the biophysical model
-        given current model parameters."""
-
+        """Condition specific prediction on X using the biophysical model
+        given current model parameters.
+        """
         d_params = self.get_condition_params(condition)
         return jax.jit(self.model_components["latent_model"])(d_params, X)
 
     def fit_reference_beta(self, **kwargs):
-        """Fit the Model β's to the reference data"""
-
+        """Fit the Model beta's to the reference data"""
         ref_X = self.data.training_data["X"][self.data.reference]
         ref_y = self.data.training_data["y"][self.data.reference]
 
-        self._params["β"] = solve_normal_cg(
-            lambda β: ref_X @ β, ref_y, init=self._params["β"], **kwargs
+        self._params["beta"] = solve_normal_cg(
+            lambda beta: ref_X @ beta, ref_y, init=self._params["beta"], **kwargs
         )
 
     def fit(self, lasso_shift=1e-5, tol=1e-6, maxiter=1000, lock_params={}, **kwargs):
         """Use jaxopt.ProximalGradiant to optimize parameters"""
-
         solver = ProximalGradient(
             jax.jit(self._model_components["objective"]),
             jax.jit(self._model_components["proximal"]),
@@ -728,28 +709,30 @@ class MultiDmsModel:
             maxiter=maxiter,
         )
 
-        lock_params[f"S_{self._data.reference}"] = jnp.zeros(len(self._params["β"]))
-        lock_params[f"γ_{self._data.reference}"] = jnp.zeros(shape=(1,))
+        lock_params[f"shift_{self._data.reference}"] = jnp.zeros(
+            len(self._params["beta"])
+        )
+        lock_params[f"gamma_{self._data.reference}"] = jnp.zeros(shape=(1,))
 
         if not self.conditional_shifts:
             for condition in self._data.conditions:
-                lock_params[f"S_{condition}"] = jnp.zeros(shape=(1,))
+                lock_params[f"shift_{condition}"] = jnp.zeros(shape=(1,))
 
         if not self.gamma_corrected:
             for condition in self._data.conditions:
-                lock_params[f"γ_{condition}"] = jnp.zeros(shape=(1,))
+                lock_params[f"gamma_{condition}"] = jnp.zeros(shape=(1,))
 
         if not self.conditional_c:
             for condition in self._data.conditions:
-                lock_params[f"C_{condition}"] = jnp.zeros(shape=(1,))
+                lock_params[f"alpha_{condition}"] = jnp.zeros(shape=(1,))
         else:
-            lock_params[f"C_{self._data.reference}"] = jnp.zeros(shape=(1,))
+            lock_params[f"alpha_{self._data.reference}"] = jnp.zeros(shape=(1,))
 
         lasso_params = {}
         for non_ref_condition in self._data.conditions:
             if non_ref_condition == self._data.reference:
                 continue
-            lasso_params[f"S_{non_ref_condition}"] = lasso_shift
+            lasso_params[f"shift_{non_ref_condition}"] = lasso_shift
 
         self._params, state = solver.run(
             self._params,
@@ -766,7 +749,6 @@ class MultiDmsModel:
         between model predicted functional score of all
         variants in the training with ground truth measurements.
         """
-
         df = self.variants_df
 
         df = df.assign(is_wt=df["aa_substitutions"].apply(is_wt))
@@ -774,10 +756,11 @@ class MultiDmsModel:
         if ax is None:
             fig, ax = plt.subplots(figsize=[3, 3])
 
+        func_score = "corrected_func_score" if self.gamma_corrected else "func_score"
         sns.scatterplot(
             data=df.sample(frac=1),
-            x=f"predicted_func_score",
-            y=f"corrected_func_score",
+            x="predicted_func_score",
+            y=func_score,
             hue="condition" if hue else None,
             palette=self.data.condition_colors,
             ax=ax,
@@ -793,15 +776,13 @@ class MultiDmsModel:
             )
 
         xlb, xub = [-1, 1] + onp.quantile(df.predicted_func_score, [0.05, 1.0])
-        ylb, yub = [-1, 1] + onp.quantile(df.corrected_func_score, [0.05, 1.0])
+        ylb, yub = [-1, 1] + onp.quantile(df[func_score], [0.05, 1.0])
 
         ax.plot([ylb, yub], [ylb, yub], "k--", lw=2)
         if annotate_corr:
             start_y = 0.95
             for c, cdf in df.groupby("condition"):
-                r = pearsonr(
-                    cdf[f"corrected_func_score"], cdf[f"predicted_func_score"]
-                )[0]
+                r = pearsonr(cdf[func_score], cdf["predicted_func_score"])[0]
                 ax.annotate(
                     f"$r = {r:.2f}$",
                     (0.01, start_y),
@@ -816,7 +797,7 @@ class MultiDmsModel:
         ax.axhline(0, color="k", ls="--", lw=2)
         ax.axvline(0, color="k", ls="--", lw=2)
 
-        ax.set_ylabel("functional score + γ$_{d}$")
+        ax.set_ylabel("functional score + gamma$_{d}$")
         plt.tight_layout()
         if saveas:
             fig.savefig(saveas)
@@ -832,7 +813,6 @@ class MultiDmsModel:
         gamma corrected ground truth measurements
         of all samples in the training set.
         """
-
         df = self.variants_df
 
         df = df.assign(is_wt=df["aa_substitutions"].apply(is_wt))
@@ -840,10 +820,11 @@ class MultiDmsModel:
         if ax is None:
             fig, ax = plt.subplots(figsize=[3, 3])
 
+        func_score = "corrected_func_score" if self.gamma_corrected else "func_score"
         sns.scatterplot(
             data=df.sample(frac=sample),
             x="predicted_latent",
-            y=f"corrected_func_score",
+            y=func_score,
             hue="condition" if hue else None,
             palette=self.data.condition_colors,
             ax=ax,
@@ -859,12 +840,12 @@ class MultiDmsModel:
             )
 
         xlb, xub = [-1, 1] + onp.quantile(df.predicted_latent, [0.05, 1.0])
-        ylb, yub = [-1, 1] + onp.quantile(df.corrected_func_score, [0.05, 1.0])
+        ylb, yub = [-1, 1] + onp.quantile(df[func_score], [0.05, 1.0])
 
         latent_model_grid = onp.linspace(xlb, xub, num=1000)
 
         params = self.get_condition_params(self._data.reference)
-        latent_preds = self._model_components["g"](params["α"], latent_model_grid)
+        latent_preds = self._model_components["g"](params["theta"], latent_model_grid)
         shape = (latent_model_grid, latent_preds)
         ax.plot(*shape, color="k", lw=2)
 
@@ -884,10 +865,7 @@ class MultiDmsModel:
     def plot_param_hist(
         self, param, show=True, saveas=False, times_seen_threshold=3, ax=None, **kwargs
     ):
-        """
-        Plot the histogram of a parameter.
-        """
-
+        """Plot the histogram of a parameter."""
         mut_effects_df = self.mutations_df
 
         if ax is None:
@@ -944,10 +922,10 @@ class MultiDmsModel:
         self, param, show=True, saveas=False, times_seen_threshold=3, ax=None, **kwargs
     ):
         """
-        plot the heatmap of a parameters associated with specific sites and substitutions.
+        Plot the heatmap of a parameters
+        associated with specific sites and substitutions.
         """
-
-        if not param.startswith("β") and not param.startswith("S"):
+        if not param.startswith("beta") and not param.startswith("S"):
             raise ValueError(
                 "Parameter to visualize must be an existing beta, or shift parameter"
             )
@@ -993,10 +971,7 @@ class MultiDmsModel:
         ax=None,
         **kwargs,
     ):
-        """
-        summarize shift parameter values by associated sites and conditions.
-        """
-
+        """Summarize shift parameter values by associated sites and conditions."""
         mutation_site_summary_df = self.mutation_site_summary_df(
             agg_func, times_seen_threshold=times_seen_threshold
         ).reset_index()
@@ -1004,13 +979,12 @@ class MultiDmsModel:
         if ax is None:
             fig, ax = plt.subplots(figsize=[12, 3])
 
-        max_value = 0
         ax.axhline(0, color="k", ls="--", lw=1)
 
         sns.lineplot(
             data=mutation_site_summary_df,
             x="sites",
-            y=f"S_{condition}",
+            y=f"shift_{condition}",
             color=self._data.condition_colors[condition],
             ax=ax,
             # legend=True,
@@ -1018,18 +992,18 @@ class MultiDmsModel:
         )
         color = [
             self.data.condition_colors[condition]
-            if not s in self.data.non_identical_sites[condition]
+            if s not in self.data.non_identical_sites[condition]
             else (0.0, 0.0, 0.0)
             for s in mutation_site_summary_df.sites
         ]
         size = [
-            0.5 if not s in self.data.non_identical_sites[condition] else 1.0
+            0.5 if s not in self.data.non_identical_sites[condition] else 1.0
             for s in mutation_site_summary_df.sites
         ]
         sns.scatterplot(
             data=mutation_site_summary_df,
             x="sites",
-            y=f"S_{condition}",
+            y=f"shift_{condition}",
             size=size,
             color=onp.array(color),
             ax=ax,
@@ -1044,13 +1018,14 @@ class MultiDmsModel:
     def plot_fit_param_comp_scatter(
         self,
         other,
-        self_param="β",
-        other_param="β",
+        self_param="beta",
+        other_param="beta",
         figsize=[5, 4],
         saveas=None,
         show=True,
         site_agg_func=None,
     ):
+        """Plot a scatter plot of the parameter values of two models"""
         if not site_agg_func:
             dfs = [self.mutations_df, other.mutations_df]
         else:
@@ -1061,7 +1036,8 @@ class MultiDmsModel:
 
         combine_on = "mutation" if site_agg_func is None else "sites"
         comb_mut_effects = reduce(
-            lambda l, r: pandas.merge(l, r, how="inner", on=combine_on), dfs
+            lambda l, r: pandas.merge(l, r, how="inner", on=combine_on),  # noqa: E741
+            dfs,
         )
         comb_mut_effects["is_stop"] = [
             True if "*" in s else False for s in comb_mut_effects[combine_on]
@@ -1102,6 +1078,5 @@ class MultiDmsModel:
         """
         Wrapper method for visualizing the shift plot.
         see `multidms.plot.mut_shift_plot()` for more
-        """
-
+        """  # noqa: D401
         return multidms.plot.mut_shift_plot(self, **kwargs)
