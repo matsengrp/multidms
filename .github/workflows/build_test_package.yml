@@ -1,0 +1,56 @@
+name: Build Python package
+
+on:
+  release:
+    types:
+      - published
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Ruff Linting
+        uses: chartboost/ruff-action@v1
+
+      - name: Black Format Check
+        uses: psf/black@stable
+        with:
+          args: --check .
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Install multidms
+        run: |
+            pip install -e ".[dev]"
+
+      - name: Test
+        run: |
+          pytest
+
+      - name: Build python package
+        run: |
+          python -m pip install build
+          python -m build --wheel
+
+      - name: Publish package
+        if: github.event_name == 'release'
+        uses: pypa/gh-action-pypi-publish@release/v1
