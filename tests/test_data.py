@@ -1,8 +1,8 @@
-from timeit import default_timer as timer
+"""Tests for the MultiDmsData class and its methods."""
 
 import multidms
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 func_score_df = pd.read_csv("tests/test_func_score.csv")
 """
@@ -43,7 +43,6 @@ def test_bmap_mut_df_order():
     Assert that the binarymap rows and columns match
     mutations_df indicies exactly.
     """
-
     # test the mutations order for both
     mut_df = data.mutations_df
     for condition in data.conditions:
@@ -56,9 +55,7 @@ def test_bmap_mut_df_order():
 
 
 def test_converstion_from_subs():
-    """
-    Make sure that the conversion from each reference choice is correct
-    """
+    """Make sure that the conversion from each reference choice is correct"""
     for ref, bundle in zip([1, 2], ["G3P", "P3G"]):
         data = multidms.MultiDmsData(func_score_df, reference=ref)
         assert data.convert_subs_wrt_ref_seq((2 if ref == 1 else 1), "") == bundle
@@ -107,7 +104,6 @@ def test_model_PRNGKey():
     to make sure the seed structure truly ensures the same parameter
     initialization values
     """
-
     model_1 = multidms.MultiDmsModel(data, PRNGKey=23)
     model_2 = multidms.MultiDmsModel(data, PRNGKey=23)
     for param, values in model_1.params.items():
