@@ -1,29 +1,21 @@
-#!/usr/bin/env python
+"""
 
-# TODO docstrings and add to autodoc
+==========
+Utils
+==========
 
-import pandas as pd
-import numpy as np
-import re
-import json
-import math
-from functools import partial
-from functools import reduce
-from timeit import default_timer as timer
-import binarymap as bmap
-import jax
+This module contains utility functions for the multidms package.
+"""
 
-# jax.config.update("jax_enable_x64", True)
-import jax.numpy as jnp
-from jaxopt import ProximalGradient
-from jax.experimental import sparse
-import jaxopt
-import numpy as onp
-from tqdm import tqdm
-
-import pprint
-import time
 import copy
+import pprint
+import re
+import time
+from functools import reduce
+import jax.numpy as jnp
+from matplotlib import pyplot as plt
+import numpy as onp
+import pandas as pd
 import multidms.biophysical
 
 substitution_column = "aa_substitutions_reference"
@@ -32,23 +24,24 @@ scaled_func_score_column = "log2e"
 
 
 def is_wt(string):
+    """Check if a string is a wildtype sequence"""
     return True if len(string.split()) == 0 else False
 
 
 def split_sub(sub_string):
     """String match the wt, site, and sub aa
-    in a given string denoting a single substitution"""
-
+    in a given string denoting a single substitution
+    """
     pattern = r"(?P<aawt>[A-Z])(?P<site>[\d\w]+)(?P<aamut>[A-Z\*])"
     match = re.search(pattern, sub_string)
-    assert match != None, sub_string
+    assert match is not None, sub_string
     return match.group("aawt"), str(match.group("site")), match.group("aamut")
 
 
 def split_subs(subs_string, parser=split_sub):
-    """wrap the split_sub func to work for a
-    string contining multiple substitutions"""
-
+    """Wrap the split_sub func to work for a
+    string contining multiple substitutions
+    """
     wts, sites, muts = [], [], []
     for sub in subs_string.split():
         wt, site, mut = parser(sub)
@@ -61,20 +54,20 @@ def split_subs(subs_string, parser=split_sub):
 # TODO cleanup and document
 def fit_wrapper(
     dataset,
-    δ_huber=1,
-    λ_lasso_shift=2e-5,
-    λ_ridge_beta=0,
-    λ_ridge_shift=0,
-    λ_ridge_gamma=0,
-    λ_ridge_ch=0,
+    huber_scale_huber=1,
+    scale_coeff_lasso_shift=2e-5,
+    scale_coeff_ridge_beta=0,
+    scale_coeff_ridge_shift=0,
+    scale_coeff_ridge_gamma=0,
+    scale_coeff_ridge_ch=0,
     data_idx=0,
     epistatic_model="Identity",
     output_activation="Identity",
     lock_beta=False,
-    lock_C_ref=False,
+    lock_beta_naught=None,
     gamma_corrected=True,
     conditional_c=False,
-    init_C_ref=0.0,
+    init_beta_naught=0.0,
     warmup_beta=False,
     tol=1e-3,
     num_training_steps=10,
@@ -82,7 +75,66 @@ def fit_wrapper(
     save_model_at=[2000, 10000, 20000],
     PRNGKey=0,
 ):
-    """ """
+    """
+    Fit a multidms model to a dataset. This is a wrapper around the multidms
+    fit method that allows for easy specification of the fit parameters.
+    This method is helpful for comparing and organizing multiple fits.
+
+    Parameters
+    ----------
+    dataset : multidms.Dataset
+        The dataset to fit to.
+    huber_scale_huber : float, optional
+        The scale of the huber loss function. The default is 1.
+    scale_coeff_lasso_shift : float, optional
+        The scale of the lasso penalty on the shift parameter. The default is 2e-5.
+    scale_coeff_ridge_beta : float, optional
+        The scale of the ridge penalty on the beta parameter. The default is 0.
+    scale_coeff_ridge_shift : float, optional
+        The scale of the ridge penalty on the shift parameter. The default is 0.
+    scale_coeff_ridge_gamma : float, optional
+        The scale of the ridge penalty on the gamma parameter. The default is 0.
+    scale_coeff_ridge_ch : float, optional
+        The scale of the ridge penalty on the ch parameter. The default is 0.
+    data_idx : int, optional
+        The index of the data to fit to. The default is 0.
+    epistatic_model : str, optional
+        The epistatic model to use. The default is "Identity".
+    output_activation : str, optional
+        The output activation function to use. The default is "Identity".
+    lock_beta : bool, optional
+        Whether to lock the beta parameter. The default is False.
+    lock_beta_naught : float or None optional
+        The value to lock the beta_naught parameter to. If None,
+        the beta_naught parameter is free to vary. The default is None.
+    gamma_corrected : bool, optional
+        Whether to use the gamma corrected model. The default is True.
+    conditional_c : bool, optional
+        Whether to use the conditional c model. The default is False.
+    init_beta_naught : float, optional
+        The initial value of the beta_naught parameter. The default is 0.0.
+    warmup_beta : bool, optional
+        Whether to warmup the model by fitting beta parameters to the
+        reference dataset before fitting the full model. The default is False.
+    tol : float, optional
+        The tolerance for the fit. The default is 1e-3.
+    num_training_steps : int, optional
+        The number of training steps to perform. The default is 10.
+    iterations_per_step : int, optional
+        The number of iterations to perform per training step. The default is 2000.
+    save_model_at : list, optional
+        The iterations at which to save the model. The default is [2000, 10000, 20000].
+    PRNGKey : int, optional
+        The PRNGKey to use to initialize model parameters. The default is 0.
+
+    Returns
+    -------
+    fit_series : pd.Series
+        A series containing the fit attributes and pickled model objects
+        at the specified save_model_at steps.
+    """
+    if lock_beta and not warmup_beta:
+        raise ValueError("Cannot lock beta without warming up beta")
 
     fit_attributes = locals().copy()
     biophysical_model = {
@@ -98,7 +150,7 @@ def fit_wrapper(
         output_activation=biophysical_model[fit_attributes["output_activation"]],
         conditional_c=fit_attributes["conditional_c"],
         gamma_corrected=fit_attributes["gamma_corrected"],
-        init_C_ref=fit_attributes["init_C_ref"],
+        init_beta_naught=fit_attributes["init_beta_naught"],
         PRNGKey=PRNGKey,
     )
 
@@ -107,13 +159,13 @@ def fit_wrapper(
 
     lock_params = {}
     if fit_attributes["lock_beta"]:
-        lock_params["β"] = imodel.params["β"]
+        lock_params["beta"] = imodel.params["beta"]
 
-    if fit_attributes["lock_C_ref"] != False:
-        lock_params["C_ref"] = jnp.array([fit_attributes["lock_C_ref"]])
+    if fit_attributes["lock_beta_naught"] is not None:
+        lock_params["beta_naught"] = jnp.array([fit_attributes["lock_beta_naught"]])
 
     fit_attributes["step_loss"] = onp.zeros(num_training_steps)
-    print(f"running:")
+    print("running:")
     pprint.pprint(fit_attributes)
 
     total_iterations = 0
@@ -121,15 +173,15 @@ def fit_wrapper(
     for training_step in range(num_training_steps):
         start = time.time()
         imodel.fit(
-            lasso_shift=fit_attributes["λ_lasso_shift"],
+            lasso_shift=fit_attributes["scale_coeff_lasso_shift"],
             maxiter=iterations_per_step,
             tol=tol,
-            δ=fit_attributes["δ_huber"],
+            huber_scale=fit_attributes["huber_scale_huber"],
             lock_params=lock_params,
-            λ_ridge_shift=fit_attributes["λ_ridge_shift"],
-            λ_ridge_beta=fit_attributes["λ_ridge_beta"],
-            λ_ridge_gamma=fit_attributes["λ_ridge_gamma"],
-            λ_ridge_ch=fit_attributes["λ_ridge_ch"],
+            scale_coeff_ridge_shift=fit_attributes["scale_coeff_ridge_shift"],
+            scale_coeff_ridge_beta=fit_attributes["scale_coeff_ridge_beta"],
+            scale_coeff_ridge_gamma=fit_attributes["scale_coeff_ridge_gamma"],
+            scale_coeff_ridge_ch=fit_attributes["scale_coeff_ridge_ch"],
         )
         end = time.time()
 
@@ -142,7 +194,8 @@ def fit_wrapper(
         fit_attributes["step_loss"][training_step] = float(imodel.loss)
 
         print(
-            f"training_step {training_step}/{num_training_steps}, Loss: {imodel.loss}, Time: {fit_time} Seconds",
+            f"training_step {training_step}/{num_training_steps},"
+            "Loss: {imodel.loss}, Time: {fit_time} Seconds",
             flush=True,
         )
 
@@ -155,15 +208,34 @@ def fit_wrapper(
 
 
 def plot_loss_simple(models):
+    """
+    Plot the loss of a set of models.
+    Uses matplotlib.pyplot.show() to display the plot.
+
+
+    Parameters
+    ----------
+    models : pd.DataFrame
+        A dataframe where each row is the fit attributes of a model
+        as output by the multidms.utils.fit_wrapper() function.
+
+
+    Returns
+    -------
+    None.
+    """
     fig, ax = plt.subplots(figsize=[7, 7])
-    iterations = [(i + 1) * 2000 for i in range(10)]
     for model, model_row in models.iterrows():
         loss = model_row["epoch_loss"]
+        iterations = [
+            (i + 1) * model_row["step_size"]
+            for i in range(model_row["num_training_steps"])
+        ]
 
         ax.plot(iterations, loss[0], lw=3, linestyle="--", label=f"model: {model}")
 
-    ax.set_ylabel(f"Loss")
-    ax.set_xlabel(f"Iterations")
+    ax.set_ylabel("Loss")
+    ax.set_xlabel("Iterations")
     ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
 
     plt.show()
@@ -175,7 +247,6 @@ def combine_replicate_muts(fit_dict, times_seen_threshold=3, how="inner"):
     replicate values, and merge then such that all individual and average mutation
     values are present in both.
     """
-
     # obtain and curate each of the replicate mutational dataframes
     mutations_dfs = []
     for replicate, fit in fit_dict.items():

@@ -22,6 +22,35 @@ from polyclonal.plot import DEFAULT_NEGATIVE_COLOR, DEFAULT_POSITIVE_COLORS
 alt.data_transformers.disable_max_rows()
 
 
+def color_gradient_hex(start, end, n):
+    """Get a list of colors linearly spanning a range.
+
+    Parameters
+    ----------
+    start : str
+        Starting color.
+    end : str
+        Ending color.
+    n : int
+        Number of colors in list.
+
+    Returns
+    -------
+    list
+        List of hex codes for colors spanning `start` to `end`.
+
+    Example
+    -------
+    >>> color_gradient_hex('white', 'red', n=5)
+    ['#ffffff', '#ffbfbf', '#ff8080', '#ff4040', '#ff0000']
+
+    """
+    cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
+        name="_", colors=[start, end], N=n
+    )
+    return [matplotlib.colors.rgb2hex(tup) for tup in cmap(list(range(0, n)))]
+
+
 def lineplot_and_heatmap(
     *,
     data_df,
@@ -134,7 +163,6 @@ def lineplot_and_heatmap(
         with the 'wildtype' column (which will be used to mark 'x' on each category
         heatmap).
     """
-
     basic_req_cols = ["site", "wildtype", "mutant", stat_col, category_col]
 
     if addtl_tooltip_stats is None:
@@ -612,6 +640,10 @@ def mut_shift_plot(
 
     Parameters
     ----------
+    fit_data : multidms.MultiDmsData or dict
+        Either a single `multidms.MultiDmsData` object or a dictionary of
+        replicate fits where the keys are the replicate names and the values
+        are the respective model objects.
     biochem_order_aas : bool
         Biochemically order amino-acid alphabet :attr:`PolyclonalCollection.alphabet`
         by passing it through :func:`polyclonal.alphabets.biochem_order_aas`.
@@ -623,12 +655,12 @@ def mut_shift_plot(
         If False, only include beta's in the tooltip.
     **kwargs
         Keyword args for :func:`polyclonal.plot.lineplot_and_heatmap`
+
     Returns
     -------
     altair.Chart
         Interactive heat maps.
     """
-
     kwargs["addtl_tooltip_stats"] = []
     id_vars = ["wildtype", "site", "mutant"]
     stubnames = ["value"]
@@ -642,10 +674,10 @@ def mut_shift_plot(
         fit = fit_data
 
         new_column_name_map = {
-            c: f"value_{c}" for c in mut_df.columns if c.startswith("S_")
+            c: f"value_{c}" for c in mut_df.columns if c.startswith("shift_")
         }
         if include_beta:
-            new_column_name_map["β"] = "value_β"
+            new_column_name_map["beta"] = "value_beta"
         mut_df = mut_df.rename(new_column_name_map, axis=1)
 
     elif type(fit_data) == dict:
@@ -691,13 +723,13 @@ def mut_shift_plot(
 
         # if not including beta, rename for tooltips instead
         if not include_beta:
-            mut_df = mut_df.rename({"value_β": "β"}, axis=1)
+            mut_df = mut_df.rename({"value_beta": "beta"}, axis=1)
             for rep_replicate in list(fit_data.keys()):
                 mut_df = mut_df.rename(
-                    {f"{rep_replicate}_β": f"β ({rep_replicate})"}, axis=1
+                    {f"{rep_replicate}_beta": f"beta ({rep_replicate})"}, axis=1
                 )
-                id_vars.insert(0, f"β ({rep_replicate})")
-                kwargs["addtl_tooltip_stats"].append(f"β ({rep_replicate})")
+                id_vars.insert(0, f"beta ({rep_replicate})")
+                kwargs["addtl_tooltip_stats"].append(f"beta ({rep_replicate})")
 
     else:
         raise ValueError(
@@ -708,16 +740,16 @@ def mut_shift_plot(
 
     # colors must be hex
     condition_colors = {
-        f"S_{con}".replace(".", "_"): col  # matplotlib.colors.rgb2hex(tuple(col))
+        f"shift_{con}".replace(".", "_"): col  # matplotlib.colors.rgb2hex(tuple(col))
         for con, col in fit.data.condition_colors.items()
         if con != fit.data.reference
     }
 
     if include_beta:
-        condition_colors["β"] = matplotlib.colors.rgb2hex((0.0, 0.0, 0.0))
+        condition_colors["beta"] = matplotlib.colors.rgb2hex((0.0, 0.0, 0.0))
     else:
-        id_vars.insert(0, "β")
-        kwargs["addtl_tooltip_stats"].append(f"β")
+        id_vars.insert(0, "beta")
+        kwargs["addtl_tooltip_stats"].append("beta")
 
     mut_df = mut_df.rename(
         {c: c.replace(".", "_") for c in mut_df.columns}, axis=1
@@ -735,7 +767,7 @@ def mut_shift_plot(
         is_ref = condition == fit.data.reference
         if is_ref and not include_beta:
             continue
-        category_wt = f"S_{condition}".replace(".", "_") if not is_ref else "β"
+        category_wt = f"shift_{condition}".replace(".", "_") if not is_ref else "beta"
         con_wt_dict = {
             "wildtype": reference_wts.values,
             "mutant": reference_wts.values,
@@ -755,17 +787,19 @@ def mut_shift_plot(
     for condition in fit.data.conditions:
         if condition == fit.data.reference:
             continue
-        mut_df[f"wildtype_S_{condition}".replace(".", "_")] = mut_df["wildtype"].copy()
+        mut_df[f"wildtype_shift_{condition}".replace(".", "_")] = mut_df[
+            "wildtype"
+        ].copy()
         cond_non_iden_sites = fit.data.non_identical_sites[condition]
         if type(cond_non_iden_sites) == list:
             continue
         for idx, nis in cond_non_iden_sites.iterrows():
             nis_idx = mut_df.query(f"site == {int(idx)}").index
-            mut_df.loc[nis_idx, f"wildtype_S_{condition}".replace(".", "_")] = nis[
+            mut_df.loc[nis_idx, f"wildtype_shift_{condition}".replace(".", "_")] = nis[
                 condition
             ]
         kwargs["addtl_tooltip_stats"].append(
-            f"wildtype_S_{condition}".replace(".", "_")
+            f"wildtype_shift_{condition}".replace(".", "_")
         )
 
     kwargs["data_df"] = mut_df

@@ -9,26 +9,27 @@ dms experiments under various conditions.
 
 import os
 from functools import partial
+
+import binarymap as bmap
+import numpy as onp
+import pandas
+from polyclonal.plot import DEFAULT_POSITIVE_COLORS
+from polyclonal.utils import MutationParser
+from tqdm.auto import tqdm
+
 from multidms import AAS
 from multidms.utils import split_subs
 
-import binarymap as bmap
-from polyclonal.plot import DEFAULT_POSITIVE_COLORS
-from polyclonal.utils import MutationParser
-import numpy as onp
-import pandas
-from tqdm.auto import tqdm
-
-tqdm.pandas()
 import jax
-import jaxlib
+
+import jax.numpy as jnp
+import seaborn as sns
+from jax.experimental import sparse
+from matplotlib import pyplot as plt
+from pandarallel import pandarallel
 
 jax.config.update("jax_enable_x64", True)
-import jax.numpy as jnp
-from jax.experimental import sparse
-from pandarallel import pandarallel
-from matplotlib import pyplot as plt
-import seaborn as sns
+tqdm.pandas()
 
 
 class MultiDmsData:
@@ -134,7 +135,10 @@ class MultiDmsData:
     >>> import multidms
     >>> func_score_data = {
     ...     'condition' : ["1","1","1","1", "2","2","2","2","2","2"],
-    ...     'aa_substitutions' : ['M1E', 'G3R', 'G3P', 'M1W', 'M1E', 'P3R', 'P3G', 'M1E P3G', 'M1E P3R', 'P2T'],
+    ...     'aa_substitutions' : [
+                'M1E', 'G3R', 'G3P', 'M1W', 'M1E',
+                'P3R', 'P3G', 'M1E P3G', 'M1E P3R', 'P2T'
+            ],
     ...     'func_score' : [2, -7, -0.5, 2.3, 1, -5, 0.4, 2.7, -2.7, 0.3],
     ... }
     >>> func_score_df = pd.DataFrame(func_score_data)
@@ -201,7 +205,7 @@ class MultiDmsData:
     6         2          M1E P3R       1        -2.7     G3R M1E
     8         2              P3G       1         0.4
     9         2              P3R       1        -5.0         G3R
-    """
+    """  # noqa: E501
 
     # TODO var "how" in {"inner", "outer", "sites" (?), or "reference"}
     def __init__(
@@ -218,7 +222,6 @@ class MultiDmsData:
         nb_workers=None,
     ):
         """See main class docstring."""
-
         # Check and initialize conditions attribute
         if pandas.isnull(variants_df["condition"]).any():
             raise ValueError("condition name cannot be null")
@@ -292,7 +295,7 @@ class MultiDmsData:
 
         if assert_site_integrity:
             if verbose:
-                print(f"Asserting site integrity")
+                print("Asserting site integrity")
             for hom, hom_func_df in df.groupby("condition"):
                 for idx, row in hom_func_df.iterrows():
                     for wt, site in zip(row.wts, row.sites):
@@ -309,7 +312,8 @@ class MultiDmsData:
 
         def flags_invalid_sites(disallowed_sites, sites_list):
             """Check to see if a sites list contains
-            any disallowed sites"""
+            any disallowed sites
+            """
             for site in sites_list:
                 if site in disallowed_sites:
                     return False
@@ -318,7 +322,7 @@ class MultiDmsData:
         df["allowed_variant"] = df.sites.apply(
             lambda sl: flags_invalid_sites(sites_to_throw, sl)
         )
-        n_var_pre_filter = len(df)
+        len(df)
         df = df[df["allowed_variant"]]
         df.drop("allowed_variant", axis=1, inplace=True)
 
@@ -358,7 +362,7 @@ class MultiDmsData:
 
             if condition in self.reference_sequence_conditions:
                 if verbose:
-                    print(f"is reference, skipping")
+                    print("is reference, skipping")
                 continue
 
             idx = condition_func_df.index
@@ -404,7 +408,7 @@ class MultiDmsData:
             )
             if (times_seen == times_seen.astype(int)).all():
                 times_seen = times_seen.astype(int)
-            times_seen.index.name = f"mutation"
+            times_seen.index.name = "mutation"
             times_seen.name = f"times_seen_{condition}"
             mut_df = mut_df.merge(
                 times_seen, left_on="mutation", right_on="mutation", how="outer"
@@ -414,61 +418,121 @@ class MultiDmsData:
 
     @property
     def non_identical_mutations(self):
+        """
+        A dictionary keyed by condition names with values
+        being a string of all mutations that differ from the
+        reference sequence.
+        """
         return self._non_identical_mutations
 
     @property
     def non_identical_sites(self):
+        """
+        A dictionary keyed by condition names with values
+        being a pandas.DataFrame indexed by site,
+        with columns for the reference
+        and non-reference amino acid at each site that differs.
+        """
         return self._non_identical_sites
 
     @property
     def reference_sequence_conditions(self):
+        """
+        A list of conditions that have the same wild type
+        sequence as the reference condition.
+        """
         return self._reference_sequence_conditions
 
     @property
     def conditions(self):
+        """A tuple of all condition names."""
         return self._conditions
 
     @property
     def reference(self):
+        """The name of the reference condition."""
         return self._reference
 
     @property
     def mutations(self):
+        """
+        A tuple of all mutations in the order reletive to their index into
+        the binarymap.
+        """
         return self._mutations
 
     @property
     def mutations_df(self):
+        """A dataframe summarizing all single mutations"""
         return self._mutations_df
 
     @property
     def variants_df(self):
+        """A dataframe summarizing all variants in the training data."""
         return self._variants_df
 
     @property
     def site_map(self):
+        """
+        A dataframe indexed by site, with columns
+        for all conditions giving the wild type amino acid
+        at each site.
+        """
         return self._site_map
 
     @property
     def training_data(self):
+        """A dictionary with keys 'X' and 'y' for the training data."""
         return self._training_data
 
     @property
     def binarymaps(self):
+        """
+        A dictionary keyed by condition names with values
+        being a ``BinaryMap`` object for each condition.
+        """
         return self._binarymaps
 
     @property
     def targets(self):
+        """The functional scores for each variant in the training data."""
         return self._training_data["y"]
 
     @property
     def mut_parser(self):
+        """The mutation parser used to parse mutations."""
         return self._mut_parser
 
     @property
     def split_subs(self):
+        """
+        A function that splits amino acid substitutions into wt, site, and mut
+        using the mutation parser.
+        """
         return self._split_subs
 
     def convert_split_subs_wrt_ref_seq(self, condition, wts, sites, muts):
+        """
+        Covert amino acid substitutions to be with respect to the reference sequence.
+
+        Parameters
+        ----------
+        condition : str
+            The condition from which aa substitutions are relative to.
+        wts : array-like
+            The wild type amino acids for each substitution.
+        sites : array-like
+            The sites for each substitution.
+        muts : array-like
+            The mutant amino acids for each substitution.
+
+        Returns
+        -------
+        str
+            A string of amino acid substitutions relative to the reference sequence.
+        """
+        assert len(wts) == len(sites) == len(muts)
+
         nis = self.non_identical_sites[condition]
         ret = self.non_identical_sites[condition].copy()
 
@@ -486,6 +550,22 @@ class MultiDmsData:
         return " ".join(converted_muts)
 
     def convert_subs_wrt_ref_seq(self, condition, aa_subs):
+        """
+        Covert amino acid substitutions to be with respect to the reference sequence.
+
+        Parameters
+        ----------
+        condition : str
+            The condition from which aa substitutions are relative to.
+        aa_subs : str
+            A string of amino acid substitutions, relative to the condition sequence,
+            to converted
+
+        Returns
+        -------
+        str
+            A string of amino acid substitutions relative to the reference sequence.
+        """
         if condition not in self.conditions:
             raise ValueError(f"condition {condition} does not exist in model")
         if condition in self.reference_sequence_conditions:
@@ -493,6 +573,7 @@ class MultiDmsData:
         return self.convert_split_subs_wrt_ref_seq(condition, *self.split_subs(aa_subs))
 
     def plot_times_seen_hist(self, saveas=None, show=True, **kwargs):
+        """Plot a histogram of the number of times each mutation was seen."""
         times_seen_cols = [f"times_seen_{c}" for c in self._conditions]
         fig, ax = plt.subplots()
         sns.histplot(self._mutations_df[times_seen_cols], ax=ax, **kwargs)
@@ -503,6 +584,7 @@ class MultiDmsData:
         return fig, ax
 
     def plot_func_score_boxplot(self, saveas=None, show=True, **kwargs):
+        """Plot a boxplot of the functional scores for each condition."""
         fig, ax = plt.subplots()
         sns.boxplot(
             self._variants_df,
