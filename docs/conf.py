@@ -14,34 +14,34 @@ sys.path.insert(0, os.path.abspath("../multidms"))
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'multidms'
-copyright = '2023, Jared Galloway, Hugh Haddox'
-author = 'Jared Galloway'
-release = '0.0.1'
+project = "multidms"
+copyright = "2023, Jared Galloway, Hugh Haddox"
+author = "Jared Galloway"
+release = "0.0.1"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    'sphinx_rtd_theme',
+    "sphinx_rtd_theme",
     "sphinx.ext.autodoc",
-    #"sphinx.ext.doctest",
-    'sphinx.ext.mathjax',
-    'sphinx.ext.githubpages',
-    'sphinxcontrib.bibtex',
-    #"sphinx.ext.viewcode",
-    #"sphinx.ext.napoleon",
+    # "sphinx.ext.doctest",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.githubpages",
+    "sphinxcontrib.bibtex",
+    # "sphinx.ext.viewcode",
+    # "sphinx.ext.napoleon",
     # "matplotlib.sphinxext.plot_directive",
     "nbsphinx",
-    "nbsphinx_link"
+    "nbsphinx_link",
 ]
 
-bibtex_bibfiles = ['docs.bib']
+bibtex_bibfiles = ["docs.bib"]
 nbsphinx_epilog = r"""
 .. footbibliography::
 """
 
-templates_path = ['_templates']
+templates_path = ["_templates"]
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
@@ -56,23 +56,22 @@ master_doc = "index"
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = 'en'
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'alabaster'
+html_theme = "alabaster"
 # html_theme = 'sphinx_rtd_theme'
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
-autodoc_member_order = 'bysource'
+autodoc_member_order = "bysource"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -89,4 +88,3 @@ html_theme_options = {
     "page_width": "1300px",
     "sidebar_width": "250px",
 }
-

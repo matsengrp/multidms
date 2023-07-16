@@ -77,7 +77,7 @@ line-length = 89
 extend-exclude = [
     "build",
     "dist",
-    "docs/_build",
+    "docs/*",
     "notebooks/.*",
     "notebooks",
     "optimization_benchmarks",
