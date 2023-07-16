@@ -8,7 +8,7 @@ Model one or more deep mutational scanning (DMS) experiments
 and identify variant predicted fitness, and 
 individual mutation effects and shifts.
 
-`multidms` is a Python package written by the `Matsen Group <https://matsen.fhcrc.org/>`_ in collaboration with the `Bloom lab <https://research.fhcrc.org/bloom/en.html>`_.
+`multidms` is a Python package written by the [Matsen Group](https://matsen.fhcrc.org/) in collaboration with the [Bloom lab](https://research.fhcrc.org/bloom/en.html)
 
 The source code is [on GitHub](https://github.com/matsengrp/multidms).
 
