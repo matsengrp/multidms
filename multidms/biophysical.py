@@ -169,7 +169,7 @@ def nn_global_epistasis(theta: dict, z_d: jnp.array):
     before a final transformation and addition of a constant
     gives us our predicted functional score.
 
-    More concretely, given latent phenotype, $\phi_d(v) = z$, let
+    More concretely, given latent phenotype, :math:`\phi_d(v) = z`, let
 
     .. math::
         g(z) = b^{o}+ \sum_{i}^{n} \frac{w^{o}_{i}}{1 + e^{w^{l}_{i}*z + b^{l}_{i}}}
