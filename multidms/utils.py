@@ -66,7 +66,7 @@ def fit_wrapper(
     lock_beta=False,
     lock_beta_naught=None,
     gamma_corrected=True,
-    conditional_c=False,
+    alpha_d=False,
     init_beta_naught=0.0,
     warmup_beta=False,
     tol=1e-3,
@@ -109,7 +109,7 @@ def fit_wrapper(
         the beta_naught parameter is free to vary. The default is None.
     gamma_corrected : bool, optional
         Whether to use the gamma corrected model. The default is True.
-    conditional_c : bool, optional
+    alpha_d : bool, optional
         Whether to use the conditional c model. The default is False.
     init_beta_naught : float, optional
         The initial value of the beta_naught parameter. The default is 0.0.
@@ -148,7 +148,7 @@ def fit_wrapper(
         dataset,
         epistatic_model=biophysical_model[fit_attributes["epistatic_model"]],
         output_activation=biophysical_model[fit_attributes["output_activation"]],
-        conditional_c=fit_attributes["conditional_c"],
+        alpha_d=fit_attributes["alpha_d"],
         gamma_corrected=fit_attributes["gamma_corrected"],
         init_beta_naught=fit_attributes["init_beta_naught"],
         PRNGKey=PRNGKey,

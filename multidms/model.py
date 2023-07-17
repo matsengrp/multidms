@@ -54,7 +54,7 @@ class Model:
         If true (default) initialize and fit the shift
         parameters for each non-reference condition.
         See Model Description section for more.
-    conditional_c : bool
+    alpha_d : bool
         If True (default False) introduce a bias parameter
         on the latent space parameter for each condition.
         See Model Description section for more.
@@ -168,7 +168,7 @@ class Model:
         data: Data,
         gamma_corrected=False,
         conditional_shifts=True,
-        conditional_c=False,
+        alpha_d=False,
         init_g_range=None,
         init_g_min=None,
         init_beta_naught=0.0,
@@ -181,7 +181,7 @@ class Model:
         """See class docstring."""
         self.gamma_corrected = gamma_corrected
         self.conditional_shifts = conditional_shifts
-        self.conditional_c = conditional_c
+        self.alpha_d = alpha_d
 
         self._data = data
 
@@ -698,7 +698,7 @@ class Model:
             for condition in self._data.conditions:
                 lock_params[f"gamma_{condition}"] = jnp.zeros(shape=(1,))
 
-        if not self.conditional_c:
+        if not self.alpha_d:
             for condition in self._data.conditions:
                 lock_params[f"alpha_{condition}"] = jnp.zeros(shape=(1,))
         else:
