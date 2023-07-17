@@ -1,5 +1,6 @@
 """Tests for the Data class and its methods."""
 
+import pytest
 import multidms
 import numpy as np
 import pandas as pd
@@ -23,19 +24,35 @@ b              P2T         0.3
 3  G  P
 """
 
-# cond 1 G3P in ref
-# cond 2 P3G in cond
-# 1: cond1 and cond2
-# 2: cond1 and !cond2
-
 data = multidms.Data(
     func_score_df,
     alphabet=multidms.AAS_WITHSTOP,
     reference="a",
-    assert_site_integrity=True,  # TODO testthis
+    assert_site_integrity=True,
 )
 
 model = multidms.Model(data, PRNGKey=23)
+
+
+def test_site_integrity():
+    """
+    Test that the site integrity is maintained
+    by raising a ValueError if it is not when using assert_site_integrity=True
+    """
+    df = pd.concat(
+        [
+            func_score_df,
+            pd.Series({"condition": "a", "aa_substitutions": "P2E", "func_score": 0.0}),
+        ],
+        ignore_index=True,
+    )
+    with pytest.raises(ValueError):
+        multidms.Data(
+            df,
+            alphabet=multidms.AAS_WITHSTOP,
+            reference="a",
+            assert_site_integrity=True,
+        )
 
 
 def test_bmap_mut_df_order():
@@ -43,7 +60,6 @@ def test_bmap_mut_df_order():
     Assert that the binarymap rows and columns match
     mutations_df indicies exactly.
     """
-    # test the mutations order for both
     mut_df = data.mutations_df
     for condition in data.conditions:
         bmap = data.binarymaps[condition]

@@ -51,7 +51,6 @@ def split_subs(subs_string, parser=split_sub):
     return wts, sites, muts
 
 
-# TODO cleanup and document
 def fit_wrapper(
     dataset,
     huber_scale_huber=1,
