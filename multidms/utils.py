@@ -144,7 +144,7 @@ def fit_wrapper(
         "Softplus": multidms.biophysical.softplus_activation,
     }
 
-    imodel = multidms.MultiDmsModel(
+    imodel = multidms.Model(
         dataset,
         epistatic_model=biophysical_model[fit_attributes["epistatic_model"]],
         output_activation=biophysical_model[fit_attributes["output_activation"]],

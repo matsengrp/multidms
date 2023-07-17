@@ -8,8 +8,9 @@
 # add sourcecode to path
 import sys, os
 
-sys.path.insert(0, os.path.abspath("../multidms"))
+# sys.path.insert(0, os.path.abspath("../multidms"))
 # sys.path.insert(0, "{0}/..".format(os.path.abspath(".")))
+sys.path.insert(0, "{}/..".format(os.path.abspath(".")))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -18,6 +19,8 @@ project = "multidms"
 copyright = "2023, Jared Galloway, Hugh Haddox"
 author = "Jared Galloway"
 release = "0.0.1"
+
+needs_sphinx = "1.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -30,7 +33,7 @@ extensions = [
     "sphinx.ext.githubpages",
     "sphinxcontrib.bibtex",
     # "sphinx.ext.viewcode",
-    # "sphinx.ext.napoleon",
+    "sphinx.ext.napoleon",
     # "matplotlib.sphinxext.plot_directive",
     "nbsphinx",
     "nbsphinx_link",

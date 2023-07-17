@@ -84,8 +84,7 @@ def lineplot_and_heatmap(
 
     Note
     ----
-    This code is from polyclonal, I'll be modifying it for use with
-    multidms.
+    This code is _mostly_ from ``polyclonal``, but modified for use with ``multidms``
 
     Parameters
     ----------
@@ -157,7 +156,7 @@ def lineplot_and_heatmap(
         using an inner merge, and tooltips will be added to each point
         showing the average value of all replicates.
     categorical_wildtype : bool
-        if true, then the columns that are prefixed with 'wildtype_' and
+        if true, then the columns that are prefixed with 'wildtype' and
         follow with a suffix matching a specific condition, then the heatmaps
         will be labeled with points at all non identical sites when compared
         with the 'wildtype' column (which will be used to mark 'x' on each category
@@ -633,15 +632,15 @@ def mut_shift_plot(
     **kwargs,
 ):
     """Make plot of mutation escape values for one or more replicate fits.
-    You may either pass a single `multidms.MultiDmsData` object for
+    You may either pass a single `multidms.Data` object for
     visualizing a single set of parameters or a collection of replicate
     fits in the form of a dictionary where key's are the replicate
     name (i.e. rep1, rep2) and values are the respective model objects.
 
     Parameters
     ----------
-    fit_data : multidms.MultiDmsData or dict
-        Either a single `multidms.MultiDmsData` object or a dictionary of
+    fit_data : multidms.Data or dict
+        Either a single `multidms.Data` object or a dictionary of
         replicate fits where the keys are the replicate names and the values
         are the respective model objects.
     biochem_order_aas : bool
@@ -665,7 +664,7 @@ def mut_shift_plot(
     id_vars = ["wildtype", "site", "mutant"]
     stubnames = ["value"]
 
-    if type(fit_data) == multidms.model.MultiDmsModel:
+    if type(fit_data) == multidms.model.Model:
         mut_df = fit_data.mutations_df
         times_seen_cols = [c for c in mut_df.columns if "times" in c]
         for c in times_seen_cols:
@@ -733,7 +732,7 @@ def mut_shift_plot(
 
     else:
         raise ValueError(
-            "'fit_data' must be o type `multidms.MultiDmsModel` or dict "
+            "'fit_data' must be o type `multidms.Model` or dict "
             "for each replicate where the keys will be used to represent original "
             "values shown along with the average"
         )

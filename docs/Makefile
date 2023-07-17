@@ -1,10 +1,12 @@
 # Minimal makefile for Sphinx documentation
 #
 
-# You can set these variables from the command line, and also
-# from the environment for the first two.
-SPHINXOPTS    ?=
-SPHINXBUILD   ?= sphinx-build
+# You can set these variables from the command line.
+SPHINXOPTS    =
+SPHINXAPIDOC  = sphinx-apidoc
+PYTHONAPISRC  = ../multidms
+SPHINXBUILD   = python3 -msphinx
+SPHINXPROJ    = multidms
 SOURCEDIR     = .
 BUILDDIR      = _build
 
@@ -17,4 +19,5 @@ help:
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 %: Makefile
+	$(SPHINXAPIDOC) -E -T -M -e -f -o . $(PYTHONAPISRC)
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

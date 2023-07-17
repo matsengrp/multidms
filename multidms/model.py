@@ -1,9 +1,9 @@
 r"""
-=============
-MultiDmsModel
-=============
+=====
+model
+=====
 
-Defines :class:`MultiDmsModel` objects.
+Defines :class:`Model` objects.
 """
 
 import math
@@ -24,12 +24,12 @@ from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
 
 import multidms.plot
-from multidms import MultiDmsData
+from multidms import Data
 import multidms.biophysical
 from multidms.utils import is_wt
 
 
-class MultiDmsModel:
+class Model:
     r"""
     Represent one or more DMS experiments
     to obtain tuned parameters that provide insight into
@@ -37,34 +37,9 @@ class MultiDmsModel:
     of those effects on all non-reference conditions.
     For more see the biophysical model documentation
 
-    Attributes
-    ----------
-    data : multidms.MultiDmsData
-        A reference to the data object that will be used for
-        fitting the parameters initialized in this model.
-    variants_df : pandas.DataFrame
-        A copy of this object's data.variants_df attribute,
-        but with the added model predictions (latent and epistatic)
-        given the current parameters of this model.
-    mutations_df : pandas.DataFrame
-        A copy of this object's data.mutations_df attribute,
-        but with the added respective parameter values
-        (Beta and contional shift) as well as
-        model predictions (latent and epistatic)
-        given the current parameters of this model.
-    mutation_site_summary_df : pandas.DataFrame
-        Similar to the mutations_df attribute, but aggregate
-        the numerical columns by site using a chosen function.
-    wildtype_df : pandas.DataFrame
-        Get a dataframe indexed by condition wildtype
-        containing the prediction features for each.
-    loss : float
-        Compute and return the current loss of the model
-        with current parameters.
-
     Parameters
     ----------
-    data : multidms.MultiDmsData
+    data : multidms.Data
         A reference to the dataset which will define the parameters
         of the model to be fit.
     gamma_corrected : bool
@@ -114,10 +89,10 @@ class MultiDmsModel:
 
     Example
     -------
-    To create a ``MultiDmsModel`` object, all you need is
-    the respective ``MultiDmsData`` object for parameter fitting.
+    To create a ``Model`` object, all you need is
+    the respective ``Data`` object for parameter fitting.
 
-    >>> model = multidms.MultiDmsModel(data)
+    >>> model = multidms.Model(data)
 
     Upon initialization, you will now have access to the underlying data
     and parameters.
@@ -190,7 +165,7 @@ class MultiDmsModel:
 
     def __init__(
         self,
-        data: MultiDmsData,
+        data: Data,
         gamma_corrected=False,
         conditional_shifts=True,
         conditional_c=False,
@@ -265,17 +240,17 @@ class MultiDmsModel:
 
         # TODO document
         pred = partial(
-            multidms.biophysical.abstract_epistasis,  # abstract function to compile
+            multidms.biophysical._abstract_epistasis,  # abstract function to compile
             latent_model,
             epistatic_model,
             output_activation,
         )
         from_latent = partial(
-            multidms.biophysical.abstract_from_latent,
+            multidms.biophysical._abstract_from_latent,
             epistatic_model,
             output_activation,
         )
-        cost = partial(multidms.biophysical.gamma_corrected_cost_smooth, pred)
+        cost = partial(multidms.biophysical._gamma_corrected_cost_smooth, pred)
 
         self._model_components = frozendict(
             {
@@ -285,32 +260,33 @@ class MultiDmsModel:
                 "f": pred,
                 "from_latent": from_latent,
                 "objective": cost,
-                "proximal": multidms.biophysical.lasso_lock_prox,
+                "proximal": multidms.biophysical._lasso_lock_prox,
             }
         )
 
     @property
-    def params(self):
+    def params(self) -> dict:
         """All current model parameters in a dictionary."""
         return self._params
 
     @property
-    def data(self):
+    def data(self) -> multidms.Data:
         """
-        multidms.MultiDmsData Object this model references for fitting
+        multidms.Data Object this model references for fitting
         its parameters.
         """
         return self._data
 
     @property
-    def model_components(self):
+    def model_components(self) -> frozendict:
         """
         A frozendict which hold the individual components of the model
         as well as the objective and forward functions.
         """
         return self._model_components
 
-    def loss(self):
+    @property
+    def loss(self) -> float:
         """
         Compute model loss on all experimental training data
         without ridge or lasso penalties included.
@@ -464,12 +440,12 @@ class MultiDmsModel:
         ----------
         df : pandas.DataFrame
             Data frame containing variants. Requirements are the same as
-            those used to initialize the `multidms.MultiDmsData` object
-        substitutions_col : str or None
-            Column in `df` giving variants as substitution strings in format
-            that can be processed by :attr:`AbstractEpistasis.binarymap`.
-            If `None`, defaults to the `substitutions_col` attribute of
-            that binary map.
+            those used to initialize the `multidms.Data` object
+        substitutions_col : str
+            Column in `df` giving variants as substitution strings
+            with respect to a given variants condition.
+            These will be converted to be with respect to the reference sequence
+            prior to prediction. Defaults to 'aa_substitutions'.
         condition_col : str
             Column in `df` giving the condition from which a variant was
             observed. Values must exist in the self.data.conditions and

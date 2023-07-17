@@ -23,13 +23,13 @@ See below for information and examples of how to use this package.
     self
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
     :caption: Contents
     
     installation    
     biophysical_model
     fit_delta_BA1_example
-    autodoc
+    multidms
     acknowledgments
 ..   
     jit model composition
