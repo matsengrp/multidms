@@ -1,14 +1,15 @@
-"""
-============
-MultiDmsData
-============
+r"""
+====
+data
+====
 
-Defines :class:`Multidms` objects for handling data from one or more
+Defines :class:`Data` objects for handling data from one or more
 dms experiments under various conditions.
 """
 
 import os
 from functools import partial
+import warnings
 
 import binarymap as bmap
 import numpy as onp
@@ -32,17 +33,17 @@ jax.config.update("jax_enable_x64", True)
 tqdm.pandas()
 
 
-class MultiDmsData:
+class Data:
     r"""
     Prep and store one-hot encoding of
     variant substitutions data.
     Individual objects of this type can be shared
-    by multiple ``multidms.MultiDmsModel`` Objects
+    by multiple ``multidms.Model`` Objects
     for effeciently fitting various models to the same data.
 
     Note
     ----
-    You can initialize a :class:`MultiDmsData` object with a ``pd.DataFrame``
+    You can initialize a :class:`Data` object with a ``pd.DataFrame``
     with a row for each variant sampled and annotations
     provided in the required columns:
 
@@ -76,7 +77,7 @@ class MultiDmsData:
         the exact same parameters, even at sites that differ in wild type amino acid.
         These are encoded in a ``BinaryMap`` object for each condtion,
         where all sites that are non-identical to the reference are 1's.
-        For motivation, see the `Model overview` section in `multidms.MultiDmsModel`
+        For motivation, see the `Model overview` section in `multidms.Model`
         class notes.
     collapse_identical_variants : {'mean', 'median', False}
         If identical variants in ``variants_df`` (same 'aa_substitutions'),
@@ -93,40 +94,6 @@ class MultiDmsData:
     letter_suffixed_sites: bool
         True if sites are sequential and integer, False otherwise.
 
-
-    Attributes
-    ----------
-    variants_df : pandas.DataFrame
-        Data to fit as passed when initializing this :class:`Multidms` object
-        less those variants which were thrown due to mutations
-        outside the union of sites seen in across all condition variants.
-        If using ``collapse_identical_variants``, then identical variants
-        are collapsed on columns 'condition', 'aa_substitutions',
-        and a column 'weight' is added to represent number
-        of collapsed variants.
-        Also, row-order may be changed.
-    mutations_df : pandas.DataFrame
-        A dataframe summarizing all valid single mutations
-        in a dataset. The dataframe will contain the
-        mutation definitions (wt, site, mut) as well as the number
-        of times seen in each condition.
-    mutations : tuple
-        A tuple with all mutations in the order reletive to their index into
-        the binarymap.
-    reference : str
-        The reference factor level in conditions. All mutations will be converted to
-        be with respect to this condition's inferred wild type sequence. See
-        The class description for more.
-    conditions : tuple
-        Names of all conditions.
-    condition_colors : dict
-        Maps each condition to its color.
-    alphabet : tuple
-        Allowed characters in mutation strings.
-    site_map : tuple
-        Inferred from ``variants_df``, this attribute will provide the wild type
-        amino acid at all sites, for all conditions.
-
     Example
     -------
     Simple example with two conditions (`1` and `2`)
@@ -134,7 +101,7 @@ class MultiDmsData:
     >>> import pandas as pd
     >>> import multidms
     >>> func_score_data = {
-    ...     'condition' : ["1","1","1","1", "2","2","2","2","2","2"],
+    ...     'condition' : ["a","a","a","a", "b","b","b","b","b","b"],
     ...     'aa_substitutions' : [
                 'M1E', 'G3R', 'G3P', 'M1W', 'M1E',
                 'P3R', 'P3G', 'M1E P3G', 'M1E P3R', 'P2T'
@@ -155,13 +122,13 @@ class MultiDmsData:
       8         2          M1E P3R        -2.7
       9         2              P2T         0.3
 
-    Instantiate a ``MultiDmsData`` Object allowing for stop codon variants
+    Instantiate a ``Data`` Object allowing for stop codon variants
     and declaring condition '1' as the reference condition.
 
-    >>> data = multidms.MultiDmsData(
+    >>> data = multidms.Data(
     ...     func_score_df,
     ...     alphabet = multidms.AAS_WITHSTOP,
-    ...     reference = "1"
+    ...     reference = "a"
     ... )
 
     Note this may take some time due to the string
@@ -170,8 +137,9 @@ class MultiDmsData:
     reference wild type sequence.
 
     After the object has finished being instantiated,
-    we now have access to a few 'static' attributes
-    of our data.
+    we now have access to a few 'static' properties
+    of our data. See individual property docstrings
+    for more information.
 
     >>> data.reference
     '1'
@@ -205,9 +173,8 @@ class MultiDmsData:
     6         2          M1E P3R       1        -2.7     G3R M1E
     8         2              P3G       1         0.4
     9         2              P3R       1        -5.0         G3R
-    """  # noqa: E501
+    """
 
-    # TODO var "how" in {"inner", "outer", "sites" (?), or "reference"}
     def __init__(
         self,
         variants_df: pandas.DataFrame,
@@ -217,7 +184,6 @@ class MultiDmsData:
         condition_colors=DEFAULT_POSITIVE_COLORS,
         letter_suffixed_sites=False,
         assert_site_integrity=False,  # TODO document
-        filter_non_shared_subs=True,  # TODO document
         verbose=False,
         nb_workers=None,
     ):
@@ -225,11 +191,22 @@ class MultiDmsData:
         # Check and initialize conditions attribute
         if pandas.isnull(variants_df["condition"]).any():
             raise ValueError("condition name cannot be null")
-        self._conditions = tuple(variants_df["condition"].unique())
+        if variants_df["condition"].dtype.kind in "biufc":
+            warnings.warn(
+                "condition column looks to be numeric type, converting to string",
+                UserWarning,
+            )
+        self._conditions = tuple(variants_df["condition"].astype(str).unique())
 
-        if reference not in self._conditions:
+        if str(reference) not in self._conditions:
+            if type(reference) != str:
+                raise ValueError(
+                    "reference must be a string, note that if your "
+                    "condition names are numeric, they are being"
+                    "converted to string"
+                )
             raise ValueError("reference must be in condition factor levels")
-        self._reference = reference
+        self._reference = str(reference)
 
         self._collapse_identical_variants = collapse_identical_variants
 
@@ -367,7 +344,7 @@ class MultiDmsData:
 
             idx = condition_func_df.index
             df.loc[idx, "var_wrt_ref"] = condition_func_df.parallel_apply(
-                lambda x: self.convert_split_subs_wrt_ref_seq(
+                lambda x: self._convert_split_subs_wrt_ref_seq(
                     condition, x.wts, x.sites, x.muts
                 ),
                 axis=1,
@@ -417,7 +394,44 @@ class MultiDmsData:
         self._mutations_df = mut_df
 
     @property
-    def non_identical_mutations(self):
+    def conditions(self) -> tuple:
+        """A tuple of all conditions."""
+        return self._conditions
+
+    @property
+    def reference(self) -> str:
+        """The name of the reference condition."""
+        return self._reference
+
+    @property
+    def mutations(self) -> tuple:
+        """
+        A tuple of all mutations in the order reletive to their index into
+        the binarymap.
+        """
+        return self._mutations
+
+    @property
+    def mutations_df(self) -> pandas.DataFrame:
+        """A dataframe summarizing all single mutations"""
+        return self._mutations_df
+
+    @property
+    def variants_df(self) -> pandas.DataFrame:
+        """A dataframe summarizing all variants in the training data."""
+        return self._variants_df
+
+    @property
+    def site_map(self) -> pandas.DataFrame:
+        """
+        A dataframe indexed by site, with columns
+        for all conditions giving the wild type amino acid
+        at each site.
+        """
+        return self._site_map
+
+    @property
+    def non_identical_mutations(self) -> dict:
         """
         A dictionary keyed by condition names with values
         being a string of all mutations that differ from the
@@ -426,7 +440,7 @@ class MultiDmsData:
         return self._non_identical_mutations
 
     @property
-    def non_identical_sites(self):
+    def non_identical_sites(self) -> dict:
         """
         A dictionary keyed by condition names with values
         being a pandas.DataFrame indexed by site,
@@ -436,7 +450,7 @@ class MultiDmsData:
         return self._non_identical_sites
 
     @property
-    def reference_sequence_conditions(self):
+    def reference_sequence_conditions(self) -> list:
         """
         A list of conditions that have the same wild type
         sequence as the reference condition.
@@ -444,49 +458,12 @@ class MultiDmsData:
         return self._reference_sequence_conditions
 
     @property
-    def conditions(self):
-        """A tuple of all condition names."""
-        return self._conditions
-
-    @property
-    def reference(self):
-        """The name of the reference condition."""
-        return self._reference
-
-    @property
-    def mutations(self):
-        """
-        A tuple of all mutations in the order reletive to their index into
-        the binarymap.
-        """
-        return self._mutations
-
-    @property
-    def mutations_df(self):
-        """A dataframe summarizing all single mutations"""
-        return self._mutations_df
-
-    @property
-    def variants_df(self):
-        """A dataframe summarizing all variants in the training data."""
-        return self._variants_df
-
-    @property
-    def site_map(self):
-        """
-        A dataframe indexed by site, with columns
-        for all conditions giving the wild type amino acid
-        at each site.
-        """
-        return self._site_map
-
-    @property
-    def training_data(self):
+    def training_data(self) -> dict:
         """A dictionary with keys 'X' and 'y' for the training data."""
         return self._training_data
 
     @property
-    def binarymaps(self):
+    def binarymaps(self) -> dict:
         """
         A dictionary keyed by condition names with values
         being a ``BinaryMap`` object for each condition.
@@ -494,24 +471,49 @@ class MultiDmsData:
         return self._binarymaps
 
     @property
-    def targets(self):
+    def targets(self) -> dict:
         """The functional scores for each variant in the training data."""
         return self._training_data["y"]
 
     @property
-    def mut_parser(self):
+    def mut_parser(self) -> MutationParser:
         """The mutation parser used to parse mutations."""
         return self._mut_parser
 
     @property
-    def split_subs(self):
+    def split_subs(self) -> partial:
         """
         A function that splits amino acid substitutions into wt, site, and mut
         using the mutation parser.
         """
         return self._split_subs
 
-    def convert_split_subs_wrt_ref_seq(self, condition, wts, sites, muts):
+    def convert_subs_wrt_ref_seq(self, condition, aa_subs):
+        """
+        Covert amino acid substitutions to be with respect to the reference sequence.
+
+        Parameters
+        ----------
+        condition : str
+            The condition from which aa substitutions are relative to.
+        aa_subs : str
+            A string of amino acid substitutions, relative to the condition sequence,
+            to converted
+
+        Returns
+        -------
+        str
+            A string of amino acid substitutions relative to the reference sequence.
+        """
+        if condition not in self.conditions:
+            raise ValueError(f"condition {condition} does not exist in model")
+        if condition in self.reference_sequence_conditions:
+            return aa_subs
+        return self._convert_split_subs_wrt_ref_seq(
+            condition, *self.split_subs(aa_subs)
+        )
+
+    def _convert_split_subs_wrt_ref_seq(self, condition, wts, sites, muts):
         """
         Covert amino acid substitutions to be with respect to the reference sequence.
 
@@ -548,29 +550,6 @@ class MultiDmsData:
 
         converted_muts = ret[self.reference] + ret.index.astype(str) + ret[condition]
         return " ".join(converted_muts)
-
-    def convert_subs_wrt_ref_seq(self, condition, aa_subs):
-        """
-        Covert amino acid substitutions to be with respect to the reference sequence.
-
-        Parameters
-        ----------
-        condition : str
-            The condition from which aa substitutions are relative to.
-        aa_subs : str
-            A string of amino acid substitutions, relative to the condition sequence,
-            to converted
-
-        Returns
-        -------
-        str
-            A string of amino acid substitutions relative to the reference sequence.
-        """
-        if condition not in self.conditions:
-            raise ValueError(f"condition {condition} does not exist in model")
-        if condition in self.reference_sequence_conditions:
-            return aa_subs
-        return self.convert_split_subs_wrt_ref_seq(condition, *self.split_subs(aa_subs))
 
     def plot_times_seen_hist(self, saveas=None, show=True, **kwargs):
         """Plot a histogram of the number of times each mutation was seen."""
