@@ -148,3 +148,19 @@ def test_model_phenotype_effect_predictions():
         internal_pred.predicted_func_score.values
         == external_pred.predicted_func_score.values
     )
+
+
+def test_model_fit_and_deteremism():
+    """
+    Make sure that the model is deterministic by fitting
+    the model twice and making sure that the parameters
+    are the same.
+    """
+    model_1 = multidms.Model(data, PRNGKey=23)
+    model_2 = multidms.Model(data, PRNGKey=23)
+
+    model_1.fit(maxiter=5)
+    model_2.fit(maxiter=5)
+
+    for param, values in model_1.params.items():
+        assert np.all(values == model_2.params[param])
