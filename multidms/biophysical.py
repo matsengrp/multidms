@@ -1,12 +1,12 @@
 r"""
-=================
-biophysical_model
-=================
+===========
+biophysical
+===========
 
 Defines functions for jointly
 modeling global epistasis biophysical models -
 as well as the ("private") objective functions required 
-for parameter optimization used :mod:`multidms.model`.
+for parameter optimization in :mod:`multidms.model`.
 
 `multidms.Model` Objects are defined with parameters
 which take references to functions (such as the ones defined here) as arguments.
