@@ -126,6 +126,46 @@ def test_model_PRNGKey():
         assert np.all(values == model_2.params[param])
 
 
+def test_lower_bound():
+    """
+    Make sure that the softplus lower bound is correct
+    by initializing a sofplus activation models and asserting
+    predictions never go below the specified lower bound.
+    even if that lower bound is high!
+
+    Note that while the lower bound is set, the
+    "effective phenotype" lower bound is
+    equal to the lower bound - the wildtype phenotype
+    for any given condition. However, since the latent
+    offset parameters are initialized to 0.0 by default,
+    the reference wildtype phenotype is 0.0 before fitting.
+    """
+    model = multidms.Model(
+        data,
+        output_activation=multidms.biophysical.softplus_activation,
+        PRNGKey=23,
+        lower_bound=1000.0,
+    )
+    variants_df = model.get_variants_df(phenotype_as_effect=False)
+    assert np.all(variants_df.predicted_func_score >= 1000.0)
+
+
+def test_null_post_latent():
+    """
+    Make sure that setting the epistatic model, and output
+    activation to the identity, results in the same predictions
+    as the the additive model.
+    """
+    model = multidms.Model(
+        data,
+        epistatic_model=multidms.biophysical.identity_activation,
+        output_activation=multidms.biophysical.identity_activation,
+        PRNGKey=23,
+    )
+    variants_df = model.get_variants_df(phenotype_as_effect=False)
+    assert np.all(variants_df.predicted_latent == variants_df.predicted_func_score)
+
+
 def test_model_phenotype_predictions():
     """
     Make sure that the substitution conversion and binary
