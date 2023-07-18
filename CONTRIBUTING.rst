@@ -108,7 +108,7 @@ Next, push the new tag to the remote repository ::
 
     git push --tags
 
-This will trigger the publish package action to build and upload
+This will trigger the action to build and upload
 the package to the **test** PyPI repository.
 
 To publish to the real PyPI_, you simply use the github web interface to pin a new release

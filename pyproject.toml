@@ -109,7 +109,7 @@ packages = ["multidms"]
 current_version = "0.1.8"
 version_pattern = "MAJOR.MINOR.PATCH"
 commit_message = "bump version {old_version} -> {new_version}"
-commit = true
+commit = false
 tag = true
 push = false
 
