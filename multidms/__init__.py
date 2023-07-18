@@ -32,7 +32,7 @@ equations described in the
 `biophysical docs <https://matsengrp.github.io/multidms/biophysical_model.html>`_ - 
 see:
 
- - :mod:`~multidms.biophysical`.
+ - :mod:`~multidms.biophysical`
 
 :mod:`~multidms.plot` mostly contains code for interactive plotting
 at the moment.

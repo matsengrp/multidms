@@ -12,10 +12,11 @@ for parameter optimization in :mod:`multidms.model`.
 which take references to functions (such as the ones defined here) as arguments.
 The object then handles the: 
 
- - parameter initialization/bookeeping, 
- - composition of the provided functions using `functools.partial`,
- - the subsequent jit-compilation, 
- - as well as the optimizations of the objective function.
+ - parameter initialization/bookeeping 
+ - composition of the provided functions using `functools.partial`
+ - the subsequent jit-compilation, using `jax.jit`, on the composed model and objective 
+   functions 
+ - as well as the optimizations of the the model parameters.
 
 This allows for the user/developer to define their own model components
 for each of the latent phenotype, global epistasis, and output activation functions.

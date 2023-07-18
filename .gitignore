@@ -2,7 +2,8 @@
 .DS_Store
 /_build
 /doctrees
-docs/multidms.*.rst
+docs/multidms*rst
+.vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
