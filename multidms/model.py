@@ -677,21 +677,44 @@ class Model:
         return self.latent_frombinary(X)
 
     def phenotype_frombinary(self, X, condition=None):
-        """Condition specific prediction on X using the biophysical model
+        """
+        Condition specific functional score prediction
+        on X using the biophysical model
         given current model parameters.
+
+        Parameters
+        ----------
+        X : jnp.array
+            Binary encoded variants to make predictions on.
+        condition : str
+            Condition to make predictions for. If None, use the reference
         """
         d_params = self.get_condition_params(condition)
         return jax.jit(self.model_components["f"])(d_params, X)
 
     def latent_frombinary(self, X, condition=None):
-        """Condition specific prediction on X using the biophysical model
+        """
+        Condition specific latent phenotype prediction
+        on X using the biophysical model
         given current model parameters.
+
+        Parameters
+        ----------
+        X : jnp.array
+            Binary encoded variants to make predictions on.
+        condition : str
+            Condition to make predictions for. If None, use the reference
         """
         d_params = self.get_condition_params(condition)
         return jax.jit(self.model_components["latent_model"])(d_params, X)
 
     def fit_reference_beta(self, **kwargs):
-        """Fit the Model beta's to the reference data"""
+        """
+        Fit the Model beta's to the reference data.
+
+        This is an experimental feature and is not recommended
+        for general use.
+        """
         ref_X = self.data.training_data["X"][self.data.reference]
         ref_y = self.data.training_data["y"][self.data.reference]
 
@@ -700,7 +723,26 @@ class Model:
         )
 
     def fit(self, lasso_shift=1e-5, tol=1e-6, maxiter=1000, lock_params={}, **kwargs):
-        """Use jaxopt.ProximalGradiant to optimize parameters"""
+        r"""
+        Use jaxopt.ProximalGradiant to optimize the model's free parameters.
+
+        Parameters
+        ----------
+        lasso_shift : float
+            L1 penalty on the shift parameters. Defaults to 1e-5.
+        tol : float
+            Tolerance for the optimization. Defaults to 1e-6.
+        maxiter : int
+            Maximum number of iterations for the optimization. Defaults to 1000.
+        lock_params : dict
+            Dictionary of parameters, and desired value to constrain
+            them at during optimization. By default, none of the parameters
+            besides the reference shift, and reference latent offset are locked.
+        **kwargs : dict
+            Additional keyword arguments passed to the objective function.
+            These include hyperparameters like a ridge penalty on beta, shift, and gamma
+            as well as huber loss scaling.
+        """
         solver = ProximalGradient(
             jax.jit(self._model_components["objective"]),
             jax.jit(self._model_components["proximal"]),
