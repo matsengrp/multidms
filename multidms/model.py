@@ -42,6 +42,25 @@ class Model:
     data : multidms.Data
         A reference to the dataset which will define the parameters
         of the model to be fit.
+    epistatic_model : <class 'function'>
+        A function which will transform the latent
+        effects of mutations into a functional score.
+        See the biophysical model documentation
+        for more.
+    output_activation : <class 'function'>
+        A function which will transform the output of the
+        global epistasis function. Defaults to the identity function
+        (no activation). See the biophysical model documentation
+    conditional_shifts : bool
+        If true (default) initialize and fit the shift
+        parameters for each non-reference condition.
+        See Model Description section for more.
+        Defaults to True.
+    alpha_d : bool
+        If True introduce a latent offset parameter
+        for each condition.
+        See the biophysical docs section for more.
+        Defaults to True.
     gamma_corrected : bool
         If true (default), introduce the 'gamma' parameter
         for each non-reference parameter to
@@ -50,41 +69,25 @@ class Model:
         is essentially a bias added to the functional
         scores during fitting.
         See Model Description section for more.
-    conditional_shifts : bool
-        If true (default) initialize and fit the shift
-        parameters for each non-reference condition.
-        See Model Description section for more.
-    alpha_d : bool
-        If True (default False) introduce a bias parameter
-        on the latent space parameter for each condition.
-        See Model Description section for more.
-    init_g_range : float
-        Initialize the range of two-parameter epistatic models
-        (Sigmoid or Softplus).
-    init_g_min : float
-        Initialize the min of a two parameter epistatic models.
-        (Sigmoid or Softplus).
-    init_beta_naught : float
-        Initialize the $alpha_{ref}$ parameter.
+        Defaults to False.
     PRNGKey : int
         The initial seed key for random parameters
         assigned to Betas and any other randomly
         initialized parameters.
-    latent_model : <class 'function'>
-        For experimenal purposes only. We currently suggest using the
-        default unless you explicitly want to test a model
-        architecture defined in `multidms.biophysical`
-    epistatic_model : <class 'function'>
-        For experimenal purposes only. We currently suggest using the
-        default unless you explicitly want to test a model
-        architecture defined in `multidms.biophysical`
-    output_activation : <class 'function'>
-        For experimenal purposes only. We currently suggest using the
-        default unless you explicitly want to test a model
-        architecture defined in `multidms.biophysical`
+        for more.
+    init_beta_naught : float
+        Initialize the latent offset parameter
+        applied to all conditions.
+        See the biophysical docs section for more.
+    init_theta_scale : float
+        Initialize the scaling parameter :math:`\theta_{\text{scale}}` of
+        a two-parameter epistatic model (Sigmoid or Softplus).
+    init_theta_bias : float
+        Initialize the bias parameter :math:`\theta_{\text{bias}}` of
+        a two parameter epistatic model (Sigmoid or Softplus).
     n_hidden_units : int or None
         If using `biophysical.multidms.biophysical.nn_global_epistasis`
-        this is the number of hidden units
+        as the epistatic model, this is the number of hidden units
         used in the transform.
 
     Example
@@ -166,16 +169,15 @@ class Model:
     def __init__(
         self,
         data: Data,
-        gamma_corrected=False,
-        conditional_shifts=True,
-        alpha_d=False,
-        init_g_range=None,
-        init_g_min=None,
-        init_beta_naught=0.0,
-        PRNGKey=0,
-        latent_model=multidms.biophysical.additive_model,
         epistatic_model=multidms.biophysical.sigmoidal_global_epistasis,
         output_activation=multidms.biophysical.identity_activation,
+        conditional_shifts=True,
+        alpha_d=True,
+        gamma_corrected=False,
+        PRNGKey=0,
+        init_beta_naught=0.0,
+        init_theta_scale=5.0,
+        init_theta_bias=-5.0,
         n_hidden_units=5,
     ):
         """See class docstring."""
@@ -188,6 +190,10 @@ class Model:
         self._params = {}
         key = jax.random.PRNGKey(PRNGKey)
 
+        # initialize beta and shift parameters
+        # note that the only option is the additive model
+        # as defined in multidms.biophysical.additive_model
+        latent_model = multidms.biophysical.additive_model
         if latent_model == multidms.biophysical.additive_model:
             n_beta_shift = len(self._data.mutations)
             self._params["beta"] = jax.random.normal(shape=(n_beta_shift,), key=key)
@@ -198,22 +204,17 @@ class Model:
         else:
             raise ValueError(f"{latent_model} not recognized,")
 
+        # initialize theta parameters
         if epistatic_model == multidms.biophysical.sigmoidal_global_epistasis:
-            if init_g_range is None:
-                init_g_range = 5.0
-            if init_g_min is None:
-                init_g_min = -5.0
             self._params["theta"] = dict(
-                ge_scale=jnp.array([init_g_range]), ge_bias=jnp.array([init_g_min])
+                ge_scale=jnp.array([init_theta_scale]),
+                ge_bias=jnp.array([init_theta_bias]),
             )
 
         elif epistatic_model == multidms.biophysical.softplus_global_epistasis:
-            if init_g_range is None:
-                init_g_range = 1.0
-            if init_g_min is None:
-                init_g_min = 0.0
             self._params["theta"] = dict(
-                ge_scale=jnp.array([init_g_range]), ge_bias=jnp.array([init_g_min])
+                ge_scale=jnp.array([init_theta_scale]),
+                ge_bias=jnp.array([init_theta_bias]),
             )
 
         elif epistatic_model == multidms.biophysical.identity_activation:
@@ -238,7 +239,7 @@ class Model:
         for condition in data.conditions:
             self._params[f"gamma_{condition}"] = jnp.zeros(shape=(1,))
 
-        # TODO document
+        # compile the model components
         pred = partial(
             multidms.biophysical._abstract_epistasis,  # abstract function to compile
             latent_model,
@@ -341,7 +342,6 @@ class Model:
         if self.gamma_corrected:
             variants_df["corrected_func_score"] = variants_df["func_score"]
 
-        # TODO if you cache this method, then you won't need to initialize
         # get the wildtype predictions for each condition
         if phenotype_as_effect:
             wildtype_df = self.wildtype_df
@@ -421,7 +421,6 @@ class Model:
 
         return mutations_df
 
-    # TODO, should 'func_score' be swapped with 'phenotype' everywhere
     def add_phenotypes_to_df(
         self,
         df,

@@ -85,6 +85,9 @@ class Data:
         collapse them by taking mean or median of 'func_score', or
         (if `False`) do not collapse at all. Collapsing will make fitting faster,
         but *not* a good idea if you are doing bootstrapping.
+    assert_site_integrity : bool
+        If True, will assert that all sites in the data frame
+        have the same wild type amino acid, grouped by condition.
     alphabet : array-like
         Allowed characters in mutation strings.
     condition_colors : array-like or dict
@@ -183,7 +186,7 @@ class Data:
         collapse_identical_variants=False,
         condition_colors=DEFAULT_POSITIVE_COLORS,
         letter_suffixed_sites=False,
-        assert_site_integrity=False,  # TODO document
+        assert_site_integrity=False,
         verbose=False,
         nb_workers=None,
     ):
@@ -306,7 +309,7 @@ class Data:
         self._site_map = site_map.sort_index()
 
         # identify and write site map differences for each condition
-        non_identical_mutations = {}  # TODO should we compute this lazily in a getter?
+        non_identical_mutations = {}
         non_identical_sites = {}
         self._reference_sequence_conditions = [self._reference]
         for condition in self._conditions:
@@ -371,7 +374,6 @@ class Data:
         self._mutations = tuple(ref_bmap.all_subs)
 
         # initialize single mutational effects df
-        # TODO should mutation be the index? check with polyclonal to line up
         mut_df = pandas.DataFrame({"mutation": self._mutations})
 
         mut_df["wts"], mut_df["sites"], mut_df["muts"] = zip(

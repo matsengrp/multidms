@@ -8,12 +8,21 @@
 ``multidms`` documentation
 ==========================
 
-``multidms`` is a Python package written by the `Matsen <https://matsen.fhcrc.org/>`_ and `Bloom <https://research.fhcrc.org/bloom/en.html>`_ labs.
+``multidms`` is a Python package written by the 
+`Matsen group <https://matsen.fhcrc.org/>`_
+in collaboration with 
+`William DeWitt <https://wsdewitt.github.io/>`_,
+and the
+`Bloom Lab <https://research.fhcrc.org/bloom/en.html>`_.
 It can be used to fit a single global-epistasis model to one or more deep mutational scanning experiments, 
 with the goal of estimating the effects of individual mutations, 
 and how much the effects differ between experiments.
 
 The source code is `on GitHub <https://github.com/matsengrp/multidms>`_.
+
+For questions or inquaries about the software 
+please `raise an issue <https://github.com/matsengrp/multidms/issues>`_,
+or contact (jgallowa \<at\> fredhutch.org).`
 
 See below for information and examples of how to use this package.
 
