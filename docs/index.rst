@@ -22,7 +22,7 @@ The source code is `on GitHub <https://github.com/matsengrp/multidms>`_.
 
 For questions or inquaries about the software 
 please `raise an issue <https://github.com/matsengrp/multidms/issues>`_,
-or contact (jgallowa \<at\> fredhutch.org).`
+or contact jgallowa \<at\> fredhutch.org.
 
 See below for information and examples of how to use this package.
 
