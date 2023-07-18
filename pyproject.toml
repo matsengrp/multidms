@@ -16,7 +16,7 @@ authors = [
 ]
 license = { file = "LICENSE" }
 classifiers = [
-    "License :: MIT Licence",
+    "License :: OSI Approved :: MIT Licence",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
 ]

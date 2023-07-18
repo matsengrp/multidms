@@ -58,6 +58,14 @@ jobs:
           python -m pip install build
           python -m build --wheel
 
+      # if you push with a new tag, then we publish to test PyPI
+      - name: Publish package distributions to TestPyPI
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+      # only publish and update to PyPI if you cut a new release
       - name: Publish package
         if: github.event_name == 'release'
         uses: pypa/gh-action-pypi-publish@release/v1
