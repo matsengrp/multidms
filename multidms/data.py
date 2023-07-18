@@ -362,6 +362,7 @@ class Data:
                 substitutions_col="var_wrt_ref",
                 allowed_subs=allowed_subs,
                 alphabet=self.alphabet,
+                sites_as_str=letter_suffixed_sites,
             )
             binmaps[condition] = ref_bmap
             X[condition] = sparse.BCOO.from_scipy_sparse(ref_bmap.binary_variants)
