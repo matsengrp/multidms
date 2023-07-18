@@ -106,7 +106,7 @@ for major and minor version changes use the --major or --minor flags, respective
 
 Next, push the new tag to the remote repository ::
 
-    git push --tags
+    git push --tags origin main
 
 This will trigger the action to build and upload
 the package to the **test** PyPI repository.
