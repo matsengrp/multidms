@@ -217,6 +217,13 @@ class Model:
             )
 
         elif epistatic_model == multidms.biophysical.softplus_global_epistasis:
+            if output_activation != multidms.biophysical.softplus_activation:
+                warnings.warn(
+                    "softplus_global_epistasis has no natural lower bound,"
+                    " we highly suggest using a softplus output activation"
+                    "with a lower bound specified when using this model."
+                )
+
             self._params["theta"] = dict(
                 ge_scale=jnp.array([init_theta_scale]),
                 ge_bias=jnp.array([init_theta_bias]),
