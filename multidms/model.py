@@ -89,6 +89,10 @@ class Model:
         If using `biophysical.multidms.biophysical.nn_global_epistasis`
         as the epistatic model, this is the number of hidden units
         used in the transform.
+    lower_bound : float or None
+        If using `biophysical.multidms.biophysical.softplus_activation`
+        as the output activation, this is the lower bound of the
+        softplus function.
 
     Example
     -------
@@ -179,6 +183,7 @@ class Model:
         init_theta_scale=5.0,
         init_theta_bias=-5.0,
         n_hidden_units=5,
+        lower_bound=None,
     ):
         """See class docstring."""
         self.gamma_corrected = gamma_corrected
@@ -235,6 +240,18 @@ class Model:
 
         else:
             raise ValueError(f"{epistatic_model} not recognized,")
+
+        if output_activation == multidms.biophysical.softplus_activation:
+            if lower_bound is None:
+                raise ValueError(
+                    "softplus activation requires a lower bound be specified"
+                )
+            elif type(lower_bound) != float:
+                raise ValueError("lower_bound must be a float")
+            else:
+                output_activation = partial(
+                    multidms.biophysical.softplus_activation, lower_bound=lower_bound
+                )
 
         for condition in data.conditions:
             self._params[f"gamma_{condition}"] = jnp.zeros(shape=(1,))
