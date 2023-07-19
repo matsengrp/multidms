@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "multidms"
 version = "0.1.9"
-description = "Represent and model one or more dms experiments and identify variant predicted fitness, and individual mutation effects and shifts."
+description = "Joint modeling of multiple deep mutational scanning experiments."
 readme = "README.md"
 authors = [
     { name = "Jared Galloway", email= "jgallowa@fredhutch.org" },
