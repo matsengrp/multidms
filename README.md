@@ -14,8 +14,6 @@ It can be used to fit a single global-epistasis model to one or more deep mutati
 with the goal of estimating the effects of individual mutations, 
 and how much the effects differ between experiments.
 
-`multidms` is a Python package written by the [Matsen Group](https://matsen.fhcrc.org/) in collaboration with the [Bloom lab](https://research.fhcrc.org/bloom/en.html)
-
 The source code is [on GitHub](https://github.com/matsengrp/multidms).
 
 Please see the [Documentation](https://matsengrp.github.io/multidms/) for details on installation and usage.
