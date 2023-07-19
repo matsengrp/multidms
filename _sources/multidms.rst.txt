@@ -1,0 +1,19 @@
+multidms package
+================
+
+.. automodule:: multidms
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   multidms.biophysical
+   multidms.data
+   multidms.model
+   multidms.plot
+   multidms.utils

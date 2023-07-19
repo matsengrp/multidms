@@ -1,0 +1,252 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>multidms package &#8212; multidms 0.1.9 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script src="_static/jquery.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="biophysical" href="multidms.biophysical.html" />
+    <link rel="prev" title="multidms fitting pipeline" href="fit_delta_BA1_example.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-multidms">
+<span id="multidms-package"></span><h1>multidms package<a class="headerlink" href="#module-multidms" title="Permalink to this heading"></a></h1>
+<section id="multidms">
+<h2>multidms<a class="headerlink" href="#multidms" title="Permalink to this heading"></a></h2>
+<p>multidms is a Python package for modeling deep mutational scanning data.
+In particular, it is designed to model data from more than one experiment,
+even if they don’t share the same wildtype amino acid sequence.
+It uses joint modeling to inform parameters across all experiments,
+while identifying experiment-specific mutation effects which differ.</p>
+<p>Importing this package imports the following objects
+into the package namespace:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="multidms.data.html#multidms.data.Data" title="multidms.data.Data"><code class="xref py py-mod docutils literal notranslate"><span class="pre">Data</span></code></a></p></li>
+<li><p><a class="reference internal" href="multidms.model.html#multidms.model.Model" title="multidms.model.Model"><code class="xref py py-mod docutils literal notranslate"><span class="pre">Model</span></code></a></p></li>
+</ul>
+</div></blockquote>
+<p>for some helpful utilities for working with multiple model fits
+and wrangle their output, see:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="multidms.utils.html#module-multidms.utils" title="multidms.utils"><code class="xref py py-mod docutils literal notranslate"><span class="pre">utils</span></code></a></p></li>
+</ul>
+</div></blockquote>
+<p>For a brief description about how the <a class="reference internal" href="multidms.model.html#multidms.model.Model" title="multidms.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">Model</span></code></a>
+class works to compose, compile, and optimize the model parameters
+- as well as detailed code code documentation for each of the
+equations described in the
+<a class="reference external" href="https://matsengrp.github.io/multidms/biophysical_model.html">biophysical docs</a> -
+see:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="multidms.biophysical.html#module-multidms.biophysical" title="multidms.biophysical"><code class="xref py py-mod docutils literal notranslate"><span class="pre">biophysical</span></code></a></p></li>
+</ul>
+</div></blockquote>
+<p><a class="reference internal" href="multidms.plot.html#module-multidms.plot" title="multidms.plot"><code class="xref py py-mod docutils literal notranslate"><span class="pre">plot</span></code></a> mostly contains code for interactive plotting
+at the moment.</p>
+<p>It also imports the following alphabets:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="xref py py-const docutils literal notranslate"><span class="pre">AAS</span></code></p></li>
+<li><p><code class="xref py py-const docutils literal notranslate"><span class="pre">AAS_WITHSTOP</span></code></p></li>
+<li><p><code class="xref py py-const docutils literal notranslate"><span class="pre">AAS_WITHGAP</span></code></p></li>
+<li><p><code class="xref py py-const docutils literal notranslate"><span class="pre">AAS_WITHSTOP_WITHGAP</span></code></p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="multidms.biophysical.html">biophysical</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.biophysical.html#multidms.biophysical.additive_model"><code class="docutils literal notranslate"><span class="pre">additive_model()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.biophysical.html#multidms.biophysical.sigmoidal_global_epistasis"><code class="docutils literal notranslate"><span class="pre">sigmoidal_global_epistasis()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.biophysical.html#multidms.biophysical.softplus_global_epistasis"><code class="docutils literal notranslate"><span class="pre">softplus_global_epistasis()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.biophysical.html#multidms.biophysical.nn_global_epistasis"><code class="docutils literal notranslate"><span class="pre">nn_global_epistasis()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.biophysical.html#multidms.biophysical.identity_activation"><code class="docutils literal notranslate"><span class="pre">identity_activation()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.biophysical.html#multidms.biophysical.softplus_activation"><code class="docutils literal notranslate"><span class="pre">softplus_activation()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.data.html">data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.data.html#multidms.data.Data"><code class="docutils literal notranslate"><span class="pre">Data</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.conditions"><code class="docutils literal notranslate"><span class="pre">Data.conditions</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.reference"><code class="docutils literal notranslate"><span class="pre">Data.reference</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.mutations"><code class="docutils literal notranslate"><span class="pre">Data.mutations</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.mutations_df"><code class="docutils literal notranslate"><span class="pre">Data.mutations_df</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.variants_df"><code class="docutils literal notranslate"><span class="pre">Data.variants_df</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.site_map"><code class="docutils literal notranslate"><span class="pre">Data.site_map</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.non_identical_mutations"><code class="docutils literal notranslate"><span class="pre">Data.non_identical_mutations</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.non_identical_sites"><code class="docutils literal notranslate"><span class="pre">Data.non_identical_sites</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.reference_sequence_conditions"><code class="docutils literal notranslate"><span class="pre">Data.reference_sequence_conditions</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.training_data"><code class="docutils literal notranslate"><span class="pre">Data.training_data</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.binarymaps"><code class="docutils literal notranslate"><span class="pre">Data.binarymaps</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.targets"><code class="docutils literal notranslate"><span class="pre">Data.targets</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.mut_parser"><code class="docutils literal notranslate"><span class="pre">Data.mut_parser</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.split_subs"><code class="docutils literal notranslate"><span class="pre">Data.split_subs</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.convert_subs_wrt_ref_seq"><code class="docutils literal notranslate"><span class="pre">Data.convert_subs_wrt_ref_seq()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.plot_times_seen_hist"><code class="docutils literal notranslate"><span class="pre">Data.plot_times_seen_hist()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.plot_func_score_boxplot"><code class="docutils literal notranslate"><span class="pre">Data.plot_func_score_boxplot()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.model.html">model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.model.html#multidms.model.Model"><code class="docutils literal notranslate"><span class="pre">Model</span></code></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.params"><code class="docutils literal notranslate"><span class="pre">Model.params</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.data"><code class="docutils literal notranslate"><span class="pre">Model.data</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.model_components"><code class="docutils literal notranslate"><span class="pre">Model.model_components</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.loss"><code class="docutils literal notranslate"><span class="pre">Model.loss</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.variants_df"><code class="docutils literal notranslate"><span class="pre">Model.variants_df</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_variants_df"><code class="docutils literal notranslate"><span class="pre">Model.get_variants_df()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.mutations_df"><code class="docutils literal notranslate"><span class="pre">Model.mutations_df</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_mutations_df"><code class="docutils literal notranslate"><span class="pre">Model.get_mutations_df()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.add_phenotypes_to_df"><code class="docutils literal notranslate"><span class="pre">Model.add_phenotypes_to_df()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.wildtype_df"><code class="docutils literal notranslate"><span class="pre">Model.wildtype_df</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.mutation_site_summary_df"><code class="docutils literal notranslate"><span class="pre">Model.mutation_site_summary_df()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_condition_params"><code class="docutils literal notranslate"><span class="pre">Model.get_condition_params()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.phenotype_fromsubs"><code class="docutils literal notranslate"><span class="pre">Model.phenotype_fromsubs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.latent_fromsubs"><code class="docutils literal notranslate"><span class="pre">Model.latent_fromsubs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.phenotype_frombinary"><code class="docutils literal notranslate"><span class="pre">Model.phenotype_frombinary()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.latent_frombinary"><code class="docutils literal notranslate"><span class="pre">Model.latent_frombinary()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.fit_reference_beta"><code class="docutils literal notranslate"><span class="pre">Model.fit_reference_beta()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.fit"><code class="docutils literal notranslate"><span class="pre">Model.fit()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.plot_pred_accuracy"><code class="docutils literal notranslate"><span class="pre">Model.plot_pred_accuracy()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.plot_epistasis"><code class="docutils literal notranslate"><span class="pre">Model.plot_epistasis()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.plot_param_hist"><code class="docutils literal notranslate"><span class="pre">Model.plot_param_hist()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.plot_param_heatmap"><code class="docutils literal notranslate"><span class="pre">Model.plot_param_heatmap()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.plot_shifts_by_site"><code class="docutils literal notranslate"><span class="pre">Model.plot_shifts_by_site()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.plot_fit_param_comp_scatter"><code class="docutils literal notranslate"><span class="pre">Model.plot_fit_param_comp_scatter()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.mut_shift_plot"><code class="docutils literal notranslate"><span class="pre">Model.mut_shift_plot()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.plot.html">plot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.plot.html#multidms.plot.color_gradient_hex"><code class="docutils literal notranslate"><span class="pre">color_gradient_hex()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.plot.html#multidms.plot.lineplot_and_heatmap"><code class="docutils literal notranslate"><span class="pre">lineplot_and_heatmap()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.plot.html#multidms.plot.mut_shift_plot"><code class="docutils literal notranslate"><span class="pre">mut_shift_plot()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.is_wt"><code class="docutils literal notranslate"><span class="pre">is_wt()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.split_sub"><code class="docutils literal notranslate"><span class="pre">split_sub()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.split_subs"><code class="docutils literal notranslate"><span class="pre">split_subs()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.fit_wrapper"><code class="docutils literal notranslate"><span class="pre">fit_wrapper()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.plot_loss_simple"><code class="docutils literal notranslate"><span class="pre">plot_loss_simple()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.combine_replicate_muts"><code class="docutils literal notranslate"><span class="pre">combine_replicate_muts()</span></code></a></li>
+</ul>
+</div>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/2020-logo-1000px-transparent.png" alt="Logo"/>
+    
+    <h1 class="logo logo-name">multidms</h1>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=matsengrp&repo=multidms&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="index.html">multidms documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html"><code class="docutils literal notranslate"><span class="pre">multidms</span></code> fitting pipeline</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">multidms package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="fit_delta_BA1_example.html" title="previous chapter"><code class="docutils literal notranslate"><span class="pre">multidms</span></code> fitting pipeline</a></li>
+      <li>Next: <a href="multidms.biophysical.html" title="next chapter">biophysical</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, Jared Galloway, Hugh Haddox.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 6.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/multidms.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

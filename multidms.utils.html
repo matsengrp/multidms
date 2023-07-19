@@ -1,0 +1,223 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>Utils &#8212; multidms 0.1.9 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script src="_static/jquery.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Acknowledgments" href="acknowledgments.html" />
+    <link rel="prev" title="plot" href="multidms.plot.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <span class="target" id="module-multidms.utils"></span><section id="utils">
+<h1>Utils<a class="headerlink" href="#utils" title="Permalink to this heading"></a></h1>
+<p>This module contains utility functions for the multidms package.</p>
+</section>
+<dl class="py function">
+<dt class="sig sig-object py" id="multidms.utils.is_wt">
+<span class="sig-prename descclassname"><span class="pre">multidms.utils.</span></span><span class="sig-name descname"><span class="pre">is_wt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.utils.is_wt" title="Permalink to this definition"></a></dt>
+<dd><p>Check if a string is a wildtype sequence</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="multidms.utils.split_sub">
+<span class="sig-prename descclassname"><span class="pre">multidms.utils.</span></span><span class="sig-name descname"><span class="pre">split_sub</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sub_string</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.utils.split_sub" title="Permalink to this definition"></a></dt>
+<dd><p>String match the wt, site, and sub aa
+in a given string denoting a single substitution</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="multidms.utils.split_subs">
+<span class="sig-prename descclassname"><span class="pre">multidms.utils.</span></span><span class="sig-name descname"><span class="pre">split_subs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subs_string</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parser=&lt;function</span> <span class="pre">split_sub&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.utils.split_subs" title="Permalink to this definition"></a></dt>
+<dd><p>Wrap the split_sub func to work for a
+string contining multiple substitutions</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="multidms.utils.fit_wrapper">
+<span class="sig-prename descclassname"><span class="pre">multidms.utils.</span></span><span class="sig-name descname"><span class="pre">fit_wrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">huber_scale_huber</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_coeff_lasso_shift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_coeff_ridge_beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_coeff_ridge_shift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_coeff_ridge_gamma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_coeff_ridge_ch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epistatic_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Identity'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_activation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Identity'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lock_beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lock_beta_naught</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma_corrected</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_beta_naught</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warmup_beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_training_steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations_per_step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_model_at</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[2000,</span> <span class="pre">10000,</span> <span class="pre">20000]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PRNGKey</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.utils.fit_wrapper" title="Permalink to this definition"></a></dt>
+<dd><p>Fit a multidms model to a dataset. This is a wrapper around the multidms
+fit method that allows for easy specification of the fit parameters.
+This method is helpful for comparing and organizing multiple fits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> (<em>multidms.Dataset</em>) – The dataset to fit to.</p></li>
+<li><p><strong>huber_scale_huber</strong> (<em>float</em><em>, </em><em>optional</em>) – The scale of the huber loss function. The default is 1.</p></li>
+<li><p><strong>scale_coeff_lasso_shift</strong> (<em>float</em><em>, </em><em>optional</em>) – The scale of the lasso penalty on the shift parameter. The default is 2e-5.</p></li>
+<li><p><strong>scale_coeff_ridge_beta</strong> (<em>float</em><em>, </em><em>optional</em>) – The scale of the ridge penalty on the beta parameter. The default is 0.</p></li>
+<li><p><strong>scale_coeff_ridge_shift</strong> (<em>float</em><em>, </em><em>optional</em>) – The scale of the ridge penalty on the shift parameter. The default is 0.</p></li>
+<li><p><strong>scale_coeff_ridge_gamma</strong> (<em>float</em><em>, </em><em>optional</em>) – The scale of the ridge penalty on the gamma parameter. The default is 0.</p></li>
+<li><p><strong>scale_coeff_ridge_ch</strong> (<em>float</em><em>, </em><em>optional</em>) – The scale of the ridge penalty on the ch parameter. The default is 0.</p></li>
+<li><p><strong>data_idx</strong> (<em>int</em><em>, </em><em>optional</em>) – The index of the data to fit to. The default is 0.</p></li>
+<li><p><strong>epistatic_model</strong> (<em>str</em><em>, </em><em>optional</em>) – The epistatic model to use. The default is “Identity”.</p></li>
+<li><p><strong>output_activation</strong> (<em>str</em><em>, </em><em>optional</em>) – The output activation function to use. The default is “Identity”.</p></li>
+<li><p><strong>lock_beta</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to lock the beta parameter. The default is False.</p></li>
+<li><p><strong>lock_beta_naught</strong> (<em>float</em><em> or </em><em>None optional</em>) – The value to lock the beta_naught parameter to. If None,
+the beta_naught parameter is free to vary. The default is None.</p></li>
+<li><p><strong>gamma_corrected</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to use the gamma corrected model. The default is True.</p></li>
+<li><p><strong>alpha_d</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to use the conditional c model. The default is False.</p></li>
+<li><p><strong>init_beta_naught</strong> (<em>float</em><em>, </em><em>optional</em>) – The initial value of the beta_naught parameter. The default is 0.0.</p></li>
+<li><p><strong>warmup_beta</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to warmup the model by fitting beta parameters to the
+reference dataset before fitting the full model. The default is False.</p></li>
+<li><p><strong>tol</strong> (<em>float</em><em>, </em><em>optional</em>) – The tolerance for the fit. The default is 1e-3.</p></li>
+<li><p><strong>num_training_steps</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of training steps to perform. The default is 10.</p></li>
+<li><p><strong>iterations_per_step</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of iterations to perform per training step. The default is 2000.</p></li>
+<li><p><strong>save_model_at</strong> (<em>list</em><em>, </em><em>optional</em>) – The iterations at which to save the model. The default is [2000, 10000, 20000].</p></li>
+<li><p><strong>PRNGKey</strong> (<em>int</em><em>, </em><em>optional</em>) – The PRNGKey to use to initialize model parameters. The default is 0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>fit_series</strong> – A series containing the fit attributes and pickled model objects
+at the specified save_model_at steps.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.Series</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="multidms.utils.plot_loss_simple">
+<span class="sig-prename descclassname"><span class="pre">multidms.utils.</span></span><span class="sig-name descname"><span class="pre">plot_loss_simple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">models</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.utils.plot_loss_simple" title="Permalink to this definition"></a></dt>
+<dd><p>Plot the loss of a set of models.
+Uses matplotlib.pyplot.show() to display the plot.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>models</strong> (<em>pd.DataFrame</em>) – A dataframe where each row is the fit attributes of a model
+as output by the multidms.utils.fit_wrapper() function.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="multidms.utils.combine_replicate_muts">
+<span class="sig-prename descclassname"><span class="pre">multidms.utils.</span></span><span class="sig-name descname"><span class="pre">combine_replicate_muts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fit_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times_seen_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">how</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'inner'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.utils.combine_replicate_muts" title="Permalink to this definition"></a></dt>
+<dd><p>Take a dictionary of fit objects, with key’s as the prefix for individual
+replicate values, and merge then such that all individual and average mutation
+values are present in both.</p>
+</dd></dl>
+
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/2020-logo-1000px-transparent.png" alt="Logo"/>
+    
+    <h1 class="logo logo-name">multidms</h1>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=matsengrp&repo=multidms&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="index.html">multidms documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html"><code class="docutils literal notranslate"><span class="pre">multidms</span></code> fitting pipeline</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="multidms.html">multidms package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="multidms.html">multidms package</a><ul>
+      <li>Previous: <a href="multidms.plot.html" title="previous chapter">plot</a></li>
+      <li>Next: <a href="acknowledgments.html" title="next chapter">Acknowledgments</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, Jared Galloway, Hugh Haddox.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 6.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/multidms.utils.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
