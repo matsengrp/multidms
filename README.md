@@ -4,9 +4,15 @@
 ![License](https://img.shields.io/github/license/matsengrp/multidms)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-Model one or more deep mutational scanning (DMS) experiments
-and identify variant predicted fitness, and 
-individual mutation effects and shifts.
+`multidms` is a Python package written by the 
+[Matsen group](https://matsen.fhcrc.org/)
+in collaboration with 
+[William DeWitt](https://wsdewitt.github.io/)
+and the
+[Bloom Lab](https://research.fhcrc.org/bloom/en.html).
+It can be used to fit a single global-epistasis model to one or more deep mutational scanning experiments, 
+with the goal of estimating the effects of individual mutations, 
+and how much the effects differ between experiments.
 
 `multidms` is a Python package written by the [Matsen Group](https://matsen.fhcrc.org/) in collaboration with the [Bloom lab](https://research.fhcrc.org/bloom/en.html)
 

@@ -30,7 +30,7 @@ jobs:
           options: "--check"
           src: "."
           jupyter: false
-          version: "~= 23.3"
+          version: "~= 23.3" # this is the version that ships with the vs code extension, currently
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
