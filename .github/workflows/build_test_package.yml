@@ -48,7 +48,7 @@ jobs:
       - name: Test
         run: |
           pytest
-          # pytest --doctest-modules
+          pytest --doctest-modules
 
       - name: Test docs build
         run: |
