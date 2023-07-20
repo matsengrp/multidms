@@ -117,7 +117,7 @@ class Model:
 
     The mutations_df and variants_df may of course also be accessed.
 
-    >>> model.data.mutations_df
+    >>> model.data.mutations_df  # doctest: +NORMALIZE_WHITESPACE
       mutation wts  sites muts  times_seen_a  times_seen_b
     0      M1E   M      1    E             1           3.0
     1      M1W   M      1    W             1           0.0
@@ -129,7 +129,7 @@ class Model:
     features included. These are automatically updated each time you
     request the property.
 
-    >>> model.mutations_df
+    >>> model.mutations_df  # doctest: +NORMALIZE_WHITESPACE
       mutation wts  sites muts  times_seen_a  times_seen_b      beta  predicted_func_score  shift_b
     0      M1E   M      1    E             1           3.0  0.080868             -2.398970      0.0
     1      M1W   M      1    W             1           0.0 -0.386247             -2.976895      0.0
@@ -141,7 +141,7 @@ class Model:
     and predicted functional score (``F_d``) of each mutation in the model are now
     easily accessible. Similarly, we can take a look at the variants_df for the model,
 
-    >>> model.variants_df
+    >>> model.variants_df  # doctest: +NORMALIZE_WHITESPACE
       condition aa_substitutions  func_score var_wrt_ref  predicted_latent  predicted_func_score
     0         a              M1E         2.0         M1E          0.080868             -2.398970
     1         a              G3R        -7.0         G3R          1.668974             -0.792805
