@@ -102,29 +102,18 @@ def test_invalid_non_identical_sites():
     as discussed in https://github.com/matsengrp/multidms/issues/84.
     """
     # same data but dropped the reversion mut for condition b
-    data_no_forward = multidms.Data(
-        func_score_df.query("not aa_substitutions.str.contains('P3G')"),
-        alphabet=multidms.AAS_WITHSTOP,
-        reference="a",
-        assert_site_integrity=True,
-    )
-    data_no_reversion = multidms.Data(
-        func_score_df.query("aa_substitutions != 'G3P'"),
-        alphabet=multidms.AAS_WITHSTOP,
-        reference="a",
-        assert_site_integrity=True,
-    )
-    data_neither = multidms.Data(
-        func_score_df.query(
-            "not aa_substitutions.str.contains('P3G') & aa_substitutions != 'G3P'"
-        ),
-        alphabet=multidms.AAS_WITHSTOP,
-        reference="a",
-        assert_site_integrity=True,
-    )
+    data_no_forward = "not aa_substitutions.str.contains('P3G')"
+    data_no_reversion = "aa_substitutions != 'G3P'"
+    data_neither = f"{data_no_forward} & {data_no_reversion}"
     # we expect now, that the only variants kept should be those
     # that only contain exactly a mutation at site 1, there's three of those
-    for data in [data_no_forward, data_no_reversion, data_neither]:
+    for query in [data_no_forward, data_no_reversion, data_neither]:
+        data = multidms.Data(
+            func_score_df.query(query),
+            alphabet=multidms.AAS_WITHSTOP,
+            reference="a",
+            assert_site_integrity=True,
+        )
         assert len(data.variants_df) == 3
         assert len(data.non_identical_mutations["a"]) == 0
         assert len(data.non_identical_mutations["b"]) == 0
