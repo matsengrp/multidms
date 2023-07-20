@@ -113,8 +113,8 @@ class Data:
     ...     'func_score' : [2, -7, -0.5, 2.3, 1, -5, 0.4, 2.7, -2.7, 0.3],
     ... }
     >>> func_score_df = pd.DataFrame(func_score_data)
-    >>> func_score_df
-    func_score_df      condition aa_substitutions  func_score
+    >>> func_score_df  # doctest: +NORMALIZE_WHITESPACE
+    condition aa_substitutions  func_score
     0         a              M1E         2.0
     1         a              G3R        -7.0
     2         a              G3P        -0.5
@@ -127,13 +127,15 @@ class Data:
     9         b              P2T         0.3
 
     Instantiate a ``Data`` Object allowing for stop codon variants
-    and declaring condition '1' as the reference condition.
+    and declaring condition `"a"` as the reference condition.
 
     >>> data = multidms.Data(
     ...     func_score_df,
     ...     alphabet = multidms.AAS_WITHSTOP,
-    ...     reference = "a"
-    ... )
+    ...     reference = "a",
+    ... )  # doctest: +ELLIPSIS
+    INFO: Pandarallel will run on ... workers.
+    ...
 
     Note this may take some time due to the string
     operations that must be performed when converting
@@ -146,37 +148,37 @@ class Data:
     for more information.
 
     >>> data.reference
-    '1'
+    'a'
 
     >>> data.conditions
-    ('1', '2')
+    ('a', 'b')
 
     >>> data.mutations
     ('M1E', 'M1W', 'G3P', 'G3R')
 
-    >>> data.site_map
-       1  2
-       3  G  P
-       1  M  M
+    >>> data.site_map  # doctest: +NORMALIZE_WHITESPACE
+    a  b
+    1  M  M
+    3  G  P
 
-    >>> data.mutations_df
-      mutation wts  sites muts  times_seen_1  times_seen_2
+    >>> data.mutations_df  # doctest: +NORMALIZE_WHITESPACE
+      mutation wts  sites muts  times_seen_a  times_seen_b
     0      M1E   M      1    E             1           3.0
     1      M1W   M      1    W             1           0.0
     2      G3P   G      3    P             1           1.0
     3      G3R   G      3    R             1           2.0
 
-    >>> data.variants_df
-      condition aa_substitutions  weight  func_score var_wrt_ref
-    0         1              G3P       1        -0.5         G3P
-    1         1              G3R       1        -7.0         G3R
-    2         1              M1E       1         2.0         M1E
-    3         1              M1W       1         2.3         M1W
-    4         2              M1E       1         1.0     G3P M1E
-    5         2          M1E P3G       1         2.7         M1E
-    6         2          M1E P3R       1        -2.7     G3R M1E
-    8         2              P3G       1         0.4
-    9         2              P3R       1        -5.0         G3R
+    >>> data.variants_df  # doctest: +NORMALIZE_WHITESPACE
+      condition aa_substitutions  func_score var_wrt_ref
+    0         a              M1E         2.0         M1E
+    1         a              G3R        -7.0         G3R
+    2         a              G3P        -0.5         G3P
+    3         a              M1W         2.3         M1W
+    4         b              M1E         1.0     G3P M1E
+    5         b              P3R        -5.0         G3R
+    6         b              P3G         0.4
+    7         b          M1E P3G         2.7         M1E
+    8         b          M1E P3R        -2.7     G3R M1E
     """
 
     def __init__(

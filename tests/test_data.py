@@ -4,25 +4,25 @@ import pytest
 import multidms
 import numpy as np
 import pandas as pd
+from io import StringIO
 
-func_score_df = pd.read_csv("tests/test_func_score.csv")
-"""
-condition aa_substitutions  func_score
-a              M1E         2.0
-a              G3R        -7.0
-a              G3P        -0.5
-a              M1W         2.3
-b              M1E         1.0
-b              P3R        -5.0
-b              P3G         0.4
-b          M1E P3G         2.7
-b          M1E P3R        -2.7
-b              P2T         0.3
-
-   a  b
-1  M  M
-3  G  P
-"""
+func_score_df = pd.read_csv(
+    StringIO(
+        """
+condition,aa_substitutions,func_score
+a,M1E,2.0
+a,G3R,-7.0
+a,G3P,-0.5
+a,M1W,2.3
+b,M1E,1.0
+b,P3R,-5.0
+b,P3G,0.4
+b,M1E P3G,2.7
+b,M1E P3R,-2.7
+b,P2T,0.3
+        """
+    )
+)
 
 data = multidms.Data(
     func_score_df,
