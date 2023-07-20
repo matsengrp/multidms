@@ -26,9 +26,10 @@ needs_sphinx = "1.0"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    "sphinx_rtd_theme",
+    # "sphinx.rtd.theme",
+    "sphinx.ext.intersphinx",
     "sphinx.ext.autodoc",
-    # "sphinx.ext.doctest",
+    "sphinx.ext.doctest",
     "sphinx.ext.mathjax",
     "sphinx.ext.githubpages",
     "sphinxcontrib.bibtex",
@@ -90,4 +91,15 @@ html_theme_options = {
     "travis_button": "false",
     "page_width": "1300px",
     "sidebar_width": "250px",
+}
+
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
+    "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
+    "jax": ("https://jax.readthedocs.io/en/latest/", None),
+    "jaxopt": ("https://jaxopt.github.io/stable/", None),
+    "binarymap": ("https://jbloomlab.github.io/binarymap/", None),
 }

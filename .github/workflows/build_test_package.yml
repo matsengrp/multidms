@@ -12,41 +12,45 @@ on:
       - main
 
 jobs:
-  build-and-push-image:
+  build-and-test:
     if: ${{ !contains(github.event.head_commit.message, '[skip ci]' ) }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: [3.8, 3.11]
+        python-version: [3.8, 3.9, "3.10", 3.11]  # quoted 3.10 needed due to this bug: https://github.com/actions/runner/issues/1989
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout 🛎️
+        uses: actions/checkout@v3
+
+      - name: Install Pandoc
+        uses: r-lib/actions/setup-pandoc@v2
 
       - name: Ruff Linting
         uses: chartboost/ruff-action@v1
-
-      - name: Black Format Check
-        uses: psf/black@stable
-        with:
-          options: "--check"
-          src: "."
-          jupyter: false
-          version: "~= 23.3"
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
+          cache: pip
 
       - name: Install multidms
         run: |
+            pip install --upgrade pip
             pip install -e ".[dev]"
+
+      - name: Black Format Check
+        run: |
+            black --check .
 
       - name: Test
         run: |
           pytest
+          pytest --doctest-modules
+
+      - name: Test docs build
+        run: |
+          make -C docs clean
+          make -C docs html

@@ -13,7 +13,7 @@ import warnings
 
 import binarymap as bmap
 import numpy as onp
-import pandas
+import pandas as pd
 from polyclonal.plot import DEFAULT_POSITIVE_COLORS
 from polyclonal.utils import MutationParser
 from tqdm.auto import tqdm
@@ -38,19 +38,19 @@ class Data:
     Prep and store one-hot encoding of
     variant substitutions data.
     Individual objects of this type can be shared
-    by multiple ``multidms.Model`` Objects
+    by multiple :py:class:`multidms.Model` Objects
     for effeciently fitting various models to the same data.
 
     Note
     ----
-    You can initialize a :class:`Data` object with a ``pd.DataFrame``
+    You can initialize a :class:`Data` object with a :class:`pandas.DataFrame`
     with a row for each variant sampled and annotations
     provided in the required columns:
 
     1. `condition` - Experimental condition from
         which a sample measurement was obtained.
     2. `aa_substitutions` - Defines each variant
-        :math:`v` as a string of substitutions (e.g., 'M3A K5G').
+        :math:`v` as a string of substitutions (e.g., ``'M3A K5G'``).
         Note that while conditions may have differing wild types
         at a given site, the sites between conditions should reference
         the same site when alignment is performed between
@@ -60,10 +60,10 @@ class Data:
 
     Parameters
     ----------
-    variants_df : pandas.DataFrame or None
+    variants_df : :class:`pandas.DataFrame` or None
         The variant level information from all experiments you
-        wish to analyze. Should have columns named 'condition',
-        'aa_substitutions', and 'func_score'.
+        wish to analyze. Should have columns named ``'condition'``,
+        ``'aa_substitutions'``, and ``'func_score'``.
         See the class note for descriptions of each of the features.
     reference : str
         Name of the condition which annotates the reference.
@@ -75,9 +75,10 @@ class Data:
         then a Y30G mutation in the non-reference condition is recorded as an A30G
         mutation relative to the reference. This way, each condition informs
         the exact same parameters, even at sites that differ in wild type amino acid.
-        These are encoded in a ``BinaryMap`` object for each condtion,
+        These are encoded in a :class:`binarymap.binarymap.BinaryMap` object for each
+        condtion,
         where all sites that are non-identical to the reference are 1's.
-        For motivation, see the `Model overview` section in `multidms.Model`
+        For motivation, see the `Model overview` section in :class:`multidms.Model`
         class notes.
     collapse_identical_variants : {'mean', 'median', False}
         If identical variants in ``variants_df`` (same 'aa_substitutions'),
@@ -99,40 +100,42 @@ class Data:
 
     Example
     -------
-    Simple example with two conditions (`1` and `2`)
+    Simple example with two conditions (``'a'`` and ``'b'``)
 
     >>> import pandas as pd
     >>> import multidms
     >>> func_score_data = {
     ...     'condition' : ["a","a","a","a", "b","b","b","b","b","b"],
     ...     'aa_substitutions' : [
-                'M1E', 'G3R', 'G3P', 'M1W', 'M1E',
-                'P3R', 'P3G', 'M1E P3G', 'M1E P3R', 'P2T'
-            ],
+    ...         'M1E', 'G3R', 'G3P', 'M1W', 'M1E',
+    ...         'P3R', 'P3G', 'M1E P3G', 'M1E P3R', 'P2T'
+    ...     ],
     ...     'func_score' : [2, -7, -0.5, 2.3, 1, -5, 0.4, 2.7, -2.7, 0.3],
     ... }
     >>> func_score_df = pd.DataFrame(func_score_data)
-    >>> func_score_df
-      condition aa_substitutions  func_score
-      0         1              M1E         2.0
-      1         1              G3R        -7.0
-      2         1              G3P        -0.5
-      3         1              M1W         2.3
-      4         2              M1E         1.0
-      5         2              P3R        -5.0
-      6         2              P3G         0.4
-      7         2          M1E P3G         2.7
-      8         2          M1E P3R        -2.7
-      9         2              P2T         0.3
+    >>> func_score_df  # doctest: +NORMALIZE_WHITESPACE
+    condition aa_substitutions  func_score
+    0         a              M1E         2.0
+    1         a              G3R        -7.0
+    2         a              G3P        -0.5
+    3         a              M1W         2.3
+    4         b              M1E         1.0
+    5         b              P3R        -5.0
+    6         b              P3G         0.4
+    7         b          M1E P3G         2.7
+    8         b          M1E P3R        -2.7
+    9         b              P2T         0.3
 
     Instantiate a ``Data`` Object allowing for stop codon variants
-    and declaring condition '1' as the reference condition.
+    and declaring condition `"a"` as the reference condition.
 
     >>> data = multidms.Data(
     ...     func_score_df,
     ...     alphabet = multidms.AAS_WITHSTOP,
-    ...     reference = "a"
-    ... )
+    ...     reference = "a",
+    ... )  # doctest: +ELLIPSIS
+    INFO: Pandarallel will run on ... workers.
+    ...
 
     Note this may take some time due to the string
     operations that must be performed when converting
@@ -145,42 +148,42 @@ class Data:
     for more information.
 
     >>> data.reference
-    '1'
+    'a'
 
     >>> data.conditions
-    ('1', '2')
+    ('a', 'b')
 
     >>> data.mutations
     ('M1E', 'M1W', 'G3P', 'G3R')
 
-    >>> data.site_map
-       1  2
-       3  G  P
-       1  M  M
+    >>> data.site_map  # doctest: +NORMALIZE_WHITESPACE
+    a  b
+    1  M  M
+    3  G  P
 
-    >>> data.mutations_df
-      mutation wts  sites muts  times_seen_1  times_seen_2
+    >>> data.mutations_df  # doctest: +NORMALIZE_WHITESPACE
+      mutation wts  sites muts  times_seen_a  times_seen_b
     0      M1E   M      1    E             1           3.0
     1      M1W   M      1    W             1           0.0
     2      G3P   G      3    P             1           1.0
     3      G3R   G      3    R             1           2.0
 
-    >>> data.variants_df
-      condition aa_substitutions  weight  func_score var_wrt_ref
-    0         1              G3P       1        -0.5         G3P
-    1         1              G3R       1        -7.0         G3R
-    2         1              M1E       1         2.0         M1E
-    3         1              M1W       1         2.3         M1W
-    4         2              M1E       1         1.0     G3P M1E
-    5         2          M1E P3G       1         2.7         M1E
-    6         2          M1E P3R       1        -2.7     G3R M1E
-    8         2              P3G       1         0.4
-    9         2              P3R       1        -5.0         G3R
+    >>> data.variants_df  # doctest: +NORMALIZE_WHITESPACE
+      condition aa_substitutions  func_score var_wrt_ref
+    0         a              M1E         2.0         M1E
+    1         a              G3R        -7.0         G3R
+    2         a              G3P        -0.5         G3P
+    3         a              M1W         2.3         M1W
+    4         b              M1E         1.0     G3P M1E
+    5         b              P3R        -5.0         G3R
+    6         b              P3G         0.4
+    7         b          M1E P3G         2.7         M1E
+    8         b          M1E P3R        -2.7     G3R M1E
     """
 
     def __init__(
         self,
-        variants_df: pandas.DataFrame,
+        variants_df: pd.DataFrame,
         reference: str,
         alphabet=AAS,
         collapse_identical_variants=False,
@@ -192,7 +195,7 @@ class Data:
     ):
         """See main class docstring."""
         # Check and initialize conditions attribute
-        if pandas.isnull(variants_df["condition"]).any():
+        if pd.isnull(variants_df["condition"]).any():
             raise ValueError("condition name cannot be null")
         if variants_df["condition"].dtype.kind in "biufc":
             warnings.warn(
@@ -265,7 +268,7 @@ class Data:
 
         # Use the "aa_substitutions" to infer the
         # wild type for each condition
-        site_map = pandas.DataFrame()
+        site_map = pd.DataFrame()
         for hom, hom_func_df in df.groupby("condition"):
             if verbose:
                 print(f"inferring site map for {hom}")
@@ -375,7 +378,7 @@ class Data:
         self._mutations = tuple(ref_bmap.all_subs)
 
         # initialize single mutational effects df
-        mut_df = pandas.DataFrame({"mutation": self._mutations})
+        mut_df = pd.DataFrame({"mutation": self._mutations})
 
         mut_df["wts"], mut_df["sites"], mut_df["muts"] = zip(
             *mut_df["mutation"].map(self._mutparser.parse_mut)
@@ -415,17 +418,17 @@ class Data:
         return self._mutations
 
     @property
-    def mutations_df(self) -> pandas.DataFrame:
+    def mutations_df(self) -> pd.DataFrame:
         """A dataframe summarizing all single mutations"""
         return self._mutations_df
 
     @property
-    def variants_df(self) -> pandas.DataFrame:
+    def variants_df(self) -> pd.DataFrame:
         """A dataframe summarizing all variants in the training data."""
         return self._variants_df
 
     @property
-    def site_map(self) -> pandas.DataFrame:
+    def site_map(self) -> pd.DataFrame:
         """
         A dataframe indexed by site, with columns
         for all conditions giving the wild type amino acid
@@ -446,7 +449,7 @@ class Data:
     def non_identical_sites(self) -> dict:
         """
         A dictionary keyed by condition names with values
-        being a pandas.DataFrame indexed by site,
+        being a :class:`pandas.DataFrame` indexed by site,
         with columns for the reference
         and non-reference amino acid at each site that differs.
         """

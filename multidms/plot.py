@@ -4,7 +4,6 @@ plot
 ==========
 
 Plotting functions.
-
 """
 
 
@@ -40,7 +39,8 @@ def color_gradient_hex(start, end, n):
 
     Example
     -------
-    >>> color_gradient_hex('white', 'red', n=5)
+    >>> import multidms.plot as mplt
+    >>> mplt.color_gradient_hex('white', 'red', n=5)
     ['#ffffff', '#ffbfbf', '#ff8080', '#ff4040', '#ff0000']
 
     """

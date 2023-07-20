@@ -81,7 +81,7 @@ def fit_wrapper(
 
     Parameters
     ----------
-    dataset : multidms.Dataset
+    dataset : :class:`multidms.Data`
         The dataset to fit to.
     huber_scale_huber : float, optional
         The scale of the huber loss function. The default is 1.
@@ -128,7 +128,7 @@ def fit_wrapper(
 
     Returns
     -------
-    fit_series : pd.Series
+    fit_series : :class:`pandas.Series`
         A series containing the fit attributes and pickled model objects
         at the specified save_model_at steps.
     """
@@ -209,14 +209,14 @@ def fit_wrapper(
 def plot_loss_simple(models):
     """
     Plot the loss of a set of models.
-    Uses matplotlib.pyplot.show() to display the plot.
+    Uses :func:`matplotlib.pyplot.show` to display the plot.
 
 
     Parameters
     ----------
-    models : pd.DataFrame
+    models : :class:`pandas.DataFrame`
         A dataframe where each row is the fit attributes of a model
-        as output by the multidms.utils.fit_wrapper() function.
+        as output by the :func:`multidms.utils.fit_wrapper` function.
 
 
     Returns

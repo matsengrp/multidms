@@ -86,19 +86,21 @@ class Model:
         Initialize the bias parameter :math:`\theta_{\text{bias}}` of
         a two parameter epistatic model (Sigmoid or Softplus).
     n_hidden_units : int or None
-        If using `biophysical.multidms.biophysical.nn_global_epistasis`
+        If using :func:`multidms.biophysical.nn_global_epistasis`
         as the epistatic model, this is the number of hidden units
         used in the transform.
     lower_bound : float or None
-        If using `biophysical.multidms.biophysical.softplus_activation`
+        If using :func:`multidms.biophysical.softplus_activation`
         as the output activation, this is the lower bound of the
         softplus function.
 
     Example
     -------
-    To create a ``Model`` object, all you need is
-    the respective ``Data`` object for parameter fitting.
+    To create a :class:`Model` object, all you need is
+    the respective :class:`Data` object for parameter fitting.
 
+    >>> import multidms
+    >>> from tests.test_data import data
     >>> model = multidms.Model(data)
 
     Upon initialization, you will now have access to the underlying data
@@ -107,48 +109,71 @@ class Model:
     >>> model.data.mutations
     ('M1E', 'M1W', 'G3P', 'G3R')
     >>> model.data.conditions
-    ('1', '2')
+    ('a', 'b')
     >>> model.data.reference
-    '1'
+    'a'
     >>> model.data.condition_colors
-    {'1': '#0072B2', '2': '#009E73'}
+    {'a': '#0072B2', 'b': '#CC79A7'}
 
     The mutations_df and variants_df may of course also be accessed.
+    First, we set pandas to display all rows and columns.
 
-    >>> model.data.mutations_df
-      mutation wts  sites muts  times_seen_1  times_seen_2
+    >>> import pandas as pd
+    >>> pd.set_option('display.max_rows', None)
+    >>> pd.set_option('display.max_columns', None)
+
+    >>> model.data.mutations_df  # doctest: +NORMALIZE_WHITESPACE
+      mutation wts  sites muts  times_seen_a  times_seen_b
     0      M1E   M      1    E             1           3.0
     1      M1W   M      1    W             1           0.0
     2      G3P   G      3    P             1           1.0
     3      G3R   G      3    R             1           2.0
 
-    However, if accessed directly through the Model object, you will
+    However, if accessed directly through the :class:`Model` object, you will
     get the same information, along with model/parameter specific
     features included. These are automatically updated each time you
     request the property.
 
-    >>> model.mutations_df
-      mutation wts  sites muts  times_seen_1  ... beta  shift_1  F_1        shift_2   F_2
-    0      M1E   M      1    E             1  ...  0.080868  0.0 -0.030881  0.0 -0.030881
-    1      M1W   M      1    W             1  ... -0.386247  0.0 -0.049086  0.0 -0.049086
-    2      G3P   G      3    P             1  ... -0.375656  0.0 -0.048574  0.0 -0.048574
-    3      G3R   G      3    R             1  ...  1.668974  0.0 -0.006340  0.0 -0.006340
+    >>> model.mutations_df  # doctest: +NORMALIZE_WHITESPACE
+      mutation wts  sites muts  times_seen_a  times_seen_b      beta  \
+    0      M1E   M      1    E             1           3.0  0.080868   
+    1      M1W   M      1    W             1           0.0 -0.386247   
+    2      G3P   G      3    P             1           1.0 -0.375656   
+    3      G3R   G      3    R             1           2.0  1.668974   
+    <BLANKLINE>
+       predicted_func_score  shift_b  
+    0             -2.398970      0.0  
+    1             -2.976895      0.0  
+    2             -2.964124      0.0  
+    3             -0.792805      0.0  
 
-    Notice the respective single mutation effects ("beta"), conditional shifts (shift_d),
-    and predicted functional score (F_d) of each mutation in the model are now
+    Notice the respective single mutation effects (``"beta"``), conditional shifts
+    (``shift_d``),
+    and predicted functional score (``F_d``) of each mutation in the model are now
     easily accessible. Similarly, we can take a look at the variants_df for the model,
 
-    >>> model.variants_df
-      condition aa_substitutions  ...  predicted_func_score  corrected_func_score
-    0         1              G3P  ...             -0.048574                  -0.5
-    1         1              G3R  ...             -0.006340                  -7.0
-    2         1              M1E  ...             -0.030881                   2.0
-    3         1              M1W  ...             -0.049086                   2.3
-    4         2              M1E  ...             -0.044834                   1.0
-    5         2          M1E P3G  ...             -0.030881                   2.7
-    6         2          M1E P3R  ...             -0.005848                  -2.7
-    8         2              P3G  ...             -0.033464                   0.4
-    9         2              P3R  ...             -0.006340                  -5.0
+    >>> model.variants_df  # doctest: +NORMALIZE_WHITESPACE
+      condition aa_substitutions  func_score var_wrt_ref  predicted_latent  \
+    0         a              M1E         2.0         M1E          0.080868   
+    1         a              G3R        -7.0         G3R          1.668974   
+    2         a              G3P        -0.5         G3P         -0.375656   
+    3         a              M1W         2.3         M1W         -0.386247   
+    4         b              M1E         1.0     G3P M1E         -0.294788   
+    5         b              P3R        -5.0         G3R          1.668974   
+    6         b              P3G         0.4                      0.000000   
+    7         b          M1E P3G         2.7         M1E          0.080868   
+    8         b          M1E P3R        -2.7     G3R M1E          1.749842   
+    <BLANKLINE>
+       predicted_func_score  
+    0             -2.398970  
+    1             -0.792805  
+    2             -2.964124  
+    3             -2.976895  
+    4             -2.865839  
+    5             -0.792805  
+    6             -2.500000  
+    7             -2.398970  
+    8             -0.740336  
 
     We now have access to the predicted (and gamma corrected) functional scores
     as predicted by the models current parameters.
@@ -158,17 +183,17 @@ class Model:
     given our initialized parameters
 
     >>> model.loss
-    DeviceArray(4.40537408, dtype=float64)
+    Array(7.19312981, dtype=float64)
 
     Next, we fit the model with some chosen hyperparameters.
 
     >>> model.fit(maxiter=1000, lasso_shift=1e-5)
     >>> model.loss
-    DeviceArray(1.01582782, dtype=float64)
+    Array(4.37424567e-05, dtype=float64)
 
     The model tunes its parameters in place, and the subsequent call to retrieve
     the loss reflects our models loss given its updated parameters.
-    """
+    """  # noqa: E501
 
     def __init__(
         self,
