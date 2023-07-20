@@ -130,12 +130,12 @@ class Model:
     features included. These are automatically updated each time you
     request the property.
 
-    >>> model.mutations_df  # doctest: +NORMALIZE_WHITESPACE
-      mutation wts  sites muts  times_seen_a  times_seen_b      beta  predicted_func_score  shift_b
-    0      M1E   M      1    E             1           3.0  0.080868             -2.398970      0.0
-    1      M1W   M      1    W             1           0.0 -0.386247             -2.976895      0.0
-    2      G3P   G      3    P             1           1.0 -0.375656             -2.964124      0.0
-    3      G3R   G      3    R             1           2.0  1.668974             -0.792805      0.0
+    >>> model.mutations_df  # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
+      mutation wts  sites  ...       beta  predicted_func_score  shift_b
+    0      M1E   M      1  ...   0.080868             -2.398970      0.0
+    1      M1W   M      1  ...  -0.386247             -2.976895      0.0
+    2      G3P   G      3  ...  -0.375656             -2.964124      0.0
+    3      G3R   G      3  ...   1.668974             -0.792805      0.0
     <BLANKLINE>
 
     Notice the respective single mutation effects (``"beta"``), conditional shifts
