@@ -129,7 +129,7 @@ class Model:
     features included. These are automatically updated each time you
     request the property.
 
-    >>> model.mutations_df  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
+    >>> model.mutations_df  # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
       mutation wts  sites muts  times_seen_a  times_seen_b      beta  predicted_func_score  shift_b
     0      M1E   M      1    E             1           3.0       ...                   ...      ...
     1      M1W   M      1    W             1           0.0       ...                   ...      ...
@@ -141,7 +141,7 @@ class Model:
     and predicted functional score (``F_d``) of each mutation in the model are now
     easily accessible. Similarly, we can take a look at the variants_df for the model,
 
-    >>> model.variants_df  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
+    >>> model.variants_df  # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
       condition aa_substitutions  func_score var_wrt_ref  predicted_latent  predicted_func_score
     0         a              M1E         2.0         M1E               ...                   ...
     1         a              G3R        -7.0         G3R               ...                   ...
