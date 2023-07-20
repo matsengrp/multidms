@@ -135,7 +135,8 @@ class Model:
     2      G3P   G      3    P             1  ... -0.375656  0.0 -0.048574  0.0 -0.048574
     3      G3R   G      3    R             1  ...  1.668974  0.0 -0.006340  0.0 -0.006340
 
-    Notice the respective single mutation effects (``"beta"``), conditional shifts (``shift_d``),
+    Notice the respective single mutation effects (``"beta"``), conditional shifts
+    (``shift_d``),
     and predicted functional score (``F_d``) of each mutation in the model are now
     easily accessible. Similarly, we can take a look at the variants_df for the model,
 

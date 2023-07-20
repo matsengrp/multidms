@@ -68,4 +68,4 @@ import multidms.biophysical  # noqa: F401
 import multidms.utils  # noqa: F401
 
 # This lets Sphinx know you want to document foo.foo.Foo as foo.Foo.
-__all__ = ['Data', 'Model']
+__all__ = ["Data", "Model"]

@@ -75,7 +75,8 @@ class Data:
         then a Y30G mutation in the non-reference condition is recorded as an A30G
         mutation relative to the reference. This way, each condition informs
         the exact same parameters, even at sites that differ in wild type amino acid.
-        These are encoded in a :class:`binarymap.binarymap.BinaryMap` object for each condtion,
+        These are encoded in a :class:`binarymap.binarymap.BinaryMap` object for each
+        condtion,
         where all sites that are non-identical to the reference are 1's.
         For motivation, see the `Model overview` section in :class:`multidms.Model`
         class notes.
