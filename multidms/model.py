@@ -117,31 +117,33 @@ class Model:
 
     The mutations_df and variants_df may of course also be accessed.
 
-    >>> print(model.data.mutations_df)  # doctest: +NORMALIZE_WHITESPACE
+    >>> model.data.mutations_df  # doctest: +NORMALIZE_WHITESPACE
       mutation wts  sites muts  times_seen_a  times_seen_b
     0      M1E   M      1    E             1           3.0
     1      M1W   M      1    W             1           0.0
     2      G3P   G      3    P             1           1.0
     3      G3R   G      3    R             1           2.0
+    <BLANKLINE>
 
     However, if accessed directly through the :class:`Model` object, you will
     get the same information, along with model/parameter specific
     features included. These are automatically updated each time you
     request the property.
 
-    >>> print(model.mutations_df)  # doctest: +NORMALIZE_WHITESPACE
+    >>> model.mutations_df  # doctest: +NORMALIZE_WHITESPACE
       mutation wts  sites muts  times_seen_a  times_seen_b      beta  predicted_func_score  shift_b
     0      M1E   M      1    E             1           3.0  0.080868             -2.398970      0.0
     1      M1W   M      1    W             1           0.0 -0.386247             -2.976895      0.0
     2      G3P   G      3    P             1           1.0 -0.375656             -2.964124      0.0
     3      G3R   G      3    R             1           2.0  1.668974             -0.792805      0.0
+    <BLANKLINE>
 
     Notice the respective single mutation effects (``"beta"``), conditional shifts
     (``shift_d``),
     and predicted functional score (``F_d``) of each mutation in the model are now
     easily accessible. Similarly, we can take a look at the variants_df for the model,
 
-    >>> print(model.variants_df)  # doctest: +NORMALIZE_WHITESPACE
+    >>> model.variants_df  # doctest: +NORMALIZE_WHITESPACE
       condition aa_substitutions  func_score var_wrt_ref  predicted_latent  predicted_func_score
     0         a              M1E         2.0         M1E          0.080868             -2.398970
     1         a              G3R        -7.0         G3R          1.668974             -0.792805
@@ -152,6 +154,7 @@ class Model:
     6         b              P3G         0.4                      0.000000             -2.500000
     7         b          M1E P3G         2.7         M1E          0.080868             -2.398970
     8         b          M1E P3R        -2.7     G3R M1E          1.749842             -0.740336
+    <BLANKLINE>
 
     We now have access to the predicted (and gamma corrected) functional scores
     as predicted by the models current parameters.
