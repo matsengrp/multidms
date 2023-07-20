@@ -305,39 +305,107 @@ class Data:
         df["allowed_variant"] = df.sites.apply(
             lambda sl: flags_invalid_sites(sites_to_throw, sl)
         )
-        len(df)
-        df = df[df["allowed_variant"]]
+        if verbose:
+            print(
+                f"unknown cond wildtype: {sites_to_throw}, dropping "
+                f"{len(df) - len(df[df['allowed_variant']])} variants"
+            )
+
+        df.query("allowed_variant", inplace=True)
+        df.drop("allowed_variant", axis=1, inplace=True)
+        site_map.sort_index(inplace=True)
+
+        def get_nis_from_site_map(site_map):
+            """Get non-identical sites from a site map"""
+            non_identical_sites = {}
+            reference_sequence_conditions = [self._reference]
+            for condition in self._conditions:
+                if condition == self._reference:
+                    non_identical_sites[condition] = []
+                    continue
+
+                nis = site_map.where(
+                    site_map[self.reference] != site_map[condition],
+                ).dropna()
+
+                if len(nis) == 0:
+                    non_identical_sites[condition] = []
+                    reference_sequence_conditions.append(condition)
+                else:
+                    non_identical_sites[condition] = nis[[self._reference, condition]]
+            return non_identical_sites, reference_sequence_conditions
+
+        (non_identical_sites, reference_sequence_conditions) = get_nis_from_site_map(
+            site_map
+        )
+
+        # invalid nis see https://github.com/matsengrp/multidms/issues/84
+        observed_ref_muts = (
+            df.query("condition == @self.reference")
+            .aa_substitutions.str.split()
+            .explode()
+            .unique()
+        )
+        invalid_nim = []
+        for condition in self.conditions:
+            if (
+                condition == self.reference
+                or condition in reference_sequence_conditions
+            ):
+                continue
+            observed_cond_muts = (
+                df.query("condition == @condition")
+                .aa_substitutions.str.split()
+                .explode()
+                .unique()
+            )
+            for site, cond_wts in non_identical_sites[condition].iterrows():
+                ref_wt, cond_wt = cond_wts[self.reference], cond_wts[condition]
+                forward_mut = f"{ref_wt}{site}{cond_wt}"
+                reversion_mut = f"{cond_wt}{site}{ref_wt}"
+
+                condition_1 = forward_mut in observed_ref_muts
+                condition_2 = reversion_mut in observed_cond_muts
+                if not (condition_1 and condition_2):
+                    invalid_nim.append(site)
+
+        # find variants that contain mutations at invalid sites
+        df["allowed_variant"] = df.sites.apply(
+            lambda sl: flags_invalid_sites(invalid_nim, sl)
+        )
+        if verbose:
+            print(
+                f"invalid non-identical-sites: {invalid_nim}, dropping "
+                f"{len(df) - len(df[df['allowed_variant']])} variants"
+            )
+
+        # drop variants that contain mutations at invalid sites
+        df.query("allowed_variant", inplace=True)
         df.drop("allowed_variant", axis=1, inplace=True)
 
-        self._site_map = site_map.sort_index()
+        # drop invalid sites from site map
+        self._site_map = site_map.drop(invalid_nim, inplace=False)
 
-        # identify and write site map differences for each condition
+        # recompute non-identical sites for static property
+        (
+            self._non_identical_sites,
+            self._reference_sequence_conditions,
+        ) = get_nis_from_site_map(self._site_map)
+
+        # compute the static non_identical_mutations property
         non_identical_mutations = {}
-        non_identical_sites = {}
-        self._reference_sequence_conditions = [self._reference]
-        for condition in self._conditions:
-            if condition == self._reference:
+        for condition in self.conditions:
+            if condition in self.reference_sequence_conditions:
                 non_identical_mutations[condition] = ""
-                non_identical_sites[condition] = []
                 continue
-
-            nis = self._site_map.where(
-                self._site_map[self.reference] != self.site_map[condition],
-            ).dropna()
-
-            if len(nis) == 0:
-                non_identical_mutations[condition] = ""
-                non_identical_sites[condition] = []
-                self._reference_sequence_conditions.append(condition)
-            else:
-                muts = nis[self._reference] + nis.index.astype(str) + nis[condition]
-                muts_string = " ".join(muts.values)
-                non_identical_mutations[condition] = muts_string
-                non_identical_sites[condition] = nis[[self._reference, condition]]
-
+            nis = self.non_identical_sites[condition]
+            muts = nis[self.reference] + nis.index.astype(str) + nis[condition]
+            muts_string = " ".join(muts.values)
+            non_identical_mutations[condition] = muts_string
         self._non_identical_mutations = non_identical_mutations
-        self._non_identical_sites = non_identical_sites
 
+        # compute all substitution conversions for all conditions which
+        # do not share the reference sequence
         df = df.assign(var_wrt_ref=df["aa_substitutions"])
         for condition, condition_func_df in df.groupby("condition"):
             if verbose:
