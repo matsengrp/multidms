@@ -131,11 +131,11 @@ class Model:
     request the property.
 
     >>> model.mutations_df  # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
-      mutation wts  sites  ...       beta  predicted_func_score  shift_b
-    0      M1E   M      1  ...   0.080868             -2.398970      0.0
-    1      M1W   M      1  ...  -0.386247             -2.976895      0.0
-    2      G3P   G      3  ...  -0.375656             -2.964124      0.0
-    3      G3R   G      3  ...   1.668974             -0.792805      0.0
+      mutation wts  sites  ...      beta  predicted_func_score  shift_b
+    0      M1E   M      1  ...  0.080868             -2.398970      0.0
+    1      M1W   M      1  ... -0.386247             -2.976895      0.0
+    2      G3P   G      3  ... -0.375656             -2.964124      0.0
+    3      G3R   G      3  ...  1.668974             -0.792805      0.0
     <BLANKLINE>
 
     Notice the respective single mutation effects (``"beta"``), conditional shifts
