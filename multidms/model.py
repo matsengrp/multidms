@@ -86,19 +86,20 @@ class Model:
         Initialize the bias parameter :math:`\theta_{\text{bias}}` of
         a two parameter epistatic model (Sigmoid or Softplus).
     n_hidden_units : int or None
-        If using `biophysical.multidms.biophysical.nn_global_epistasis`
+        If using :func:`multidms.biophysical.nn_global_epistasis`
         as the epistatic model, this is the number of hidden units
         used in the transform.
     lower_bound : float or None
-        If using `biophysical.multidms.biophysical.softplus_activation`
+        If using :func:`multidms.biophysical.softplus_activation`
         as the output activation, this is the lower bound of the
         softplus function.
 
     Example
     -------
-    To create a ``Model`` object, all you need is
-    the respective ``Data`` object for parameter fitting.
+    To create a :class:`Model` object, all you need is
+    the respective :class:`Data` object for parameter fitting.
 
+    >>> import multidms
     >>> model = multidms.Model(data)
 
     Upon initialization, you will now have access to the underlying data
@@ -122,7 +123,7 @@ class Model:
     2      G3P   G      3    P             1           1.0
     3      G3R   G      3    R             1           2.0
 
-    However, if accessed directly through the Model object, you will
+    However, if accessed directly through the :class:`Model` object, you will
     get the same information, along with model/parameter specific
     features included. These are automatically updated each time you
     request the property.
@@ -134,8 +135,8 @@ class Model:
     2      G3P   G      3    P             1  ... -0.375656  0.0 -0.048574  0.0 -0.048574
     3      G3R   G      3    R             1  ...  1.668974  0.0 -0.006340  0.0 -0.006340
 
-    Notice the respective single mutation effects ("beta"), conditional shifts (shift_d),
-    and predicted functional score (F_d) of each mutation in the model are now
+    Notice the respective single mutation effects (``"beta"``), conditional shifts (``shift_d``),
+    and predicted functional score (``F_d``) of each mutation in the model are now
     easily accessible. Similarly, we can take a look at the variants_df for the model,
 
     >>> model.variants_df

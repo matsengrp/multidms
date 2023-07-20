@@ -44,10 +44,8 @@ dependencies = [
     "altair",
     "matplotlib",
     "seaborn",
-    "notebook",
     "scipy",
     "tqdm",
-    "ipywidgets",
     "pandarallel"
 ]
 
@@ -58,8 +56,9 @@ dev = [
     "pytest-datadir",
     "pre-commit",
     "black",
+    "notebook",
+    "ipywidgets",
     "sphinx",
-    "sphinx_rtd_theme",
     "nbsphinx",
     "nbsphinx_link",
     "bumpver",

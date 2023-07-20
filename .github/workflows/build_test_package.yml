@@ -18,10 +18,14 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: [3.8, 3.11]
+        python-version: [3.8, 3.9, 3.10, 3.11]
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout 🛎️
+        uses: actions/checkout@v3
+
+      - name: Install Pandoc
+        uses: r-lib/actions/setup-pandoc@v2
 
       - name: Ruff Linting
         uses: chartboost/ruff-action@v1
@@ -32,21 +36,24 @@ jobs:
           options: "--check"
           src: "."
           jupyter: false
-          version: "~= 23.3"
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
+          cache: pip
 
       - name: Install multidms
         run: |
+            pip install --upgrade pip
             pip install -e ".[dev]"
 
       - name: Test
         run: |
           pytest
+          make -C docs doctest
+
+      - name: Test docs build
+        run: |
+          make -C docs clean
+          make -C docs html
