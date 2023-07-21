@@ -130,6 +130,10 @@ def test_converstion_from_subs():
         assert data.convert_subs_wrt_ref_seq(("b" if ref == "a" else "a"), "") == bundle
 
 
+# def test_widltype_predictions():
+    
+
+
 def test_non_identical_conversion():
     """
     Test the conversion to with respect reference wt sequence.

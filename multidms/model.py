@@ -684,7 +684,7 @@ class Model:
                 )
             ]
         )
-        return self.phenotype_frombinary(X)
+        return self.phenotype_frombinary(X, condition)
 
     def latent_fromsubs(self, aa_subs, condition=None):
         """
@@ -700,7 +700,7 @@ class Model:
                 )
             ]
         )
-        return self.latent_frombinary(X)
+        return self.latent_frombinary(X, condition)
 
     def phenotype_frombinary(self, X, condition=None):
         """
