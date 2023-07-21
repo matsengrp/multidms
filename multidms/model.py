@@ -554,7 +554,7 @@ class Model:
         for condition, condition_df in df.groupby(condition_col):
             variant_subs = condition_df[substitutions_col]
             if condition not in self.data.reference_sequence_conditions:
-                variant_subs = condition_df.parallel_apply(
+                variant_subs = condition_df.apply(
                     lambda x: self.data.convert_subs_wrt_ref_seq(
                         condition, x[substitutions_col]
                     ),
@@ -683,7 +683,7 @@ class Model:
                 )
             ]
         )
-        return self.phenotype_frombinary(X)
+        return self.phenotype_frombinary(X, condition)
 
     def latent_fromsubs(self, aa_subs, condition=None):
         """
@@ -699,7 +699,7 @@ class Model:
                 )
             ]
         )
-        return self.latent_frombinary(X)
+        return self.latent_frombinary(X, condition)
 
     def phenotype_frombinary(self, X, condition=None):
         """

@@ -708,9 +708,14 @@ def mut_shift_plot(
             mutations_dfs,
         )
 
+        # for now, we're simply dropping the functional scores
+        mut_df.drop(
+            [c for c in mut_df.columns if "func_score" in c], axis=1, inplace=True
+        )
+
         # now compute replicate averages
         for c in fit.mutations_df.columns:
-            if c == "mutation" or "times_seen" in c:
+            if c == "mutation" or "times_seen" in c or "func_score" in c:
                 continue
             cols_to_combine = [f"{replicate}_{c}" for replicate in fit_data.keys()]
             if c in ["wts", "sites", "muts"]:

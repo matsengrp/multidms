@@ -29,6 +29,7 @@ data = multidms.Data(
     alphabet=multidms.AAS_WITHSTOP,
     reference="a",
     assert_site_integrity=True,
+    nb_workers=2,
 )
 
 model = multidms.Model(data, PRNGKey=23)
@@ -70,11 +71,101 @@ def test_bmap_mut_df_order():
         assert sub == bmap.i_to_sub(i)
 
 
+def test_non_identical_mutations():
+    """
+    Test that the non identical mutations
+    are correctly identified.
+    """
+    data = multidms.Data(
+        func_score_df,
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="a",
+        assert_site_integrity=False,
+    )
+    assert data.non_identical_mutations["a"] == ""
+    assert data.non_identical_mutations["b"] == "G3P"
+
+    data = multidms.Data(
+        func_score_df,
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="b",
+        assert_site_integrity=True,
+    )
+    assert data.non_identical_mutations["a"] == "P3G"
+    assert data.non_identical_mutations["b"] == ""
+
+
+def test_invalid_non_identical_sites():
+    """
+    test that data throws non-identical sites,
+    and related variants, when we don't have
+    'forward' and 'reverse' mutational information
+    as discussed in https://github.com/matsengrp/multidms/issues/84.
+    """
+    # same data but dropped the reversion mut for condition b
+    data_no_forward = "not aa_substitutions.str.contains('P3G')"
+    data_no_reversion = "aa_substitutions != 'G3P'"
+    data_neither = f"{data_no_forward} & {data_no_reversion}"
+    # we expect now, that the only variants kept should be those
+    # that only contain exactly a mutation at site 1, there's three of those
+    for query in [data_no_forward, data_no_reversion, data_neither]:
+        data = multidms.Data(
+            func_score_df.query(query),
+            alphabet=multidms.AAS_WITHSTOP,
+            reference="a",
+            assert_site_integrity=True,
+        )
+        assert len(data.variants_df) == 3
+        assert len(data.non_identical_mutations["a"]) == 0
+        assert len(data.non_identical_mutations["b"]) == 0
+        assert len(data.non_identical_sites["a"]) == 0
+        assert len(data.non_identical_sites["b"]) == 0
+        assert data.reference_sequence_conditions == ["a", "b"]
+
+
 def test_converstion_from_subs():
     """Make sure that the conversion from each reference choice is correct"""
     for ref, bundle in zip(["a", "b"], ["G3P", "P3G"]):
         data = multidms.Data(func_score_df, reference=ref)
         assert data.convert_subs_wrt_ref_seq(("b" if ref == "a" else "a"), "") == bundle
+
+
+def test_widltype_predictions():
+    """
+    test that the wildtype predictions are correct
+    by comparing them to a "by-hand" calculation on the parameters.
+    """
+    data = multidms.Data(
+        func_score_df,
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="a",
+        assert_site_integrity=False,
+    )
+    model = multidms.Model(data, PRNGKey=23)
+    model.fit(maxiter=2)
+    wildtype_df = model.wildtype_df
+    for condition in model.data.conditions:
+        byhand_latent = model.params["beta_naught"][0]
+        if condition != model.data.reference:
+            converted_subs = model.data.convert_subs_wrt_ref_seq(condition, "")
+            bmap = model.data.binarymaps[model.data.reference]
+            enc = bmap.sub_str_to_binary(converted_subs)
+            assert sum(enc) == len(converted_subs.split())
+            mut_params = model.get_mutations_df(phenotype_as_effect=False).query(
+                "mutation.isin(@converted_subs.split())"
+            )
+            latent = (mut_params.beta + mut_params[f"shift_{condition}"]).sum()
+            offset = model.params["beta_naught"] + model.params[f"alpha_{condition}"]
+            byhand_latent = latent + offset[0]
+
+        pred_latent = wildtype_df.loc[condition, "predicted_latent"]
+        assert np.isclose(byhand_latent, pred_latent)
+
+        sig_params = model.params["theta"]
+        scale, bias = sig_params["ge_scale"], sig_params["ge_bias"]
+        byhand_func_score = scale / (1 + np.exp(-1 * byhand_latent)) + bias
+        pred_func_score = wildtype_df.loc[condition, "predicted_func_score"]
+        assert np.isclose(byhand_func_score, pred_func_score)
 
 
 def test_non_identical_conversion():
@@ -206,7 +297,7 @@ def test_model_phenotype_effect_predictions():
     )
 
 
-def test_model_fit_and_deteremism():
+def test_model_fit_and_determinism():
     """
     Make sure that the model is deterministic by fitting
     the model twice and making sure that the parameters

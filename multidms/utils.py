@@ -194,7 +194,7 @@ def fit_wrapper(
 
         print(
             f"training_step {training_step}/{num_training_steps},"
-            "Loss: {imodel.loss}, Time: {fit_time} Seconds",
+            f"Loss: {imodel.loss}, Time: {fit_time} Seconds",
             flush=True,
         )
 
