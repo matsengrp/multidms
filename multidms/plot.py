@@ -188,7 +188,6 @@ def lineplot_and_heatmap(
                 | (data_df["wildtype"] == data_df["mutant"])
             ]
 
-    # TODO categories
     categories = data_df[category_col].unique().tolist()
     show_category_label = show_single_category_label or (len(categories) > 1)
 
@@ -710,7 +709,7 @@ def mut_shift_plot(
             mutations_dfs,
         )
 
-        # print(mut_df)
+        # for now, we're simply dropping the functional scores
         mut_df.drop(
             [c for c in mut_df.columns if "func_score" in c],
             axis=1, 
@@ -719,9 +718,6 @@ def mut_shift_plot(
 
         # now compute replicate averages
         for c in fit.mutations_df.columns:
-            print(c)
-            # TODO we shoud be able to choose, right?
-            # how does this affect teh combine replicate muts
             if c == "mutation" or "times_seen" in c or "func_score" in c:
                 continue
             print("pass")
