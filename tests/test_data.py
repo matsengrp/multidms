@@ -29,7 +29,7 @@ data = multidms.Data(
     alphabet=multidms.AAS_WITHSTOP,
     reference="a",
     assert_site_integrity=True,
-    nb_workers=2
+    nb_workers=2,
 )
 
 model = multidms.Model(data, PRNGKey=23)
