@@ -181,7 +181,7 @@ def nn_global_epistasis(theta: dict, z_d: jnp.array):
     - :math:`w^{l}_{i}` and :math:`w^{o}_{i}` are free parameters representing latent
       and output tranformations, respectively, associated with unit `i` in the
       hidden layer of the network.
-    - :math:`b^{l}_{i}` is a free parameter, as an added bias term to unit $i$.
+    - :math:`b^{l}_{i}` is a free parameter, as an added bias term to unit `i`.
     - :math:`b^{o}` is a constant, singular free parameter.
 
     .. Note::
@@ -234,8 +234,8 @@ def softplus_activation(d_params, act, lower_bound=-3.5, hinge_scale=0.1, **kwar
     with a lower bound at :math:`l + \gamma_{h}`,
     as well as a ramping coefficient, :math:`\lambda_{\text{sp}}`.
 
-    Concretely, if we let $z' = g(\phi_d(v))$, then the predicted functional score of
-    our model is given by:
+    Concretely, if we let :math:`z' = g(\phi_d(v))`, then the predicted functional score
+    of our model is given by:
 
     .. math::
         t(z') = \lambda_{sp}\log(1 + e^{\frac{z' - l}{\lambda_{sp}}}) + l
