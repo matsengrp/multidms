@@ -18,7 +18,7 @@ sys.path.insert(0, "{}/..".format(os.path.abspath(".")))
 project = "multidms"
 copyright = "2023, Jared Galloway, Hugh Haddox"
 author = "Jared Galloway"
-release = "0.1.9"
+release = "0.2.0"
 
 needs_sphinx = "1.0"
 
