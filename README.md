@@ -3,7 +3,6 @@
 ![License](https://img.shields.io/github/license/matsengrp/multidms)
 [![PyPI version](https://badge.fury.io/py/multidms.svg)](https://badge.fury.io/py/multidms)
 [![Build](https://github.com/matsengrp/multidms/actions/workflows/build_test_package.yml/badge.svg)](https://github.com/matsengrp/multidms/actions/workflows/build_test_package.yml)
-[![Build and Deploy Docs](https://github.com/matsengrp/multidms/actions/workflows/docs_pages_workflow.yml/badge.svg)](https://github.com/matsengrp/multidms/actions/workflows/docs_pages_workflow.yml)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 

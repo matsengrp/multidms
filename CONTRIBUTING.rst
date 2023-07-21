@@ -1,7 +1,8 @@
-=====================================
-How to contribute to this package
-=====================================
+============
+Contributing
+============
 
+We welcome contributions to this package!
 This document describes how to edit the package, run the tests, build the docs, put tagged versions on PyPI_, etc.
 
 Editing the project
@@ -63,11 +64,8 @@ These can include:
 Running the tests locally
 ++++++++++++++++++++++++++
 After you make changes, you should run two sets of tests.
-To run the tests, go to the top-level packag directory.
-Then make sure that you have installed the packages listed in `test_requirements.txt <test_requirements.txt>`_.
-If these are not installed, install them with::
-
-    pip install -r test_requirements.txt
+To run the tests, go to the top-level packag directory -
+making sure to install and activate a `development environment <https://matsengrp.github.io/multidms/installation.html>`_.
 
 Then use ruff_ to `lint the code <https://en.wikipedia.org/wiki/Lint_%28software%29>`_ by running::
 
