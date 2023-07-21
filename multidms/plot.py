@@ -710,9 +710,7 @@ def mut_shift_plot(
 
         # for now, we're simply dropping the functional scores
         mut_df.drop(
-            [c for c in mut_df.columns if "func_score" in c],
-            axis=1, 
-            inplace=True
+            [c for c in mut_df.columns if "func_score" in c], axis=1, inplace=True
         )
 
         # now compute replicate averages
