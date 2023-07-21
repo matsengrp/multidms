@@ -182,7 +182,7 @@ gives us our predicted functional score.</p>
 <li><p><span class="math notranslate nohighlight">\(w^{l}_{i}\)</span> and <span class="math notranslate nohighlight">\(w^{o}_{i}\)</span> are free parameters representing latent
 and output tranformations, respectively, associated with unit <cite>i</cite> in the
 hidden layer of the network.</p></li>
-<li><p><span class="math notranslate nohighlight">\(b^{l}_{i}\)</span> is a free parameter, as an added bias term to unit $i$.</p></li>
+<li><p><span class="math notranslate nohighlight">\(b^{l}_{i}\)</span> is a free parameter, as an added bias term to unit <cite>i</cite>.</p></li>
 <li><p><span class="math notranslate nohighlight">\(b^{o}\)</span> is a constant, singular free parameter.</p></li>
 </ul>
 <div class="admonition note">
@@ -225,8 +225,8 @@ The rate of change at the hinge is defined by ‘hinge_scale’.</p>
 (<span class="math notranslate nohighlight">\(\text{softplus}(x)=\log(1 + e^{x})\)</span>)
 with a lower bound at <span class="math notranslate nohighlight">\(l + \gamma_{h}\)</span>,
 as well as a ramping coefficient, <span class="math notranslate nohighlight">\(\lambda_{\text{sp}}\)</span>.</p>
-<p>Concretely, if we let $z’ = g(phi_d(v))$, then the predicted functional score of
-our model is given by:</p>
+<p>Concretely, if we let <span class="math notranslate nohighlight">\(z' = g(\phi_d(v))\)</span>, then the predicted functional score
+of our model is given by:</p>
 <div class="math notranslate nohighlight">
 \[t(z') = \lambda_{sp}\log(1 + e^{\frac{z' - l}{\lambda_{sp}}}) + l\]</div>
 <p>Functionally speaking, this truncates scores below a lower bound,
@@ -300,6 +300,8 @@ and a linear regime (where data is not truncated).</p>
 <li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html"><code class="docutils literal notranslate"><span class="pre">multidms</span></code> fitting pipeline</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="multidms.html">multidms package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
 </ul>
 
 <div class="relations">

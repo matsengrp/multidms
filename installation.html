@@ -37,19 +37,18 @@
 <p><code class="docutils literal notranslate"><span class="pre">multidms</span></code> requires Python 3.8 or higher.</p>
 <p>The source code for <code class="docutils literal notranslate"><span class="pre">multidms</span></code> is available on GitHub at <a class="reference external" href="https://github.com/matsengrp/multidms">https://github.com/matsengrp/multidms</a>.</p>
 <p>The easiest way to install <code class="docutils literal notranslate"><span class="pre">multidms</span></code> is using <code class="docutils literal notranslate"><span class="pre">pip</span></code>:</p>
-<p>… code-block:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">multidms</span>
 </pre></div>
 </div>
-<p>The fitting process can be quite computationally intensive,
-and if available, we recommend using a GPU to accelerate the fitting process.
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <cite>multidms.Model</cite> fitting process can be quite computationally intensive,
+and if available, we recommend using a GPU to accelerate it.
 While <code class="docutils literal notranslate"><span class="pre">multidms</span></code> ships with <code class="docutils literal notranslate"><span class="pre">jax</span></code> and <code class="docutils literal notranslate"><span class="pre">jaxlib</span></code> as dependencies,
 these packages do not include CUDA support by default.
 For this, please update the jax installation in your environment to include CUDA support
 by following the instructions in the
 <a class="reference external" href="https://github.com/google/jax#pip-installation-gpu-cuda-installed-via-pip-easier">jax documentation</a>.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">upgrade</span> <span class="s2">&quot;jax[cuda]&quot;</span> <span class="o">-</span><span class="n">f</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">storage</span><span class="o">.</span><span class="n">googleapis</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">jax</span><span class="o">-</span><span class="n">releases</span><span class="o">/</span><span class="n">jax_cuda_releases</span><span class="o">.</span><span class="n">html</span>
-</pre></div>
 </div>
 <section id="developer-install">
 <h2>Developer install<a class="headerlink" href="#developer-install" title="Permalink to this heading">¶</a></h2>
@@ -101,6 +100,8 @@ by following the instructions in the
 <li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html"><code class="docutils literal notranslate"><span class="pre">multidms</span></code> fitting pipeline</a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.html">multidms package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
 </ul>
 
 <div class="relations">

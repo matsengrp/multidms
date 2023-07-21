@@ -40,10 +40,8 @@ See below for information and examples of how to use this package.
     fit_delta_BA1_example
     multidms
     acknowledgments
-..   
-    jit model composition
-    using with GPU's
     contributing
+    changelog
 
 
 Indices and tables

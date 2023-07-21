@@ -35,22 +35,7 @@
 
           <div class="body" role="main">
             
-  <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">IPython.core.display</span> <span class="k">as</span> <span class="nn">di</span> <span class="c1"># Example: di.display_html(&#39;&lt;h3&gt;%s:&lt;/h3&gt;&#39; % str, raw=True)</span>
-<span class="n">di</span><span class="o">.</span><span class="n">display_html</span><span class="p">(</span><span class="s1">&#39;&lt;script&gt;jQuery(function() {if (jQuery(&quot;body.notebook_app&quot;).length == 0) { jQuery(&quot;.input_area&quot;).toggle(); jQuery(&quot;.prompt&quot;).toggle();}});&lt;/script&gt;&#39;</span><span class="p">,</span> <span class="n">raw</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area rendered_html docutils container">
-<script>jQuery(function() {if (jQuery("body.notebook_app").length == 0) { jQuery(".input_area").toggle(); jQuery(".prompt").toggle();}});</script></div>
-</div>
-<section id="Biophysical-model">
+  <section id="Biophysical-model">
 <h1>Biophysical model<a class="headerlink" href="#Biophysical-model" title="Permalink to this heading">¶</a></h1>
 <p>The goal of <code class="docutils literal notranslate"><span class="pre">multidms</span></code> is to jointly infer mutational effects across multiple deep mutational scanning (DMS) experiments, including how much each mutation’s effect differs between experiments. We refer to these differences as <em>shifts</em>. If the experiments were performed with different homologs of the same protein, a shift would indicate epistasis between the shifted mutation and the amino-acid mutations that separate the homologs. Or, if they were performed with the same wildtype protein under
 different selective conditions (e.g., selection for viral entry using different but related host receptors), shifts would indicate condition-specific effects. Ultimately, this model was designed to identify those shifts relative to user’s chosen <em>reference condition</em> with feature selection via a lasso (<span class="math notranslate nohighlight">\(L_1\)</span>) regularization <a class="footnote-reference brackets" href="#footcite-hastie2015lasso" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a> of the shift parameters described in the additive <em>latent phenotype</em> section below.</p>
@@ -211,7 +196,7 @@ recommended to use this model with a user defined lower bound which is described
 <p><strong>Note</strong> In the <code class="docutils literal notranslate"><span class="pre">multidms</span></code> API, This behavior is accomplished by setting the <code class="docutils literal notranslate"><span class="pre">output_activation</span></code> parameter in the constructor for <code class="docutils literal notranslate"><span class="pre">Model</span></code> to be a pointer to the function <code class="docutils literal notranslate"><span class="pre">multidms.biophysical.softplus_activation</span></code></p>
 <p>Below is an interactive plot showing the effect of the modified softplus function as a function of an adjustable <span class="math notranslate nohighlight">\(\theta_\text{scale}\)</span> scaling parameter, and lower bound, <span class="math notranslate nohighlight">\(\theta_\text{bias}\)</span>:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">altair</span> <span class="k">as</span> <span class="nn">alt</span>
@@ -247,22 +232,33 @@ recommended to use this model with a user defined lower bound which is described
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
-<div id="altair-viz-ac092d0f062a4e1b931f8a04c69a2da6"></div>
+<style>
+  #altair-viz-3bd408da3a7240a48fcb1722f972fb1c.vega-embed {
+    width: 100%;
+    display: flex;
+  }
+
+  #altair-viz-3bd408da3a7240a48fcb1722f972fb1c.vega-embed details,
+  #altair-viz-3bd408da3a7240a48fcb1722f972fb1c.vega-embed details summary {
+    position: relative;
+  }
+</style>
+<div id="altair-viz-3bd408da3a7240a48fcb1722f972fb1c"></div>
 <script type="text/javascript">
   var VEGA_DEBUG = (typeof VEGA_DEBUG == "undefined") ? {} : VEGA_DEBUG;
   (function(spec, embedOpt){
     let outputDiv = document.currentScript.previousElementSibling;
-    if (outputDiv.id !== "altair-viz-ac092d0f062a4e1b931f8a04c69a2da6") {
-      outputDiv = document.getElementById("altair-viz-ac092d0f062a4e1b931f8a04c69a2da6");
+    if (outputDiv.id !== "altair-viz-3bd408da3a7240a48fcb1722f972fb1c") {
+      outputDiv = document.getElementById("altair-viz-3bd408da3a7240a48fcb1722f972fb1c");
     }
     const paths = {
       "vega": "https://cdn.jsdelivr.net/npm/vega@5?noext",
       "vega-lib": "https://cdn.jsdelivr.net/npm/vega-lib?noext",
-      "vega-lite": "https://cdn.jsdelivr.net/npm/vega-lite@5.6.1?noext",
+      "vega-lite": "https://cdn.jsdelivr.net/npm/vega-lite@5.8.0?noext",
       "vega-embed": "https://cdn.jsdelivr.net/npm/vega-embed@6?noext",
     };
 
@@ -298,12 +294,12 @@ recommended to use this model with a user defined lower bound which is described
       require(["vega-embed"], displayChart, err => showError(`Error loading script: ${err.message}`));
     } else {
       maybeLoadScript("vega", "5")
-        .then(() => maybeLoadScript("vega-lite", "5.6.1"))
+        .then(() => maybeLoadScript("vega-lite", "5.8.0"))
         .then(() => maybeLoadScript("vega-embed", "6"))
         .catch(showError)
         .then(() => displayChart(vegaEmbed));
     }
-  })({"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "data": {"name": "data-ebf3a22bc86bf79e10d2059712505f43"}, "mark": {"type": "line"}, "encoding": {"x": {"field": "latent", "scale": {"domain": [-5, 5]}, "title": "global epistasis prediction (z')", "type": "quantitative"}, "y": {"field": "phenotype", "scale": {"domain": [-5, 5]}, "title": "predicted phenotype", "type": "quantitative"}}, "params": [{"name": "lambda_sp", "bind": {"input": "range", "max": 5, "min": 1}, "value": 1}, {"name": "lower_bound", "bind": {"input": "range", "max": 5, "min": 0}, "value": 2}], "transform": [{"calculate": "((log((1 + exp((-1 * datum['latent'])))) * (-1 * lambda_sp)) + lower_bound)", "as": "phenotype"}], "$schema": "https://vega.github.io/schema/vega-lite/v5.6.1.json", "datasets": {"data-ebf3a22bc86bf79e10d2059712505f43": [{"latent": -5.0}, {"latent": -4.795918367346939}, {"latent": -4.591836734693878}, {"latent": -4.387755102040816}, {"latent": -4.183673469387755}, {"latent": -3.979591836734694}, {"latent": -3.7755102040816326}, {"latent": -3.571428571428571}, {"latent": -3.36734693877551}, {"latent": -3.163265306122449}, {"latent": -2.9591836734693877}, {"latent": -2.7551020408163263}, {"latent": -2.5510204081632653}, {"latent": -2.3469387755102042}, {"latent": -2.142857142857143}, {"latent": -1.9387755102040813}, {"latent": -1.7346938775510203}, {"latent": -1.5306122448979593}, {"latent": -1.3265306122448979}, {"latent": -1.1224489795918364}, {"latent": -0.9183673469387754}, {"latent": -0.7142857142857144}, {"latent": -0.5102040816326525}, {"latent": -0.3061224489795915}, {"latent": -0.1020408163265305}, {"latent": 0.1020408163265305}, {"latent": 0.3061224489795915}, {"latent": 0.5102040816326534}, {"latent": 0.7142857142857144}, {"latent": 0.9183673469387754}, {"latent": 1.1224489795918373}, {"latent": 1.3265306122448983}, {"latent": 1.5306122448979593}, {"latent": 1.7346938775510203}, {"latent": 1.9387755102040813}, {"latent": 2.1428571428571432}, {"latent": 2.3469387755102042}, {"latent": 2.5510204081632653}, {"latent": 2.755102040816327}, {"latent": 2.959183673469388}, {"latent": 3.163265306122449}, {"latent": 3.36734693877551}, {"latent": 3.571428571428571}, {"latent": 3.775510204081632}, {"latent": 3.979591836734695}, {"latent": 4.183673469387756}, {"latent": 4.387755102040817}, {"latent": 4.591836734693878}, {"latent": 4.795918367346939}, {"latent": 5.0}]}}, {"mode": "vega-lite"});
+  })({"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "data": {"name": "data-ebf3a22bc86bf79e10d2059712505f43"}, "mark": {"type": "line"}, "encoding": {"x": {"field": "latent", "scale": {"domain": [-5, 5]}, "title": "global epistasis prediction (z')", "type": "quantitative"}, "y": {"field": "phenotype", "scale": {"domain": [-5, 5]}, "title": "predicted phenotype", "type": "quantitative"}}, "params": [{"name": "lambda_sp", "bind": {"input": "range", "max": 5, "min": 1}, "value": 1}, {"name": "lower_bound", "bind": {"input": "range", "max": 5, "min": 0}, "value": 2}], "transform": [{"calculate": "((log((1 + exp((-1 * datum['latent'])))) * (-1 * lambda_sp)) + lower_bound)", "as": "phenotype"}], "$schema": "https://vega.github.io/schema/vega-lite/v5.8.0.json", "datasets": {"data-ebf3a22bc86bf79e10d2059712505f43": [{"latent": -5.0}, {"latent": -4.795918367346939}, {"latent": -4.591836734693878}, {"latent": -4.387755102040816}, {"latent": -4.183673469387755}, {"latent": -3.979591836734694}, {"latent": -3.7755102040816326}, {"latent": -3.571428571428571}, {"latent": -3.36734693877551}, {"latent": -3.163265306122449}, {"latent": -2.9591836734693877}, {"latent": -2.7551020408163263}, {"latent": -2.5510204081632653}, {"latent": -2.3469387755102042}, {"latent": -2.142857142857143}, {"latent": -1.9387755102040813}, {"latent": -1.7346938775510203}, {"latent": -1.5306122448979593}, {"latent": -1.3265306122448979}, {"latent": -1.1224489795918364}, {"latent": -0.9183673469387754}, {"latent": -0.7142857142857144}, {"latent": -0.5102040816326525}, {"latent": -0.3061224489795915}, {"latent": -0.1020408163265305}, {"latent": 0.1020408163265305}, {"latent": 0.3061224489795915}, {"latent": 0.5102040816326534}, {"latent": 0.7142857142857144}, {"latent": 0.9183673469387754}, {"latent": 1.1224489795918373}, {"latent": 1.3265306122448983}, {"latent": 1.5306122448979593}, {"latent": 1.7346938775510203}, {"latent": 1.9387755102040813}, {"latent": 2.1428571428571432}, {"latent": 2.3469387755102042}, {"latent": 2.5510204081632653}, {"latent": 2.755102040816327}, {"latent": 2.959183673469388}, {"latent": 3.163265306122449}, {"latent": 3.36734693877551}, {"latent": 3.571428571428571}, {"latent": 3.775510204081632}, {"latent": 3.979591836734695}, {"latent": 4.183673469387756}, {"latent": 4.387755102040817}, {"latent": 4.591836734693878}, {"latent": 4.795918367346939}, {"latent": 5.0}]}}, {"mode": "vega-lite"});
 </script></div>
 </div>
 </section>
@@ -362,7 +358,7 @@ for the reference condition could be truncated at <span class="math notranslate 
 <p><strong>Note</strong> We recommend leaving the <span class="math notranslate nohighlight">\(\lambda_{sp}\)</span> parameter at It’s default value of <span class="math notranslate nohighlight">\(0.1\)</span>. this ensures a sharp transition between regimes similar to a <a class="reference external" href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">ReLU</a> function, but retain the differentiable property for gradient based optimization. However, the option is there in case you find the model will not converge.</p>
 <p>Below is an interactive plot showing the effect of the modified softplus activation as a function of an adjustable <span class="math notranslate nohighlight">\(\lambda_{sp}\)</span> scaling parameter, and lower bound, <span class="math notranslate nohighlight">\(l\)</span>:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Below is an interactive plot showing the effect of the modified</span>
@@ -401,22 +397,33 @@ for the reference condition could be truncated at <span class="math notranslate 
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
-<div id="altair-viz-7a419dff89f64d09b5456acd6411811f"></div>
+<style>
+  #altair-viz-1c28a998906f468294402d2c6a9ef7df.vega-embed {
+    width: 100%;
+    display: flex;
+  }
+
+  #altair-viz-1c28a998906f468294402d2c6a9ef7df.vega-embed details,
+  #altair-viz-1c28a998906f468294402d2c6a9ef7df.vega-embed details summary {
+    position: relative;
+  }
+</style>
+<div id="altair-viz-1c28a998906f468294402d2c6a9ef7df"></div>
 <script type="text/javascript">
   var VEGA_DEBUG = (typeof VEGA_DEBUG == "undefined") ? {} : VEGA_DEBUG;
   (function(spec, embedOpt){
     let outputDiv = document.currentScript.previousElementSibling;
-    if (outputDiv.id !== "altair-viz-7a419dff89f64d09b5456acd6411811f") {
-      outputDiv = document.getElementById("altair-viz-7a419dff89f64d09b5456acd6411811f");
+    if (outputDiv.id !== "altair-viz-1c28a998906f468294402d2c6a9ef7df") {
+      outputDiv = document.getElementById("altair-viz-1c28a998906f468294402d2c6a9ef7df");
     }
     const paths = {
       "vega": "https://cdn.jsdelivr.net/npm/vega@5?noext",
       "vega-lib": "https://cdn.jsdelivr.net/npm/vega-lib?noext",
-      "vega-lite": "https://cdn.jsdelivr.net/npm/vega-lite@5.6.1?noext",
+      "vega-lite": "https://cdn.jsdelivr.net/npm/vega-lite@5.8.0?noext",
       "vega-embed": "https://cdn.jsdelivr.net/npm/vega-embed@6?noext",
     };
 
@@ -452,12 +459,12 @@ for the reference condition could be truncated at <span class="math notranslate 
       require(["vega-embed"], displayChart, err => showError(`Error loading script: ${err.message}`));
     } else {
       maybeLoadScript("vega", "5")
-        .then(() => maybeLoadScript("vega-lite", "5.6.1"))
+        .then(() => maybeLoadScript("vega-lite", "5.8.0"))
         .then(() => maybeLoadScript("vega-embed", "6"))
         .catch(showError)
         .then(() => displayChart(vegaEmbed));
     }
-  })({"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "data": {"name": "data-cabdca2257cf20e376d04c62a66e94ee"}, "mark": {"type": "line"}, "encoding": {"x": {"field": "latent", "scale": {"domain": [-10, 5]}, "title": "global epistasis prediction (z')", "type": "quantitative"}, "y": {"field": "phenotype", "scale": {"domain": [-10, 5]}, "title": "predicted phenotype", "type": "quantitative"}}, "params": [{"name": "lambda_sp", "bind": {"input": "range", "max": 2, "min": 0.1}, "value": 1}, {"name": "lower_bound", "bind": {"input": "range", "max": 0, "min": -10}, "value": -3.5}], "transform": [{"calculate": "((log((1 + exp(((datum['latent'] - lower_bound) / lambda_sp)))) * lambda_sp) + lower_bound)", "as": "phenotype"}], "$schema": "https://vega.github.io/schema/vega-lite/v5.6.1.json", "datasets": {"data-cabdca2257cf20e376d04c62a66e94ee": [{"latent": -10.0}, {"latent": -9.848484848484848}, {"latent": -9.696969696969697}, {"latent": -9.545454545454545}, {"latent": -9.393939393939394}, {"latent": -9.242424242424242}, {"latent": -9.09090909090909}, {"latent": -8.93939393939394}, {"latent": -8.787878787878787}, {"latent": -8.636363636363637}, {"latent": -8.484848484848484}, {"latent": -8.333333333333334}, {"latent": -8.181818181818182}, {"latent": -8.030303030303031}, {"latent": -7.878787878787879}, {"latent": -7.727272727272727}, {"latent": -7.575757575757576}, {"latent": -7.424242424242424}, {"latent": -7.2727272727272725}, {"latent": -7.121212121212121}, {"latent": -6.96969696969697}, {"latent": -6.818181818181818}, {"latent": -6.666666666666666}, {"latent": -6.515151515151516}, {"latent": -6.363636363636363}, {"latent": -6.212121212121212}, {"latent": -6.0606060606060606}, {"latent": -5.909090909090909}, {"latent": -5.757575757575758}, {"latent": -5.6060606060606055}, {"latent": -5.454545454545454}, {"latent": -5.303030303030303}, {"latent": -5.151515151515151}, {"latent": -5.0}, {"latent": -4.848484848484849}, {"latent": -4.696969696969697}, {"latent": -4.545454545454545}, {"latent": -4.393939393939394}, {"latent": -4.242424242424242}, {"latent": -4.090909090909091}, {"latent": -3.9393939393939394}, {"latent": -3.787878787878788}, {"latent": -3.636363636363636}, {"latent": -3.4848484848484844}, {"latent": -3.333333333333333}, {"latent": -3.1818181818181817}, {"latent": -3.0303030303030303}, {"latent": -2.878787878787879}, {"latent": -2.7272727272727266}, {"latent": -2.5757575757575752}, {"latent": -2.424242424242424}, {"latent": -2.2727272727272725}, {"latent": -2.121212121212121}, {"latent": -1.9696969696969688}, {"latent": -1.8181818181818183}, {"latent": -1.666666666666666}, {"latent": -1.5151515151515156}, {"latent": -1.3636363636363633}, {"latent": -1.212121212121211}, {"latent": -1.0606060606060606}, {"latent": -0.9090909090909083}, {"latent": -0.7575757575757578}, {"latent": -0.6060606060606055}, {"latent": -0.45454545454545503}, {"latent": -0.30303030303030276}, {"latent": -0.1515151515151505}, {"latent": 0.0}, {"latent": 0.15151515151515227}, {"latent": 0.30303030303030276}, {"latent": 0.45454545454545503}, {"latent": 0.6060606060606055}, {"latent": 0.7575757575757578}, {"latent": 0.9090909090909101}, {"latent": 1.0606060606060606}, {"latent": 1.2121212121212128}, {"latent": 1.3636363636363633}, {"latent": 1.5151515151515156}, {"latent": 1.6666666666666679}, {"latent": 1.8181818181818183}, {"latent": 1.9696969696969706}, {"latent": 2.121212121212121}, {"latent": 2.2727272727272734}, {"latent": 2.424242424242424}, {"latent": 2.575757575757576}, {"latent": 2.7272727272727284}, {"latent": 2.878787878787879}, {"latent": 3.030303030303031}, {"latent": 3.1818181818181817}, {"latent": 3.333333333333334}, {"latent": 3.4848484848484844}, {"latent": 3.6363636363636367}, {"latent": 3.787878787878789}, {"latent": 3.9393939393939394}, {"latent": 4.090909090909092}, {"latent": 4.242424242424242}, {"latent": 4.3939393939393945}, {"latent": 4.545454545454547}, {"latent": 4.696969696969697}, {"latent": 4.8484848484848495}, {"latent": 5.0}]}}, {"mode": "vega-lite"});
+  })({"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "data": {"name": "data-cabdca2257cf20e376d04c62a66e94ee"}, "mark": {"type": "line"}, "encoding": {"x": {"field": "latent", "scale": {"domain": [-10, 5]}, "title": "global epistasis prediction (z')", "type": "quantitative"}, "y": {"field": "phenotype", "scale": {"domain": [-10, 5]}, "title": "predicted phenotype", "type": "quantitative"}}, "params": [{"name": "lambda_sp", "bind": {"input": "range", "max": 2, "min": 0.1}, "value": 1}, {"name": "lower_bound", "bind": {"input": "range", "max": 0, "min": -10}, "value": -3.5}], "transform": [{"calculate": "((log((1 + exp(((datum['latent'] - lower_bound) / lambda_sp)))) * lambda_sp) + lower_bound)", "as": "phenotype"}], "$schema": "https://vega.github.io/schema/vega-lite/v5.8.0.json", "datasets": {"data-cabdca2257cf20e376d04c62a66e94ee": [{"latent": -10.0}, {"latent": -9.848484848484848}, {"latent": -9.696969696969697}, {"latent": -9.545454545454545}, {"latent": -9.393939393939394}, {"latent": -9.242424242424242}, {"latent": -9.09090909090909}, {"latent": -8.93939393939394}, {"latent": -8.787878787878787}, {"latent": -8.636363636363637}, {"latent": -8.484848484848484}, {"latent": -8.333333333333334}, {"latent": -8.181818181818182}, {"latent": -8.030303030303031}, {"latent": -7.878787878787879}, {"latent": -7.727272727272727}, {"latent": -7.575757575757576}, {"latent": -7.424242424242424}, {"latent": -7.2727272727272725}, {"latent": -7.121212121212121}, {"latent": -6.96969696969697}, {"latent": -6.818181818181818}, {"latent": -6.666666666666666}, {"latent": -6.515151515151516}, {"latent": -6.363636363636363}, {"latent": -6.212121212121212}, {"latent": -6.0606060606060606}, {"latent": -5.909090909090909}, {"latent": -5.757575757575758}, {"latent": -5.6060606060606055}, {"latent": -5.454545454545454}, {"latent": -5.303030303030303}, {"latent": -5.151515151515151}, {"latent": -5.0}, {"latent": -4.848484848484849}, {"latent": -4.696969696969697}, {"latent": -4.545454545454545}, {"latent": -4.393939393939394}, {"latent": -4.242424242424242}, {"latent": -4.090909090909091}, {"latent": -3.9393939393939394}, {"latent": -3.787878787878788}, {"latent": -3.636363636363636}, {"latent": -3.4848484848484844}, {"latent": -3.333333333333333}, {"latent": -3.1818181818181817}, {"latent": -3.0303030303030303}, {"latent": -2.878787878787879}, {"latent": -2.7272727272727266}, {"latent": -2.5757575757575752}, {"latent": -2.424242424242424}, {"latent": -2.2727272727272725}, {"latent": -2.121212121212121}, {"latent": -1.9696969696969688}, {"latent": -1.8181818181818183}, {"latent": -1.666666666666666}, {"latent": -1.5151515151515156}, {"latent": -1.3636363636363633}, {"latent": -1.212121212121211}, {"latent": -1.0606060606060606}, {"latent": -0.9090909090909083}, {"latent": -0.7575757575757578}, {"latent": -0.6060606060606055}, {"latent": -0.45454545454545503}, {"latent": -0.30303030303030276}, {"latent": -0.1515151515151505}, {"latent": 0.0}, {"latent": 0.15151515151515227}, {"latent": 0.30303030303030276}, {"latent": 0.45454545454545503}, {"latent": 0.6060606060606055}, {"latent": 0.7575757575757578}, {"latent": 0.9090909090909101}, {"latent": 1.0606060606060606}, {"latent": 1.2121212121212128}, {"latent": 1.3636363636363633}, {"latent": 1.5151515151515156}, {"latent": 1.6666666666666679}, {"latent": 1.8181818181818183}, {"latent": 1.9696969696969706}, {"latent": 2.121212121212121}, {"latent": 2.2727272727272734}, {"latent": 2.424242424242424}, {"latent": 2.575757575757576}, {"latent": 2.7272727272727284}, {"latent": 2.878787878787879}, {"latent": 3.030303030303031}, {"latent": 3.1818181818181817}, {"latent": 3.333333333333334}, {"latent": 3.4848484848484844}, {"latent": 3.6363636363636367}, {"latent": 3.787878787878789}, {"latent": 3.9393939393939394}, {"latent": 4.090909090909092}, {"latent": 4.242424242424242}, {"latent": 4.3939393939393945}, {"latent": 4.545454545454547}, {"latent": 4.696969696969697}, {"latent": 4.8484848484848495}, {"latent": 5.0}]}}, {"mode": "vega-lite"});
 </script></div>
 </div>
 </section>
@@ -552,6 +559,8 @@ optimize the objective using the Nesterov-accelerated proximal gradient method w
 <li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html"><code class="docutils literal notranslate"><span class="pre">multidms</span></code> fitting pipeline</a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.html">multidms package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
 </ul>
 
 <div class="relations">
