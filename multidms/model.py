@@ -9,7 +9,6 @@ Defines :class:`Model` objects.
 import math
 import warnings
 from functools import partial, reduce
-import os
 
 import jax
 import jax.numpy as jnp

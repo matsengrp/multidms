@@ -193,7 +193,6 @@ class Data:
         verbose=False,
         nb_workers=None,
     ):
-
         """See main class docstring."""
         # Check and initialize conditions attribute
         if pd.isnull(variants_df["condition"]).any():
@@ -271,22 +270,20 @@ class Data:
         # wild type for each condition
         site_map = pd.DataFrame()
         for hom, hom_func_df in df.groupby("condition"):
-            if verbose: print(f"inferring site map for {hom}")
+            if verbose:
+                print(f"inferring site map for {hom}")
             for idx, row in tqdm(
-                hom_func_df.iterrows(), 
-                total=len(hom_func_df),
-                disable=not verbose
+                hom_func_df.iterrows(), total=len(hom_func_df), disable=not verbose
             ):
                 for wt, site in zip(row.wts, row.sites):
                     site_map.loc[site, hom] = wt
 
         if assert_site_integrity:
-            if verbose: print("Asserting site integrity")
+            if verbose:
+                print("Asserting site integrity")
             for hom, hom_func_df in df.groupby("condition"):
                 for idx, row in tqdm(
-                    hom_func_df.iterrows(),
-                    total=len(hom_func_df),
-                    disable=not verbose
+                    hom_func_df.iterrows(), total=len(hom_func_df), disable=not verbose
                 ):
                     for wt, site in zip(row.wts, row.sites):
                         assert site_map.loc[site, hom] == wt
@@ -416,9 +413,11 @@ class Data:
         # do not share the reference sequence
         df = df.assign(var_wrt_ref=df["aa_substitutions"])
         for condition, condition_func_df in df.groupby("condition"):
-            if verbose: print(f"Converting mutations for {condition}")
+            if verbose:
+                print(f"Converting mutations for {condition}")
             if condition in self.reference_sequence_conditions:
-                if verbose: print("is reference, skipping")
+                if verbose:
+                    print("is reference, skipping")
                 continue
 
             idx = condition_func_df.index
