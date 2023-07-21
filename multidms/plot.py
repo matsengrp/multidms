@@ -188,6 +188,7 @@ def lineplot_and_heatmap(
                 | (data_df["wildtype"] == data_df["mutant"])
             ]
 
+    # TODO categories
     categories = data_df[category_col].unique().tolist()
     show_category_label = show_single_category_label or (len(categories) > 1)
 
@@ -659,6 +660,7 @@ def mut_shift_plot(
     altair.Chart
         Interactive heat maps.
     """
+    print("AYO")
     kwargs["addtl_tooltip_stats"] = []
     id_vars = ["wildtype", "site", "mutant"]
     stubnames = ["value"]
@@ -708,10 +710,21 @@ def mut_shift_plot(
             mutations_dfs,
         )
 
+        # print(mut_df)
+        mut_df.drop(
+            [c for c in mut_df.columns if "func_score" in c],
+            axis=1, 
+            inplace=True
+        )
+
         # now compute replicate averages
         for c in fit.mutations_df.columns:
-            if c == "mutation" or "times_seen" in c:
+            print(c)
+            # TODO we shoud be able to choose, right?
+            # how does this affect teh combine replicate muts
+            if c == "mutation" or "times_seen" in c or "func_score" in c:
                 continue
+            print("pass")
             cols_to_combine = [f"{replicate}_{c}" for replicate in fit_data.keys()]
             if c in ["wts", "sites", "muts"]:
                 mut_df[c] = mut_df[cols_to_combine[0]]
@@ -728,6 +741,8 @@ def mut_shift_plot(
                 )
                 id_vars.insert(0, f"beta ({rep_replicate})")
                 kwargs["addtl_tooltip_stats"].append(f"beta ({rep_replicate})")
+
+        print(mut_df)
 
     else:
         raise ValueError(
