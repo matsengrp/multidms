@@ -40,10 +40,14 @@ jobs:
         run: |
             pip install --upgrade pip
             pip install -e ".[dev]"
-
+      
       - name: Black Format Check
-        run: |
-            black --check .
+        uses: psf/black@stable
+        with:
+          options: "--check"
+          src: "."
+          jupyter: false
+          version: "~= 23.3" # this is the version that ships with the vs code extension, currently
 
       - name: Test
         run: |
