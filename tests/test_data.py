@@ -130,8 +130,37 @@ def test_converstion_from_subs():
         assert data.convert_subs_wrt_ref_seq(("b" if ref == "a" else "a"), "") == bundle
 
 
-# def test_widltype_predictions():
-    
+def test_widltype_predictions():
+    """
+    test that the wildtype predictions are correct
+    by comparing them to a "by-hand" calculation on the parameters.
+    currently this only tests the latent predictions by hand.
+    """
+    data = multidms.Data(
+        func_score_df,
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="a",
+        assert_site_integrity=False
+    )
+    model = multidms.Model(data, PRNGKey=23)
+    model.fit(maxiter=2)
+    wildtype_df = model.wildtype_df
+    for condition in model.data.conditions:
+        byhand_latent = model.params["beta_naught"][0]
+        if condition != model.data.reference:
+            converted_subs = model.data.convert_subs_wrt_ref_seq(condition, "")
+            bmap = model.data.binarymaps[model.data.reference]
+            enc = bmap.sub_str_to_binary(converted_subs)
+            assert sum(enc) == len(converted_subs.split())
+            mut_params = model.get_mutations_df(
+                phenotype_as_effect=False
+            ).query("mutation.isin(@converted_subs.split())")
+            latent = (mut_params.beta + mut_params[f"shift_{condition}"]).sum()
+            offset = model.params["beta_naught"] + model.params[f"alpha_{condition}"]
+            byhand_latent = latent + offset[0]
+        
+        pred_latent = wildtype_df.loc[condition, "predicted_latent"]
+        assert np.isclose(byhand_latent, pred_latent)
 
 
 def test_non_identical_conversion():

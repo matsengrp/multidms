@@ -295,7 +295,7 @@ class Data:
         site_map.dropna(inplace=True)
 
         nb_workers = min(os.cpu_count(), 4) if nb_workers is None else nb_workers
-        pandarallel.initialize(progress_bar=False, nb_workers=nb_workers)
+        pandarallel.initialize(progress_bar=verbose, nb_workers=nb_workers)
 
         def flags_invalid_sites(disallowed_sites, sites_list):
             """Check to see if a sites list contains
