@@ -193,6 +193,7 @@ class Data:
         verbose=False,
         nb_workers=None,
     ):
+
         """See main class docstring."""
         # Check and initialize conditions attribute
         if pd.isnull(variants_df["condition"]).any():
@@ -270,17 +271,23 @@ class Data:
         # wild type for each condition
         site_map = pd.DataFrame()
         for hom, hom_func_df in df.groupby("condition"):
-            if verbose:
-                print(f"inferring site map for {hom}")
-            for idx, row in hom_func_df.iterrows():
+            if verbose: print(f"inferring site map for {hom}")
+            for idx, row in tqdm(
+                hom_func_df.iterrows(), 
+                total=len(hom_func_df),
+                disable=not verbose
+            ):
                 for wt, site in zip(row.wts, row.sites):
                     site_map.loc[site, hom] = wt
 
         if assert_site_integrity:
-            if verbose:
-                print("Asserting site integrity")
+            if verbose: print("Asserting site integrity")
             for hom, hom_func_df in df.groupby("condition"):
-                for idx, row in hom_func_df.iterrows():
+                for idx, row in tqdm(
+                    hom_func_df.iterrows(),
+                    total=len(hom_func_df),
+                    disable=not verbose
+                ):
                     for wt, site in zip(row.wts, row.sites):
                         assert site_map.loc[site, hom] == wt
 
@@ -290,8 +297,8 @@ class Data:
         sites_to_throw = na_rows[na_rows].index
         site_map.dropna(inplace=True)
 
-        nb_workers = os.cpu_count() if not nb_workers else nb_workers
-        pandarallel.initialize(progress_bar=verbose, nb_workers=nb_workers)
+        nb_workers = min(os.cpu_count(), 4) if nb_workers is None else nb_workers
+        pandarallel.initialize(progress_bar=False, nb_workers=nb_workers)
 
         def flags_invalid_sites(disallowed_sites, sites_list):
             """Check to see if a sites list contains
@@ -302,13 +309,14 @@ class Data:
                     return False
             return True
 
-        df["allowed_variant"] = df.sites.apply(
+        df["allowed_variant"] = df.sites.parallel_apply(
             lambda sl: flags_invalid_sites(sites_to_throw, sl)
         )
         if verbose:
             print(
-                f"unknown cond wildtype: {sites_to_throw}, dropping "
-                f"{len(df) - len(df[df['allowed_variant']])} variants"
+                f"unknown cond wildtype at sites: {list(sites_to_throw.values)},"
+                f"\ndropping: {len(df) - len(df[df['allowed_variant']])} variants"
+                "which have mutations at those sites."
             )
 
         df.query("allowed_variant", inplace=True)
@@ -370,7 +378,7 @@ class Data:
                     invalid_nim.append(site)
 
         # find variants that contain mutations at invalid sites
-        df["allowed_variant"] = df.sites.apply(
+        df["allowed_variant"] = df.sites.parallel_apply(
             lambda sl: flags_invalid_sites(invalid_nim, sl)
         )
         if verbose:
@@ -408,12 +416,9 @@ class Data:
         # do not share the reference sequence
         df = df.assign(var_wrt_ref=df["aa_substitutions"])
         for condition, condition_func_df in df.groupby("condition"):
-            if verbose:
-                print(f"Converting mutations for {condition}")
-
+            if verbose: print(f"Converting mutations for {condition}")
             if condition in self.reference_sequence_conditions:
-                if verbose:
-                    print("is reference, skipping")
+                if verbose: print("is reference, skipping")
                 continue
 
             idx = condition_func_df.index

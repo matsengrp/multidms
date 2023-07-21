@@ -9,6 +9,7 @@ Defines :class:`Model` objects.
 import math
 import warnings
 from functools import partial, reduce
+import os
 
 import jax
 import jax.numpy as jnp
@@ -554,7 +555,7 @@ class Model:
         for condition, condition_df in df.groupby(condition_col):
             variant_subs = condition_df[substitutions_col]
             if condition not in self.data.reference_sequence_conditions:
-                variant_subs = condition_df.parallel_apply(
+                variant_subs = condition_df.apply(
                     lambda x: self.data.convert_subs_wrt_ref_seq(
                         condition, x[substitutions_col]
                     ),
