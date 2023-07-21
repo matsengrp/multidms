@@ -659,7 +659,6 @@ def mut_shift_plot(
     altair.Chart
         Interactive heat maps.
     """
-    print("AYO")
     kwargs["addtl_tooltip_stats"] = []
     id_vars = ["wildtype", "site", "mutant"]
     stubnames = ["value"]
@@ -720,7 +719,6 @@ def mut_shift_plot(
         for c in fit.mutations_df.columns:
             if c == "mutation" or "times_seen" in c or "func_score" in c:
                 continue
-            print("pass")
             cols_to_combine = [f"{replicate}_{c}" for replicate in fit_data.keys()]
             if c in ["wts", "sites", "muts"]:
                 mut_df[c] = mut_df[cols_to_combine[0]]
@@ -737,8 +735,6 @@ def mut_shift_plot(
                 )
                 id_vars.insert(0, f"beta ({rep_replicate})")
                 kwargs["addtl_tooltip_stats"].append(f"beta ({rep_replicate})")
-
-        print(mut_df)
 
     else:
         raise ValueError(
