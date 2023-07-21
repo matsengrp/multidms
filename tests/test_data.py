@@ -134,13 +134,12 @@ def test_widltype_predictions():
     """
     test that the wildtype predictions are correct
     by comparing them to a "by-hand" calculation on the parameters.
-    currently this only tests the latent predictions by hand.
     """
     data = multidms.Data(
         func_score_df,
         alphabet=multidms.AAS_WITHSTOP,
         reference="a",
-        assert_site_integrity=False
+        assert_site_integrity=False,
     )
     model = multidms.Model(data, PRNGKey=23)
     model.fit(maxiter=2)
@@ -152,15 +151,21 @@ def test_widltype_predictions():
             bmap = model.data.binarymaps[model.data.reference]
             enc = bmap.sub_str_to_binary(converted_subs)
             assert sum(enc) == len(converted_subs.split())
-            mut_params = model.get_mutations_df(
-                phenotype_as_effect=False
-            ).query("mutation.isin(@converted_subs.split())")
+            mut_params = model.get_mutations_df(phenotype_as_effect=False).query(
+                "mutation.isin(@converted_subs.split())"
+            )
             latent = (mut_params.beta + mut_params[f"shift_{condition}"]).sum()
             offset = model.params["beta_naught"] + model.params[f"alpha_{condition}"]
             byhand_latent = latent + offset[0]
-        
+
         pred_latent = wildtype_df.loc[condition, "predicted_latent"]
         assert np.isclose(byhand_latent, pred_latent)
+
+        sig_params = model.params["theta"]
+        scale, bias = sig_params["ge_scale"], sig_params["ge_bias"]
+        byhand_func_score = scale / (1 + np.exp(-1 * byhand_latent)) + bias
+        pred_func_score = wildtype_df.loc[condition, "predicted_func_score"]
+        assert np.isclose(byhand_func_score, pred_func_score)
 
 
 def test_non_identical_conversion():
