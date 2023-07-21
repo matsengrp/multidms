@@ -2,7 +2,7 @@
 Contributing
 ============
 
-We welcome contributions to this package!
+We welcome contributions to `multidms <multidms>`!
 This document describes how to edit the package, run the tests, build the docs, put tagged versions on PyPI_, etc.
 
 Editing the project
