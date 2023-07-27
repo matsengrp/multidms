@@ -135,17 +135,19 @@ class Model:
     request the property.
 
     >>> model.mutations_df  # doctest: +NORMALIZE_WHITESPACE
-      mutation wts  sites muts  times_seen_a  times_seen_b      beta  \
-    0      M1E   M      1    E             1           3.0  0.080868   
-    1      M1W   M      1    W             1           0.0 -0.386247   
-    2      G3P   G      3    P             1           1.0 -0.375656   
-    3      G3R   G      3    R             1           2.0  1.668974   
+             wts  sites muts  times_seen_a  times_seen_b      beta  \
+    mutation                                                         
+    M1E        M      1    E             1           3.0  0.080868   
+    M1W        M      1    W             1           0.0 -0.386247   
+    G3P        G      3    P             1           1.0 -0.375656   
+    G3R        G      3    R             1           2.0  1.668974   
     <BLANKLINE>
-       predicted_func_score  shift_b  
-    0             -2.398970      0.0  
-    1             -2.976895      0.0  
-    2             -2.964124      0.0  
-    3             -0.792805      0.0  
+              a_predicted_func_score  shift_b  b_predicted_func_score  
+    mutation                                                           
+    M1E                    -2.398970      0.0               -2.398970  
+    M1W                    -2.976895      0.0               -2.976895  
+    G3P                    -2.964124      0.0               -2.964124  
+    G3R                    -0.792805      0.0               -0.792805 
 
     Notice the respective single mutation effects (``"beta"``), conditional shifts
     (``shift_d``),
@@ -445,11 +447,14 @@ class Model:
         -------
         pandas.DataFrame
             A copy of the mutations data, `self.data.mutations_df`,
-            with the phenotypes added. Phenotypes are predicted
+            with the mutations column set as the index, and columns
+            with the mutational attributes (e.g. betas, shifts) and
+            conditional phenotypes (e.g. func_scores) added.
+            Phenotypes are predicted
             based on the current state of the model.
         """
         # we're updating this
-        mutations_df = self.data.mutations_df.copy()
+        mutations_df = self.data.mutations_df.set_index("mutation").copy()
 
         # for effect calculation
         if phenotype_as_effect:
@@ -466,7 +471,7 @@ class Model:
             Y_pred = self.phenotype_frombinary(X, condition)
             if phenotype_as_effect:
                 Y_pred -= wildtype_df.loc[condition, "predicted_func_score"]
-            mutations_df["predicted_func_score"] = Y_pred
+            mutations_df[f"{condition}_predicted_func_score"] = Y_pred
 
         return mutations_df
 
