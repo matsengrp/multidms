@@ -445,11 +445,14 @@ class Model:
         -------
         pandas.DataFrame
             A copy of the mutations data, `self.data.mutations_df`,
-            with the phenotypes added. Phenotypes are predicted
+            with the mutations column set as the index, and columns
+            with the mutational attributes (e.g. betas, shifts) and
+            conditional phenotypes (e.g. func_scores) added.
+            Phenotypes are predicted
             based on the current state of the model.
         """
         # we're updating this
-        mutations_df = self.data.mutations_df.copy()
+        mutations_df = self.data.mutations_df.set_index("mutation").copy()
 
         # for effect calculation
         if phenotype_as_effect:
@@ -466,7 +469,7 @@ class Model:
             Y_pred = self.phenotype_frombinary(X, condition)
             if phenotype_as_effect:
                 Y_pred -= wildtype_df.loc[condition, "predicted_func_score"]
-            mutations_df["predicted_func_score"] = Y_pred
+            mutations_df[f"{condition}_predicted_func_score"] = Y_pred
 
         return mutations_df
 

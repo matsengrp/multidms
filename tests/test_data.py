@@ -24,6 +24,7 @@ b,P2T,0.3
     )
 )
 
+
 data = multidms.Data(
     func_score_df,
     alphabet=multidms.AAS_WITHSTOP,
@@ -130,7 +131,7 @@ def test_converstion_from_subs():
         assert data.convert_subs_wrt_ref_seq(("b" if ref == "a" else "a"), "") == bundle
 
 
-def test_widltype_predictions():
+def test_wildtype_mutatant_predictions():
     """
     test that the wildtype predictions are correct
     by comparing them to a "by-hand" calculation on the parameters.
@@ -158,14 +159,50 @@ def test_widltype_predictions():
             offset = model.params["beta_naught"] + model.params[f"alpha_{condition}"]
             byhand_latent = latent + offset[0]
 
+        # check latent
         pred_latent = wildtype_df.loc[condition, "predicted_latent"]
         assert np.isclose(byhand_latent, pred_latent)
 
+        # check wt functional score
         sig_params = model.params["theta"]
         scale, bias = sig_params["ge_scale"], sig_params["ge_bias"]
         byhand_func_score = scale / (1 + np.exp(-1 * byhand_latent)) + bias
         pred_func_score = wildtype_df.loc[condition, "predicted_func_score"]
         assert np.isclose(byhand_func_score, pred_func_score)
+
+
+def test_mutations_df():
+    """
+    make sure that the functional score predictions
+    for individual mutations is correct by comparing them to by-hand
+    calculations.
+    """
+    data = multidms.Data(
+        func_score_df,
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="a",
+        assert_site_integrity=False,
+    )
+    model = multidms.Model(data, PRNGKey=23)
+    model.fit(maxiter=2)
+    sig_params = model.params["theta"]
+    scale, bias = sig_params["ge_scale"], sig_params["ge_bias"]
+    mutations_df = model.get_mutations_df(phenotype_as_effect=False)
+    for i, mutation in enumerate(model.data.mutations):
+        effect = model.params["beta"][i]
+        for condition in model.data.conditions:
+            shift = model.params[f"shift_{condition}"][i]
+            byhand_latent = (
+                effect
+                + shift
+                + model.params["beta_naught"]
+                + model.params[f"alpha_{condition}"]
+            )
+            byhand_func_score = scale / (1 + np.exp(-1 * byhand_latent)) + bias
+            assert np.isclose(
+                byhand_func_score,
+                mutations_df.loc[mutation, f"{condition}_predicted_func_score"],
+            )
 
 
 def test_non_identical_conversion():

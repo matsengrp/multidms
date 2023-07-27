@@ -7,6 +7,10 @@ All notable changes to this project will be documented in this file.
 The format is based on `Keep a Changelog <https://keepachangelog.com>`_.
 
 
+BLEEDING EDGE (main)
+--------------------
+- Fixed bug pointed out by @jbloom #110
+
 0.2.0
 -----
 - Closed a `docs testing issue <https://github.com/matsengrp/multidms/issues/104>`_, thanks, @WSDeWitt !
