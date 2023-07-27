@@ -10,6 +10,8 @@ The format is based on `Keep a Changelog <https://keepachangelog.com>`_.
 BLEEDING EDGE (main)
 --------------------
 - Fixed bug pointed out by @jbloom #110
+- ``Model.get_mutations_df()`` now sets the mutation as the index
+- added some testing utils
 
 0.2.0
 -----
