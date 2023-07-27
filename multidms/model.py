@@ -454,7 +454,7 @@ class Model:
             based on the current state of the model.
         """
         # we're updating this
-        mutations_df = self.data.mutations_df.set_index("mutation").copy()
+        mutations_df = self.data.mutations_df.set_index("mutation")
 
         # for effect calculation
         if phenotype_as_effect:

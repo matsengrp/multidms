@@ -348,3 +348,24 @@ def test_model_fit_and_determinism():
 
     for param, values in model_1.params.items():
         assert np.all(values == model_2.params[param])
+
+
+def test_combine_replicate_muts():
+    """
+    Test that multidms.utils.combine_replicate_muts
+    works as expected by combining two variations
+    of the testing data
+    """
+    fit_dict = {
+        "1": multidms.Model(data, PRNGKey=23),
+        "2": multidms.Model(data, PRNGKey=1),
+    }
+    combined_mut_df = multidms.utils.combine_replicate_muts(
+        fit_dict, times_seen_threshold=0
+    )
+    print(combined_mut_df)
+    single_mut_df = fit_dict["1"].get_mutations_df()
+    for col, values in single_mut_df.items():
+        if col in ["wts", "sites", "muts"] or "times_seen" in col:
+            continue
+        assert np.all(values == combined_mut_df[f"1_{col}"].values)

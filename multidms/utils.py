@@ -240,7 +240,9 @@ def plot_loss_simple(models):
     plt.show()
 
 
-def combine_replicate_muts(fit_dict, times_seen_threshold=3, how="inner"):
+def combine_replicate_muts(
+    fit_dict, times_seen_threshold=3, how="inner", phenotype_as_effect=True
+):
     """
     Take a dictionary of fit objects, with key's as the prefix for individual
     replicate values, and merge then such that all individual and average mutation
@@ -249,8 +251,7 @@ def combine_replicate_muts(fit_dict, times_seen_threshold=3, how="inner"):
     # obtain and curate each of the replicate mutational dataframes
     mutations_dfs = []
     for replicate, fit in fit_dict.items():
-        fit_mut_df = fit.mutations_df.set_index("mutation")
-
+        fit_mut_df = fit.get_mutations_df(phenotype_as_effect=phenotype_as_effect)
         new_column_name_map = {c: f"{replicate}_{c}" for c in fit_mut_df.columns}
         fit_mut_df = fit_mut_df.rename(new_column_name_map, axis=1)
 
@@ -270,7 +271,7 @@ def combine_replicate_muts(fit_dict, times_seen_threshold=3, how="inner"):
     column_order = []
     # now compute replicate averages
     for c in fit.mutations_df.columns:
-        if c == "mutation" or "times_seen" in c:
+        if "times_seen" in c:
             continue
         cols_to_combine = [f"{replicate}_{c}" for replicate in fit_dict.keys()]
 
