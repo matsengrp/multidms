@@ -7,8 +7,9 @@ All notable changes to this project will be documented in this file.
 The format is based on `Keep a Changelog <https://keepachangelog.com>`_.
 
 
-BLEEDING EDGE (main)
---------------------
+0.2.1
+-----
+- Made lineplot_and_heatmap() more private to remove from docs.
 - Fixed bug pointed out by @jbloom #110
 - ``Model.get_mutations_df()`` now sets the mutation as the index
 - added some testing utils
