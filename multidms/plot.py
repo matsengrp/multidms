@@ -50,7 +50,7 @@ def color_gradient_hex(start, end, n):
     return [matplotlib.colors.rgb2hex(tup) for tup in cmap(list(range(0, n)))]
 
 
-def lineplot_and_heatmap(
+def _lineplot_and_heatmap(
     *,
     data_df,
     stat_col,
@@ -823,7 +823,7 @@ def mut_shift_plot(
     if biochem_order_aas:
         kwargs["alphabet"] = polyclonal.alphabets.biochem_order_aas(kwargs["alphabet"])
 
-    return lineplot_and_heatmap(**kwargs)
+    return _lineplot_and_heatmap(**kwargs)
 
 
 if __name__ == "__main__":
