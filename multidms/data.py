@@ -30,7 +30,7 @@ from matplotlib import pyplot as plt
 from pandarallel import pandarallel
 
 jax.config.update("jax_enable_x64", True)
-tqdm.pandas()
+# tqdm.pandas()
 
 
 class Data:
