@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 The format is based on `Keep a Changelog <https://keepachangelog.com>`_.
 
 
-main/HEAD
+0.2.2
 ---------
 - Fixed a `bug <https://github.com/matsengrp/multidms/issues/116>`_ 
     caused by non-unique indicies in input variant functional score dataframes.
