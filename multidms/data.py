@@ -205,7 +205,7 @@ class Data:
         self._conditions = tuple(variants_df["condition"].astype(str).unique())
 
         if str(reference) not in self._conditions:
-            if type(reference) != str:
+            if isinstance(reference, str):
                 raise ValueError(
                     "reference must be a string, note that if your "
                     "condition names are numeric, they are being"
@@ -223,7 +223,7 @@ class Data:
             raise ValueError("not enough `condition_colors`")
         else:
             self.condition_colors = dict(zip(self._conditions, condition_colors))
-        if not onp.all([type(c) == str for c in self.condition_colors.values()]):
+        if not onp.all([isinstance(c, str) for c in self.condition_colors.values()]):
             raise ValueError("condition_color values must be hexidecimal")
 
         # Check and initialize alphabet & mut parser attributes
@@ -259,7 +259,7 @@ class Data:
             )
 
         else:
-            df = variants_df.copy()
+            df = variants_df[cols].reset_index(drop=True)
 
         self._split_subs = partial(split_subs, parser=self._mutparser.parse_mut)
         df["wts"], df["sites"], df["muts"] = zip(

@@ -280,12 +280,12 @@ class Model:
                 raise ValueError(
                     "softplus activation requires a lower bound be specified"
                 )
-            elif type(lower_bound) != float:
+            if not isinstance(lower_bound, float):
                 raise ValueError("lower_bound must be a float")
-            else:
-                output_activation = partial(
-                    multidms.biophysical.softplus_activation, lower_bound=lower_bound
-                )
+
+            output_activation = partial(
+                multidms.biophysical.softplus_activation, lower_bound=lower_bound
+            )
 
         for condition in data.conditions:
             self._params[f"gamma_{condition}"] = jnp.zeros(shape=(1,))
@@ -493,7 +493,8 @@ class Model:
         ----------
         df : pandas.DataFrame
             Data frame containing variants. Requirements are the same as
-            those used to initialize the `multidms.Data` object
+            those used to initialize the `multidms.Data` object - except
+            the indices must be unique.
         substitutions_col : str
             Column in `df` giving variants as substitution strings
             with respect to a given variants condition.
@@ -537,6 +538,8 @@ class Model:
             raise ValueError("`df` lacks `substitutions_col` " f"{substitutions_col}")
         if condition_col not in df.columns:
             raise ValueError("`df` lacks `condition_col` " f"{condition_col}")
+        if not df.index.is_unique:
+            raise ValueError("`df` must have unique indices")
 
         # return copy
         ret = df.copy()
