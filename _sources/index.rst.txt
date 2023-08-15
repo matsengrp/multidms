@@ -18,13 +18,17 @@ It can be used to fit a single global-epistasis model to one or more deep mutati
 with the goal of estimating the effects of individual mutations, 
 and how much the effects differ between experiments.
 
-The source code is `on GitHub <https://github.com/matsengrp/multidms>`_.
+- The preprint is available on `bioRxiv <https://www.biorxiv.org/content/10.1101/2023.07.31.551037v1>`_.
 
-For questions or inquaries about the software 
-please `raise an issue <https://github.com/matsengrp/multidms/issues>`_,
-or contact jgallowa \<at\> fredhutch.org.
+- A concise description of the joint modeling approach is available in the `biophysical model <file:///home/jared/MatsenGroup/Projects/multidms/multidms/docs/_build/html/biophysical_model.html>`_ section.
 
-See below for information and examples of how to use this package.
+- A quick intro to the python interface is available in the `Fit Delta BA.1 example <file:///home/jared/MatsenGroup/Projects/multidms/multidms/docs/_build/html/fit_delta_BA1_example.html>`_ page.
+
+- For a more advanced example of the multidms interface, see our `manuscript SARS-CoV-2 spike analysis <https://matsengrp.github.io/SARS-CoV-2_spike_multidms/spike-analysis.html>`_.
+
+- The source code is `on GitHub <https://github.com/matsengrp/multidms>`_.
+
+- For questions or inquaries about the software please `raise an issue <https://github.com/matsengrp/multidms/issues>`_, or contact jgallowa \<at\> fredhutch.org.
 
 .. toctree::
     :hidden:
