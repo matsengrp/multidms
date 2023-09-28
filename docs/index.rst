@@ -42,6 +42,7 @@ and how much the effects differ between experiments.
     installation    
     biophysical_model
     fit_delta_BA1_example
+    model_collection
     multidms
     acknowledgments
     contributing

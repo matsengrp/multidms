@@ -18,12 +18,8 @@ into the package namespace:
  - :mod:`~multidms.data.Data`
 
  - :mod:`~multidms.model.Model`
-
-for some helpful utilities for working with multiple model fits
-and wrangle their output, see:
-
- - :mod:`~multidms.utils`
-
+ 
+ - :mod:`~multidms.model_collection.ModelCollection`
 
 For a brief description about how the :class:`~multidms.model.Model`
 class works to compose, compile, and optimize the model parameters
@@ -36,8 +32,6 @@ see:
 
 :mod:`~multidms.plot` mostly contains code for interactive plotting
 at the moment.
-
-
 
 It also imports the following alphabets:
 
@@ -63,9 +57,7 @@ from polyclonal.alphabets import AAS_WITHSTOP_WITHGAP  # noqa: F401
 
 from multidms.data import Data  # noqa: F401
 from multidms.model import Model  # noqa: F401
-
-import multidms.biophysical  # noqa: F401
-import multidms.utils  # noqa: F401
+from multidms.model_collection import ModelCollection, fit_models  # noqa: F401
 
 # This lets Sphinx know you want to document foo.foo.Foo as foo.Foo.
-__all__ = ["Data", "Model"]
+__all__ = ["Data", "Model", "ModelCollection", "fit_models"]
