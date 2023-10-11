@@ -38,20 +38,20 @@
 <section id="head">
 <h2>HEAD<a class="headerlink" href="#head" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p>Adds initial <a class="reference external" href="https://github.com/matsengrp/multidms/blob/main/multidms/model_collection.py">multidms.model_collection</a> module with <cite>multidms.fit_models</cite> for the ability to fit multiple models across a range of parameter spaces in parallel using <cite>multiprocessing</cite>. This is inspired by the <cite>polyclonal.fit_models</cite> function.</p></li>
-<li><p>Adds the <cite>ModelCollection</cite> class for split-apply-combine interface to the mutational dataframes for a collection of models</p></li>
-<li><p>Adds two altair plotting methods to <cite>ModelCollection</cite>. (1) <cite>mut_param_heatmap</cite> for visualizing aggregated parameter sets across fits, and (2) <cite>mut_param_traceplot</cite> making trace plots across fits with variable lasso coeff strengths</p></li>
-<li><p>removes <cite>utils</cite> module.</p></li>
+<li><p>Adds initial <a class="reference external" href="https://github.com/matsengrp/multidms/blob/main/multidms/model_collection.py">multidms.model_collection</a> module with <code class="docutils literal notranslate"><span class="pre">multidms.fit_models</span></code> for the ability to fit multiple models across a range of parameter spaces in parallel using <cite>multiprocessing</cite>. This is inspired by the <cite>polyclonal.fit_models</cite> function.</p></li>
+<li><p>Adds the <code class="docutils literal notranslate"><span class="pre">ModelCollection</span></code> class for split-apply-combine interface to the mutational dataframes for a collection of models</p></li>
+<li><p>Adds two altair plotting methods to <code class="docutils literal notranslate"><span class="pre">ModelCollection</span></code>. (1) <code class="docutils literal notranslate"><span class="pre">mut_param_heatmap</span></code> for visualizing aggregated parameter sets across fits, and (2) <code class="docutils literal notranslate"><span class="pre">mut_param_traceplot</span></code> making trace plots across fits with variable lasso coeff strengths</p></li>
+<li><p>removes <code class="docutils literal notranslate"><span class="pre">utils</span></code> module.</p></li>
 <li><p>Cleans up #114</p></li>
-<li><p>optionally removes “wts”, “sites”, “muts” from the mutations dataframe returned by <cite>Model.get_mutations_df</cite>. Those were unnecessary IMO</p></li>
-<li><p>Changes the naming of columns produced by <cite>Model.get_mutations_df()</cite>, in particular, it moves the condition name for predicted func score to be a suffix (as with shift, and time_seen) rather than a prefix. e.g. “delta_predicted_func_score” -&gt; “predicted_func_score_delta”.</p></li>
+<li><p>optionally removes “wts”, “sites”, “muts” from the mutations dataframe returned by <code class="docutils literal notranslate"><span class="pre">Model.get_mutations_df</span></code>. Those were unnecessary IMO</p></li>
+<li><p>Changes the naming of columns produced by <code class="docutils literal notranslate"><span class="pre">Model.get_mutations_df()</span></code>, in particular, it moves the condition name for predicted func score to be a suffix (as with shift, and time_seen) rather than a prefix. e.g. “delta_predicted_func_score” -&gt; “predicted_func_score_delta”.</p></li>
 </ul>
 </section>
 <section id="id1">
 <h2>0.2.2<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><dl class="simple">
-<dt>Fixed a <a class="reference external" href="https://github.com/matsengrp/multidms/issues/116">bug</a></dt><dd><p>caused by non-unique indicies in input variant functional score dataframes.</p>
+<dt>Fixed a <a class="reference external" href="https://github.com/matsengrp/multidms/issues/116">bug</a></dt><dd><p>caused by non-unique indices in input variant functional score dataframes.</p>
 </dd>
 </dl>
 </li>
@@ -72,7 +72,7 @@
 <li><p>Closed a <a class="reference external" href="https://github.com/matsengrp/multidms/issues/104">docs testing issue</a>, thanks, &#64;WSDeWitt !</p></li>
 <li><p>Cleaned Actions, again thanks to &#64;WSDeWitt</p></li>
 <li><p>Fixed a <a class="reference external" href="https://github.com/matsengrp/multidms/issues/106">bug in wildtype predictions</a></p></li>
-<li><p>Implimented <a class="reference external" href="https://github.com/matsengrp/multidms/issues/84">QC on invalid bundle muts</a> as pointed out by &#64;Haddox.</p></li>
+<li><p>Implemented <a class="reference external" href="https://github.com/matsengrp/multidms/issues/84">QC on invalid bundle muts</a> as pointed out by &#64;Haddox.</p></li>
 <li><p>a few other minor cleanup tasks.</p></li>
 </ul>
 </section>
