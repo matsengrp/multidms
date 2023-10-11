@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="en">
+<html lang="en" data-content_root="./">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,9 +8,9 @@
     <title>Changelog &#8212; multidms 0.2.2 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=4f649999" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=fed019e6" />
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=227644f7"></script>
+    <script src="_static/documentation_options.js?v=000c92bf"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
-    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -32,11 +32,22 @@
           <div class="body" role="main">
             
   <section id="changelog">
-<h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this heading">¶</a></h1>
+<h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading">¶</a></h1>
 <p>All notable changes to this project will be documented in this file.</p>
 <p>The format is based on <a class="reference external" href="https://keepachangelog.com">Keep a Changelog</a>.</p>
+<section id="head">
+<h2>HEAD<a class="headerlink" href="#head" title="Link to this heading">¶</a></h2>
+<p>Major Changes:
+- Adds initial [multidms.model_collection](<a class="reference external" href="https://github.com/matsengrp/multidms/blob/120_model_collection/multidms/model_collection.py">https://github.com/matsengrp/multidms/blob/120_model_collection/multidms/model_collection.py</a>) module with <cite>multidms.fit_models</cite> for the ability to fit multiple models across a range of parameter spaces in parallel using <cite>multiprocessing</cite>. This is inspired by the <cite>polyclonal.fit_models</cite> function.
+- Adds the <cite>ModelCollection</cite> class for split-apply-combine interface to the mutational dataframes for a collection of models
+- Adds two altair plotting methods to <cite>ModelCollection</cite>. (1) <cite>mut_param_heatmap</cite> for visualizing aggregated parameter sets across fits, and (2) <cite>mut_param_traceplot</cite> making trace plots across fits with variable lasso coeff strengths
+- removes <cite>utils</cite> module.
+- Cleans up #114
+- optionally removes “wts”, “sites”, “muts” from the mutations dataframe returned by <cite>Model.get_mutations_df</cite>. Those were unnecessary IMO
+- Changes the naming of columns produced by <cite>Model.get_mutations_df()</cite>, in particular, it moves the condition name for predicted func score to be a suffix (as with shift, and time_seen) rather than a prefix. e.g. “delta_predicted_func_score” -&gt; “predicted_func_score_delta”.</p>
+</section>
 <section id="id1">
-<h2>0.2.2<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h2>
+<h2>0.2.2<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><dl class="simple">
 <dt>Fixed a <a class="reference external" href="https://github.com/matsengrp/multidms/issues/116">bug</a></dt><dd><p>caused by non-unique indicies in input variant functional score dataframes.</p>
@@ -46,7 +57,7 @@
 </ul>
 </section>
 <section id="id2">
-<h2>0.2.1<a class="headerlink" href="#id2" title="Permalink to this heading">¶</a></h2>
+<h2>0.2.1<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Made lineplot_and_heatmap() more private to remove from docs.</p></li>
 <li><p>Fixed bug pointed out by &#64;jbloom #110</p></li>
@@ -55,7 +66,7 @@
 </ul>
 </section>
 <section id="id3">
-<h2>0.2.0<a class="headerlink" href="#id3" title="Permalink to this heading">¶</a></h2>
+<h2>0.2.0<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Closed a <a class="reference external" href="https://github.com/matsengrp/multidms/issues/104">docs testing issue</a>, thanks, &#64;WSDeWitt !</p></li>
 <li><p>Cleaned Actions, again thanks to &#64;WSDeWitt</p></li>
@@ -65,7 +76,7 @@
 </ul>
 </section>
 <section id="id4">
-<h2>0.1.9<a class="headerlink" href="#id4" title="Permalink to this heading">¶</a></h2>
+<h2>0.1.9<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>First Release on PYPI</p></li>
 </ul>
@@ -111,6 +122,7 @@
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html"><code class="docutils literal notranslate"><span class="pre">multidms</span></code> fitting pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_collection.html"><code class="docutils literal notranslate"><span class="pre">multidms.model_collection</span></code> fitting pipeline</a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.html">multidms package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
@@ -151,7 +163,7 @@
       &copy;2023, Jared Galloway, Hugh Haddox.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
       |

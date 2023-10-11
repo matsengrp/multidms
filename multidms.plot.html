@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="en">
+<html lang="en" data-content_root="./">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,14 +8,14 @@
     <title>plot &#8212; multidms 0.2.2 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=4f649999" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=fed019e6" />
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=227644f7"></script>
+    <script src="_static/documentation_options.js?v=000c92bf"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
-    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Utils" href="multidms.utils.html" />
-    <link rel="prev" title="model" href="multidms.model.html" />
+    <link rel="next" title="Acknowledgments" href="acknowledgments.html" />
+    <link rel="prev" title="&lt;no title&gt;" href="multidms.model_collection.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -32,27 +32,27 @@
 
           <div class="body" role="main">
             
-  <span class="target" id="module-multidms.plot"></span><section id="plot">
-<h1>plot<a class="headerlink" href="#plot" title="Permalink to this heading">¶</a></h1>
+  <section id="plot">
+<span id="module-multidms.plot"></span><h1>plot<a class="headerlink" href="#plot" title="Link to this heading">¶</a></h1>
 <p>Plotting functions.</p>
 </section>
 <dl class="py function">
 <dt class="sig sig-object py" id="multidms.plot.color_gradient_hex">
-<span class="sig-prename descclassname"><span class="pre">multidms.plot.</span></span><span class="sig-name descname"><span class="pre">color_gradient_hex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.plot.color_gradient_hex" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">multidms.plot.</span></span><span class="sig-name descname"><span class="pre">color_gradient_hex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.plot.color_gradient_hex" title="Link to this definition">¶</a></dt>
 <dd><p>Get a list of colors linearly spanning a range.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>start</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) – Starting color.</p></li>
-<li><p><strong>end</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) – Ending color.</p></li>
-<li><p><strong>n</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – Number of colors in list.</p></li>
+<li><p><strong>start</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Starting color.</p></li>
+<li><p><strong>end</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Ending color.</p></li>
+<li><p><strong>n</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Number of colors in list.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>List of hex codes for colors spanning <cite>start</cite> to <cite>end</cite>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.11)">list</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)">list</a></p>
 </dd>
 </dl>
 <p class="rubric">Example</p>
@@ -61,38 +61,6 @@
 <span class="go">[&#39;#ffffff&#39;, &#39;#ffbfbf&#39;, &#39;#ff8080&#39;, &#39;#ff4040&#39;, &#39;#ff0000&#39;]</span>
 </pre></div>
 </div>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="multidms.plot.mut_shift_plot">
-<span class="sig-prename descclassname"><span class="pre">multidms.plot.</span></span><span class="sig-name descname"><span class="pre">mut_shift_plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fit_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">biochem_order_aas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times_seen_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.plot.mut_shift_plot" title="Permalink to this definition">¶</a></dt>
-<dd><p>Make plot of mutation escape values for one or more replicate fits.
-You may either pass a single <cite>multidms.Data</cite> object for
-visualizing a single set of parameters or a collection of replicate
-fits in the form of a dictionary where key’s are the replicate
-name (i.e. rep1, rep2) and values are the respective model objects.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>fit_data</strong> (<a class="reference internal" href="multidms.html#multidms.Data" title="multidms.Data"><em>multidms.Data</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.11)"><em>dict</em></a>) – Either a single <cite>multidms.Data</cite> object or a dictionary of
-replicate fits where the keys are the replicate names and the values
-are the respective model objects.</p></li>
-<li><p><strong>biochem_order_aas</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – Biochemically order amino-acid alphabet <code class="xref py py-attr docutils literal notranslate"><span class="pre">PolyclonalCollection.alphabet</span></code>
-by passing it through <code class="xref py py-func docutils literal notranslate"><span class="pre">polyclonal.alphabets.biochem_order_aas()</span></code>.</p></li>
-<li><p><strong>times_seen_threshold</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – Set a threshold for the number of genetic backgrounds each mutant must be seen
-within each condition in order to be used in the visualization.</p></li>
-<li><p><strong>include_beta</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – If True, include the beta values as another category in the figure.
-If False, only include beta’s in the tooltip.</p></li>
-<li><p><strong>**kwargs</strong> – Keyword args for <code class="xref py py-func docutils literal notranslate"><span class="pre">polyclonal.plot.lineplot_and_heatmap()</span></code></p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Interactive heat maps.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>altair.Chart</p>
-</dd>
-</dl>
 </dd></dl>
 
 
@@ -135,6 +103,7 @@ If False, only include beta’s in the tooltip.</p></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html"><code class="docutils literal notranslate"><span class="pre">multidms</span></code> fitting pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_collection.html"><code class="docutils literal notranslate"><span class="pre">multidms.model_collection</span></code> fitting pipeline</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="multidms.html">multidms package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
@@ -146,8 +115,8 @@ If False, only include beta’s in the tooltip.</p></li>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
   <li><a href="multidms.html">multidms package</a><ul>
-      <li>Previous: <a href="multidms.model.html" title="previous chapter">model</a></li>
-      <li>Next: <a href="multidms.utils.html" title="next chapter">Utils</a></li>
+      <li>Previous: <a href="multidms.model_collection.html" title="previous chapter">&lt;no title&gt;</a></li>
+      <li>Next: <a href="acknowledgments.html" title="next chapter">Acknowledgments</a></li>
   </ul></li>
   </ul></li>
 </ul>
@@ -178,7 +147,7 @@ If False, only include beta’s in the tooltip.</p></li>
       &copy;2023, Jared Galloway, Hugh Haddox.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
       |

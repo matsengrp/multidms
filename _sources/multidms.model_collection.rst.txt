@@ -1,0 +1,4 @@
+.. automodule:: multidms.model_collection
+   :members:
+   :undoc-members:
+   :show-inheritance:
