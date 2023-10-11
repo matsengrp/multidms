@@ -10,6 +10,7 @@ dms experiments under various conditions.
 import os
 from functools import partial
 import warnings
+import re
 
 import binarymap as bmap
 import numpy as onp
@@ -19,10 +20,8 @@ from polyclonal.utils import MutationParser
 from tqdm.auto import tqdm
 
 from multidms import AAS
-from multidms.utils import split_subs
 
 import jax
-
 import jax.numpy as jnp
 import seaborn as sns
 from jax.experimental import sparse
@@ -30,7 +29,29 @@ from matplotlib import pyplot as plt
 from pandarallel import pandarallel
 
 jax.config.update("jax_enable_x64", True)
-# tqdm.pandas()
+
+
+def split_sub(sub_string):
+    """String match the wt, site, and sub aa
+    in a given string denoting a single substitution
+    """
+    pattern = r"(?P<aawt>[A-Z])(?P<site>[\d\w]+)(?P<aamut>[A-Z\*])"
+    match = re.search(pattern, sub_string)
+    assert match is not None, sub_string
+    return match.group("aawt"), str(match.group("site")), match.group("aamut")
+
+
+def split_subs(subs_string, parser=split_sub):
+    """Wrap the split_sub func to work for a
+    string contining multiple substitutions
+    """
+    wts, sites, muts = [], [], []
+    for sub in subs_string.split():
+        wt, site, mut = parser(sub)
+        wts.append(wt)
+        sites.append(site)
+        muts.append(mut)
+    return wts, sites, muts
 
 
 class Data:
@@ -80,23 +101,32 @@ class Data:
         where all sites that are non-identical to the reference are 1's.
         For motivation, see the `Model overview` section in :class:`multidms.Model`
         class notes.
+    alphabet : array-like
+        Allowed characters in mutation strings.
     collapse_identical_variants : {'mean', 'median', False}
         If identical variants in ``variants_df`` (same 'aa_substitutions'),
         exist within individual condition groups,
         collapse them by taking mean or median of 'func_score', or
         (if `False`) do not collapse at all. Collapsing will make fitting faster,
         but *not* a good idea if you are doing bootstrapping.
-    assert_site_integrity : bool
-        If True, will assert that all sites in the data frame
-        have the same wild type amino acid, grouped by condition.
-    alphabet : array-like
-        Allowed characters in mutation strings.
     condition_colors : array-like or dict
         Maps each condition to the color used for plotting. Either a dict keyed
         by each condition, or an array of colors that are sequentially assigned
         to the conditions.
     letter_suffixed_sites: bool
         True if sites are sequential and integer, False otherwise.
+    assert_site_integrity : bool
+        If True, will assert that all sites in the data frame
+        have the same wild type amino acid, grouped by condition.
+    verbose : bool
+        If True, will print progress bars.
+    nb_workers : int
+        Number of workers to use for parallel operations.
+        If None, will use all available CPUs.
+    name : str or None
+        Name of the data object. If None, will be assigned
+        a unique name based upon the number of data objects
+        instantiated.
 
     Example
     -------
@@ -134,7 +164,6 @@ class Data:
     ...     alphabet = multidms.AAS_WITHSTOP,
     ...     reference = "a",
     ... )  # doctest: +ELLIPSIS
-    INFO: Pandarallel will run on ... workers.
     ...
 
     Note this may take some time due to the string
@@ -181,6 +210,8 @@ class Data:
     8         b          M1E P3R        -2.7     G3R M1E
     """
 
+    counter = 0
+
     def __init__(
         self,
         variants_df: pd.DataFrame,
@@ -192,6 +223,7 @@ class Data:
         assert_site_integrity=False,
         verbose=False,
         nb_workers=None,
+        name=None,
     ):
         """See main class docstring."""
         # Check and initialize conditions attribute
@@ -205,10 +237,10 @@ class Data:
         self._conditions = tuple(variants_df["condition"].astype(str).unique())
 
         if str(reference) not in self._conditions:
-            if isinstance(reference, str):
+            if not isinstance(reference, str):
                 raise ValueError(
                     "reference must be a string, note that if your "
-                    "condition names are numeric, they are being"
+                    "condition names are numeric, they are being "
                     "converted to string"
                 )
             raise ValueError("reference must be in condition factor levels")
@@ -268,7 +300,9 @@ class Data:
 
         # Use the "aa_substitutions" to infer the
         # wild type for each condition
-        site_map = pd.DataFrame()
+        # site_map = pd.DataFrame()
+        site_map = pd.DataFrame(columns=self.conditions)
+        # print(site_map.info())
         for hom, hom_func_df in df.groupby("condition"):
             if verbose:
                 print(f"inferring site map for {hom}")
@@ -295,7 +329,9 @@ class Data:
         site_map.dropna(inplace=True)
 
         nb_workers = min(os.cpu_count(), 4) if nb_workers is None else nb_workers
-        pandarallel.initialize(progress_bar=verbose, nb_workers=nb_workers)
+        pandarallel.initialize(
+            progress_bar=verbose, verbose=0 if not verbose else 2, nb_workers=nb_workers
+        )
 
         def flags_invalid_sites(disallowed_sites, sites_list):
             """Check to see if a sites list contains
@@ -470,6 +506,13 @@ class Data:
             ).fillna(0)
 
         self._mutations_df = mut_df
+        self._name = name if isinstance(name, str) else f"Data-{Data.counter}"
+        Data.counter += 1
+
+    @property
+    def name(self) -> str:
+        """The name of the data object."""
+        return self._name
 
     @property
     def conditions(self) -> tuple:

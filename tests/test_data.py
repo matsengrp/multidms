@@ -1,12 +1,14 @@
 """Tests for the Data class and its methods."""
 
+
+import os
 import pytest
 import multidms
 import numpy as np
 import pandas as pd
 from io import StringIO
 
-func_score_df = pd.read_csv(
+TEST_FUNC_SCORES = pd.read_csv(
     StringIO(
         """
 condition,aa_substitutions,func_score
@@ -24,13 +26,11 @@ b,P2T,0.3
     )
 )
 
-
 data = multidms.Data(
-    func_score_df,
+    TEST_FUNC_SCORES,
     alphabet=multidms.AAS_WITHSTOP,
     reference="a",
     assert_site_integrity=True,
-    nb_workers=2,
 )
 
 model = multidms.Model(data, PRNGKey=23)
@@ -43,7 +43,7 @@ def test_site_integrity():
     """
     df = pd.concat(
         [
-            func_score_df,
+            TEST_FUNC_SCORES,
             pd.Series({"condition": "a", "aa_substitutions": "P2E", "func_score": 0.0}),
         ],
         ignore_index=True,
@@ -78,7 +78,7 @@ def test_non_identical_mutations():
     are correctly identified.
     """
     data = multidms.Data(
-        func_score_df,
+        TEST_FUNC_SCORES,
         alphabet=multidms.AAS_WITHSTOP,
         reference="a",
         assert_site_integrity=False,
@@ -87,7 +87,7 @@ def test_non_identical_mutations():
     assert data.non_identical_mutations["b"] == "G3P"
 
     data = multidms.Data(
-        func_score_df,
+        TEST_FUNC_SCORES,
         alphabet=multidms.AAS_WITHSTOP,
         reference="b",
         assert_site_integrity=True,
@@ -111,7 +111,7 @@ def test_invalid_non_identical_sites():
     # that only contain exactly a mutation at site 1, there's three of those
     for query in [data_no_forward, data_no_reversion, data_neither]:
         data = multidms.Data(
-            func_score_df.query(query),
+            TEST_FUNC_SCORES.query(query),
             alphabet=multidms.AAS_WITHSTOP,
             reference="a",
             assert_site_integrity=True,
@@ -127,7 +127,7 @@ def test_invalid_non_identical_sites():
 def test_converstion_from_subs():
     """Make sure that the conversion from each reference choice is correct"""
     for ref, bundle in zip(["a", "b"], ["G3P", "P3G"]):
-        data = multidms.Data(func_score_df, reference=ref)
+        data = multidms.Data(TEST_FUNC_SCORES, reference=ref)
         assert data.convert_subs_wrt_ref_seq(("b" if ref == "a" else "a"), "") == bundle
 
 
@@ -137,7 +137,7 @@ def test_wildtype_mutatant_predictions():
     by comparing them to a "by-hand" calculation on the parameters.
     """
     data = multidms.Data(
-        func_score_df,
+        TEST_FUNC_SCORES,
         alphabet=multidms.AAS_WITHSTOP,
         reference="a",
         assert_site_integrity=False,
@@ -178,7 +178,7 @@ def test_mutations_df():
     calculations.
     """
     data = multidms.Data(
-        func_score_df,
+        TEST_FUNC_SCORES,
         alphabet=multidms.AAS_WITHSTOP,
         reference="a",
         assert_site_integrity=False,
@@ -201,7 +201,7 @@ def test_mutations_df():
             byhand_func_score = scale / (1 + np.exp(-1 * byhand_latent)) + bias
             assert np.isclose(
                 byhand_func_score,
-                mutations_df.loc[mutation, f"{condition}_predicted_func_score"],
+                mutations_df.loc[mutation, f"predicted_func_score_{condition}"],
             )
 
 
@@ -224,7 +224,7 @@ def test_non_identical_conversion():
     in the non reference variants reference genotype
     """
     data = multidms.Data(
-        func_score_df,
+        TEST_FUNC_SCORES,
         alphabet=multidms.AAS_WITHSTOP,
         collapse_identical_variants="mean",
         reference="a",
@@ -303,7 +303,7 @@ def test_model_phenotype_predictions():
     """
     internal_pred = model.get_variants_df(phenotype_as_effect=False)
     external_pred = model.add_phenotypes_to_df(
-        func_score_df, unknown_as_nan=True, phenotype_as_effect=False
+        TEST_FUNC_SCORES, unknown_as_nan=True, phenotype_as_effect=False
     ).dropna()
     assert np.all(
         internal_pred.predicted_latent.values == external_pred.predicted_latent.values
@@ -323,7 +323,7 @@ def test_model_phenotype_effect_predictions():
     """
     internal_pred = model.get_variants_df(phenotype_as_effect=True)
     external_pred = model.add_phenotypes_to_df(
-        func_score_df, unknown_as_nan=True, phenotype_as_effect=True
+        TEST_FUNC_SCORES, unknown_as_nan=True, phenotype_as_effect=True
     ).dropna()
     assert np.all(
         internal_pred.predicted_latent.values == external_pred.predicted_latent.values
@@ -350,22 +350,51 @@ def test_model_fit_and_determinism():
         assert np.all(values == model_2.params[param])
 
 
-def test_combine_replicate_muts():
+def test_explode_params_dict():
+    """Test multidms.model_collection.explode_params_dict"""
+    params_dict = {"a": [1, 2], "b": [3]}
+    exploded = multidms.model_collection._explode_params_dict(params_dict)
+    assert exploded == [{"a": 1, "b": 3}, {"a": 2, "b": 3}]
+
+
+def test_fit_models():
     """
-    Test that multidms.utils.combine_replicate_muts
-    works as expected by combining two variations
-    of the testing data
+    Test fitting two different models in
+    parallel using multudms.model_collection.fit_models
     """
-    fit_dict = {
-        "1": multidms.Model(data, PRNGKey=23),
-        "2": multidms.Model(data, PRNGKey=1),
-    }
-    combined_mut_df = multidms.utils.combine_replicate_muts(
-        fit_dict, times_seen_threshold=0
+    data = multidms.Data(
+        TEST_FUNC_SCORES,
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="a",
+        assert_site_integrity=False,
     )
-    print(combined_mut_df)
-    single_mut_df = fit_dict["1"].get_mutations_df()
-    for col, values in single_mut_df.items():
-        if col in ["wts", "sites", "muts"] or "times_seen" in col:
-            continue
-        assert np.all(values == combined_mut_df[f"1_{col}"].values)
+    params = {
+        "dataset": [data],
+        "iterations_per_step": [2],
+        "scale_coeff_lasso_shift": [0.0, 1e-5],
+    }
+    _, _, fit_models_df = multidms.model_collection.fit_models(
+        params,
+        n_threads=min(os.cpu_count(), 4),
+    )
+    mc = multidms.model_collection.ModelCollection(fit_models_df)
+    tall_combined = mc.split_apply_combine_muts(groupby=["scale_coeff_lasso_shift"])
+    assert len(tall_combined) == 2 * len(data.mutations_df)
+    assert list(tall_combined.index.names) == ["scale_coeff_lasso_shift"]
+
+
+def test_data_names():
+    """
+    Test that the default data names are correctly
+    updated as new Data objects are created within a
+    single python session.
+    """
+    num_datasets = multidms.Data.counter
+    for i in range(3):
+        d_i = multidms.Data(
+            TEST_FUNC_SCORES,
+            alphabet=multidms.AAS_WITHSTOP,
+            reference="a",
+            assert_site_integrity=False,
+        )
+        assert d_i.name == f"Data-{num_datasets + i}"

@@ -41,12 +41,13 @@ dependencies = [
     "numpy",
     "pandas",
     "binarymap",
-    "altair",
+    "altair==5.1.2", # pandas convert_dtypes bug
     "matplotlib",
     "seaborn",
     "scipy",
     "tqdm",
-    "pandarallel"
+    "pandarallel",
+    "ipywidgets"
 ]
 
 [project.optional-dependencies]
@@ -55,15 +56,14 @@ dev = [
     "pytest-pep8",
     "pytest-datadir",
     "pre-commit",
-    "black",
+    "ruff~=0.0.289",
+    "black~=23.3.0",
     "notebook",
-    "ipywidgets",
     "sphinx",
     "nbsphinx",
     "nbsphinx_link",
     "bumpver",
-    "sphinxcontrib-bibtex",
-    "ruff",
+    "sphinxcontrib-bibtex"
 ]
 
 [tool.ruff]

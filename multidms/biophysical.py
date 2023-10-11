@@ -368,7 +368,7 @@ def _gamma_corrected_cost_smooth(
     scale_coeff_ridge_shift=0,
     scale_coeff_ridge_beta=0,
     scale_coeff_ridge_gamma=0,
-    scale_coeff_ridge_cd=0,
+    scale_coeff_ridge_alpha_d=0,
     **kwargs,
 ):
     """
@@ -391,7 +391,7 @@ def _gamma_corrected_cost_smooth(
         Ridge penalty coefficient for beta parameters
     scale_coeff_ridge_gamma : float
         Ridge penalty coefficient for gamma parameters
-    scale_coeff_ridge_cd : float
+    scale_coeff_ridge_alpha_d : float
         Ridge penalty coefficient for alpha parameters
     kwargs : dict
         Additional keyword arguments to pass to the biophysical model function
@@ -429,7 +429,7 @@ def _gamma_corrected_cost_smooth(
         # compute a regularization term that penalizes non-zero
         # parameters and add it to the loss function
         loss += scale_coeff_ridge_shift * jnp.sum(d_params["s_md"] ** 2)
-        loss += scale_coeff_ridge_cd * jnp.sum(d_params["alpha_d"] ** 2)
+        loss += scale_coeff_ridge_alpha_d * jnp.sum(d_params["alpha_d"] ** 2)
         loss += scale_coeff_ridge_gamma * jnp.sum(d_params["gamma_d"] ** 2)
 
     loss += scale_coeff_ridge_beta * jnp.sum(params["beta"] ** 2)

@@ -13,7 +13,7 @@ from functools import partial, reduce
 import jax
 import jax.numpy as jnp
 import numpy as onp
-import pandas
+import pandas as pd
 import scipy
 import seaborn as sns
 from frozendict import frozendict
@@ -23,10 +23,10 @@ from jaxopt.linear_solve import solve_normal_cg
 from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
 
-import multidms.plot
 from multidms import Data
+from multidms.data import split_sub
 import multidms.biophysical
-from multidms.utils import is_wt
+from multidms.plot import _lineplot_and_heatmap
 
 
 class Model:
@@ -134,48 +134,52 @@ class Model:
     features included. These are automatically updated each time you
     request the property.
 
-    >>> model.mutations_df  # doctest: +NORMALIZE_WHITESPACE
-             wts  sites muts  times_seen_a  times_seen_b      beta  \
-    mutation                                                         
-    M1E        M      1    E             1           3.0  0.080868   
-    M1W        M      1    W             1           0.0 -0.386247   
-    G3P        G      3    P             1           1.0 -0.375656   
-    G3R        G      3    R             1           2.0  1.668974   
+    >>> model.get_mutations_df()  # doctest: +NORMALIZE_WHITESPACE
+                  beta  shift_b  predicted_func_score_a  predicted_func_score_b  \
+    mutation
+    M1E       0.080868      0.0                0.101030                0.565154
+    M1W      -0.386247      0.0               -0.476895               -0.012770
+    G3P      -0.375656      0.0               -0.464124                0.000000
+    G3R       1.668974      0.0                1.707195                2.171319
     <BLANKLINE>
-              a_predicted_func_score  shift_b  b_predicted_func_score  
-    mutation                                                           
-    M1E                    -2.398970      0.0               -2.398970  
-    M1W                    -2.976895      0.0               -2.976895  
-    G3P                    -2.964124      0.0               -2.964124  
-    G3R                    -0.792805      0.0               -0.792805 
+              times_seen_a  times_seen_b wts  sites muts
+    mutation
+    M1E                  1           3.0   M      1    E
+    M1W                  1           0.0   M      1    W
+    G3P                  1           1.0   G      3    P
+    G3R                  1           2.0   G      3    R
+
 
     Notice the respective single mutation effects (``"beta"``), conditional shifts
     (``shift_d``),
     and predicted functional score (``F_d``) of each mutation in the model are now
     easily accessible. Similarly, we can take a look at the variants_df for the model,
 
-    >>> model.variants_df  # doctest: +NORMALIZE_WHITESPACE
+    >>> model.get_variants_df()  # doctest: +NORMALIZE_WHITESPACE
       condition aa_substitutions  func_score var_wrt_ref  predicted_latent  \
-    0         a              M1E         2.0         M1E          0.080868   
-    1         a              G3R        -7.0         G3R          1.668974   
-    2         a              G3P        -0.5         G3P         -0.375656   
-    3         a              M1W         2.3         M1W         -0.386247   
-    4         b              M1E         1.0     G3P M1E         -0.294788   
-    5         b              P3R        -5.0         G3R          1.668974   
-    6         b              P3G         0.4                      0.000000   
-    7         b          M1E P3G         2.7         M1E          0.080868   
-    8         b          M1E P3R        -2.7     G3R M1E          1.749842   
+    0         a              M1E         2.0         M1E          0.080868
+    1         a              G3R        -7.0         G3R          1.668974
+    2         a              G3P        -0.5         G3P         -0.375656
+    3         a              M1W         2.3         M1W         -0.386247
+    4         b              M1E         1.0     G3P M1E          0.080868
+    5         b              P3R        -5.0         G3R          2.044630
+    6         b              P3G         0.4                      0.375656
+    7         b          M1E P3G         2.7         M1E          0.456523
+    8         b          M1E P3R        -2.7     G3R M1E          2.125498
     <BLANKLINE>
-       predicted_func_score  
-    0             -2.398970  
-    1             -0.792805  
-    2             -2.964124  
-    3             -2.976895  
-    4             -2.865839  
-    5             -0.792805  
-    6             -2.500000  
-    7             -2.398970  
-    8             -0.740336  
+       predicted_func_score
+    0              0.101030
+    1              1.707195
+    2             -0.464124
+    3             -0.476895
+    4              0.098285
+    5              2.171319
+    6              0.464124
+    7              0.565154
+    8              2.223789
+
+
+
 
     We now have access to the predicted (and gamma corrected) functional scores
     as predicted by the models current parameters.
@@ -430,18 +434,30 @@ class Model:
         warnings.warn("deprecated", DeprecationWarning)
         return self.get_mutations_df(phenotype_as_effect=False)
 
-    def get_mutations_df(self, phenotype_as_effect=True):
+    def get_mutations_df(
+        self,
+        phenotype_as_effect=True,
+        times_seen_threshold=0,
+        return_split=True,
+    ):
         """
         Mutation attributes and phenotypic effects.
 
         Parameters
         ----------
-        phenotype_as_effect : bool
+        phenotype_as_effect : bool, optional
             if True, phenotypes (both latent, and func_score)
             are calculated as the _difference_ between predicted
             phenotype of a given variant and the respective experimental
             wildtype prediction. Otherwise, report the unmodified
             model prediction.
+        times_seen_threshold : int, optional
+            Only report mutations that have been seen at least
+            this many times in each condition. Defaults to 0.
+        return_split : bool, optional
+            If True, return the split mutations as separate columns:
+            'wts', 'sites', and 'muts'.
+            Defaults to True.
 
         Returns
         -------
@@ -455,6 +471,12 @@ class Model:
         """
         # we're updating this
         mutations_df = self.data.mutations_df.set_index("mutation")
+        if not return_split:
+            mutations_df.drop(
+                ["wts", "sites", "muts"],
+                axis=1,
+                inplace=True,
+            )
 
         # for effect calculation
         if phenotype_as_effect:
@@ -463,6 +485,7 @@ class Model:
         # add betas i.e. 'latent effect'
         mutations_df.loc[:, "beta"] = self._params["beta"]
         X = sparse.BCOO.fromdense(onp.identity(len(self._data.mutations)))
+
         for condition in self._data.conditions:
             # shift of latent effect
             if condition != self._data.reference:
@@ -471,9 +494,25 @@ class Model:
             Y_pred = self.phenotype_frombinary(X, condition)
             if phenotype_as_effect:
                 Y_pred -= wildtype_df.loc[condition, "predicted_func_score"]
-            mutations_df[f"{condition}_predicted_func_score"] = Y_pred
+            mutations_df[f"predicted_func_score_{condition}"] = Y_pred
 
-        return mutations_df
+        # filter by times seen
+        if times_seen_threshold > 0:
+            for condition in self._data.conditions:
+                mutations_df = mutations_df[
+                    mutations_df[f"times_seen_{condition}"] >= times_seen_threshold
+                ]
+
+        col_order = (
+            ["beta"]
+            + [c for c in mutations_df.columns if "shift_" in c]
+            + [c for c in mutations_df.columns if "predicted_" in c]
+            + [c for c in mutations_df.columns if "times_seen_" in c]
+        )
+        if return_split:
+            col_order += ["wts", "sites", "muts"]
+
+        return mutations_df[col_order]
 
     def add_phenotypes_to_df(
         self,
@@ -559,6 +598,9 @@ class Model:
                 raise ValueError(f"`df` already contains column {col}")
             ret[col] = onp.nan
 
+        if converted_substitutions_col is not None:
+            ret[converted_substitutions_col] = ""
+
         for condition, condition_df in df.groupby(condition_col):
             variant_subs = condition_df[substitutions_col]
             if condition not in self.data.reference_sequence_conditions:
@@ -634,7 +676,7 @@ class Model:
         containing the prediction features for each.
         """
         wildtype_df = (
-            pandas.DataFrame(index=self.data.conditions)
+            pd.DataFrame(index=self.data.conditions)
             .assign(predicted_latent=onp.nan)
             .assign(predicted_func_score=onp.nan)
         )
@@ -825,7 +867,11 @@ class Model:
         """
         df = self.variants_df
 
-        df = df.assign(is_wt=df["aa_substitutions"].apply(is_wt))
+        df = df.assign(
+            is_wt=df["aa_substitutions"].apply(
+                lambda string: True if len(string.split()) == 0 else False
+            )
+        )
 
         if ax is None:
             fig, ax = plt.subplots(figsize=[3, 3])
@@ -889,7 +935,11 @@ class Model:
         """
         df = self.variants_df
 
-        df = df.assign(is_wt=df["aa_substitutions"].apply(is_wt))
+        df = df.assign(
+            is_wt=df["aa_substitutions"].apply(
+                lambda string: True if len(string.split()) == 0 else False
+            )
+        )
 
         if ax is None:
             fig, ax = plt.subplots(figsize=[3, 3])
@@ -1110,7 +1160,7 @@ class Model:
 
         combine_on = "mutation" if site_agg_func is None else "sites"
         comb_mut_effects = reduce(
-            lambda l, r: pandas.merge(l, r, how="inner", on=combine_on),  # noqa: E741
+            lambda l, r: pd.merge(l, r, how="inner", on=combine_on),  # noqa: E741
             dfs,
         )
         comb_mut_effects["is_stop"] = [
@@ -1148,9 +1198,112 @@ class Model:
 
         return fig, ax
 
-    def mut_shift_plot(self, **kwargs):
+    def mut_param_heatmap(
+        self,
+        mut_param="shift",
+        times_seen_threshold=0,
+        phenotype_as_effect=True,
+        **line_and_heat_kwargs,
+    ):
         """
         Wrapper method for visualizing the shift plot.
         see `multidms.plot.mut_shift_plot()` for more
         """  # noqa: D401
-        return multidms.plot.mut_shift_plot(self, **kwargs)
+        possible_mut_params = set(["shift", "predicted_func_score", "beta"])
+        if mut_param not in possible_mut_params:
+            raise ValueError(f"invalid {mut_param=}")
+
+        # aggregate mutation values between dataset fits
+        muts_df = self.get_mutations_df(
+            times_seen_threshold=times_seen_threshold,
+            phenotype_as_effect=phenotype_as_effect,
+            return_split=False,
+        )
+
+        # drop columns which are not the mutational parameter of interest
+        drop_cols = [c for c in muts_df.columns if "times_seen" in c]
+        for param in possible_mut_params - set([mut_param]):
+            drop_cols.extend([c for c in muts_df.columns if c.startswith(param)])
+        muts_df.drop(drop_cols, axis=1, inplace=True)
+
+        # add in the mutation annotations
+        muts_df["wildtype"], muts_df["site"], muts_df["mutant"] = zip(
+            *muts_df.reset_index()["mutation"].map(split_sub)
+        )
+
+        # no longer need mutation annotation
+        muts_df.reset_index(drop=True, inplace=True)
+
+        # add conditional wildtypes
+        fit = self
+        reference = fit.data.reference
+        conditions = fit.data.conditions
+        site_map = fit.data.site_map
+
+        wt_dict = {
+            "wildtype": site_map[reference].values,
+            "mutant": site_map[reference].values,
+            "site": site_map[reference].index.values,
+        }
+        [c for c in muts_df.columns if c.startswith(mut_param)]
+        for value_col in [c for c in muts_df.columns if c.startswith(mut_param)]:
+            wt_dict[value_col] = 0
+
+        # add reference wildtype values needed for lineplot and heatmap fx
+        muts_df = pd.concat([muts_df, pd.DataFrame(wt_dict)])
+
+        # add in wildtype values for each non-reference condition
+        # these will be available in the tooltip
+        addtl_tooltip_stats = []
+        for condition in conditions:
+            if condition == reference:
+                continue
+            addtl_tooltip_stats.append(f"wildtype_{condition}")
+            muts_df[f"wildtype_{condition}"] = muts_df.site.apply(
+                lambda site: site_map.loc[int(site), condition]
+            )
+
+        # melt conditions and stats cols, beta is already "tall"
+        # note that we must rename conditions with "." in the
+        # name to "_" to avoid altair errors
+        if mut_param == "beta":
+            muts_df_tall = muts_df.assign(condition=reference.replace(".", "_"))
+        else:
+            muts_df_tall = muts_df.melt(
+                id_vars=["wildtype", "site", "mutant"] + addtl_tooltip_stats,
+                value_vars=[c for c in muts_df.columns if c.startswith(mut_param)],
+                var_name="condition",
+                value_name=mut_param,
+            )
+            muts_df_tall.condition.replace(
+                {
+                    f"{mut_param}_{condition}": condition.replace(".", "_")
+                    for condition in conditions
+                },
+                inplace=True,
+            )
+
+        # add in condition colors, rename for altair
+        condition_colors = {
+            con.replace(".", "_"): col for con, col in fit.data.condition_colors.items()
+        }
+
+        # rename for altair
+        addtl_tooltip_stats = [v.replace(".", "_") for v in addtl_tooltip_stats]
+        muts_df_tall.rename(
+            {c: c.replace(".", "_") for c in muts_df_tall.columns}, axis=1, inplace=True
+        )
+
+        kwargs = {
+            "data_df": muts_df_tall,
+            "stat_col": mut_param,
+            "addtl_tooltip_stats": addtl_tooltip_stats,
+            "category_col": "condition",
+            "heatmap_color_scheme": "redblue",
+            "init_floor_at_zero": False,
+            "categorical_wildtype": True,
+            "category_colors": condition_colors,
+        }
+
+        # return multidms.plot._lineplot_and_heatmap(**kwargs, **line_and_heat_kwargs),
+        return _lineplot_and_heatmap(**kwargs, **line_and_heat_kwargs)
