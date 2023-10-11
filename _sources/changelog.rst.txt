@@ -8,8 +8,7 @@ The format is based on `Keep a Changelog <https://keepachangelog.com>`_.
 
 HEAD
 ----
-Major Changes:
-- Adds initial [multidms.model_collection](https://github.com/matsengrp/multidms/blob/120_model_collection/multidms/model_collection.py) module with `multidms.fit_models` for the ability to fit multiple models across a range of parameter spaces in parallel using `multiprocessing`. This is inspired by the `polyclonal.fit_models` function. 
+- Adds initial `multidms.model_collection <https://github.com/matsengrp/multidms/blob/main/multidms/model_collection.py>`_ module with `multidms.fit_models` for the ability to fit multiple models across a range of parameter spaces in parallel using `multiprocessing`. This is inspired by the `polyclonal.fit_models` function. 
 - Adds the `ModelCollection` class for split-apply-combine interface to the mutational dataframes for a collection of models
 - Adds two altair plotting methods to `ModelCollection`. (1) `mut_param_heatmap` for visualizing aggregated parameter sets across fits, and (2) `mut_param_traceplot` making trace plots across fits with variable lasso coeff strengths
 - removes `utils` module.
