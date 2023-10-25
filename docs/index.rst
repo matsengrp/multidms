@@ -22,7 +22,7 @@ and how much the effects differ between experiments.
 
 - A concise description of the joint modeling approach is available in the `biophysical model <https://matsengrp.github.io/multidms/biophysical_model.html>`_ section.
 
-- A quick intro to the python interface is available in the `Fit Delta BA.1 example <https://matsengrp.github.io/multidms/fit_delta_BA1_example.html>`_ page.
+- A example fitting python with the python interface is available in the `usage examples documentation <https://matsengrp.github.io/multidms/fit_delta_BA1_example.html>`_ page.
 
 - For a more advanced example of the multidms interface, see our `manuscript SARS-CoV-2 spike analysis <https://matsengrp.github.io/SARS-CoV-2_spike_multidms/spike-analysis.html>`_.
 
@@ -42,7 +42,6 @@ and how much the effects differ between experiments.
     installation    
     biophysical_model
     fit_delta_BA1_example
-    model_collection
     multidms
     acknowledgments
     contributing

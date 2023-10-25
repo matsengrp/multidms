@@ -18,7 +18,7 @@ HEAD
 
 
 0.2.2
----------
+-----
 - Fixed a `bug <https://github.com/matsengrp/multidms/issues/116>`_ 
     caused by non-unique indices in input variant functional score dataframes.
 

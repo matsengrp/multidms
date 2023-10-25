@@ -4,18 +4,22 @@ and merges the results for comparison and visualization.
 """
 
 import itertools as it
+from functools import lru_cache
 from multiprocessing import get_context
 import multiprocessing
 import pprint
 import time
 
 import multidms
-from multidms.data import split_sub
 
 import pandas as pd
 import jax.numpy as jnp
 import numpy as onp
 import altair as alt
+
+PARAMETER_NAMES_FOR_PLOTTING = {
+    "scale_coeff_lasso_shift": "Lasso Penalty",
+}
 
 
 class ModelCollectionFitError(Exception):
@@ -105,8 +109,8 @@ def fit_one_model(
         If you would like to see training loss throughout training,
         divide the number of total iterations by the number of steps.
         In other words, if you specify 1 for num_training_steps and
-        20000 for iterations_per_step, that would be eqivilent to
-        spcifying 20 for num_training_steps and 1000 for iterations_per_step,
+        20000 for iterations_per_step, that would be equivalent to
+        specifying 20 for num_training_steps and 1000 for iterations_per_step,
         except that the latter will populate the step_loss attribute
         with the loss at the beginning each step.
     iterations_per_step : int, optional
@@ -281,8 +285,8 @@ def fit_models(params, n_threads, failures="error"):
     (n_fit, n_failed, fit_models)
         Number of models that fit successfully, number of models that failed,
         and a dataframe which contains a row for each of the `multidms.Model`
-        object references along with the parameters each was fit with for convinience.
-        The dataframe is ultimitely meant to be passed into the ModelCollection class.
+        object references along with the parameters each was fit with for convenience.
+        The dataframe is ultimately meant to be passed into the ModelCollection class.
         for comparison and visualization.
     """
     if n_threads == -1:
@@ -339,6 +343,8 @@ class ModelCollection:
         first_dataset = fit_models.iloc[0].model.data
         validated_datasets = [first_dataset.name]
         site_map_union = first_dataset.site_map.copy()
+        shared_mutations = set(first_dataset.mutations)
+        all_mutations = set(first_dataset.mutations)
         for fit in fit_models.model:
             if fit.data.name in validated_datasets:
                 continue
@@ -369,11 +375,18 @@ class ModelCollection:
                 ).sort_index()
             validated_datasets.append(fit.data.name)
 
+            shared_mutations = set.intersection(
+                shared_mutations, set(fit.data.mutations)
+            )
+            all_mutations = set.union(all_mutations, set(fit.data.mutations))
+
         self._site_map_union = site_map_union
         self._conditions = first_dataset.conditions
         self._reference = first_dataset.reference
         self._fit_models = fit_models
         self.condition_colors = first_dataset.condition_colors
+        self._shared_mutations = tuple(shared_mutations)
+        self._all_mutations = tuple(all_mutations)
 
     @property
     def fit_models(self) -> pd.DataFrame:
@@ -395,12 +408,23 @@ class ModelCollection:
         """The reference conditions (shared by each fitting dataset) used for fitting."""
         return self._reference
 
+    @property
+    def shared_mutations(self) -> tuple:
+        """The mutations shared by each fitting dataset."""
+        return self._shared_mutations
+
+    @property
+    def all_mutations(self) -> tuple:
+        """The mutations shared by each fitting dataset."""
+        return self._all_mutations
+
+    @lru_cache(maxsize=10)
     def split_apply_combine_muts(
         self,
-        groupby=["dataset_name", "scale_coeff_lasso_shift"],
+        groupby=("dataset_name", "scale_coeff_lasso_shift"),
         aggregate_func="mean",
-        within_group_param_join="outer",
-        between_group_param_join="outer",
+        # within_group_param_join="outer",
+        # between_group_param_join="outer",
         inner_merge_dataset_muts=True,
         query=None,
         **kwargs,
@@ -410,7 +434,7 @@ class ModelCollection:
         harbored by each of the fits in the collection.
 
         here, we split the collection by grouping certain attributes, such
-        as dataset name, or the scaling corefficient of the lasso penalty.
+        as dataset name, or the scaling coefficient of the lasso penalty.
         Each of those groups may then be filtered and aggregated, before
         the function stacks all the groups back together in a
         tall style dataframe. The resulting dataframe will have a multiindex
@@ -418,21 +442,15 @@ class ModelCollection:
 
         Parameters
         ----------
-        groupby : str or list of str or None, optional
+        groupby : str or tuple of str or None, optional
             The attributes to group the fits by. If None, then group by all
             attributes except for the model, data, step_loss, and verbose attributes.
-            The default is ["dataset_name", "scale_coeff_lasso_shift"].
+            The default is ("dataset_name", "scale_coeff_lasso_shift").
         aggregate_func : str or callable, optional
             The function to aggregate the mutational dataframes within each group.
             The default is "mean".
-        within_group_param_join : str, optional
-            The method to join the mutational dataframes within each group.
-            The default is "outer".
-        between_group_param_join : str, optional
-            The method to join columns of the mutational dataframes
-            between each group. The default is "outer".
         inner_merge_dataset_muts : bool, optional
-            Whether to toss mutations which are _not_ shared accross all datasets
+            Whether to toss mutations which are _not_ shared across all datasets
             before aggregation of group mutation parameter values.
             The default is True.
         query : str, optional
@@ -448,23 +466,25 @@ class ModelCollection:
         :class:`pandas.DataFrame`
             A dataframe containing the aggregated mutational parameter values
         """
+        print("cache miss - this could take a moment")
         if groupby is None:
-            groupby = list(
+            groupby = tuple(
                 set(self.fit_models.columns)
                 - set(["model", "data", "step_loss", "verbose"])
             )
 
         elif isinstance(groupby, str):
-            groupby = [groupby]
+            groupby = tuple([groupby])
 
-        elif isinstance(groupby, list):
+        elif isinstance(groupby, tuple):
             if not all(feature in self.fit_models.columns for feature in groupby):
                 raise ValueError(
                     f"invalid groupby, values must be in {self.fit_models.columns}"
                 )
         else:
             raise ValueError(
-                f"invalid groupby, must be list with values in {self.fit_models.columns}"
+                "invalid groupby, must be tuple with values "
+                f"in {self.fit_models.columns}"
             )
 
         queried_fits = (
@@ -473,14 +493,6 @@ class ModelCollection:
         if len(queried_fits) == 0:
             raise ValueError("invalid query, no fits returned")
 
-        if inner_merge_dataset_muts:
-            shared_dataset_muts = set.intersection(
-                *[
-                    set(fit["model"].data.mutations)
-                    for _, fit in queried_fits.iterrows()
-                ]
-            )
-
         ret = pd.concat(
             [
                 pd.concat(
@@ -488,17 +500,21 @@ class ModelCollection:
                         fit["model"].get_mutations_df(return_split=False, **kwargs)
                         for _, fit in fit_group.iterrows()
                     ],
-                    join=within_group_param_join,
+                    join="inner",  # the columns will always match based on class req.
                 )
-                .query(f"mutation.isin({list(shared_dataset_muts)})")
+                .query(
+                    f"mutation.isin({list(self.shared_mutations)})"
+                    if inner_merge_dataset_muts
+                    else "mutation.notna()"
+                )
                 .groupby("mutation")
                 .aggregate(aggregate_func)
-                .assign(**dict(zip(groupby, group)))
+                .assign(**dict(zip(list(groupby), group)))
                 .reset_index()
-                .set_index(groupby)
-                for group, fit_group in queried_fits.groupby(groupby)
+                .set_index(list(groupby))
+                for group, fit_group in queried_fits.groupby(list(groupby))
             ],
-            join=between_group_param_join,
+            join="inner",
         )
 
         return ret
@@ -549,7 +565,7 @@ class ModelCollection:
             The function to aggregate the mutational parameter values
             between dataset fits. The default is "mean".
         inner_merge_dataset_muts : bool, optional
-            Whether to toss mutations which are _not_ shared accross all datasets
+            Whether to toss mutations which are _not_ shared across all datasets
             before aggregation of group mutation parameter values.
             The default is True.
         times_seen_threshold : int, optional
@@ -591,10 +607,8 @@ class ModelCollection:
         # aggregate mutation values between dataset fits
         muts_df = (
             self.split_apply_combine_muts(
-                groupby=["dataset_name"],
+                groupby="dataset_name",
                 aggregate_func=aggregate_func,
-                within_group_param_join="inner",
-                between_group_param_join="inner",
                 inner_merge_dataset_muts=inner_merge_dataset_muts,
                 times_seen_threshold=times_seen_threshold,
                 phenotype_as_effect=phenotype_as_effect,
@@ -611,8 +625,9 @@ class ModelCollection:
         muts_df.drop(drop_cols, axis=1, inplace=True)
 
         # add in the mutation annotations
+        parse_mut = self.fit_models.iloc[0].model.data.parse_mut
         muts_df["wildtype"], muts_df["site"], muts_df["mutant"] = zip(
-            *muts_df.reset_index()["mutation"].map(split_sub)
+            *muts_df.reset_index()["mutation"].map(parse_mut)
         )
 
         # no longer need mutation annotation
@@ -685,10 +700,28 @@ class ModelCollection:
 
         return multidms.plot._lineplot_and_heatmap(**args, **kwargs)
 
-    def mut_param_traceplot(self, mutations, mut_param="shift", **kwargs):
+    def mut_param_traceplot(
+        self,
+        mutations,
+        mut_param="shift",
+        x="scale_coeff_lasso_shift",
+        width_scalar=100,
+        height_scalar=100,
+        **kwargs,
+    ):
         """
-        vizualize mutation parameter values across the lasso penalty weights
-        of a given subset of the mutations.
+        visualize mutation parameter values across the lasso penalty weights
+        (by default) of a given subset of the mutations in the form of an
+        `altair.FacetChart`. This is useful when you would like to confirm
+        that a reported mutational parameter value carries through across the
+        individual fits.
+
+
+        Returns
+        -------
+        altair.Chart
+            A chart object which can be displayed in a jupyter notebook
+            or saved to a file.
         """
         if isinstance(mutations, str):
             mutations = [mutations]
@@ -700,9 +733,9 @@ class ModelCollection:
         if mut_param not in possible_mut_params:
             raise ValueError(f"invalid {mut_param=}")
 
-        # get mutation values, group by lasso penalty weight
+        # get mutation values, group by x axis variable and dataset
         muts_df = self.split_apply_combine_muts(
-            groupby="scale_coeff_lasso_shift", **kwargs
+            groupby=("dataset_name", x), **kwargs
         ).reset_index()
 
         # drop columns which are not the mutational parameter of interest,
@@ -723,12 +756,14 @@ class ModelCollection:
             )
 
         # add in mutation annotations for coloring
-        muts_df = muts_df.assign(
-            is_stop=muts_df.mutation.apply(lambda m: m.endswith("*"))
-        )
+        def mut_type(mut):
+            return "stop" if mut.endswith("*") else "nonsynonymous"
+
+        muts_df = muts_df.assign(mut_type=muts_df.mutation.apply(mut_type))
 
         # melt conditions and stats cols, beta is already "tall"
-        id_cols = ["scale_coeff_lasso_shift", "mutation", "is_stop"]
+        # id_cols = ["scale_coeff_lasso_shift", "mutation", "is_stop"]
+        id_cols = ["dataset_name", x, "mut_type", "mutation"]
         stat_cols_to_keep = [c for c in muts_df.columns if c.startswith(mut_param)]
         if mut_param == "beta":
             muts_df_tall = muts_df.assign(condition=self.reference)
@@ -745,20 +780,37 @@ class ModelCollection:
         highlight = alt.selection_point(
             on="mouseover", fields=["mutation"], nearest=True
         )
+        num_facet_rows = len(muts_df_tall.dataset_name.unique())
+        num_facet_cols = len(muts_df_tall.condition.unique())
 
-        base = alt.Chart(muts_df_tall).encode(
-            x="scale_coeff_lasso_shift:N",
-            y=f"{mut_param}",
-            color="is_stop",
-            detail="mutation",
-            tooltip=["mutation", mut_param],
+        base = (
+            alt.Chart(muts_df_tall)
+            .encode(
+                x=alt.X(
+                    x,
+                    type="nominal",
+                    title=(
+                        PARAMETER_NAMES_FOR_PLOTTING[x]
+                        if x in PARAMETER_NAMES_FOR_PLOTTING
+                        else x
+                    ),
+                ),
+                y=alt.Y(mut_param, type="quantitative", title=mut_param),
+                color="mut_type",
+                detail="mutation",
+                tooltip=["mutation", mut_param],
+            )
+            .properties(
+                width=num_facet_cols * width_scalar,
+                height=num_facet_rows * height_scalar,
+            )
         )
 
         points = (
             base.mark_circle()
             .encode(opacity=alt.value(0))
             .add_params(highlight)
-            .properties(width=600)
+            # .properties(width=600)
         )
 
         lines = base.mark_line().encode(
@@ -766,5 +818,187 @@ class ModelCollection:
         )
 
         return alt.layer(points, lines).facet(
-            row="condition:N",
+            row=alt.Row("dataset_name", title="Replicate"),
+            column=alt.Column("condition", title="Experiment"),
+        )
+
+    def shift_sparsity(
+        self, x="scale_coeff_lasso_shift", width_scalar=100, height_scalar=100, **kwargs
+    ):
+        """
+        Visualize shift parameter set sparsity across the lasso penalty weights
+        (by default) in the form of an `altair.FacetChart`.
+        We will group the mutations according to their status as either a
+        a "stop" (e.g. A15*), or "nonsynonymous" (e.g. A15G) mutation before calculating
+        the sparsity. This is because in a way, mutations to stop codons act as a
+        False positive rate, as we expect their mutational effect to be equally
+        deleterious in all experiments, and thus have a shift parameter value of zero.
+
+
+        Returns
+        -------
+        altair.Chart
+            A chart object which can be displayed in a jupyter notebook
+            or saved to a file.
+        """
+        # get mutation values, group by x axis variable and dataset
+        df = self.split_apply_combine_muts(groupby=("dataset_name", x), **kwargs)
+
+        # no need to view parameters besides shifts
+        to_throw = [
+            col
+            for col in df.columns
+            if not col.startswith("shift") and col != "mutation"
+        ]
+
+        # feature columns for distinct sparsity measurements
+        feature_cols = ["dataset_name", x, "mut_type"]
+
+        def sparsity(x):
+            return (x == 0).mean()
+
+        def mut_type(mut):
+            return "stop" if mut.endswith("*") else "nonsynonymous"
+
+        # apply, drop, and melt
+        sparsity_df = (
+            df.drop(columns=to_throw)
+            .assign(mut_type=lambda x: x.mutation.apply(mut_type))
+            .reset_index()
+            .groupby(by=feature_cols)
+            .apply(sparsity)
+            .drop(columns=feature_cols + ["mutation"])
+            .reset_index(drop=False)
+            .melt(id_vars=feature_cols, var_name="mut_param", value_name="sparsity")
+        )
+        num_facet_rows = len(sparsity_df.dataset_name.unique())
+        num_facet_cols = len(sparsity_df.mut_param.unique())
+
+        # create altair chart
+        base_chart = (
+            alt.Chart(sparsity_df)
+            .encode(
+                x=alt.X(
+                    "scale_coeff_lasso_shift",
+                    type="nominal",
+                    title=(
+                        PARAMETER_NAMES_FOR_PLOTTING[x]
+                        if x in PARAMETER_NAMES_FOR_PLOTTING
+                        else x
+                    ),
+                ).axis(
+                    format=".1e",
+                ),
+                y=alt.Y("sparsity", type="quantitative", title="Sparsity").axis(
+                    format="%"
+                ),
+                color=alt.Color("mut_type", type="nominal", title="Mutation type"),
+                tooltip=[
+                    "scale_coeff_lasso_shift",
+                    "sparsity",
+                    "mut_type",
+                ],
+            )
+            .properties(
+                width=num_facet_cols * width_scalar,
+                height=num_facet_rows * height_scalar,
+            )
+        )
+
+        # if the x axis is numeric, do line plots, otherwise do bar plots
+        if sparsity_df[x].dtype.kind in "biufc":
+            chart = base_chart.mark_point() + base_chart.mark_line()
+        else:
+            chart = base_chart.mark_bar().encode(xOffset="mut_type")
+
+        return chart.facet(
+            row=alt.Row("dataset_name", title="Dataset"),
+            column=alt.Column("mut_param", title="Experimental Shifts"),
+        )
+
+    def mut_param_dataset_correlation(
+        self,
+        x="scale_coeff_lasso_shift",
+        mut_param="shift",
+        width_scalar=150,
+        height=200,
+        **kwargs,
+    ):
+        """
+        Visualize the correlation between replicate datasets across the lasso penalty
+        weights (by default) in the form of an `altair.FacetChart`.
+
+        Returns
+        -------
+        altair.Chart
+            A chart object which can be displayed in a jupyter notebook
+            or saved to a file.
+        """
+        query = "dataset_name.notna()" if "query" not in kwargs else kwargs["query"]
+        if len(self.fit_models.query(query).dataset_name.unique()) < 2:
+            raise ValueError("Must specify a subset of fits with " "multiple datasets")
+
+        muts_df = self.split_apply_combine_muts(
+            groupby=("dataset_name", x), **kwargs
+        ).reset_index()
+
+        x_title = (
+            PARAMETER_NAMES_FOR_PLOTTING[x] if x in PARAMETER_NAMES_FOR_PLOTTING else x
+        )
+        replicate_series = []
+        comparisons = list(it.combinations(muts_df.dataset_name.unique(), 2))
+        for datasets in comparisons:
+            wide_df = (
+                muts_df.query(f"dataset_name.isin({datasets})")
+                .drop([c for c in muts_df.columns if "times_seen" in c], axis=1)
+                .pivot(columns=["dataset_name", x], index="mutation")
+            )
+            wide_df.columns.names = ["mut_param"] + wide_df.columns.names[1:]
+            for (mut_param, x_i), replicate_params_df in wide_df.T.groupby(
+                ["mut_param", x]
+            ):
+                replicate_series.append(
+                    pd.DataFrame(
+                        {
+                            "datasets": ",".join(datasets),
+                            "mut_param": mut_param,
+                            "correlation": replicate_params_df.T.corr().iloc[0, 1],
+                            x_title: x_i,
+                        },
+                        index=[0],
+                    ),
+                )
+
+        replicate_df = pd.concat(replicate_series)
+
+        # create altair chart
+        base_chart = (
+            alt.Chart(replicate_df)
+            .encode(
+                x=alt.X(
+                    x_title,
+                    type="nominal",
+                    title=(
+                        PARAMETER_NAMES_FOR_PLOTTING[x]
+                        if x in PARAMETER_NAMES_FOR_PLOTTING
+                        else x
+                    ),
+                ).axis(
+                    format=".1e",
+                ),
+                y=alt.Y("correlation", type="quantitative", title="Correlation"),
+                color=alt.Color("mut_param", type="nominal", title="Parameter"),
+                tooltip=["datasets", "correlation", "mut_param"],
+            )
+            .properties(width=len(comparisons) * width_scalar, height=height)
+        )
+
+        # if the x axis is numeric, do line plots, otherwise do bar plots
+        if replicate_df[x_title].dtype.kind in "biufc":
+            chart = base_chart.mark_point() + base_chart.mark_line()
+        else:
+            chart = base_chart.mark_bar().encode(xOffset="mut_param")
+
+        return chart.facet(
+            column=alt.Column("datasets", title="Experiment comparison"),
         )

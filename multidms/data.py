@@ -43,7 +43,7 @@ def split_sub(sub_string):
 
 def split_subs(subs_string, parser=split_sub):
     """Wrap the split_sub func to work for a
-    string contining multiple substitutions
+    string containing multiple substitutions
     """
     wts, sites, muts = [], [], []
     for sub in subs_string.split():
@@ -60,7 +60,7 @@ class Data:
     variant substitutions data.
     Individual objects of this type can be shared
     by multiple :py:class:`multidms.Model` Objects
-    for effeciently fitting various models to the same data.
+    for efficiently fitting various models to the same data.
 
     Note
     ----
@@ -97,7 +97,7 @@ class Data:
         mutation relative to the reference. This way, each condition informs
         the exact same parameters, even at sites that differ in wild type amino acid.
         These are encoded in a :class:`binarymap.binarymap.BinaryMap` object for each
-        condtion,
+        condition,
         where all sites that are non-identical to the reference are 1's.
         For motivation, see the `Model overview` section in :class:`multidms.Model`
         class notes.
@@ -173,7 +173,7 @@ class Data:
 
     After the object has finished being instantiated,
     we now have access to a few 'static' properties
-    of our data. See individual property docstrings
+    of our data. See individual property docstring
     for more information.
 
     >>> data.reference
@@ -234,7 +234,7 @@ class Data:
                 "condition column looks to be numeric type, converting to string",
                 UserWarning,
             )
-        self._conditions = tuple(variants_df["condition"].astype(str).unique())
+        self._conditions = tuple(sorted(variants_df["condition"].astype(str).unique()))
 
         if str(reference) not in self._conditions:
             if not isinstance(reference, str):
@@ -256,7 +256,7 @@ class Data:
         else:
             self.condition_colors = dict(zip(self._conditions, condition_colors))
         if not onp.all([isinstance(c, str) for c in self.condition_colors.values()]):
-            raise ValueError("condition_color values must be hexidecimal")
+            raise ValueError("condition_color values must be hexadecimal")
 
         # Check and initialize alphabet & mut parser attributes
         if len(set(alphabet)) != len(alphabet):
@@ -293,9 +293,9 @@ class Data:
         else:
             df = variants_df[cols].reset_index(drop=True)
 
-        self._split_subs = partial(split_subs, parser=self._mutparser.parse_mut)
+        self._parse_muts = partial(split_subs, parser=self._mutparser.parse_mut)
         df["wts"], df["sites"], df["muts"] = zip(
-            *df["aa_substitutions"].map(self._split_subs)
+            *df["aa_substitutions"].map(self._parse_muts)
         )
 
         # Use the "aa_substitutions" to infer the
@@ -509,6 +509,14 @@ class Data:
         self._name = name if isinstance(name, str) else f"Data-{Data.counter}"
         Data.counter += 1
 
+    def __repr__(self):
+        """Returns a string representation of the object."""
+        return f"{self.__class__.__name__}({self.name})"
+
+    def _str__(self):
+        """Returns a string representation of the object."""
+        return f"{self.__class__.__name__}({self.name})"
+
     @property
     def name(self) -> str:
         """The name of the data object."""
@@ -527,7 +535,7 @@ class Data:
     @property
     def mutations(self) -> tuple:
         """
-        A tuple of all mutations in the order reletive to their index into
+        A tuple of all mutations in the order relative to their index into
         the binarymap.
         """
         return self._mutations
@@ -596,19 +604,40 @@ class Data:
         """The functional scores for each variant in the training data."""
         return self._training_data["y"]
 
+    # TODO, rename mutparser
     @property
-    def mut_parser(self) -> MutationParser:
-        """The mutation parser used to parse mutations."""
-        return self._mut_parser
-
-    @property
-    def split_subs(self) -> partial:
+    def mutparser(self) -> MutationParser:
         """
-        A function that splits amino acid substitutions into wt, site, and mut
+        The mutation ``polyclonal.utils.MutationParser`` used
+        to parse mutations.
+        """
+        return self._mutparser
+
+    # TODO, rename
+    @property
+    def parse_mut(self) -> MutationParser:
+        """
+        returns a function that splits a single amino acid substitutions
+        into wildtype, site, and mutation
         using the mutation parser.
         """
-        return self._split_subs
+        return self.mutparser.parse_mut
 
+    # TODO, document rename issue
+    @property
+    def parse_muts(self) -> partial:
+        """
+        A function that splits amino acid substitutions
+        (a string of more than one) into wildtype, site, and mutation
+        using the mutation parser.
+        """
+        return self._parse_muts
+
+    # TODO should this be cached? how does caching interact with the way in
+    # which we applying this function in parallel?
+    # although, unless the variants are un-collapsed, this cache will be
+    # pretty useless.
+    # although it could be useful for the Model.add_phenotypes_to_df method.
     def convert_subs_wrt_ref_seq(self, condition, aa_subs):
         """
         Covert amino acid substitutions to be with respect to the reference sequence.
@@ -631,7 +660,7 @@ class Data:
         if condition in self.reference_sequence_conditions:
             return aa_subs
         return self._convert_split_subs_wrt_ref_seq(
-            condition, *self.split_subs(aa_subs)
+            condition, *self.parse_muts(aa_subs)
         )
 
     def _convert_split_subs_wrt_ref_seq(self, condition, wts, sites, muts):
