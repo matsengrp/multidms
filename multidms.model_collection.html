@@ -72,8 +72,8 @@ Note that is lock_beta_naught is not None, then this value is irrelevant.</p></l
 If you would like to see training loss throughout training,
 divide the number of total iterations by the number of steps.
 In other words, if you specify 1 for num_training_steps and
-20000 for iterations_per_step, that would be eqivilent to
-spcifying 20 for num_training_steps and 1000 for iterations_per_step,
+20000 for iterations_per_step, that would be equivalent to
+specifying 20 for num_training_steps and 1000 for iterations_per_step,
 except that the latter will populate the step_loss attribute
 with the loss at the beginning each step.</p></li>
 <li><p><strong>iterations_per_step</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – The number of iterations to perform per training step. The default is 20000.</p></li>
@@ -138,8 +138,8 @@ if “ignore” then just return <cite>None</cite> for models that failed optimi
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Number of models that fit successfully, number of models that failed,
 and a dataframe which contains a row for each of the <cite>multidms.Model</cite>
-object references along with the parameters each was fit with for convinience.
-The dataframe is ultimitely meant to be passed into the ModelCollection class.
+object references along with the parameters each was fit with for convenience.
+The dataframe is ultimately meant to be passed into the ModelCollection class.
 for comparison and visualization.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -191,13 +191,25 @@ as returned by <cite>multidms.model_collection.fit_models</cite>.</p>
 <dd><p>The reference conditions (shared by each fitting dataset) used for fitting.</p>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.shared_mutations">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shared_mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.model_collection.ModelCollection.shared_mutations" title="Link to this definition">¶</a></dt>
+<dd><p>The mutations shared by each fitting dataset.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.all_mutations">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">all_mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.model_collection.ModelCollection.all_mutations" title="Link to this definition">¶</a></dt>
+<dd><p>The mutations shared by each fitting dataset.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.split_apply_combine_muts">
-<span class="sig-name descname"><span class="pre">split_apply_combine_muts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groupby</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['dataset_name',</span> <span class="pre">'scale_coeff_lasso_shift']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">within_group_param_join</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'outer'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">between_group_param_join</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'outer'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_merge_dataset_muts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.split_apply_combine_muts" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">split_apply_combine_muts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groupby</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('dataset_name',</span> <span class="pre">'scale_coeff_lasso_shift')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_merge_dataset_muts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.split_apply_combine_muts" title="Link to this definition">¶</a></dt>
 <dd><p>wrapper to split-apply-combine the set of mutational dataframes
 harbored by each of the fits in the collection.</p>
 <p>here, we split the collection by grouping certain attributes, such
-as dataset name, or the scaling corefficient of the lasso penalty.
+as dataset name, or the scaling coefficient of the lasso penalty.
 Each of those groups may then be filtered and aggregated, before
 the function stacks all the groups back together in a
 tall style dataframe. The resulting dataframe will have a multiindex
@@ -205,16 +217,12 @@ with the mutation and the groupby attributes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>groupby</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>optional</em>) – The attributes to group the fits by. If None, then group by all
+<li><p><strong>groupby</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><em>tuple</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>optional</em>) – The attributes to group the fits by. If None, then group by all
 attributes except for the model, data, step_loss, and verbose attributes.
-The default is [“dataset_name”, “scale_coeff_lasso_shift”].</p></li>
+The default is (“dataset_name”, “scale_coeff_lasso_shift”).</p></li>
 <li><p><strong>aggregate_func</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><em>callable</em><em>, </em><em>optional</em>) – The function to aggregate the mutational dataframes within each group.
 The default is “mean”.</p></li>
-<li><p><strong>within_group_param_join</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – The method to join the mutational dataframes within each group.
-The default is “outer”.</p></li>
-<li><p><strong>between_group_param_join</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – The method to join columns of the mutational dataframes
-between each group. The default is “outer”.</p></li>
-<li><p><strong>inner_merge_dataset_muts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to toss mutations which are _not_ shared accross all datasets
+<li><p><strong>inner_merge_dataset_muts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to toss mutations which are _not_ shared across all datasets
 before aggregation of group mutation parameter values.
 The default is True.</p></li>
 <li><p><strong>query</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – The pandas query to apply to the <cite>ModelCollection.fit_models</cite>
@@ -264,7 +272,7 @@ documentation.</p></li>
 Must be one of “shift”, “predicted_func_score”, or “beta”.</p></li>
 <li><p><strong>aggregate_func</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – The function to aggregate the mutational parameter values
 between dataset fits. The default is “mean”.</p></li>
-<li><p><strong>inner_merge_dataset_muts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to toss mutations which are _not_ shared accross all datasets
+<li><p><strong>inner_merge_dataset_muts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to toss mutations which are _not_ shared across all datasets
 before aggregation of group mutation parameter values.
 The default is True.</p></li>
 <li><p><strong>times_seen_threshold</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – The minimum number of times a mutation must be seen across
@@ -288,9 +296,58 @@ or saved to a file.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.mut_param_traceplot">
-<span class="sig-name descname"><span class="pre">mut_param_traceplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mutations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mut_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.mut_param_traceplot" title="Link to this definition">¶</a></dt>
-<dd><p>vizualize mutation parameter values across the lasso penalty weights
-of a given subset of the mutations.</p>
+<span class="sig-name descname"><span class="pre">mut_param_traceplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mutations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mut_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.mut_param_traceplot" title="Link to this definition">¶</a></dt>
+<dd><p>visualize mutation parameter values across the lasso penalty weights
+(by default) of a given subset of the mutations in the form of an
+<cite>altair.FacetChart</cite>. This is useful when you would like to confirm
+that a reported mutational parameter value carries through across the
+individual fits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A chart object which can be displayed in a jupyter notebook
+or saved to a file.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>altair.Chart</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.shift_sparsity">
+<span class="sig-name descname"><span class="pre">shift_sparsity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.shift_sparsity" title="Link to this definition">¶</a></dt>
+<dd><p>Visualize shift parameter set sparsity across the lasso penalty weights
+(by default) in the form of an <cite>altair.FacetChart</cite>.
+We will group the mutations according to their status as either a
+a “stop” (e.g. A15*), or “nonsynonymous” (e.g. A15G) mutation before calculating
+the sparsity. This is because in a way, mutations to stop codons act as a
+False positive rate, as we expect their mutational effect to be equally
+deleterious in all experiments, and thus have a shift parameter value of zero.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A chart object which can be displayed in a jupyter notebook
+or saved to a file.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>altair.Chart</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.mut_param_dataset_correlation">
+<span class="sig-name descname"><span class="pre">mut_param_dataset_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mut_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">150</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.mut_param_dataset_correlation" title="Link to this definition">¶</a></dt>
+<dd><p>Visualize the correlation between replicate datasets across the lasso penalty
+weights (by default) in the form of an <cite>altair.FacetChart</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A chart object which can be displayed in a jupyter notebook
+or saved to a file.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>altair.Chart</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -334,8 +391,7 @@ of a given subset of the mutations.</p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html"><code class="docutils literal notranslate"><span class="pre">multidms</span></code> fitting pipeline</a></li>
-<li class="toctree-l1"><a class="reference internal" href="model_collection.html"><code class="docutils literal notranslate"><span class="pre">multidms.model_collection</span></code> fitting pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html"><code class="docutils literal notranslate"><span class="pre">multidms</span></code> usage examples</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="multidms.html">multidms package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>

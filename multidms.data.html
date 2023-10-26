@@ -50,7 +50,7 @@ in a given string denoting a single substitution</p>
 <dt class="sig sig-object py" id="multidms.data.split_subs">
 <span class="sig-prename descclassname"><span class="pre">multidms.data.</span></span><span class="sig-name descname"><span class="pre">split_subs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subs_string</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parser=&lt;function</span> <span class="pre">split_sub&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.data.split_subs" title="Link to this definition">¶</a></dt>
 <dd><p>Wrap the split_sub func to work for a
-string contining multiple substitutions</p>
+string containing multiple substitutions</p>
 </dd></dl>
 
 <dl class="py class">
@@ -61,7 +61,7 @@ string contining multiple substitutions</p>
 variant substitutions data.
 Individual objects of this type can be shared
 by multiple <a class="reference internal" href="multidms.html#multidms.Model" title="multidms.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">multidms.Model</span></code></a> Objects
-for effeciently fitting various models to the same data.</p>
+for efficiently fitting various models to the same data.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>You can initialize a <a class="reference internal" href="#multidms.data.Data" title="multidms.data.Data"><code class="xref py py-class docutils literal notranslate"><span class="pre">Data</span></code></a> object with a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.1.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>
@@ -106,7 +106,7 @@ then a Y30G mutation in the non-reference condition is recorded as an A30G
 mutation relative to the reference. This way, each condition informs
 the exact same parameters, even at sites that differ in wild type amino acid.
 These are encoded in a <a class="reference external" href="https://jbloomlab.github.io/binarymap/binarymap.binarymap.html#binarymap.binarymap.BinaryMap" title="(in binarymap)"><code class="xref py py-class docutils literal notranslate"><span class="pre">binarymap.binarymap.BinaryMap</span></code></a> object for each
-condtion,
+condition,
 where all sites that are non-identical to the reference are 1’s.
 For motivation, see the <cite>Model overview</cite> section in <a class="reference internal" href="multidms.html#multidms.Model" title="multidms.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">multidms.Model</span></code></a>
 class notes.</p></li>
@@ -174,7 +174,7 @@ amino acid substitutions to be with respect to a
 reference wild type sequence.</p>
 <p>After the object has finished being instantiated,
 we now have access to a few ‘static’ properties
-of our data. See individual property docstrings
+of our data. See individual property docstring
 for more information.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">reference</span>
 <span class="go">&#39;a&#39;</span>
@@ -241,7 +241,7 @@ for more information.</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.data.Data.mutations">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.data.Data.mutations" title="Link to this definition">¶</a></dt>
-<dd><p>A tuple of all mutations in the order reletive to their index into
+<dd><p>A tuple of all mutations in the order relative to their index into
 the binarymap.</p>
 </dd></dl>
 
@@ -309,15 +309,25 @@ being a <code class="docutils literal notranslate"><span class="pre">BinaryMap</
 </dd></dl>
 
 <dl class="py property">
-<dt class="sig sig-object py" id="multidms.data.Data.mut_parser">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mut_parser</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">MutationParser</span></em><a class="headerlink" href="#multidms.data.Data.mut_parser" title="Link to this definition">¶</a></dt>
-<dd><p>The mutation parser used to parse mutations.</p>
+<dt class="sig sig-object py" id="multidms.data.Data.mutparser">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mutparser</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">MutationParser</span></em><a class="headerlink" href="#multidms.data.Data.mutparser" title="Link to this definition">¶</a></dt>
+<dd><p>The mutation <code class="docutils literal notranslate"><span class="pre">polyclonal.utils.MutationParser</span></code> used
+to parse mutations.</p>
 </dd></dl>
 
 <dl class="py property">
-<dt class="sig sig-object py" id="multidms.data.Data.split_subs">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">split_subs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">partial</span></em><a class="headerlink" href="#multidms.data.Data.split_subs" title="Link to this definition">¶</a></dt>
-<dd><p>A function that splits amino acid substitutions into wt, site, and mut
+<dt class="sig sig-object py" id="multidms.data.Data.parse_mut">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">parse_mut</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">MutationParser</span></em><a class="headerlink" href="#multidms.data.Data.parse_mut" title="Link to this definition">¶</a></dt>
+<dd><p>returns a function that splits a single amino acid substitutions
+into wildtype, site, and mutation
+using the mutation parser.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="multidms.data.Data.parse_muts">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">parse_muts</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">partial</span></em><a class="headerlink" href="#multidms.data.Data.parse_muts" title="Link to this definition">¶</a></dt>
+<dd><p>A function that splits amino acid substitutions
+(a string of more than one) into wildtype, site, and mutation
 using the mutation parser.</p>
 </dd></dl>
 
@@ -395,8 +405,7 @@ to converted</p></li>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html"><code class="docutils literal notranslate"><span class="pre">multidms</span></code> fitting pipeline</a></li>
-<li class="toctree-l1"><a class="reference internal" href="model_collection.html"><code class="docutils literal notranslate"><span class="pre">multidms.model_collection</span></code> fitting pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html"><code class="docutils literal notranslate"><span class="pre">multidms</span></code> usage examples</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="multidms.html">multidms package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
