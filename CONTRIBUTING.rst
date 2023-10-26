@@ -75,7 +75,7 @@ If you need to change the ruff_ configuration, edit the `ruff.toml <ruff.toml>`_
 
 Then run the tests with pytest_ by running::
 
-    pytest
+    pytest --doctest-modules -vv
 
 If you need to change the pytest_ configuration, edit the `pytest.ini <pytest.ini>`_ file.
 

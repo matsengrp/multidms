@@ -360,7 +360,7 @@ def test_explode_params_dict():
 def test_fit_models():
     """
     Test fitting two different models in
-    parallel using multudms.model_collection.fit_models
+    parallel using multidms.model_collection.fit_models
     """
     data = multidms.Data(
         TEST_FUNC_SCORES,
@@ -378,7 +378,7 @@ def test_fit_models():
         n_threads=min(os.cpu_count(), 4),
     )
     mc = multidms.model_collection.ModelCollection(fit_models_df)
-    tall_combined = mc.split_apply_combine_muts(groupby=["scale_coeff_lasso_shift"])
+    tall_combined = mc.split_apply_combine_muts(groupby=("scale_coeff_lasso_shift"))
     assert len(tall_combined) == 2 * len(data.mutations_df)
     assert list(tall_combined.index.names) == ["scale_coeff_lasso_shift"]
 

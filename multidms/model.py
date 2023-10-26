@@ -24,7 +24,6 @@ from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
 
 from multidms import Data
-from multidms.data import split_sub
 import multidms.biophysical
 from multidms.plot import _lineplot_and_heatmap
 
@@ -93,6 +92,10 @@ class Model:
         If using :func:`multidms.biophysical.softplus_activation`
         as the output activation, this is the lower bound of the
         softplus function.
+    name : str or None
+        Name of the Model object. If None, will be assigned
+        a unique name based upon the number of data objects
+        instantiated.
 
     Example
     -------
@@ -195,11 +198,13 @@ class Model:
 
     >>> model.fit(maxiter=1000, lasso_shift=1e-5)
     >>> model.loss
-    Array(4.37424567e-05, dtype=float64)
+    Array(1.18200934e-05, dtype=float64)
 
     The model tunes its parameters in place, and the subsequent call to retrieve
     the loss reflects our models loss given its updated parameters.
     """  # noqa: E501
+
+    counter = 0
 
     def __init__(
         self,
@@ -207,7 +212,7 @@ class Model:
         epistatic_model=multidms.biophysical.sigmoidal_global_epistasis,
         output_activation=multidms.biophysical.identity_activation,
         conditional_shifts=True,
-        alpha_d=True,
+        alpha_d=False,  # TODO raise issue to be squashed in this PR
         gamma_corrected=False,
         PRNGKey=0,
         init_beta_naught=0.0,
@@ -215,6 +220,7 @@ class Model:
         init_theta_bias=-5.0,
         n_hidden_units=5,
         lower_bound=None,
+        name=None,
     ):
         """See class docstring."""
         self.gamma_corrected = gamma_corrected
@@ -319,6 +325,22 @@ class Model:
                 "proximal": multidms.biophysical._lasso_lock_prox,
             }
         )
+
+        self._name = name if isinstance(name, str) else f"Model-{Model.counter}"
+        Model.counter += 1
+
+    def __repr__(self):
+        """Returns a string representation of the object."""
+        return f"{self.__class__.__name__}({self.name})"
+
+    def _str__(self):
+        """Returns a string representation of the object."""
+        return f"{self.__class__.__name__}({self.name})"
+
+    @property
+    def name(self) -> str:
+        """The name of the data object."""
+        return self._name
 
     @property
     def params(self) -> dict:
@@ -1228,7 +1250,7 @@ class Model:
 
         # add in the mutation annotations
         muts_df["wildtype"], muts_df["site"], muts_df["mutant"] = zip(
-            *muts_df.reset_index()["mutation"].map(split_sub)
+            *muts_df.reset_index()["mutation"].map(self.data.parse_mut)
         )
 
         # no longer need mutation annotation
