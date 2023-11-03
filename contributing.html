@@ -5,10 +5,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Contributing &#8212; multidms 0.2.2 documentation</title>
+    <title>Contributing &#8212; multidms 0.3.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=4f649999" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=fed019e6" />
-    <script src="_static/documentation_options.js?v=000c92bf"></script>
+    <script src="_static/documentation_options.js?v=e259d695"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -121,7 +121,7 @@ by the github actions continuous integration (CI) system once a pull request is 
 <section id="tagging-versions-and-putting-on-pypi">
 <h2>Tagging versions and putting on PyPI<a class="headerlink" href="#tagging-versions-and-putting-on-pypi" title="Link to this heading">¶</a></h2>
 <p>When you have a new stable release that has been commited and pushed to the main branch,
-you will want to tag it and put it on <a class="reference external" href="https://pypi.org/">PyPI</a> where it can be installed with <a class="reference external" href="https://pip.pypa.io">pip</a>.We reccomend making use of the <a class="reference external" href="https://github.com/mbarkhau/bumpver">bumpver</a> package to do this - as the pyproject is setup to automatically fetch the latest version and
+you will want to tag it and put it on <a class="reference external" href="https://pypi.org/">PyPI</a> where it can be installed with <a class="reference external" href="https://pip.pypa.io">pip</a>.We recommend making use of the <a class="reference external" href="https://github.com/mbarkhau/bumpver">bumpver</a> package to do this - as the pyproject.toml is setup to automatically fetch the latest version and
 update all the version numbers in the code/docs.</p>
 <p>With a clean working tree, simply</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">bumpver</span> <span class="n">update</span> <span class="o">--</span><span class="n">patch</span>

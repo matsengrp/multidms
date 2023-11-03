@@ -92,7 +92,7 @@ Tagging versions and putting on PyPI
 -------------------------------------
 When you have a new stable release that has been commited and pushed to the main branch,
 you will want to tag it and put it on PyPI_ where it can be installed with pip_.\
-We reccomend making use of the bumpver_ package to do this - as the pyproject is setup to automatically fetch the latest version and
+We recommend making use of the bumpver_ package to do this - as the pyproject.toml is setup to automatically fetch the latest version and
 update all the version numbers in the code/docs. 
 
 With a clean working tree, simply ::

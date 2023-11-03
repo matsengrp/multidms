@@ -6,14 +6,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on `Keep a Changelog <https://keepachangelog.com>`_.
 
-HEAD
-----
+0.3.0
+-----
 - Adds initial `multidms.model_collection <https://github.com/matsengrp/multidms/blob/main/multidms/model_collection.py>`_ module with ``multidms.fit_models`` for the ability to fit multiple models across a range of parameter spaces in parallel using `multiprocessing`. This is inspired by the `polyclonal.fit_models` function. 
 - Adds the ``ModelCollection`` class for split-apply-combine interface to the mutational dataframes for a collection of models
 - Adds four altair plotting methods to ``ModelCollection``: ``mut_param_heatmap``, ``shift_sparsity``, ``mut_param_dataset_correlation``, and ``mut_param_traceplot``.
 - removes ``utils`` module.
 - Cleans up #114 
-- optionally removes "wts", "sites", "muts" from the mutations dataframe returned by ``Model.get_mutations_df``. Those were unnecessary IMO 
+- optionally removes "wts", "sites", "muts" from the mutations dataframe returned by ``Model.get_mutations_df``. 
 - Changes the naming of columns produced by ``Model.get_mutations_df()``, in particular, it moves the condition name for predicted func score to be a suffix (as with shift, and time_seen) rather than a prefix. e.g. "delta_predicted_func_score" -> "predicted_func_score_delta".
 
 
