@@ -63,7 +63,8 @@ dev = [
     "nbsphinx",
     "nbsphinx_link",
     "bumpver",
-    "sphinxcontrib-bibtex"
+    "sphinxcontrib-bibtex",
+    "dms_variants"
 ]
 
 [tool.ruff]
