@@ -6,6 +6,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on `Keep a Changelog <https://keepachangelog.com>`_.
 
+0.3.1
+-----
+- fixes bug `#126 <https://github.com/matsengrp/multidms/issues/126>`_.
+- Adds the initial working simulation notebook.
+
+
 0.3.0
 -----
 - Adds initial `multidms.model_collection <https://github.com/matsengrp/multidms/blob/main/multidms/model_collection.py>`_ module with ``multidms.fit_models`` for the ability to fit multiple models across a range of parameter spaces in parallel using `multiprocessing`. This is inspired by the `polyclonal.fit_models` function. 
