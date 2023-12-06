@@ -1282,7 +1282,7 @@ class Model:
                 continue
             addtl_tooltip_stats.append(f"wildtype_{condition}")
             muts_df[f"wildtype_{condition}"] = muts_df.site.apply(
-                lambda site: site_map.loc[int(site), condition]
+                lambda site: site_map.loc[site, condition]
             )
 
         # melt conditions and stats cols, beta is already "tall"

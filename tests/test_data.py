@@ -383,6 +383,32 @@ def test_fit_models():
     assert list(tall_combined.index.names) == ["scale_coeff_lasso_shift"]
 
 
+def test_ModelCollection_charts():
+    """
+    Test fitting two different models in
+    parallel using multidms.model_collection.fit_models
+    """
+    data = multidms.Data(
+        TEST_FUNC_SCORES,
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="a",
+        assert_site_integrity=False,
+    )
+    params = {
+        "dataset": [data],
+        "iterations_per_step": [2],
+        "scale_coeff_lasso_shift": [0.0, 1e-5],
+    }
+    _, _, fit_models_df = multidms.model_collection.fit_models(
+        params,
+        n_threads=min(os.cpu_count(), 4),
+    )
+    mc = multidms.model_collection.ModelCollection(fit_models_df)
+
+    mc.mut_param_heatmap(query="scale_coeff_lasso_shift == 0.0")
+    mc.shift_sparsity()
+
+
 def test_data_names():
     """
     Test that the default data names are correctly
