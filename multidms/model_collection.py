@@ -259,7 +259,7 @@ def stack_fit_models(fit_models_list):
 
 # TODO document that these params should not be unpacked
 # when passed as with fit_one_model.
-def fit_models(params, n_threads, failures="error"):
+def fit_models(params, n_threads=-1, failures="error"):
     """Fit collection of :class:`~multidms.Model` models.
 
     Enables fitting of multiple models simultaneously using multiple threads.
@@ -426,6 +426,16 @@ class ModelCollection:
         """The mutations shared by each fitting dataset."""
         return self._all_mutations
 
+    # TODO
+    def correlate_func_scores_with_phenotypes_stub(self):
+        pass
+
+    # TODO
+    def split_apply_combine_variants_stub(self, groupby):
+        pass
+
+    # TODO make sure the default is a simple stacking operation
+    # as we need with the simulations.
     @lru_cache(maxsize=10)
     def split_apply_combine_muts(
         self,

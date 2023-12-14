@@ -373,6 +373,7 @@ class Model:
             "scale_coeff_ridge_beta": 0.0,
             "scale_coeff_ridge_shift": 0.0,
             "scale_coeff_ridge_gamma": 0.0,
+            "scale_ridge_alpha_d": 0.0,
         }
         data = (self.data.training_data["X"], self.data.training_data["y"])
         return jax.jit(self.model_components["objective"])(self.params, data, **kwargs)
@@ -547,6 +548,85 @@ class Model:
             col_order += ["wts", "sites", "muts"]
 
         return mutations_df[col_order]
+
+    # TODO, we should test this by testing that the loss is equivilent when feeding the
+    # training data to the loss method
+    def get_df_loss(self, df, error_if_unknown=False, verbose=False):
+        """
+        Get the loss of the model on a given data frame.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            Data frame containing variants. Requirements are the same as
+            those used to initialize the `multidms.Data` object - except
+            the indices must be unique.
+        error_if_unknown : bool
+            If some of the substitutions in a variant are not present in
+            the model (not in :attr:`AbstractEpistasis.binarymap`)
+            then by default we do not include those variants
+            in the loss calculation. If `True`, raise an error.
+        verbose : bool
+            If True, print the number of valid and invalid variants.
+
+        Returns
+        -------
+        float
+            The loss of the model on the given data frame.
+        """
+        substitutions_col = "aa_substitutions"
+        condition_col = "condition"
+        func_score_col = "func_score"
+        ref_bmap = self.data.binarymaps[self.data.reference]
+
+        if substitutions_col not in df.columns:
+            raise ValueError("`df` lacks `substitutions_col` " f"{substitutions_col}")
+        if condition_col not in df.columns:
+            raise ValueError("`df` lacks `condition_col` " f"{condition_col}")
+        # if not df.index.is_unique:
+        # raise ValueError("`df` must have unique indices")
+
+        X, y = {}, {}
+        for condition, condition_df in df.groupby(condition_col):
+            variant_subs = condition_df[substitutions_col]
+            if condition not in self.data.reference_sequence_conditions:
+                variant_subs = condition_df.apply(
+                    lambda x: self.data.convert_subs_wrt_ref_seq(
+                        condition, x[substitutions_col]
+                    ),
+                    axis=1,
+                )
+
+            # build binary variants as csr matrix, make prediction, and append
+            valid, invalid = 0, 0  # row indices of elements that are one
+            binary_variants = []
+            variant_targets = []
+
+            for subs, target in zip(variant_subs, condition_df[func_score_col]):
+                try:
+                    binary_variants.append(ref_bmap.sub_str_to_binary(subs))
+                    variant_targets.append(target)
+                    valid += 1
+                except ValueError:
+                    if error_if_unknown:
+                        raise ValueError(
+                            "Variant has substitutions not in model:"
+                            f"\n{subs}\nMaybe use `unknown_as_nan`?"
+                        )
+                    else:
+                        invalid += 1
+
+            if verbose:
+                print(
+                    f"condition: {condition}, n valid variants: {valid}, n invalid variants: {invalid}"
+                )
+
+            X[condition] = sparse.BCOO.from_scipy_sparse(
+                scipy.sparse.csr_matrix(onp.vstack(binary_variants))
+            )
+            y[condition] = jnp.array(variant_targets)
+
+        return self.model_components["objective"](self.params, (X, y))
 
     def add_phenotypes_to_df(
         self,
