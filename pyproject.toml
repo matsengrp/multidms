@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "multidms"
-version = "0.3.1"
+version = "0.3.2"
 description = "Joint modeling of multiple deep mutational scanning experiments."
 readme = "README.md"
 authors = [
@@ -107,7 +107,7 @@ repository = "https://github.com/matsengrp/multidms"
 packages = ["multidms"]
 
 [tool.bumpver]
-current_version = "0.3.1"
+current_version = "0.3.2"
 version_pattern = "MAJOR.MINOR.PATCH"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
