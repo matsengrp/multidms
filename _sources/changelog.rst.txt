@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on `Keep a Changelog <https://keepachangelog.com>`_.
 
+
+0.3.2
+-----
+- fixes bug `#128 <https://github.com/matsengrp/multidms/issues/128>`_
+
 0.3.1
 -----
 - fixes bug `#126 <https://github.com/matsengrp/multidms/issues/126>`_.
