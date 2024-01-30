@@ -500,6 +500,18 @@ class Model:
                 inplace=True,
             )
 
+        # make sure the mutations_df matches the binarymaps
+        for condition in self.data.conditions:
+            assert onp.all(
+                mutations_df.index.values == self.data.binarymaps[condition].all_subs
+            ), f"mutations_df does not match binarymaps for condition {condition}"
+
+        # make sure the indices into the bmap are ordered 0-n
+        for i, sub in enumerate(mutations_df.index.values):
+            assert sub == self.data.binarymaps[self.data.reference].i_to_sub(
+                i
+            ), f"mutation {sub} df index does not match binarymaps respective index"
+
         # for effect calculation
         if phenotype_as_effect:
             wildtype_df = self.wildtype_df
