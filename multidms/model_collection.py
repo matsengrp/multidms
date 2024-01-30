@@ -168,7 +168,8 @@ def fit_one_model(
     del fit_attributes["dataset"]
     del fit_attributes["verbose"]
 
-    fit_attributes["step_loss"] = onp.zeros(num_training_steps)
+    fit_attributes["step_loss"] = onp.zeros(num_training_steps + 1)
+    fit_attributes["step_loss"][0] = float(imodel.loss)
     fit_attributes["dataset_name"] = dataset.name
     fit_attributes["model"] = imodel
 
@@ -199,7 +200,7 @@ def fit_one_model(
         if onp.isnan(float(imodel.loss)):
             break
 
-        fit_attributes["step_loss"][training_step] = float(imodel.loss)
+        fit_attributes["step_loss"][training_step + 1] = float(imodel.loss)
 
         if verbose:
             print(

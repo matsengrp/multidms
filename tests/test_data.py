@@ -60,7 +60,7 @@ def test_site_integrity():
 def test_bmap_mut_df_order():
     """
     Assert that the binarymap rows and columns match
-    mutations_df indicies exactly.
+    mutations_df indices exactly.
     """
     mut_df = data.mutations_df
     for condition in data.conditions:
@@ -124,14 +124,14 @@ def test_invalid_non_identical_sites():
         assert data.reference_sequence_conditions == ["a", "b"]
 
 
-def test_converstion_from_subs():
+def test_conversion_from_subs():
     """Make sure that the conversion from each reference choice is correct"""
     for ref, bundle in zip(["a", "b"], ["G3P", "P3G"]):
         data = multidms.Data(TEST_FUNC_SCORES, reference=ref)
         assert data.convert_subs_wrt_ref_seq(("b" if ref == "a" else "a"), "") == bundle
 
 
-def test_wildtype_mutatant_predictions():
+def test_wildtype_mutant_predictions():
     """
     test that the wildtype predictions are correct
     by comparing them to a "by-hand" calculation on the parameters.
@@ -244,7 +244,7 @@ def test_non_identical_conversion():
 
 def test_model_PRNGKey():
     """
-    Simply test the instatiation of a model with different PNRG keys
+    Simply test the instantiation of a model with different PRNG keys
     to make sure the seed structure truly ensures the same parameter
     initialization values
     """
@@ -257,7 +257,7 @@ def test_model_PRNGKey():
 def test_lower_bound():
     """
     Make sure that the softplus lower bound is correct
-    by initializing a sofplus activation models and asserting
+    by initializing a softplus activation models and asserting
     predictions never go below the specified lower bound.
     even if that lower bound is high!
 

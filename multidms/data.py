@@ -501,9 +501,7 @@ class Data:
                 times_seen = times_seen.astype(int)
             times_seen.index.name = "mutation"
             times_seen.name = f"times_seen_{condition}"
-            mut_df = mut_df.merge(
-                times_seen, left_on="mutation", right_on="mutation", how="outer"
-            ).fillna(0)
+            mut_df = mut_df.merge(times_seen, on="mutation", how="left").fillna(0)
 
         self._mutations_df = mut_df
         self._name = name if isinstance(name, str) else f"Data-{Data.counter}"
