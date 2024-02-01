@@ -424,3 +424,17 @@ def test_data_names():
             assert_site_integrity=False,
         )
         assert d_i.name == f"Data-{num_datasets + i}"
+
+
+def test_model_get_df_loss():
+    """
+    Test that the loss is correctly caluclated
+    by comparing the result of model.loss() to the results of model.get_df_loss()
+    when given the training dataframe.
+    """
+    model = multidms.Model(data, PRNGKey=23)
+    model.fit(maxiter=2)
+    loss = model.loss
+    df_loss = model.get_df_loss(TEST_FUNC_SCORES)
+    # assert np.isclose(loss, df_loss)
+    assert loss == df_loss
