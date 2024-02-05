@@ -47,7 +47,6 @@ dependencies = [
     "scipy",
     "tqdm",
     "pandarallel",
-    "ipywidgets"
 ]
 
 [project.optional-dependencies]
@@ -64,7 +63,10 @@ dev = [
     "nbsphinx_link",
     "bumpver",
     "sphinxcontrib-bibtex",
-    "dms_variants"
+    "dms_variants",
+    "ipywidgets",
+    "papermill"
+
 ]
 
 [tool.ruff]
