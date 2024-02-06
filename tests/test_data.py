@@ -428,7 +428,7 @@ def test_data_names():
 
 def test_model_get_df_loss():
     """
-    Test that the loss is correctly caluclated
+    Test that the loss is correctly calculated
     by comparing the result of model.loss() to the results of model.get_df_loss()
     when given the training dataframe.
     """
@@ -436,5 +436,4 @@ def test_model_get_df_loss():
     model.fit(maxiter=2)
     loss = model.loss
     df_loss = model.get_df_loss(TEST_FUNC_SCORES)
-    # assert np.isclose(loss, df_loss)
     assert loss == df_loss
