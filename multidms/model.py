@@ -549,8 +549,6 @@ class Model:
 
         return mutations_df[col_order]
 
-    # TODO, we should test this by testing that the loss is equivilent when feeding the
-    # training data to the loss method
     def get_df_loss(self, df, error_if_unknown=False, verbose=False):
         """
         Get the loss of the model on a given data frame.
@@ -583,8 +581,6 @@ class Model:
             raise ValueError("`df` lacks `substitutions_col` " f"{substitutions_col}")
         if condition_col not in df.columns:
             raise ValueError("`df` lacks `condition_col` " f"{condition_col}")
-        # if not df.index.is_unique:
-        # raise ValueError("`df` must have unique indices")
 
         X, y = {}, {}
         for condition, condition_df in df.groupby(condition_col):
@@ -763,9 +759,9 @@ class Model:
             if phenotype_as_effect:
                 latent_predictions -= wildtype_df.loc[condition, "predicted_latent"]
             latent_predictions[nan_variant_indices] = onp.nan
-            ret.loc[
-                condition_df.index.values, latent_phenotype_col
-            ] = latent_predictions
+            ret.loc[condition_df.index.values, latent_phenotype_col] = (
+                latent_predictions
+            )
 
             # func_score predictions on binary variants, X
             phenotype_predictions = onp.array(
@@ -777,9 +773,9 @@ class Model:
                     condition, "predicted_func_score"
                 ]
             phenotype_predictions[nan_variant_indices] = onp.nan
-            ret.loc[
-                condition_df.index.values, observed_phenotype_col
-            ] = phenotype_predictions
+            ret.loc[condition_df.index.values, observed_phenotype_col] = (
+                phenotype_predictions
+            )
 
         return ret
 
@@ -1229,9 +1225,11 @@ class Model:
             **kwargs,
         )
         color = [
-            self.data.condition_colors[condition]
-            if s not in self.data.non_identical_sites[condition]
-            else (0.0, 0.0, 0.0)
+            (
+                self.data.condition_colors[condition]
+                if s not in self.data.non_identical_sites[condition]
+                else (0.0, 0.0, 0.0)
+            )
             for s in mutation_site_summary_df.sites
         ]
         size = [

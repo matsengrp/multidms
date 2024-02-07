@@ -388,6 +388,9 @@ class ModelCollection:
             )
             all_mutations = set.union(all_mutations, set(fit.data.mutations))
 
+        # add the final training loss to the fit_models dataframe
+        fit_models["training_loss"] = fit_models.step_loss.apply(lambda x: x[-1])
+
         self._site_map_union = site_map_union
         self._conditions = first_dataset.conditions
         self._reference = first_dataset.reference
@@ -426,23 +429,11 @@ class ModelCollection:
         """The mutations shared by each fitting dataset."""
         return self._all_mutations
 
-    # TODO
-    def correlate_func_scores_with_phenotypes_stub(self):
-        pass
-
-    # TODO
-    def split_apply_combine_variants_stub(self, groupby):
-        pass
-
-    # TODO make sure the default is a simple stacking operation
-    # as we need with the simulations.
     @lru_cache(maxsize=10)
     def split_apply_combine_muts(
         self,
         groupby=("dataset_name", "scale_coeff_lasso_shift"),
         aggregate_func="mean",
-        # within_group_param_join="outer",
-        # between_group_param_join="outer",
         inner_merge_dataset_muts=True,
         query=None,
         **kwargs,
@@ -536,6 +527,49 @@ class ModelCollection:
         )
 
         return ret
+
+    def add_validation_loss(self, test_data, overwrite=False):
+        """
+        Add validation loss to the fit collection dataframe.
+
+        Parameters
+        ----------
+        test_data : pd.DataFrame or dict(str, pd.DataFrame)
+            The testing dataframe to compute validation loss with respect to,
+            must have columns "aa_substitutitions", "condition", and "func_score".
+            If a dictionary is passed, there should be a key for
+            each unique dataset_name factor in the self._fit_models dataframe
+            - with the value being the respective testing dataframe.
+        overwrite : bool, optional
+            Whether to overwrite the validation_loss column if it already exists.
+            The default is False.
+
+        Returns
+        -------
+        pd.DataFrame
+            The self._fit_models dataframe with the validation loss added.
+        """
+        if isinstance(test_data, pd.DataFrame):
+            temp_test_data = test_data.copy()
+            test_data = {}
+            for name in self._fit_models["dataset_name"].unique():
+                test_data[name] = temp_test_data
+
+        # check there's a testing dataframe for each unique dataset_name
+        assert set(test_data.keys()) == set(self._fit_models["dataset_name"].unique())
+
+        if "validation_loss" in self._fit_models.columns and not overwrite:
+            raise ValueError(
+                "validation_loss already exists in self._fit_models, set overwrite=True to overwrite"
+            )
+
+        self._fit_models["validation_loss"] = onp.nan
+        for idx, fit in self._fit_models.iterrows():
+            self._fit_models.loc[idx, "validation_loss"] = fit["model"].get_df_loss(
+                test_data[fit["dataset_name"]]
+            )
+
+        return None
 
     def mut_param_heatmap(
         self,
@@ -824,12 +858,7 @@ class ModelCollection:
             )
         )
 
-        points = (
-            base.mark_circle()
-            .encode(opacity=alt.value(0))
-            .add_params(highlight)
-            # .properties(width=600)
-        )
+        points = base.mark_circle().encode(opacity=alt.value(0)).add_params(highlight)
 
         lines = base.mark_line().encode(
             size=alt.condition(~highlight, alt.value(1), alt.value(3))
@@ -841,7 +870,12 @@ class ModelCollection:
         )
 
     def shift_sparsity(
-        self, x="scale_coeff_lasso_shift", width_scalar=100, height_scalar=100, **kwargs
+        self,
+        x="scale_coeff_lasso_shift",
+        width_scalar=100,
+        height_scalar=10,
+        return_data=False,
+        **kwargs,
     ):
         """
         Visualize shift parameter set sparsity across the lasso penalty weights
@@ -855,9 +889,10 @@ class ModelCollection:
 
         Returns
         -------
-        altair.Chart
+        altair.Chart or Tuple(pd.DataFrame, altair.Chart)
             A chart object which can be displayed in a jupyter notebook
-            or saved to a file.
+            or saved to a file. If `return_data=True`, then a tuple
+            containing the chart and the underlying data will be returned.
         """
         # get mutation values, group by x axis variable and dataset
         df = self.split_apply_combine_muts(groupby=("dataset_name", x), **kwargs)
@@ -929,10 +964,14 @@ class ModelCollection:
         else:
             chart = base_chart.mark_bar().encode(xOffset="mut_type")
 
-        return chart.facet(
+        facetted_chart = chart.facet(
             row=alt.Row("dataset_name", title="Dataset"),
             column=alt.Column("mut_param", title="Experimental Shifts"),
         )
+
+        if return_data:
+            return facetted_chart, sparsity_df
+        return facetted_chart
 
     def mut_param_dataset_correlation(
         self,
@@ -940,6 +979,7 @@ class ModelCollection:
         mut_param="shift",
         width_scalar=150,
         height=200,
+        return_data=False,
         **kwargs,
     ):
         """
@@ -948,9 +988,10 @@ class ModelCollection:
 
         Returns
         -------
-        altair.Chart
+        altair.Chart or Tuple(altair.Chart, pd.DataFrame)
             A chart object which can be displayed in a jupyter notebook
-            or saved to a file.
+            or saved to a file. If `return_data=True`, then a tuple
+            containing the chart and the underlying data will be returned.
         """
         query = "dataset_name.notna()" if "query" not in kwargs else kwargs["query"]
         if len(self.fit_models.query(query).dataset_name.unique()) < 2:
@@ -1017,6 +1058,10 @@ class ModelCollection:
         else:
             chart = base_chart.mark_bar().encode(xOffset="mut_param")
 
-        return chart.facet(
+        facetted_chart = chart.facet(
             column=alt.Column("datasets", title="Experiment comparison"),
         )
+
+        if return_data:
+            return facetted_chart, replicate_df
+        return facetted_chart
