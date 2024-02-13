@@ -260,11 +260,14 @@ def stack_fit_models(fit_models_list):
 # TODO document that these params should not be unpacked
 # when passed as with fit_one_model.
 def fit_models(params, n_threads=-1, failures="error"):
-    """Fit collection of :class:`~multidms.Model` models.
+    """Fit collection of :class:`multidms.model.Model` models.
 
     Enables fitting of multiple models simultaneously using multiple threads.
-    The returned dataframe is meant to be passed into the
-    :class:`multidms.ModelCollection` class for comparison and visualization.
+    Most commonly, this function is used to fit a set of models across combinations
+    of replicate training datasets, and lasso coefficients for model selection and
+    evaluation. The returned dataframe is meant to be passed into the
+    :class:`multidms.model_collection.ModelCollection` class for comparison
+    and visualization.
 
     Parameters
     ----------
@@ -273,11 +276,11 @@ def fit_models(params, n_threads=-1, failures="error"):
         wish to run. Each value in the dictionary must be a list of
         values, even in the case of singletons.
         This function will compute all combinations of the parameter
-        space and pass each combination to :func:`multidms.utils.fit_wrapper`
+        space and pass each combination to :func:`multidms.utils.fit_one_model`
         to be run in parallel, thus only key-value pairs which
         match the kwargs are allowed.
-        See the docstring of :func:`multidms.utils.fit_wrapper` for
-        a description of the allowed kwargs.
+        See the docstring of :func:`multidms.model_collection.fit_one_model` for
+        a description of the allowed parameters.
     n_threads : int
         Number of threads (CPUs, cores) to use for fitting. Set to -1 to use
         all CPUs available.
@@ -394,15 +397,10 @@ class ModelCollection:
         self._site_map_union = site_map_union
         self._conditions = first_dataset.conditions
         self._reference = first_dataset.reference
-        self._fit_models = fit_models
+        self.fit_models = fit_models
         self.condition_colors = first_dataset.condition_colors
         self._shared_mutations = tuple(shared_mutations)
         self._all_mutations = tuple(all_mutations)
-
-    @property
-    def fit_models(self) -> pd.DataFrame:
-        """The dataframe containing the fit attributes and pickled model objects."""
-        return self._fit_models
 
     @property
     def site_map_union(self) -> pd.DataFrame:
@@ -429,6 +427,7 @@ class ModelCollection:
         """The mutations shared by each fitting dataset."""
         return self._all_mutations
 
+    # TODO remove verbose everywhere
     @lru_cache(maxsize=10)
     def split_apply_combine_muts(
         self,
@@ -442,9 +441,11 @@ class ModelCollection:
         wrapper to split-apply-combine the set of mutational dataframes
         harbored by each of the fits in the collection.
 
-        here, we split the collection by grouping certain attributes, such
-        as dataset name, or the scaling coefficient of the lasso penalty.
-        Each of those groups may then be filtered and aggregated, before
+        Here, we group the fit_collection using attributes
+        (columns in :property:`ModelCollection.fit_models`) specified using the
+        ``groupby`` parameter.
+        Each of the individual fits within a groups may then be filtered
+        via ``**kwargs``, and aggregated via ``aggregate_func``, before
         the function stacks all the groups back together in a
         tall style dataframe. The resulting dataframe will have a multiindex
         with the mutation and the groupby attributes.
@@ -453,7 +454,7 @@ class ModelCollection:
         ----------
         groupby : str or tuple of str or None, optional
             The attributes to group the fits by. If None, then group by all
-            attributes except for the model, data, step_loss, and verbose attributes.
+            attributes except for the model, data, and step_loss attributes.
             The default is ("dataset_name", "scale_coeff_lasso_shift").
         aggregate_func : str or callable, optional
             The function to aggregate the mutational dataframes within each group.
@@ -521,7 +522,9 @@ class ModelCollection:
                 .assign(**dict(zip(list(groupby), group)))
                 .reset_index()
                 .set_index(list(groupby))
-                for group, fit_group in queried_fits.groupby(list(groupby))
+                for group, fit_group in queried_fits.groupby(
+                    list(groupby), observed=True
+                )
             ],
             join="inner",
         )
@@ -538,7 +541,7 @@ class ModelCollection:
             The testing dataframe to compute validation loss with respect to,
             must have columns "aa_substitutitions", "condition", and "func_score".
             If a dictionary is passed, there should be a key for
-            each unique dataset_name factor in the self._fit_models dataframe
+            each unique dataset_name factor in the self.fit_models dataframe
             - with the value being the respective testing dataframe.
         overwrite : bool, optional
             Whether to overwrite the validation_loss column if it already exists.
@@ -547,25 +550,25 @@ class ModelCollection:
         Returns
         -------
         pd.DataFrame
-            The self._fit_models dataframe with the validation loss added.
+            The self.fit_models dataframe with the validation loss added.
         """
         if isinstance(test_data, pd.DataFrame):
             temp_test_data = test_data.copy()
             test_data = {}
-            for name in self._fit_models["dataset_name"].unique():
+            for name in self.fit_models["dataset_name"].unique():
                 test_data[name] = temp_test_data
 
         # check there's a testing dataframe for each unique dataset_name
-        assert set(test_data.keys()) == set(self._fit_models["dataset_name"].unique())
+        assert set(test_data.keys()) == set(self.fit_models["dataset_name"].unique())
 
-        if "validation_loss" in self._fit_models.columns and not overwrite:
+        if "validation_loss" in self.fit_models.columns and not overwrite:
             raise ValueError(
-                "validation_loss already exists in self._fit_models, set overwrite=True to overwrite"
+                "validation_loss already exists in self.fit_models, set overwrite=True to overwrite"
             )
 
-        self._fit_models["validation_loss"] = onp.nan
-        for idx, fit in self._fit_models.iterrows():
-            self._fit_models.loc[idx, "validation_loss"] = fit["model"].get_df_loss(
+        self.fit_models["validation_loss"] = onp.nan
+        for idx, fit in self.fit_models.iterrows():
+            self.fit_models.loc[idx, "validation_loss"] = fit["model"].get_df_loss(
                 test_data[fit["dataset_name"]]
             )
 
@@ -1001,9 +1004,6 @@ class ModelCollection:
             groupby=("dataset_name", x), **kwargs
         ).reset_index()
 
-        x_title = (
-            PARAMETER_NAMES_FOR_PLOTTING[x] if x in PARAMETER_NAMES_FOR_PLOTTING else x
-        )
         replicate_series = []
         comparisons = list(it.combinations(muts_df.dataset_name.unique(), 2))
         for datasets in comparisons:
@@ -1022,7 +1022,7 @@ class ModelCollection:
                             "datasets": ",".join(datasets),
                             "mut_param": mut_param,
                             "correlation": replicate_params_df.T.corr().iloc[0, 1],
-                            x_title: x_i,
+                            x: x_i,
                         },
                         index=[0],
                     ),
@@ -1035,7 +1035,7 @@ class ModelCollection:
             alt.Chart(replicate_df)
             .encode(
                 x=alt.X(
-                    x_title,
+                    x,
                     type="nominal",
                     title=(
                         PARAMETER_NAMES_FOR_PLOTTING[x]
@@ -1053,7 +1053,7 @@ class ModelCollection:
         )
 
         # if the x axis is numeric, do line plots, otherwise do bar plots
-        if replicate_df[x_title].dtype.kind in "biufc":
+        if replicate_df[x].dtype.kind in "biufc":
             chart = base_chart.mark_point() + base_chart.mark_line()
         else:
             chart = base_chart.mark_bar().encode(xOffset="mut_param")
