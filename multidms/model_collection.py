@@ -3,12 +3,12 @@ Contains the ModelCollection class, which takes a collection of models
 and merges the results for comparison and visualization.
 """
 
+# import os
 import itertools as it
 from functools import lru_cache
 from multiprocessing import get_context
 import multiprocessing
 import pprint
-import time
 
 import multidms
 
@@ -16,6 +16,7 @@ import pandas as pd
 import jax.numpy as jnp
 import numpy as onp
 import altair as alt
+
 
 PARAMETER_NAMES_FOR_PLOTTING = {
     "scale_coeff_lasso_shift": "Lasso Penalty",
@@ -180,7 +181,7 @@ def fit_one_model(
     total_iterations = 0
 
     for training_step in range(num_training_steps):
-        start = time.time()
+        # start = time.time()
         imodel.fit(
             lasso_shift=scale_coeff_lasso_shift,
             maxiter=iterations_per_step,
@@ -192,9 +193,9 @@ def fit_one_model(
             scale_coeff_ridge_gamma=scale_coeff_ridge_gamma,
             scale_coeff_ridge_alpha_d=scale_coeff_ridge_alpha_d,
         )
-        end = time.time()
+        # end = time.time()
 
-        fit_time = round(end - start)
+        # fit_time = round(end - start)
         total_iterations += iterations_per_step
 
         if onp.isnan(float(imodel.loss)):
@@ -205,8 +206,8 @@ def fit_one_model(
         if verbose:
             print(
                 f"training_step {training_step}/{num_training_steps},"
-                f"Loss: {imodel.loss}, Time: {fit_time} Seconds",
-                flush=True,
+                # f"Loss: {imodel.loss}, Time: {fit_time} Seconds",
+                # flush=True,
             )
 
     col_order = [
@@ -233,17 +234,13 @@ def fit_one_model(
         "PRNGKey",
     ]
 
-    return pd.Series(fit_attributes)[col_order]  # .to_frame().T[col_order]
+    return pd.Series(fit_attributes)[col_order]
 
 
 def _fit_fun(params):
     """Workaround for multiprocessing to fit models with sets of kwargs"""
-    # import jax
-    # jax.config.update("jax_platform_name", "cpu")
-    # data, kwargs = params
     _, kwargs = params
     try:
-        # return fit_one_model(data, **kwargs)
         return fit_one_model(**kwargs)
     except Exception:
         return None
@@ -257,14 +254,15 @@ def stack_fit_models(fit_models_list):
     return pd.concat([f.to_frame().T for f in fit_models_list], ignore_index=True)
 
 
-# TODO document that these params should not be unpacked
-# when passed as with fit_one_model.
-def fit_models(params, n_threads, failures="error"):
-    """Fit collection of :class:`~multidms.Model` models.
+def fit_models(params, n_threads=-1, failures="error"):
+    """Fit collection of :class:`multidms.model.Model` models.
 
     Enables fitting of multiple models simultaneously using multiple threads.
-    The returned dataframe is meant to be passed into the
-    :class:`multidms.ModelCollection` class for comparison and visualization.
+    Most commonly, this function is used to fit a set of models across combinations
+    of replicate training datasets, and lasso coefficients for model selection and
+    evaluation. The returned dataframe is meant to be passed into the
+    :class:`multidms.model_collection.ModelCollection` class for comparison
+    and visualization.
 
     Parameters
     ----------
@@ -273,11 +271,11 @@ def fit_models(params, n_threads, failures="error"):
         wish to run. Each value in the dictionary must be a list of
         values, even in the case of singletons.
         This function will compute all combinations of the parameter
-        space and pass each combination to :func:`multidms.utils.fit_wrapper`
+        space and pass each combination to :func:`multidms.utils.fit_one_model`
         to be run in parallel, thus only key-value pairs which
         match the kwargs are allowed.
-        See the docstring of :func:`multidms.utils.fit_wrapper` for
-        a description of the allowed kwargs.
+        See the docstring of :func:`multidms.model_collection.fit_one_model` for
+        a description of the allowed parameters.
     n_threads : int
         Number of threads (CPUs, cores) to use for fitting. Set to -1 to use
         all CPUs available.
@@ -298,13 +296,14 @@ def fit_models(params, n_threads, failures="error"):
         n_threads = multiprocessing.cpu_count()
 
     exploded_params = _explode_params_dict(params)
+    # if __name__ == "__main__":
     # see https://pythonspeed.com/articles/python-multiprocessing/ for why we spawn
     with get_context("spawn").Pool(n_threads) as p:
         fit_models = p.map(_fit_fun, [(None, params) for params in exploded_params])
         # fit_models = p.map(
         #     _fit_fun, [(params.pop("dataset"), params) for params in exploded_params]
         # )
-
+        # p.close()
     assert len(fit_models) == len(exploded_params)
 
     # Check to see if any models failed optimization
@@ -388,18 +387,16 @@ class ModelCollection:
             )
             all_mutations = set.union(all_mutations, set(fit.data.mutations))
 
+        # add the final training loss to the fit_models dataframe
+        fit_models["training_loss"] = fit_models.step_loss.apply(lambda x: x[-1])
+
         self._site_map_union = site_map_union
         self._conditions = first_dataset.conditions
         self._reference = first_dataset.reference
-        self._fit_models = fit_models
+        self.fit_models = fit_models
         self.condition_colors = first_dataset.condition_colors
         self._shared_mutations = tuple(shared_mutations)
         self._all_mutations = tuple(all_mutations)
-
-    @property
-    def fit_models(self) -> pd.DataFrame:
-        """The dataframe containing the fit attributes and pickled model objects."""
-        return self._fit_models
 
     @property
     def site_map_union(self) -> pd.DataFrame:
@@ -426,13 +423,12 @@ class ModelCollection:
         """The mutations shared by each fitting dataset."""
         return self._all_mutations
 
+    # TODO remove verbose everywhere
     @lru_cache(maxsize=10)
     def split_apply_combine_muts(
         self,
         groupby=("dataset_name", "scale_coeff_lasso_shift"),
         aggregate_func="mean",
-        # within_group_param_join="outer",
-        # between_group_param_join="outer",
         inner_merge_dataset_muts=True,
         query=None,
         **kwargs,
@@ -441,9 +437,11 @@ class ModelCollection:
         wrapper to split-apply-combine the set of mutational dataframes
         harbored by each of the fits in the collection.
 
-        here, we split the collection by grouping certain attributes, such
-        as dataset name, or the scaling coefficient of the lasso penalty.
-        Each of those groups may then be filtered and aggregated, before
+        Here, we group the collection of fits using attributes
+        (columns in :py:attr:`ModelCollection.fit_models`) specified using the
+        ``groupby`` parameter.
+        Each of the individual fits within a groups may then be filtered
+        via ``**kwargs``, and aggregated via ``aggregate_func``, before
         the function stacks all the groups back together in a
         tall style dataframe. The resulting dataframe will have a multiindex
         with the mutation and the groupby attributes.
@@ -452,7 +450,7 @@ class ModelCollection:
         ----------
         groupby : str or tuple of str or None, optional
             The attributes to group the fits by. If None, then group by all
-            attributes except for the model, data, step_loss, and verbose attributes.
+            attributes except for the model, data, and step_loss attributes.
             The default is ("dataset_name", "scale_coeff_lasso_shift").
         aggregate_func : str or callable, optional
             The function to aggregate the mutational dataframes within each group.
@@ -520,12 +518,58 @@ class ModelCollection:
                 .assign(**dict(zip(list(groupby), group)))
                 .reset_index()
                 .set_index(list(groupby))
-                for group, fit_group in queried_fits.groupby(list(groupby))
+                for group, fit_group in queried_fits.groupby(
+                    list(groupby), observed=True
+                )
             ],
             join="inner",
         )
 
         return ret
+
+    def add_validation_loss(self, test_data, overwrite=False):
+        """
+        Add validation loss to the fit collection dataframe.
+
+        Parameters
+        ----------
+        test_data : pd.DataFrame or dict(str, pd.DataFrame)
+            The testing dataframe to compute validation loss with respect to,
+            must have columns "aa_substitutitions", "condition", and "func_score".
+            If a dictionary is passed, there should be a key for
+            each unique dataset_name factor in the self.fit_models dataframe
+            - with the value being the respective testing dataframe.
+        overwrite : bool, optional
+            Whether to overwrite the validation_loss column if it already exists.
+            The default is False.
+
+        Returns
+        -------
+        pd.DataFrame
+            The self.fit_models dataframe with the validation loss added.
+        """
+        if isinstance(test_data, pd.DataFrame):
+            temp_test_data = test_data.copy()
+            test_data = {}
+            for name in self.fit_models["dataset_name"].unique():
+                test_data[name] = temp_test_data
+
+        # check there's a testing dataframe for each unique dataset_name
+        assert set(test_data.keys()) == set(self.fit_models["dataset_name"].unique())
+
+        if "validation_loss" in self.fit_models.columns and not overwrite:
+            raise ValueError(
+                "validation_loss already exists in self.fit_models, set overwrite=True "
+                "to overwrite"
+            )
+
+        self.fit_models["validation_loss"] = onp.nan
+        for idx, fit in self.fit_models.iterrows():
+            self.fit_models.loc[idx, "validation_loss"] = fit["model"].get_df_loss(
+                test_data[fit["dataset_name"]]
+            )
+
+        return None
 
     def mut_param_heatmap(
         self,
@@ -675,13 +719,11 @@ class ModelCollection:
                 value_vars=[c for c in muts_df.columns if c.startswith(mut_param)],
                 var_name="condition",
                 value_name=mut_param,
-            )
-            muts_df_tall.condition.replace(
+            ).replace(
                 {
                     f"{mut_param}_{condition}": condition.replace(".", "_")
                     for condition in self.conditions
                 },
-                inplace=True,
             )
 
         # add in condition colors, rename for altair
@@ -814,12 +856,7 @@ class ModelCollection:
             )
         )
 
-        points = (
-            base.mark_circle()
-            .encode(opacity=alt.value(0))
-            .add_params(highlight)
-            # .properties(width=600)
-        )
+        points = base.mark_circle().encode(opacity=alt.value(0)).add_params(highlight)
 
         lines = base.mark_line().encode(
             size=alt.condition(~highlight, alt.value(1), alt.value(3))
@@ -831,7 +868,12 @@ class ModelCollection:
         )
 
     def shift_sparsity(
-        self, x="scale_coeff_lasso_shift", width_scalar=100, height_scalar=100, **kwargs
+        self,
+        x="scale_coeff_lasso_shift",
+        width_scalar=100,
+        height_scalar=10,
+        return_data=False,
+        **kwargs,
     ):
         """
         Visualize shift parameter set sparsity across the lasso penalty weights
@@ -845,9 +887,10 @@ class ModelCollection:
 
         Returns
         -------
-        altair.Chart
+        altair.Chart or Tuple(pd.DataFrame, altair.Chart)
             A chart object which can be displayed in a jupyter notebook
-            or saved to a file.
+            or saved to a file. If `return_data=True`, then a tuple
+            containing the chart and the underlying data will be returned.
         """
         # get mutation values, group by x axis variable and dataset
         df = self.split_apply_combine_muts(groupby=("dataset_name", x), **kwargs)
@@ -862,19 +905,26 @@ class ModelCollection:
         # feature columns for distinct sparsity measurements
         feature_cols = ["dataset_name", x, "mut_type"]
 
-        def sparsity(x):
+        # include **kwargs because apply will pass them to sparsity
+        # TODO I'm not sure if this is actually how we should do this.
+        def sparsity(x, **kwargs):
             return (x == 0).mean()
 
         def mut_type(mut):
             return "stop" if mut.endswith("*") else "nonsynonymous"
 
         # apply, drop, and melt
+        # TODO This throws deprecation warning
+        # because of the include_groups argument ...
+        # set to False, and lose the drop call after ...
         sparsity_df = (
             df.drop(columns=to_throw)
             .assign(mut_type=lambda x: x.mutation.apply(mut_type))
             .reset_index()
             .groupby(by=feature_cols)
-            .apply(sparsity)
+            .apply(
+                sparsity, include_groups=True
+            )  # TODO This throws deprecation warning
             .drop(columns=feature_cols + ["mutation"])
             .reset_index(drop=False)
             .melt(id_vars=feature_cols, var_name="mut_param", value_name="sparsity")
@@ -919,10 +969,14 @@ class ModelCollection:
         else:
             chart = base_chart.mark_bar().encode(xOffset="mut_type")
 
-        return chart.facet(
+        facetted_chart = chart.facet(
             row=alt.Row("dataset_name", title="Dataset"),
             column=alt.Column("mut_param", title="Experimental Shifts"),
         )
+
+        if return_data:
+            return facetted_chart, sparsity_df
+        return facetted_chart
 
     def mut_param_dataset_correlation(
         self,
@@ -930,6 +984,7 @@ class ModelCollection:
         mut_param="shift",
         width_scalar=150,
         height=200,
+        return_data=False,
         **kwargs,
     ):
         """
@@ -938,9 +993,10 @@ class ModelCollection:
 
         Returns
         -------
-        altair.Chart
+        altair.Chart or Tuple(altair.Chart, pd.DataFrame)
             A chart object which can be displayed in a jupyter notebook
-            or saved to a file.
+            or saved to a file. If `return_data=True`, then a tuple
+            containing the chart and the underlying data will be returned.
         """
         query = "dataset_name.notna()" if "query" not in kwargs else kwargs["query"]
         if len(self.fit_models.query(query).dataset_name.unique()) < 2:
@@ -950,9 +1006,6 @@ class ModelCollection:
             groupby=("dataset_name", x), **kwargs
         ).reset_index()
 
-        x_title = (
-            PARAMETER_NAMES_FOR_PLOTTING[x] if x in PARAMETER_NAMES_FOR_PLOTTING else x
-        )
         replicate_series = []
         comparisons = list(it.combinations(muts_df.dataset_name.unique(), 2))
         for datasets in comparisons:
@@ -971,7 +1024,7 @@ class ModelCollection:
                             "datasets": ",".join(datasets),
                             "mut_param": mut_param,
                             "correlation": replicate_params_df.T.corr().iloc[0, 1],
-                            x_title: x_i,
+                            x: x_i,
                         },
                         index=[0],
                     ),
@@ -984,7 +1037,7 @@ class ModelCollection:
             alt.Chart(replicate_df)
             .encode(
                 x=alt.X(
-                    x_title,
+                    x,
                     type="nominal",
                     title=(
                         PARAMETER_NAMES_FOR_PLOTTING[x]
@@ -1002,11 +1055,15 @@ class ModelCollection:
         )
 
         # if the x axis is numeric, do line plots, otherwise do bar plots
-        if replicate_df[x_title].dtype.kind in "biufc":
+        if replicate_df[x].dtype.kind in "biufc":
             chart = base_chart.mark_point() + base_chart.mark_line()
         else:
             chart = base_chart.mark_bar().encode(xOffset="mut_param")
 
-        return chart.facet(
+        facetted_chart = chart.facet(
             column=alt.Column("datasets", title="Experiment comparison"),
         )
+
+        if return_data:
+            return facetted_chart, replicate_df
+        return facetted_chart

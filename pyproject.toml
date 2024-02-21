@@ -47,15 +47,12 @@ dependencies = [
     "scipy",
     "tqdm",
     "pandarallel",
-    "ipywidgets"
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest",
     "pytest-pep8",
-    "pytest-datadir",
-    "pre-commit",
     "ruff~=0.0.289",
     "black~=23.3.0",
     "notebook",
@@ -64,7 +61,8 @@ dev = [
     "nbsphinx_link",
     "bumpver",
     "sphinxcontrib-bibtex",
-    "dms_variants"
+    "dms_variants",
+    "ipywidgets"
 ]
 
 [tool.ruff]

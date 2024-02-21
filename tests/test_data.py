@@ -1,12 +1,24 @@
 """Tests for the Data class and its methods."""
 
+# import traceback
+# import warnings
+# import sys
 
-import os
+
+# import os
 import pytest
 import multidms
 import numpy as np
 import pandas as pd
 from io import StringIO
+
+# def warn_with_traceback(message, category, filename, lineno, file=None, line=None):
+
+#     log = file if hasattr(file,'write') else sys.stderr
+#     traceback.print_stack(file=log)
+#     log.write(warnings.formatwarning(message, category, filename, lineno, line))
+
+# warnings.showwarning = warn_with_traceback
 
 TEST_FUNC_SCORES = pd.read_csv(
     StringIO(
@@ -375,7 +387,7 @@ def test_fit_models():
     }
     _, _, fit_models_df = multidms.model_collection.fit_models(
         params,
-        n_threads=min(os.cpu_count(), 4),
+        n_threads=-1,
     )
     mc = multidms.model_collection.ModelCollection(fit_models_df)
     tall_combined = mc.split_apply_combine_muts(groupby=("scale_coeff_lasso_shift"))
@@ -401,7 +413,7 @@ def test_ModelCollection_charts():
     }
     _, _, fit_models_df = multidms.model_collection.fit_models(
         params,
-        n_threads=min(os.cpu_count(), 4),
+        n_threads=-1,
     )
     mc = multidms.model_collection.ModelCollection(fit_models_df)
 
@@ -424,3 +436,16 @@ def test_data_names():
             assert_site_integrity=False,
         )
         assert d_i.name == f"Data-{num_datasets + i}"
+
+
+def test_model_get_df_loss():
+    """
+    Test that the loss is correctly calculated
+    by comparing the result of model.loss() to the results of model.get_df_loss()
+    when given the training dataframe.
+    """
+    model = multidms.Model(data, PRNGKey=23)
+    model.fit(maxiter=2)
+    loss = model.loss
+    df_loss = model.get_df_loss(TEST_FUNC_SCORES)
+    assert loss == df_loss
