@@ -1,12 +1,24 @@
 """Tests for the Data class and its methods."""
 
+# import traceback
+# import warnings
+# import sys
 
-import os
+
+# import os
 import pytest
 import multidms
 import numpy as np
 import pandas as pd
 from io import StringIO
+
+# def warn_with_traceback(message, category, filename, lineno, file=None, line=None):
+
+#     log = file if hasattr(file,'write') else sys.stderr
+#     traceback.print_stack(file=log)
+#     log.write(warnings.formatwarning(message, category, filename, lineno, line))
+
+# warnings.showwarning = warn_with_traceback
 
 TEST_FUNC_SCORES = pd.read_csv(
     StringIO(
@@ -375,7 +387,7 @@ def test_fit_models():
     }
     _, _, fit_models_df = multidms.model_collection.fit_models(
         params,
-        n_threads=min(os.cpu_count(), 4),
+        n_threads=-1,
     )
     mc = multidms.model_collection.ModelCollection(fit_models_df)
     tall_combined = mc.split_apply_combine_muts(groupby=("scale_coeff_lasso_shift"))
@@ -401,7 +413,7 @@ def test_ModelCollection_charts():
     }
     _, _, fit_models_df = multidms.model_collection.fit_models(
         params,
-        n_threads=min(os.cpu_count(), 4),
+        n_threads=-1,
     )
     mc = multidms.model_collection.ModelCollection(fit_models_df)
 

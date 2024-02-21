@@ -3,12 +3,12 @@ Contains the ModelCollection class, which takes a collection of models
 and merges the results for comparison and visualization.
 """
 
+# import os
 import itertools as it
 from functools import lru_cache
 from multiprocessing import get_context
 import multiprocessing
 import pprint
-import time
 
 import multidms
 
@@ -16,6 +16,7 @@ import pandas as pd
 import jax.numpy as jnp
 import numpy as onp
 import altair as alt
+
 
 PARAMETER_NAMES_FOR_PLOTTING = {
     "scale_coeff_lasso_shift": "Lasso Penalty",
@@ -180,7 +181,7 @@ def fit_one_model(
     total_iterations = 0
 
     for training_step in range(num_training_steps):
-        start = time.time()
+        # start = time.time()
         imodel.fit(
             lasso_shift=scale_coeff_lasso_shift,
             maxiter=iterations_per_step,
@@ -192,9 +193,9 @@ def fit_one_model(
             scale_coeff_ridge_gamma=scale_coeff_ridge_gamma,
             scale_coeff_ridge_alpha_d=scale_coeff_ridge_alpha_d,
         )
-        end = time.time()
+        # end = time.time()
 
-        fit_time = round(end - start)
+        # fit_time = round(end - start)
         total_iterations += iterations_per_step
 
         if onp.isnan(float(imodel.loss)):
@@ -205,8 +206,8 @@ def fit_one_model(
         if verbose:
             print(
                 f"training_step {training_step}/{num_training_steps},"
-                f"Loss: {imodel.loss}, Time: {fit_time} Seconds",
-                flush=True,
+                # f"Loss: {imodel.loss}, Time: {fit_time} Seconds",
+                # flush=True,
             )
 
     col_order = [
@@ -233,17 +234,13 @@ def fit_one_model(
         "PRNGKey",
     ]
 
-    return pd.Series(fit_attributes)[col_order]  # .to_frame().T[col_order]
+    return pd.Series(fit_attributes)[col_order]
 
 
 def _fit_fun(params):
     """Workaround for multiprocessing to fit models with sets of kwargs"""
-    # import jax
-    # jax.config.update("jax_platform_name", "cpu")
-    # data, kwargs = params
     _, kwargs = params
     try:
-        # return fit_one_model(data, **kwargs)
         return fit_one_model(**kwargs)
     except Exception:
         return None
@@ -257,8 +254,6 @@ def stack_fit_models(fit_models_list):
     return pd.concat([f.to_frame().T for f in fit_models_list], ignore_index=True)
 
 
-# TODO document that these params should not be unpacked
-# when passed as with fit_one_model.
 def fit_models(params, n_threads=-1, failures="error"):
     """Fit collection of :class:`multidms.model.Model` models.
 
@@ -301,13 +296,14 @@ def fit_models(params, n_threads=-1, failures="error"):
         n_threads = multiprocessing.cpu_count()
 
     exploded_params = _explode_params_dict(params)
+    # if __name__ == "__main__":
     # see https://pythonspeed.com/articles/python-multiprocessing/ for why we spawn
     with get_context("spawn").Pool(n_threads) as p:
         fit_models = p.map(_fit_fun, [(None, params) for params in exploded_params])
         # fit_models = p.map(
         #     _fit_fun, [(params.pop("dataset"), params) for params in exploded_params]
         # )
-
+        # p.close()
     assert len(fit_models) == len(exploded_params)
 
     # Check to see if any models failed optimization
@@ -441,8 +437,8 @@ class ModelCollection:
         wrapper to split-apply-combine the set of mutational dataframes
         harbored by each of the fits in the collection.
 
-        Here, we group the fit_collection using attributes
-        (columns in :property:`ModelCollection.fit_models`) specified using the
+        Here, we group the collection of fits using attributes
+        (columns in :py:attr:`ModelCollection.fit_models`) specified using the
         ``groupby`` parameter.
         Each of the individual fits within a groups may then be filtered
         via ``**kwargs``, and aggregated via ``aggregate_func``, before
@@ -563,7 +559,8 @@ class ModelCollection:
 
         if "validation_loss" in self.fit_models.columns and not overwrite:
             raise ValueError(
-                "validation_loss already exists in self.fit_models, set overwrite=True to overwrite"
+                "validation_loss already exists in self.fit_models, set overwrite=True "
+                "to overwrite"
             )
 
         self.fit_models["validation_loss"] = onp.nan
@@ -722,13 +719,11 @@ class ModelCollection:
                 value_vars=[c for c in muts_df.columns if c.startswith(mut_param)],
                 var_name="condition",
                 value_name=mut_param,
-            )
-            muts_df_tall.condition.replace(
+            ).replace(
                 {
                     f"{mut_param}_{condition}": condition.replace(".", "_")
                     for condition in self.conditions
                 },
-                inplace=True,
             )
 
         # add in condition colors, rename for altair
@@ -910,19 +905,26 @@ class ModelCollection:
         # feature columns for distinct sparsity measurements
         feature_cols = ["dataset_name", x, "mut_type"]
 
-        def sparsity(x):
+        # include **kwargs because apply will pass them to sparsity
+        # TODO I'm not sure if this is actually how we should do this.
+        def sparsity(x, **kwargs):
             return (x == 0).mean()
 
         def mut_type(mut):
             return "stop" if mut.endswith("*") else "nonsynonymous"
 
         # apply, drop, and melt
+        # TODO This throws deprecation warning
+        # because of the include_groups argument ...
+        # set to False, and lose the drop call after ...
         sparsity_df = (
             df.drop(columns=to_throw)
             .assign(mut_type=lambda x: x.mutation.apply(mut_type))
             .reset_index()
             .groupby(by=feature_cols)
-            .apply(sparsity)
+            .apply(
+                sparsity, include_groups=True
+            )  # TODO This throws deprecation warning
             .drop(columns=feature_cols + ["mutation"])
             .reset_index(drop=False)
             .melt(id_vars=feature_cols, var_name="mut_param", value_name="sparsity")

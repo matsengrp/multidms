@@ -21,14 +21,11 @@ from tqdm.auto import tqdm
 
 from multidms import AAS
 
-import jax
 import jax.numpy as jnp
 import seaborn as sns
 from jax.experimental import sparse
 from matplotlib import pyplot as plt
 from pandarallel import pandarallel
-
-# jax.config.update("jax_enable_x64", True)
 
 
 def split_sub(sub_string):

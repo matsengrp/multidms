@@ -53,8 +53,6 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-pep8",
-    "pytest-datadir",
-    "pre-commit",
     "ruff~=0.0.289",
     "black~=23.3.0",
     "notebook",
@@ -64,9 +62,7 @@ dev = [
     "bumpver",
     "sphinxcontrib-bibtex",
     "dms_variants",
-    "ipywidgets",
-    "papermill"
-
+    "ipywidgets"
 ]
 
 [tool.ruff]
