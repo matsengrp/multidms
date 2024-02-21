@@ -154,28 +154,6 @@
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="c1"># libs = [&quot;lib_1&quot;, &quot;lib_2&quot;]  # distinct libraries of gene</span>
-
-<span class="c1"># variants_per_lib = variants_per_lib_genelength_scalar * genelength</span>
-
-<span class="c1"># bottlenecks = {</span>
-<span class="c1">#     name : variants_per_lib * scalar</span>
-<span class="c1">#     for name, scalar in bottleneck_variants_per_lib_scalar.items()</span>
-<span class="c1"># }</span>
-
-<span class="c1"># fitting_params = {</span>
-<span class="c1">#     &quot;iterations_per_step&quot;: [iterations_per_step], # default 20000</span>
-<span class="c1">#     &quot;scale_coeff_lasso_shift&quot;: scale_coeff_lasso_shift, # the sweep of lasso coefficient params</span>
-<span class="c1">#     &quot;init_beta_naught&quot; : [init_beta_naught], # We&#39;ve found that we need to start with a higher beta_naught to get the model to converge correctly,</span>
-<span class="c1">#     &quot;scale_coeff_ridge_beta&quot; : [scale_coeff_ridge_beta], # the sweep of ridge coefficient params</span>
-<span class="c1"># }</span>
-<br/></pre></div>
-</div>
-</div>
 </section>
 <section id="Simulate-a-reference-sequence">
 <h2>Simulate a reference sequence<a class="headerlink" href="#Simulate-a-reference-sequence" title="Link to this heading">¶</a></h2>
@@ -245,7 +223,7 @@ GSSFSGTVSGVVRSFTLFVRQFTVSSHQDPCCHCTTGYYFSQVCTLSRLG
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_19_0.png" class="no-scaled-link" src="_images/simulation_validation_19_0.png" style="width: 500px; height: 300px;" />
+<img alt="_images/simulation_validation_18_0.png" class="no-scaled-link" src="_images/simulation_validation_18_0.png" style="width: 500px; height: 300px;" />
 </div>
 </div>
 <p>As expected, our mutational effects are weighted in the negative direction, as we expect the majority of mutations to be deleterious to a protein.</p>
@@ -591,7 +569,7 @@ non-identical (n=4): 8, 14, 32, 42
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_30_0.png" class="no-scaled-link" src="_images/simulation_validation_30_0.png" style="width: 500px; height: 300px;" />
+<img alt="_images/simulation_validation_29_0.png" class="no-scaled-link" src="_images/simulation_validation_29_0.png" style="width: 500px; height: 300px;" />
 </div>
 </div>
 <p>We can also plot the shifts as a heatmap, and mark the wildtype amino acid at each site (<code class="docutils literal notranslate"><span class="pre">x</span></code> for reference, <code class="docutils literal notranslate"><span class="pre">o</span></code> for non-reference):</p>
@@ -658,7 +636,7 @@ non-identical (n=4): 8, 14, 32, 42
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_32_0.png" class="no-scaled-link" src="_images/simulation_validation_32_0.png" style="width: 700px; height: 350px;" />
+<img alt="_images/simulation_validation_31_0.png" class="no-scaled-link" src="_images/simulation_validation_31_0.png" style="width: 700px; height: 350px;" />
 </div>
 </div>
 <p>Recal that we have already created a <code class="docutils literal notranslate"><span class="pre">SigmoidPhenotypeSimulator</span></code> object for the second homolog by making a copy of the one for the first homolog. This object stores the homolog’s wildtype latent phenotype and the latent effects of individual mutations. Below, we update both of these traits based on the simulated shifts from above. To update the wildtype latent phenotype of the second homolog, we add the effects of all mutations that separate the homologs. In computing this sum, we will use
@@ -1156,7 +1134,7 @@ A30G.</p>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_44_0.png" class="no-scaled-link" src="_images/simulation_validation_44_0.png" style="width: 500px; height: 300px;" />
+<img alt="_images/simulation_validation_43_0.png" class="no-scaled-link" src="_images/simulation_validation_43_0.png" style="width: 500px; height: 300px;" />
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -1236,7 +1214,7 @@ A30G.</p>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_46_0.png" class="no-scaled-link" src="_images/simulation_validation_46_0.png" style="width: 500px; height: 300px;" />
+<img alt="_images/simulation_validation_45_0.png" class="no-scaled-link" src="_images/simulation_validation_45_0.png" style="width: 500px; height: 300px;" />
 </div>
 </div>
 </section>
@@ -1374,7 +1352,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_53_0.png" class="no-scaled-link" src="_images/simulation_validation_53_0.png" style="width: 400px; height: 400px;" />
+<img alt="_images/simulation_validation_52_0.png" class="no-scaled-link" src="_images/simulation_validation_52_0.png" style="width: 400px; height: 400px;" />
 </div>
 </div>
 <p>Next, assign each barcoded variant an <em>observed phenotype</em>, <span class="math notranslate nohighlight">\(p(v, d)\)</span>, as well as an <em>observed enrichment</em> , <span class="math notranslate nohighlight">\(2^{p(v, d)}\)</span>.</p>
@@ -1524,7 +1502,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_57_0.png" class="no-scaled-link" src="_images/simulation_validation_57_0.png" style="width: 500px; height: 300px;" />
+<img alt="_images/simulation_validation_56_0.png" class="no-scaled-link" src="_images/simulation_validation_56_0.png" style="width: 500px; height: 300px;" />
 </div>
 </div>
 </section>
@@ -1591,14 +1569,14 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_62_0.png" class="no-scaled-link" src="_images/simulation_validation_62_0.png" style="width: 500px; height: 500px;" />
+<img alt="_images/simulation_validation_61_0.png" class="no-scaled-link" src="_images/simulation_validation_61_0.png" style="width: 500px; height: 500px;" />
 </div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_62_1.png" class="no-scaled-link" src="_images/simulation_validation_62_1.png" style="width: 500px; height: 500px;" />
+<img alt="_images/simulation_validation_61_1.png" class="no-scaled-link" src="_images/simulation_validation_61_1.png" style="width: 500px; height: 500px;" />
 </div>
 </div>
 <p>Distribution of the number of amino-acid mutations per variant in each sample. As expected, mutations go down after selection:</p>
@@ -1619,14 +1597,14 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_64_0.png" class="no-scaled-link" src="_images/simulation_validation_64_0.png" style="width: 500px; height: 500px;" />
+<img alt="_images/simulation_validation_63_0.png" class="no-scaled-link" src="_images/simulation_validation_63_0.png" style="width: 500px; height: 500px;" />
 </div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_64_1.png" class="no-scaled-link" src="_images/simulation_validation_64_1.png" style="width: 500px; height: 500px;" />
+<img alt="_images/simulation_validation_63_1.png" class="no-scaled-link" src="_images/simulation_validation_63_1.png" style="width: 500px; height: 500px;" />
 </div>
 </div>
 <p>Plot how thoroughly amino-acid mutations are sampled. The plots below show that the stop mutations are sampled very poorly post-selection because they are eliminated during selection:</p>
@@ -1647,14 +1625,14 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_66_0.png" class="no-scaled-link" src="_images/simulation_validation_66_0.png" style="width: 800px; height: 500px;" />
+<img alt="_images/simulation_validation_65_0.png" class="no-scaled-link" src="_images/simulation_validation_65_0.png" style="width: 800px; height: 500px;" />
 </div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_66_1.png" class="no-scaled-link" src="_images/simulation_validation_66_1.png" style="width: 800px; height: 500px;" />
+<img alt="_images/simulation_validation_65_1.png" class="no-scaled-link" src="_images/simulation_validation_65_1.png" style="width: 800px; height: 500px;" />
 </div>
 </div>
 </section>
@@ -2074,7 +2052,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_76_0.png" class="no-scaled-link" src="_images/simulation_validation_76_0.png" style="width: 500px; height: 300px;" />
+<img alt="_images/simulation_validation_75_0.png" class="no-scaled-link" src="_images/simulation_validation_75_0.png" style="width: 500px; height: 300px;" />
 </div>
 </div>
 <p>Plot a pairplot to see how targets compare.</p>
@@ -2106,7 +2084,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_78_0.png" class="no-scaled-link" src="_images/simulation_validation_78_0.png" style="width: 821px; height: 750px;" />
+<img alt="_images/simulation_validation_77_0.png" class="no-scaled-link" src="_images/simulation_validation_77_0.png" style="width: 821px; height: 750px;" />
 </div>
 </div>
 <p>We can see here that the tight bottleneck indeed introduces more noise in the data, as the functional scores are less correlated with the ground truth phenotype.</p>
@@ -2140,7 +2118,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_81_0.png" class="no-scaled-link" src="_images/simulation_validation_81_0.png" style="width: 800px; height: 500px;" />
+<img alt="_images/simulation_validation_80_0.png" class="no-scaled-link" src="_images/simulation_validation_80_0.png" style="width: 800px; height: 500px;" />
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -2862,14 +2840,14 @@ cache miss - this could take a moment
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_103_0.png" class="no-scaled-link" src="_images/simulation_validation_103_0.png" style="width: 1000px; height: 330px;" />
+<img alt="_images/simulation_validation_102_0.png" class="no-scaled-link" src="_images/simulation_validation_102_0.png" style="width: 1000px; height: 330px;" />
 </div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_103_1.png" class="no-scaled-link" src="_images/simulation_validation_103_1.png" style="width: 1000px; height: 330px;" />
+<img alt="_images/simulation_validation_102_1.png" class="no-scaled-link" src="_images/simulation_validation_102_1.png" style="width: 1000px; height: 330px;" />
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -3119,7 +3097,7 @@ cache miss - this could take a moment
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_108_0.png" class="no-scaled-link" src="_images/simulation_validation_108_0.png" style="width: 1000px; height: 330px;" />
+<img alt="_images/simulation_validation_107_0.png" class="no-scaled-link" src="_images/simulation_validation_107_0.png" style="width: 1000px; height: 330px;" />
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -3502,14 +3480,14 @@ cache miss - this could take a moment
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_115_0.png" class="no-scaled-link" src="_images/simulation_validation_115_0.png" style="width: 1000px; height: 330px;" />
+<img alt="_images/simulation_validation_114_0.png" class="no-scaled-link" src="_images/simulation_validation_114_0.png" style="width: 1000px; height: 330px;" />
 </div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_115_1.png" class="no-scaled-link" src="_images/simulation_validation_115_1.png" style="width: 1000px; height: 330px;" />
+<img alt="_images/simulation_validation_114_1.png" class="no-scaled-link" src="_images/simulation_validation_114_1.png" style="width: 1000px; height: 330px;" />
 </div>
 </div>
 <div class="nbinput docutils container">
@@ -3943,7 +3921,7 @@ cache miss - this could take a moment
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_126_0.png" class="no-scaled-link" src="_images/simulation_validation_126_0.png" style="width: 1000px; height: 330px;" />
+<img alt="_images/simulation_validation_125_0.png" class="no-scaled-link" src="_images/simulation_validation_125_0.png" style="width: 1000px; height: 330px;" />
 </div>
 </div>
 <p>As expected, the lasso constraint has a negative effect on the models’ ability to predict the true latent and observed phenotypes. This is because a model with more freedom to choose parameters is likely to overfit to the training data.</p>
@@ -4264,7 +4242,7 @@ CUDA backend failed to initialize: Unable to load CUDA. Is it installed? (Set TF
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_135_0.png" class="no-scaled-link" src="_images/simulation_validation_135_0.png" style="width: 1000px; height: 330px;" />
+<img alt="_images/simulation_validation_134_0.png" class="no-scaled-link" src="_images/simulation_validation_134_0.png" style="width: 1000px; height: 330px;" />
 </div>
 </div>
 <p>Above we can see that indeed for both the loose and tight bottleneck datasets, the lasso constraint provides a more robust model to unseen data. We don’t however see this effect for the models trained on ground truth observed phenotypes, as there is no noise for the models to overfit to.</p>
@@ -4414,21 +4392,21 @@ that a lasso penalty of <span class="math notranslate nohighlight">\(1e-4\)</spa
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_141_0.png" class="no-scaled-link" src="_images/simulation_validation_141_0.png" style="width: 1000px; height: 330px;" />
+<img alt="_images/simulation_validation_140_0.png" class="no-scaled-link" src="_images/simulation_validation_140_0.png" style="width: 1000px; height: 330px;" />
 </div>
 </div>
 <div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_141_1.png" class="no-scaled-link" src="_images/simulation_validation_141_1.png" style="width: 1000px; height: 330px;" />
+<img alt="_images/simulation_validation_140_1.png" class="no-scaled-link" src="_images/simulation_validation_140_1.png" style="width: 1000px; height: 330px;" />
 </div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_141_2.png" class="no-scaled-link" src="_images/simulation_validation_141_2.png" style="width: 1000px; height: 330px;" />
+<img alt="_images/simulation_validation_140_2.png" class="no-scaled-link" src="_images/simulation_validation_140_2.png" style="width: 1000px; height: 330px;" />
 </div>
 </div>
 <p>Plot model vs. measured (functional score) vs. ground truth enrichments.</p>
@@ -4470,7 +4448,7 @@ that a lasso penalty of <span class="math notranslate nohighlight">\(1e-4\)</spa
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_143_0.png" class="no-scaled-link" src="_images/simulation_validation_143_0.png" style="width: 1000px; height: 500px;" />
+<img alt="_images/simulation_validation_142_0.png" class="no-scaled-link" src="_images/simulation_validation_142_0.png" style="width: 1000px; height: 500px;" />
 </div>
 </div>
 <p>Amazingly, the model does better at predicting true enrichments than even the counts based functional scores!</p>
@@ -4519,7 +4497,7 @@ that a lasso penalty of <span class="math notranslate nohighlight">\(1e-4\)</spa
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_146_0.png" class="no-scaled-link" src="_images/simulation_validation_146_0.png" style="width: 1000px; height: 500px;" />
+<img alt="_images/simulation_validation_145_0.png" class="no-scaled-link" src="_images/simulation_validation_145_0.png" style="width: 1000px; height: 500px;" />
 </div>
 </div>
 </section>
