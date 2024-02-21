@@ -491,10 +491,10 @@ request the property.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">get_mutations_df</span><span class="p">()</span>  
 <span class="go">              beta  shift_b  predicted_func_score_a  predicted_func_score_b  \</span>
 <span class="go">mutation</span>
-<span class="go">M1E       0.080868      0.0                0.101030                0.565154</span>
-<span class="go">M1W      -0.386247      0.0               -0.476895               -0.012770</span>
-<span class="go">G3P      -0.375656      0.0               -0.464124                0.000000</span>
-<span class="go">G3R       1.668974      0.0                1.707195                2.171319</span>
+<span class="go">M1E       1.816086      0.0                1.800479                1.379661</span>
+<span class="go">M1W      -0.754885      0.0               -0.901211               -1.322029</span>
+<span class="go">G3P       0.339889      0.0                0.420818                0.000000</span>
+<span class="go">G3R      -0.534835      0.0               -0.653051               -1.073869</span>
 
 <span class="go">          times_seen_a  times_seen_b wts  sites muts</span>
 <span class="go">mutation</span>
@@ -510,26 +510,26 @@ and predicted functional score (<code class="docutils literal notranslate"><span
 easily accessible. Similarly, we can take a look at the variants_df for the model,</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">get_variants_df</span><span class="p">()</span>  
 <span class="go">  condition aa_substitutions  func_score var_wrt_ref  predicted_latent  \</span>
-<span class="go">0         a              M1E         2.0         M1E          0.080868</span>
-<span class="go">1         a              G3R        -7.0         G3R          1.668974</span>
-<span class="go">2         a              G3P        -0.5         G3P         -0.375656</span>
-<span class="go">3         a              M1W         2.3         M1W         -0.386247</span>
-<span class="go">4         b              M1E         1.0     G3P M1E          0.080868</span>
-<span class="go">5         b              P3R        -5.0         G3R          2.044630</span>
-<span class="go">6         b              P3G         0.4                      0.375656</span>
-<span class="go">7         b          M1E P3G         2.7         M1E          0.456523</span>
-<span class="go">8         b          M1E P3R        -2.7     G3R M1E          2.125498</span>
+<span class="go">0         a              M1E         2.0         M1E          1.816086</span>
+<span class="go">1         a              G3R        -7.0         G3R         -0.534835</span>
+<span class="go">2         a              G3P        -0.5         G3P          0.339889</span>
+<span class="go">3         a              M1W         2.3         M1W         -0.754885</span>
+<span class="go">4         b              M1E         1.0     G3P M1E          1.816086</span>
+<span class="go">5         b              P3R        -5.0         G3R         -0.874724</span>
+<span class="go">6         b              P3G         0.4                     -0.339889</span>
+<span class="go">7         b          M1E P3G         2.7         M1E          1.476197</span>
+<span class="go">8         b          M1E P3R        -2.7     G3R M1E          0.941362</span>
 
 <span class="go">   predicted_func_score</span>
-<span class="go">0              0.101030</span>
-<span class="go">1              1.707195</span>
-<span class="go">2             -0.464124</span>
-<span class="go">3             -0.476895</span>
-<span class="go">4              0.098285</span>
-<span class="go">5              2.171319</span>
-<span class="go">6              0.464124</span>
-<span class="go">7              0.565154</span>
-<span class="go">8              2.223789</span>
+<span class="go">0              1.800479</span>
+<span class="go">1             -0.653051</span>
+<span class="go">2              0.420818</span>
+<span class="go">3             -0.901211</span>
+<span class="go">4              1.560311</span>
+<span class="go">5             -1.073869</span>
+<span class="go">6             -0.420818</span>
+<span class="go">7              1.379661</span>
+<span class="go">8              0.992495</span>
 </pre></div>
 </div>
 <p>We now have access to the predicted (and gamma corrected) functional scores
@@ -538,13 +538,13 @@ as predicted by the models current parameters.</p>
 to the dataset. Let’s take a look at the loss on the training dataset
 given our initialized parameters</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">loss</span>
-<span class="go">Array(7.19312981, dtype=float64)</span>
+<span class="go">Array(4.7124467, dtype=float32)</span>
 </pre></div>
 </div>
 <p>Next, we fit the model with some chosen hyperparameters.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">maxiter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">lasso_shift</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">loss</span>
-<span class="go">Array(1.18200934e-05, dtype=float64)</span>
+<span class="go">Array(6.0517805e-06, dtype=float32)</span>
 </pre></div>
 </div>
 <p>The model tunes its parameters in place, and the subsequent call to retrieve
@@ -654,6 +654,32 @@ based on the current state of the model.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.0)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="multidms.Model.get_df_loss">
+<span class="sig-name descname"><span class="pre">get_df_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_if_unknown</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.get_df_loss" title="Link to this definition">¶</a></dt>
+<dd><p>Get the loss of the model on a given data frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.0)"><em>pandas.DataFrame</em></a>) – Data frame containing variants. Requirements are the same as
+those used to initialize the <cite>multidms.Data</cite> object - except
+the indices must be unique.</p></li>
+<li><p><strong>error_if_unknown</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If some of the substitutions in a variant are not present in
+the model (not in <code class="xref py py-attr docutils literal notranslate"><span class="pre">AbstractEpistasis.binarymap</span></code>)
+then by default we do not include those variants
+in the loss calculation. If <cite>True</cite>, raise an error.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, print the number of valid and invalid variants.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The loss of the model on the given data frame.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)">float</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -870,12 +896,6 @@ as returned by <cite>multidms.model_collection.fit_models</cite>.</p>
 </dd>
 </dl>
 <dl class="py property">
-<dt class="sig sig-object py" id="multidms.ModelCollection.fit_models">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fit_models</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.0)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.ModelCollection.fit_models" title="Link to this definition">¶</a></dt>
-<dd><p>The dataframe containing the fit attributes and pickled model objects.</p>
-</dd></dl>
-
-<dl class="py property">
 <dt class="sig sig-object py" id="multidms.ModelCollection.site_map_union">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">site_map_union</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.0)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.ModelCollection.site_map_union" title="Link to this definition">¶</a></dt>
 <dd><p>The union of all site maps of all datasets used for fitting.</p>
@@ -910,9 +930,11 @@ as returned by <cite>multidms.model_collection.fit_models</cite>.</p>
 <span class="sig-name descname"><span class="pre">split_apply_combine_muts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groupby</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('dataset_name',</span> <span class="pre">'scale_coeff_lasso_shift')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_merge_dataset_muts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.split_apply_combine_muts" title="Link to this definition">¶</a></dt>
 <dd><p>wrapper to split-apply-combine the set of mutational dataframes
 harbored by each of the fits in the collection.</p>
-<p>here, we split the collection by grouping certain attributes, such
-as dataset name, or the scaling coefficient of the lasso penalty.
-Each of those groups may then be filtered and aggregated, before
+<p>Here, we group the collection of fits using attributes
+(columns in <code class="xref py py-attr docutils literal notranslate"><span class="pre">ModelCollection.fit_models</span></code>) specified using the
+<code class="docutils literal notranslate"><span class="pre">groupby</span></code> parameter.
+Each of the individual fits within a groups may then be filtered
+via <code class="docutils literal notranslate"><span class="pre">**kwargs</span></code>, and aggregated via <code class="docutils literal notranslate"><span class="pre">aggregate_func</span></code>, before
 the function stacks all the groups back together in a
 tall style dataframe. The resulting dataframe will have a multiindex
 with the mutation and the groupby attributes.</p>
@@ -920,7 +942,7 @@ with the mutation and the groupby attributes.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>groupby</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><em>tuple</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>optional</em>) – The attributes to group the fits by. If None, then group by all
-attributes except for the model, data, step_loss, and verbose attributes.
+attributes except for the model, data, and step_loss attributes.
 The default is (“dataset_name”, “scale_coeff_lasso_shift”).</p></li>
 <li><p><strong>aggregate_func</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><em>callable</em><em>, </em><em>optional</em>) – The function to aggregate the mutational dataframes within each group.
 The default is “mean”.</p></li>
@@ -939,6 +961,31 @@ method docstring for details.</p></li>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="multidms.ModelCollection.add_validation_loss">
+<span class="sig-name descname"><span class="pre">add_validation_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.add_validation_loss" title="Link to this definition">¶</a></dt>
+<dd><p>Add validation loss to the fit collection dataframe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>test_data</strong> (<em>pd.DataFrame</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>pd.DataFrame</em><em>)</em>) – The testing dataframe to compute validation loss with respect to,
+must have columns “aa_substitutitions”, “condition”, and “func_score”.
+If a dictionary is passed, there should be a key for
+each unique dataset_name factor in the self.fit_models dataframe
+- with the value being the respective testing dataframe.</p></li>
+<li><p><strong>overwrite</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to overwrite the validation_loss column if it already exists.
+The default is False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The self.fit_models dataframe with the validation loss added.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1017,7 +1064,7 @@ or saved to a file.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.ModelCollection.shift_sparsity">
-<span class="sig-name descname"><span class="pre">shift_sparsity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.shift_sparsity" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">shift_sparsity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.shift_sparsity" title="Link to this definition">¶</a></dt>
 <dd><p>Visualize shift parameter set sparsity across the lasso penalty weights
 (by default) in the form of an <cite>altair.FacetChart</cite>.
 We will group the mutations according to their status as either a
@@ -1028,26 +1075,28 @@ deleterious in all experiments, and thus have a shift parameter value of zero.</
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>A chart object which can be displayed in a jupyter notebook
-or saved to a file.</p>
+or saved to a file. If <cite>return_data=True</cite>, then a tuple
+containing the chart and the underlying data will be returned.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>altair.Chart</p>
+<dd class="field-even"><p>altair.Chart or Tuple(pd.DataFrame, altair.Chart)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.ModelCollection.mut_param_dataset_correlation">
-<span class="sig-name descname"><span class="pre">mut_param_dataset_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mut_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">150</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.mut_param_dataset_correlation" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">mut_param_dataset_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mut_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">150</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.mut_param_dataset_correlation" title="Link to this definition">¶</a></dt>
 <dd><p>Visualize the correlation between replicate datasets across the lasso penalty
 weights (by default) in the form of an <cite>altair.FacetChart</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>A chart object which can be displayed in a jupyter notebook
-or saved to a file.</p>
+or saved to a file. If <cite>return_data=True</cite>, then a tuple
+containing the chart and the underlying data will be returned.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>altair.Chart</p>
+<dd class="field-even"><p>altair.Chart or Tuple(altair.Chart, pd.DataFrame)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1056,11 +1105,14 @@ or saved to a file.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="multidms.fit_models">
-<span class="sig-prename descclassname"><span class="pre">multidms.</span></span><span class="sig-name descname"><span class="pre">fit_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failures</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'error'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.fit_models" title="Link to this definition">¶</a></dt>
-<dd><p>Fit collection of <a class="reference internal" href="#multidms.Model" title="multidms.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">Model</span></code></a> models.</p>
+<span class="sig-prename descclassname"><span class="pre">multidms.</span></span><span class="sig-name descname"><span class="pre">fit_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failures</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'error'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.fit_models" title="Link to this definition">¶</a></dt>
+<dd><p>Fit collection of <a class="reference internal" href="multidms.model.html#multidms.model.Model" title="multidms.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">multidms.model.Model</span></code></a> models.</p>
 <p>Enables fitting of multiple models simultaneously using multiple threads.
-The returned dataframe is meant to be passed into the
-<a class="reference internal" href="#multidms.ModelCollection" title="multidms.ModelCollection"><code class="xref py py-class docutils literal notranslate"><span class="pre">multidms.ModelCollection</span></code></a> class for comparison and visualization.</p>
+Most commonly, this function is used to fit a set of models across combinations
+of replicate training datasets, and lasso coefficients for model selection and
+evaluation. The returned dataframe is meant to be passed into the
+<a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection" title="multidms.model_collection.ModelCollection"><code class="xref py py-class docutils literal notranslate"><span class="pre">multidms.model_collection.ModelCollection</span></code></a> class for comparison
+and visualization.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1068,11 +1120,11 @@ The returned dataframe is meant to be passed into the
 wish to run. Each value in the dictionary must be a list of
 values, even in the case of singletons.
 This function will compute all combinations of the parameter
-space and pass each combination to <code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.utils.fit_wrapper()</span></code>
+space and pass each combination to <code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.utils.fit_one_model()</span></code>
 to be run in parallel, thus only key-value pairs which
 match the kwargs are allowed.
-See the docstring of <code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.utils.fit_wrapper()</span></code> for
-a description of the allowed kwargs.</p></li>
+See the docstring of <a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.fit_one_model" title="multidms.model_collection.fit_one_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.model_collection.fit_one_model()</span></code></a> for
+a description of the allowed parameters.</p></li>
 <li><p><strong>n_threads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Number of threads (CPUs, cores) to use for fitting. Set to -1 to use
 all CPUs available.</p></li>
 <li><p><strong>failures</strong> (<em>{&quot;error&quot;</em><em>, </em><em>&quot;tolerate&quot;}</em>) – What if fitting fails for a model? If “error” then raise an error,
@@ -1141,6 +1193,7 @@ for comparison and visualization.</p>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_variants_df"><code class="docutils literal notranslate"><span class="pre">Model.get_variants_df()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.mutations_df"><code class="docutils literal notranslate"><span class="pre">Model.mutations_df</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_mutations_df"><code class="docutils literal notranslate"><span class="pre">Model.get_mutations_df()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_df_loss"><code class="docutils literal notranslate"><span class="pre">Model.get_df_loss()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.add_phenotypes_to_df"><code class="docutils literal notranslate"><span class="pre">Model.add_phenotypes_to_df()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.wildtype_df"><code class="docutils literal notranslate"><span class="pre">Model.wildtype_df</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.mutation_site_summary_df"><code class="docutils literal notranslate"><span class="pre">Model.mutation_site_summary_df()</span></code></a></li>
@@ -1165,13 +1218,13 @@ for comparison and visualization.</p>
 <li class="toctree-l1"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.stack_fit_models"><code class="docutils literal notranslate"><span class="pre">stack_fit_models()</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.fit_models"><code class="docutils literal notranslate"><span class="pre">fit_models()</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection"><code class="docutils literal notranslate"><span class="pre">ModelCollection</span></code></a><ul>
-<li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.fit_models"><code class="docutils literal notranslate"><span class="pre">ModelCollection.fit_models</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.site_map_union"><code class="docutils literal notranslate"><span class="pre">ModelCollection.site_map_union</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.conditions"><code class="docutils literal notranslate"><span class="pre">ModelCollection.conditions</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.reference"><code class="docutils literal notranslate"><span class="pre">ModelCollection.reference</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.shared_mutations"><code class="docutils literal notranslate"><span class="pre">ModelCollection.shared_mutations</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.all_mutations"><code class="docutils literal notranslate"><span class="pre">ModelCollection.all_mutations</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.split_apply_combine_muts"><code class="docutils literal notranslate"><span class="pre">ModelCollection.split_apply_combine_muts()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.add_validation_loss"><code class="docutils literal notranslate"><span class="pre">ModelCollection.add_validation_loss()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.mut_param_heatmap"><code class="docutils literal notranslate"><span class="pre">ModelCollection.mut_param_heatmap()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.mut_param_traceplot"><code class="docutils literal notranslate"><span class="pre">ModelCollection.mut_param_traceplot()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.shift_sparsity"><code class="docutils literal notranslate"><span class="pre">ModelCollection.shift_sparsity()</span></code></a></li>
@@ -1223,6 +1276,7 @@ for comparison and visualization.</p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulation_validation.html">Simulation validation of <code class="docutils literal notranslate"><span class="pre">multidms</span></code> models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html"><code class="docutils literal notranslate"><span class="pre">multidms</span></code> usage examples</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">multidms package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
