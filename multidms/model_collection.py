@@ -13,9 +13,19 @@ import pprint
 import multidms
 
 import pandas as pd
+import jax
 import jax.numpy as jnp
 import numpy as onp
 import altair as alt
+
+import logging
+
+logging.getLogger("jax._src.xla_bridge").addFilter(
+    logging.Filter(
+        "An NVIDIA GPU may be present on this machine, "
+        "but a CUDA-enabled jaxlib is not installed. Falling back to cpu."
+    )
+)
 
 
 PARAMETER_NAMES_FOR_PLOTTING = {

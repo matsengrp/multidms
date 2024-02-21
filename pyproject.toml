@@ -35,7 +35,7 @@ keywords = [
 requires-python = ">=3.8"
 dependencies = [
     "polyclonal",
-    "jax",
+    "jax[cpu]==0.4.24",
     "jaxopt",
     "typing_extensions",
     "numpy",
