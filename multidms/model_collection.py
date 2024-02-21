@@ -13,7 +13,6 @@ import pprint
 import multidms
 
 import pandas as pd
-import jax
 import jax.numpy as jnp
 import numpy as onp
 import altair as alt
