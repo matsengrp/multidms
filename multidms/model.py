@@ -140,10 +140,10 @@ class Model:
     >>> model.get_mutations_df()  # doctest: +NORMALIZE_WHITESPACE
                   beta  shift_b  predicted_func_score_a  predicted_func_score_b  \
     mutation
-    M1E       0.080868      0.0                0.101030                0.565154
-    M1W      -0.386247      0.0               -0.476895               -0.012770
-    G3P      -0.375656      0.0               -0.464124                0.000000
-    G3R       1.668974      0.0                1.707195                2.171319
+    M1E       1.816086      0.0                1.800479                1.379661
+    M1W      -0.754885      0.0               -0.901211               -1.322029
+    G3P       0.339889      0.0                0.420818                0.000000
+    G3R      -0.534835      0.0               -0.653051               -1.073869
     <BLANKLINE>
               times_seen_a  times_seen_b wts  sites muts
     mutation
@@ -160,29 +160,26 @@ class Model:
 
     >>> model.get_variants_df()  # doctest: +NORMALIZE_WHITESPACE
       condition aa_substitutions  func_score var_wrt_ref  predicted_latent  \
-    0         a              M1E         2.0         M1E          0.080868
-    1         a              G3R        -7.0         G3R          1.668974
-    2         a              G3P        -0.5         G3P         -0.375656
-    3         a              M1W         2.3         M1W         -0.386247
-    4         b              M1E         1.0     G3P M1E          0.080868
-    5         b              P3R        -5.0         G3R          2.044630
-    6         b              P3G         0.4                      0.375656
-    7         b          M1E P3G         2.7         M1E          0.456523
-    8         b          M1E P3R        -2.7     G3R M1E          2.125498
+    0         a              M1E         2.0         M1E          1.816086
+    1         a              G3R        -7.0         G3R         -0.534835
+    2         a              G3P        -0.5         G3P          0.339889
+    3         a              M1W         2.3         M1W         -0.754885
+    4         b              M1E         1.0     G3P M1E          1.816086
+    5         b              P3R        -5.0         G3R         -0.874724
+    6         b              P3G         0.4                     -0.339889
+    7         b          M1E P3G         2.7         M1E          1.476197
+    8         b          M1E P3R        -2.7     G3R M1E          0.941362
     <BLANKLINE>
        predicted_func_score
-    0              0.101030
-    1              1.707195
-    2             -0.464124
-    3             -0.476895
-    4              0.098285
-    5              2.171319
-    6              0.464124
-    7              0.565154
-    8              2.223789
-
-
-
+    0              1.800479
+    1             -0.653051
+    2              0.420818
+    3             -0.901211
+    4              1.560311
+    5             -1.073869
+    6             -0.420818
+    7              1.379661
+    8              0.992495
 
     We now have access to the predicted (and gamma corrected) functional scores
     as predicted by the models current parameters.
@@ -192,13 +189,13 @@ class Model:
     given our initialized parameters
 
     >>> model.loss
-    Array(7.19312981, dtype=float64)
+    Array(4.7124467, dtype=float32)
 
     Next, we fit the model with some chosen hyperparameters.
 
     >>> model.fit(maxiter=1000, lasso_shift=1e-5)
     >>> model.loss
-    Array(1.18200934e-05, dtype=float64)
+    Array(6.0517805e-06, dtype=float32)
 
     The model tunes its parameters in place, and the subsequent call to retrieve
     the loss reflects our models loss given its updated parameters.
