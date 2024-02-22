@@ -8,8 +8,6 @@
 # add sourcecode to path
 import sys, os
 
-# sys.path.insert(0, os.path.abspath("../multidms"))
-# sys.path.insert(0, "{0}/..".format(os.path.abspath(".")))
 sys.path.insert(0, "{}/..".format(os.path.abspath(".")))
 
 # -- Project information -----------------------------------------------------
@@ -33,9 +31,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.githubpages",
     "sphinxcontrib.bibtex",
-    # "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
-    # "matplotlib.sphinxext.plot_directive",
     "nbsphinx",
     "nbsphinx_link",
 ]
