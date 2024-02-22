@@ -931,10 +931,9 @@ class ModelCollection:
             .assign(mut_type=lambda x: x.mutation.apply(mut_type))
             .reset_index()
             .groupby(by=feature_cols)
-            .apply(
-                sparsity, include_groups=True
-            )  # TODO This throws deprecation warning
-            .drop(columns=feature_cols + ["mutation"])
+            # .apply(sparsity, include_groups=True)
+            .apply(sparsity, include_groups=False)
+            # .drop(columns=feature_cols + ["mutation"])
             .reset_index(drop=False)
             .melt(id_vars=feature_cols, var_name="mut_param", value_name="sparsity")
         )
