@@ -19,6 +19,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
 ]
 keywords = [
     "multidms", 
@@ -32,10 +33,10 @@ keywords = [
 
 
 # Software Dependencies
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "polyclonal",
-    "jax",
+    "jax[cpu]==0.4.24",
     "jaxopt",
     "typing_extensions",
     "numpy",

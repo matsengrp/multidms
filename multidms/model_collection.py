@@ -17,6 +17,15 @@ import jax.numpy as jnp
 import numpy as onp
 import altair as alt
 
+import logging
+
+logging.getLogger("jax._src.xla_bridge").addFilter(
+    logging.Filter(
+        "An NVIDIA GPU may be present on this machine, "
+        "but a CUDA-enabled jaxlib is not installed. Falling back to cpu."
+    )
+)
+
 
 PARAMETER_NAMES_FOR_PLOTTING = {
     "scale_coeff_lasso_shift": "Lasso Penalty",
@@ -922,10 +931,9 @@ class ModelCollection:
             .assign(mut_type=lambda x: x.mutation.apply(mut_type))
             .reset_index()
             .groupby(by=feature_cols)
-            .apply(
-                sparsity, include_groups=True
-            )  # TODO This throws deprecation warning
-            .drop(columns=feature_cols + ["mutation"])
+            # .apply(sparsity, include_groups=True)
+            .apply(sparsity, include_groups=False)
+            # .drop(columns=feature_cols + ["mutation"])
             .reset_index(drop=False)
             .melt(id_vars=feature_cols, var_name="mut_param", value_name="sparsity")
         )
