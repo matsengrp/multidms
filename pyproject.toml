@@ -40,7 +40,7 @@ dependencies = [
     "jaxopt",
     "typing_extensions",
     "numpy",
-    "pandas",
+    "pandas>=2.2.0",
     "binarymap",
     "altair==5.1.2", # pandas convert_dtypes bug
     "matplotlib",

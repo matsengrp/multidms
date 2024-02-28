@@ -914,9 +914,7 @@ class ModelCollection:
         # feature columns for distinct sparsity measurements
         feature_cols = ["dataset_name", x, "mut_type"]
 
-        # include **kwargs because apply will pass them to sparsity
-        # TODO I'm not sure if this is actually how we should do this.
-        def sparsity(x, **kwargs):
+        def sparsity(x):
             return (x == 0).mean()
 
         def mut_type(mut):
@@ -931,9 +929,8 @@ class ModelCollection:
             .assign(mut_type=lambda x: x.mutation.apply(mut_type))
             .reset_index()
             .groupby(by=feature_cols)
-            # .apply(sparsity, include_groups=True)
             .apply(sparsity, include_groups=False)
-            # .drop(columns=feature_cols + ["mutation"])
+            .drop(columns=["mutation"])
             .reset_index(drop=False)
             .melt(id_vars=feature_cols, var_name="mut_param", value_name="sparsity")
         )
