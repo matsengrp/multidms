@@ -104,8 +104,8 @@
 <span class="n">n_non_identical_sites</span> <span class="o">=</span> <span class="mi">10</span> <span class="c1"># number of amino-acid mutations separating homologs</span>
 <span class="n">min_muteffect_in_bundle</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="c1"># minimum effect per mutation</span>
 <span class="n">max_muteffect_in_bundle</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="c1"># maximum effect per mutation</span>
-<span class="n">n_shifted_non_identical_sites</span> <span class="o">=</span> <span class="mi">4</span> <span class="c1"># number of non identical sites (in the bundle) for which mutations at that site are expected to have shifted effects</span>
-<span class="n">n_shifted_identical_sites</span> <span class="o">=</span> <span class="mi">6</span> <span class="c1"># number of amino-acid mutations separating shifted</span>
+<span class="n">n_shifted_non_identical_sites</span> <span class="o">=</span> <span class="mi">6</span> <span class="c1"># number of non identical sites (in the bundle) for which mutations at that site are expected to have shifted effects</span>
+<span class="n">n_shifted_identical_sites</span> <span class="o">=</span> <span class="mi">4</span> <span class="c1"># number of amino-acid mutations separating shifted</span>
 <span class="n">shift_gauss_variance</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="c1"># variance of the gaussian distribution from which the shifted effects are drawn</span>
 
 <span class="c1"># define the sigmoid phenotype parameters. See `multidms.biophysical.sigmoidal_global_epistasis` for more details.</span>
@@ -127,14 +127,14 @@
 <span class="p">}</span>
 
 <span class="c1"># define the fitting parameters</span>
-<span class="n">iterations_per_step</span> <span class="o">=</span> <span class="mi">10000</span> <span class="c1"># default 20000</span>
-<span class="n">scale_coeff_lasso_shift</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1e-5</span><span class="p">,</span> <span class="mf">2e-5</span><span class="p">,</span> <span class="mf">5e-5</span><span class="p">,</span> <span class="mf">1e-4</span><span class="p">,</span> <span class="mf">2e-4</span><span class="p">,</span> <span class="mf">1e-3</span><span class="p">]</span> <span class="c1"># the sweep of lasso coefficient params</span>
+<span class="n">num_training_steps</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">iterations_per_step</span> <span class="o">=</span> <span class="mi">100000</span> <span class="c1"># default 20000</span>
+<span class="n">scale_coeff_lasso_shift</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">5.00e-6</span><span class="p">,</span> <span class="mf">1.00e-05</span><span class="p">,</span> <span class="mf">2.00e-05</span><span class="p">,</span> <span class="mf">4.00e-05</span><span class="p">,</span> <span class="mf">8.00e-05</span><span class="p">,</span> <span class="mf">1.60e-04</span><span class="p">,</span> <span class="mf">3.20e-04</span><span class="p">,</span> <span class="mf">6.40e-04</span><span class="p">]</span> <span class="c1"># the sweep of lasso coefficient params</span>
 <span class="n">init_beta_naught</span> <span class="o">=</span> <span class="mf">5.0</span> <span class="c1"># We&#39;ve found that we need to start with a higher beta_naught to get the model to converge correctly,</span>
 <span class="n">scale_coeff_ridge_beta</span> <span class="o">=</span> <span class="mf">0.0</span> <span class="c1"># the sweep of ridge coefficient params</span>
 <span class="n">train_frac</span> <span class="o">=</span> <span class="mf">0.8</span> <span class="c1"># fraction of data to use for cross validation training.</span>
-<span class="n">lasso_choice</span> <span class="o">=</span> <span class="mf">1e-4</span> <span class="c1"># the lasso coefficient to use for the final model</span>
-
-<span class="n">csv_output_dir</span> <span class="o">=</span> <span class="s2">&quot;output&quot;</span> <span class="c1"># directory to save the output csv&#39;s</span>
+<span class="n">lasso_choice</span> <span class="o">=</span> <span class="mf">8e-5</span> <span class="c1"># the lasso coefficient to use for the final model</span>
+<span class="n">csv_output_dir</span> <span class="o">=</span> <span class="s1">&#39;output&#39;</span> <span class="c1"># the directory to save the output csv files</span>
 </pre></div>
 </div>
 </div>
@@ -329,8 +329,8 @@ Number of aa differences: 10
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Sites with shifts that are...
-identical (n=6): 10, 28, 29, 30, 34, 39
-non-identical (n=4): 8, 14, 32, 42
+identical (n=4): 30, 34, 39, 48
+non-identical (n=6): 8, 14, 32, 37, 38, 42
 </pre></div></div>
 </div>
 <p>Next, we’ll create a dataframe for all mutational effects and shifts, simulating shifts at each of the above sites by randomly simulate a shift in the effect of each mutation by drawing shifts from a Gaussian distribution:</p>
@@ -483,55 +483,55 @@ non-identical (n=4): 8, 14, 32, 42
       <td>...</td>
     </tr>
     <tr>
-      <th>835</th>
-      <td>42</td>
-      <td>Q</td>
-      <td>H</td>
-      <td>Q42T</td>
-      <td>0.959988</td>
+      <th>955</th>
+      <td>48</td>
+      <td>R</td>
+      <td>R</td>
+      <td>R48T</td>
+      <td>-6.008805</td>
       <td>-2.870096</td>
-      <td>-1.910108</td>
+      <td>-8.878901</td>
       <td>True</td>
     </tr>
     <tr>
-      <th>836</th>
-      <td>42</td>
-      <td>Q</td>
-      <td>H</td>
-      <td>Q42V</td>
-      <td>-5.127464</td>
+      <th>956</th>
+      <td>48</td>
+      <td>R</td>
+      <td>R</td>
+      <td>R48V</td>
+      <td>0.899548</td>
       <td>0.351710</td>
-      <td>-4.775753</td>
+      <td>1.251258</td>
       <td>True</td>
     </tr>
     <tr>
-      <th>837</th>
-      <td>42</td>
-      <td>Q</td>
-      <td>H</td>
-      <td>Q42W</td>
-      <td>-0.135438</td>
+      <th>957</th>
+      <td>48</td>
+      <td>R</td>
+      <td>R</td>
+      <td>R48W</td>
+      <td>-8.789600</td>
       <td>0.265490</td>
-      <td>0.130052</td>
+      <td>-8.524110</td>
       <td>True</td>
     </tr>
     <tr>
-      <th>838</th>
-      <td>42</td>
-      <td>Q</td>
-      <td>H</td>
-      <td>Q42Y</td>
-      <td>-1.189513</td>
+      <th>958</th>
+      <td>48</td>
+      <td>R</td>
+      <td>R</td>
+      <td>R48Y</td>
+      <td>-5.326602</td>
       <td>0.105712</td>
-      <td>-1.083801</td>
+      <td>-5.220890</td>
       <td>True</td>
     </tr>
     <tr>
-      <th>839</th>
-      <td>42</td>
-      <td>Q</td>
-      <td>H</td>
-      <td>Q42*</td>
+      <th>959</th>
+      <td>48</td>
+      <td>R</td>
+      <td>R</td>
+      <td>R48*</td>
       <td>-15.000000</td>
       <td>0.000000</td>
       <td>-15.000000</td>
@@ -672,9 +672,9 @@ non-identical (n=4): 8, 14, 32, 42
 Characteristics of mutations separating homologs:
 
   Sum of beta_h1: 0.66
-  Sum of shift: -0.48
-  Sum of beta_h2: 0.18
-  Final WT latent phenotype of h2: 5.18
+  Sum of shift: -0.28
+  Sum of beta_h2: 0.38
+  Final WT latent phenotype of h2: 5.38
   Table of mutations that separate homologs:
 </pre></div></div>
 </div>
@@ -751,8 +751,8 @@ Characteristics of mutations separating homologs:
       <td>14</td>
       <td>M</td>
       <td>True</td>
-      <td>-1.628753</td>
-      <td>-1.436034</td>
+      <td>1.037528</td>
+      <td>1.230247</td>
       <td>S</td>
       <td>M</td>
       <td>True</td>
@@ -765,8 +765,8 @@ Characteristics of mutations separating homologs:
       <td>32</td>
       <td>D</td>
       <td>True</td>
-      <td>2.106745</td>
-      <td>3.065578</td>
+      <td>-0.538963</td>
+      <td>0.419870</td>
       <td>C</td>
       <td>D</td>
       <td>True</td>
@@ -792,9 +792,9 @@ Characteristics of mutations separating homologs:
       <td>G</td>
       <td>37</td>
       <td>S</td>
-      <td>False</td>
-      <td>0.000000</td>
-      <td>-0.695803</td>
+      <td>True</td>
+      <td>0.990621</td>
+      <td>0.294818</td>
       <td>G</td>
       <td>S</td>
       <td>True</td>
@@ -806,9 +806,9 @@ Characteristics of mutations separating homologs:
       <td>Y</td>
       <td>38</td>
       <td>D</td>
-      <td>False</td>
-      <td>0.000000</td>
-      <td>-0.265583</td>
+      <td>True</td>
+      <td>0.669489</td>
+      <td>0.403906</td>
       <td>Y</td>
       <td>D</td>
       <td>True</td>
@@ -821,8 +821,8 @@ Characteristics of mutations separating homologs:
       <td>42</td>
       <td>H</td>
       <td>True</td>
-      <td>0.483694</td>
-      <td>-0.404601</td>
+      <td>-0.996761</td>
+      <td>-1.885055</td>
       <td>Q</td>
       <td>H</td>
       <td>True</td>
@@ -1932,26 +1932,6 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
       <th>1</th>
       <td>lib_1</td>
       <td>h1</td>
-      <td>V24Q S25R H27P D29L H33C S41L C44F S47F</td>
-      <td>loose_bottle</td>
-      <td>-5.417868</td>
-      <td>&gt;1 nonsynonymous</td>
-      <td>-11.096139</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>lib_1</td>
-      <td>h1</td>
-      <td>V24Q S25R H27P D29L H33C S41L C44F S47F</td>
-      <td>tight_bottle</td>
-      <td>-4.707578</td>
-      <td>&gt;1 nonsynonymous</td>
-      <td>-11.096139</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>lib_1</td>
-      <td>h1</td>
       <td>V8P H27T P30* L49P</td>
       <td>observed_phenotype</td>
       <td>-5.959753</td>
@@ -1959,14 +1939,34 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
       <td>-11.106200</td>
     </tr>
     <tr>
+      <th>2</th>
+      <td>lib_1</td>
+      <td>h1</td>
+      <td>V19P V43Q</td>
+      <td>observed_phenotype</td>
+      <td>-5.640393</td>
+      <td>&gt;1 nonsynonymous</td>
+      <td>-2.878203</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>lib_1</td>
+      <td>h1</td>
+      <td>R20Y</td>
+      <td>observed_phenotype</td>
+      <td>0.005959</td>
+      <td>1 nonsynonymous</td>
+      <td>5.161623</td>
+    </tr>
+    <tr>
       <th>4</th>
       <td>lib_1</td>
       <td>h1</td>
-      <td>V8P H27T P30* L49P</td>
-      <td>loose_bottle</td>
-      <td>-5.552413</td>
-      <td>stop</td>
-      <td>-11.106200</td>
+      <td></td>
+      <td>observed_phenotype</td>
+      <td>0.000000</td>
+      <td>wildtype</td>
+      <td>5.000000</td>
     </tr>
     <tr>
       <th>...</th>
@@ -1982,51 +1982,51 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
       <th>181363</th>
       <td>lib_2</td>
       <td>h2</td>
-      <td>E9W T16W Q21T</td>
-      <td>loose_bottle</td>
-      <td>-3.028176</td>
+      <td>E9L Q21L V24Q S25V D29V D38Q</td>
+      <td>tight_bottle</td>
+      <td>-6.184609</td>
       <td>&gt;1 nonsynonymous</td>
-      <td>-0.092402</td>
+      <td>-11.209818</td>
     </tr>
     <tr>
       <th>181364</th>
       <td>lib_2</td>
       <td>h2</td>
-      <td>E9W T16W Q21T</td>
+      <td>S47T V49E</td>
       <td>tight_bottle</td>
-      <td>-2.627751</td>
+      <td>1.125946</td>
       <td>&gt;1 nonsynonymous</td>
-      <td>-0.092402</td>
+      <td>3.861711</td>
     </tr>
     <tr>
       <th>181365</th>
       <td>lib_2</td>
       <td>h2</td>
-      <td>V19R S25R C34N V49P</td>
-      <td>observed_phenotype</td>
-      <td>-5.907779</td>
+      <td>G10P I35S G50L</td>
+      <td>tight_bottle</td>
+      <td>-3.634411</td>
       <td>&gt;1 nonsynonymous</td>
-      <td>-4.738320</td>
+      <td>-12.580142</td>
     </tr>
     <tr>
       <th>181366</th>
       <td>lib_2</td>
       <td>h2</td>
-      <td>V19R S25R C34N V49P</td>
-      <td>loose_bottle</td>
-      <td>-5.804568</td>
+      <td>F15R I35S D38E Y39G</td>
+      <td>tight_bottle</td>
+      <td>-5.781253</td>
       <td>&gt;1 nonsynonymous</td>
-      <td>-4.738320</td>
+      <td>-15.097683</td>
     </tr>
     <tr>
       <th>181367</th>
       <td>lib_2</td>
       <td>h2</td>
-      <td>V19R S25R C34N V49P</td>
+      <td>E9F C34P Y39C E44Y T45F</td>
       <td>tight_bottle</td>
-      <td>-5.438778</td>
+      <td>-5.581944</td>
       <td>&gt;1 nonsynonymous</td>
-      <td>-4.738320</td>
+      <td>-6.628840</td>
     </tr>
   </tbody>
 </table>
@@ -2100,7 +2100,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
         <span class="n">func_scores</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;(func_score_type != &#39;observed_phenotype&#39;) &amp; (variant_class != &#39;wildtype&#39;)&quot;</span><span class="p">),</span>
         <span class="n">aes</span><span class="p">(</span><span class="s2">&quot;variant_class&quot;</span><span class="p">,</span> <span class="s2">&quot;func_score&quot;</span><span class="p">)</span>
     <span class="p">)</span>
-    <span class="o">+</span> <span class="n">geom_violin</span><span class="p">(</span><span class="n">aes</span><span class="p">(</span><span class="n">fill</span><span class="o">=</span><span class="s2">&quot;variant_class&quot;</span><span class="p">))</span>
+    <span class="o">+</span> <span class="n">geom_violin</span><span class="p">(</span><span class="n">fill</span><span class="o">=</span><span class="s2">&quot;lightblue&quot;</span><span class="p">)</span>
     <span class="o">+</span> <span class="n">ylab</span><span class="p">(</span><span class="s2">&quot;functional score&quot;</span><span class="p">)</span>
     <span class="o">+</span> <span class="n">xlab</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
     <span class="o">+</span> <span class="n">facet_grid</span><span class="p">(</span><span class="s2">&quot;func_score_type ~ library + homolog&quot;</span><span class="p">)</span>
@@ -2110,7 +2110,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
         <span class="n">axis_text_x</span><span class="o">=</span><span class="n">element_text</span><span class="p">(</span><span class="n">angle</span><span class="o">=</span><span class="mi">90</span><span class="p">),</span>
         <span class="n">panel_grid_major_x</span><span class="o">=</span><span class="n">element_blank</span><span class="p">(),</span>  <span class="c1"># no vertical grid lines</span>
     <span class="p">)</span>
-    <span class="o">+</span> <span class="n">scale_fill_manual</span><span class="p">(</span><span class="n">values</span><span class="o">=</span><span class="n">CBPALETTE</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">guide</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="c1"># + scale_fill_manual(values=CBPALETTE[1:])</span>
 <span class="p">)</span>
 <span class="n">_</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
@@ -2179,26 +2179,6 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
       <th>1</th>
       <td>lib_1</td>
       <td>h1</td>
-      <td>V24Q S25R H27P D29L H33C S41L C44F S47F</td>
-      <td>loose_bottle</td>
-      <td>-5.42</td>
-      <td>&gt;1 nonsynonymous</td>
-      <td>-11.10</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>lib_1</td>
-      <td>h1</td>
-      <td>V24Q S25R H27P D29L H33C S41L C44F S47F</td>
-      <td>tight_bottle</td>
-      <td>-4.71</td>
-      <td>&gt;1 nonsynonymous</td>
-      <td>-11.10</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>lib_1</td>
-      <td>h1</td>
       <td>V8P H27T P30* L49P</td>
       <td>observed_phenotype</td>
       <td>-5.96</td>
@@ -2206,14 +2186,34 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
       <td>-11.11</td>
     </tr>
     <tr>
+      <th>2</th>
+      <td>lib_1</td>
+      <td>h1</td>
+      <td>V19P V43Q</td>
+      <td>observed_phenotype</td>
+      <td>-5.64</td>
+      <td>&gt;1 nonsynonymous</td>
+      <td>-2.88</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>lib_1</td>
+      <td>h1</td>
+      <td>R20Y</td>
+      <td>observed_phenotype</td>
+      <td>0.01</td>
+      <td>1 nonsynonymous</td>
+      <td>5.16</td>
+    </tr>
+    <tr>
       <th>4</th>
       <td>lib_1</td>
       <td>h1</td>
-      <td>V8P H27T P30* L49P</td>
-      <td>loose_bottle</td>
-      <td>-5.55</td>
-      <td>stop</td>
-      <td>-11.11</td>
+      <td></td>
+      <td>observed_phenotype</td>
+      <td>0.00</td>
+      <td>wildtype</td>
+      <td>5.00</td>
     </tr>
   </tbody>
 </table>
@@ -2265,6 +2265,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fitting_params</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;num_training_steps&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">num_training_steps</span><span class="p">],</span> <span class="c1"># default 100</span>
     <span class="s2">&quot;iterations_per_step&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">iterations_per_step</span><span class="p">],</span> <span class="c1"># default 20000</span>
     <span class="s2">&quot;scale_coeff_lasso_shift&quot;</span><span class="p">:</span> <span class="n">scale_coeff_lasso_shift</span><span class="p">,</span> <span class="c1"># the sweep of lasso coefficient params</span>
     <span class="s2">&quot;init_beta_naught&quot;</span> <span class="p">:</span> <span class="p">[</span><span class="n">init_beta_naught</span><span class="p">],</span> <span class="c1"># We&#39;ve found that we need to start with a higher beta_naught to get the model to converge correctly,</span>
@@ -2288,8 +2289,17 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
              Data(lib_2_loose_bottle_func_score),
              Data(lib_2_tight_bottle_func_score)],
  &#39;init_beta_naught&#39;: [5.0],
- &#39;iterations_per_step&#39;: [10000],
- &#39;scale_coeff_lasso_shift&#39;: [0.0, 1e-05, 2e-05, 5e-05, 0.0001, 0.0002, 0.001],
+ &#39;iterations_per_step&#39;: [100000],
+ &#39;num_training_steps&#39;: [1],
+ &#39;scale_coeff_lasso_shift&#39;: [0.0,
+                             5e-06,
+                             1e-05,
+                             2e-05,
+                             4e-05,
+                             8e-05,
+                             0.00016,
+                             0.00032,
+                             0.00064],
  &#39;scale_coeff_ridge_beta&#39;: [0.0]}
 </pre></div></div>
 </div>
@@ -2350,25 +2360,25 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
       <th>1</th>
       <td>Model(Model-0)</td>
       <td>lib_1_observed_phenotype_func_score</td>
-      <td>0.00001</td>
+      <td>0.000005</td>
     </tr>
     <tr>
       <th>2</th>
       <td>Model(Model-0)</td>
       <td>lib_1_observed_phenotype_func_score</td>
-      <td>0.00002</td>
+      <td>0.00001</td>
     </tr>
     <tr>
       <th>3</th>
       <td>Model(Model-0)</td>
       <td>lib_1_observed_phenotype_func_score</td>
-      <td>0.00005</td>
+      <td>0.00002</td>
     </tr>
     <tr>
       <th>4</th>
       <td>Model(Model-0)</td>
       <td>lib_1_observed_phenotype_func_score</td>
-      <td>0.0001</td>
+      <td>0.00004</td>
     </tr>
   </tbody>
 </table>
@@ -2437,28 +2447,28 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
       <td>Model(Model-0)</td>
       <td>observed_phenotype</td>
       <td>lib_1</td>
-      <td>0.00001</td>
+      <td>0.000005</td>
     </tr>
     <tr>
       <th>2</th>
       <td>Model(Model-0)</td>
       <td>observed_phenotype</td>
       <td>lib_1</td>
-      <td>0.00002</td>
+      <td>0.00001</td>
     </tr>
     <tr>
       <th>3</th>
       <td>Model(Model-0)</td>
       <td>observed_phenotype</td>
       <td>lib_1</td>
-      <td>0.00005</td>
+      <td>0.00002</td>
     </tr>
     <tr>
       <th>4</th>
       <td>Model(Model-0)</td>
       <td>observed_phenotype</td>
       <td>lib_1</td>
-      <td>0.0001</td>
+      <td>0.00004</td>
     </tr>
   </tbody>
 </table>
@@ -2557,44 +2567,44 @@ cache miss - this could take a moment
       <td>C31*</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.00000</td>
-      <td>-5.268372</td>
+      <td>0.0</td>
+      <td>-15.345100</td>
       <td>0.0</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>C31*</td>
+      <td>C31A</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.00001</td>
-      <td>0.183935</td>
+      <td>0.0</td>
+      <td>-0.000408</td>
       <td>0.0</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>C31*</td>
+      <td>C31D</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.00002</td>
-      <td>0.057728</td>
+      <td>0.0</td>
+      <td>-0.000760</td>
       <td>0.0</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>C31*</td>
+      <td>C31E</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.00005</td>
-      <td>0.000000</td>
+      <td>0.0</td>
+      <td>-0.012482</td>
       <td>0.0</td>
     </tr>
     <tr>
       <th>4</th>
-      <td>C31*</td>
+      <td>C31F</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.00010</td>
-      <td>0.000000</td>
+      <td>0.0</td>
+      <td>0.000498</td>
       <td>0.0</td>
     </tr>
   </tbody>
@@ -2677,50 +2687,50 @@ cache miss - this could take a moment
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>0.990024</td>
-      <td>-0.014753</td>
-      <td>0.271587</td>
-      <td>0.426256</td>
+      <td>0.871236</td>
+      <td>1.934541</td>
+      <td>0.099836</td>
+      <td>1.065247</td>
     </tr>
     <tr>
       <th>1</th>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.00001</td>
-      <td>0.990145</td>
-      <td>0.034691</td>
-      <td>0.979428</td>
-      <td>0.001414</td>
+      <td>0.000005</td>
+      <td>0.826691</td>
+      <td>1.871198</td>
+      <td>0.997361</td>
+      <td>-0.000972</td>
     </tr>
     <tr>
       <th>2</th>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.00002</td>
-      <td>0.992463</td>
-      <td>0.005944</td>
-      <td>0.969999</td>
-      <td>0.001882</td>
+      <td>0.00001</td>
+      <td>0.801337</td>
+      <td>2.319088</td>
+      <td>0.994544</td>
+      <td>-0.001228</td>
     </tr>
     <tr>
       <th>3</th>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.00005</td>
-      <td>0.992993</td>
-      <td>-0.003677</td>
-      <td>0.954825</td>
-      <td>0.003237</td>
+      <td>0.00002</td>
+      <td>0.820069</td>
+      <td>2.344910</td>
+      <td>0.989883</td>
+      <td>-0.000564</td>
     </tr>
     <tr>
       <th>4</th>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.0001</td>
-      <td>0.990382</td>
-      <td>0.020511</td>
-      <td>0.920346</td>
-      <td>0.005186</td>
+      <td>0.00004</td>
+      <td>0.848422</td>
+      <td>2.090437</td>
+      <td>0.978463</td>
+      <td>0.000831</td>
     </tr>
   </tbody>
 </table>
@@ -2853,43 +2863,43 @@ cache miss - this could take a moment
       <td>0.0</td>
       <td>observed_phenotype lib_1</td>
       <td>beta</td>
-      <td>0.99</td>
+      <td>0.87</td>
     </tr>
     <tr>
       <th>1</th>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.00001</td>
+      <td>0.000005</td>
       <td>observed_phenotype lib_1</td>
       <td>beta</td>
-      <td>0.99</td>
+      <td>0.83</td>
     </tr>
     <tr>
       <th>2</th>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.00002</td>
+      <td>0.00001</td>
       <td>observed_phenotype lib_1</td>
       <td>beta</td>
-      <td>0.99</td>
+      <td>0.80</td>
     </tr>
     <tr>
       <th>3</th>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.00005</td>
+      <td>0.00002</td>
       <td>observed_phenotype lib_1</td>
       <td>beta</td>
-      <td>0.99</td>
+      <td>0.82</td>
     </tr>
     <tr>
       <th>4</th>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.0001</td>
+      <td>0.00004</td>
       <td>observed_phenotype lib_1</td>
       <td>beta</td>
-      <td>0.99</td>
+      <td>0.85</td>
     </tr>
   </tbody>
 </table>
@@ -2950,7 +2960,7 @@ cache miss - this could take a moment
     <tr>
       <th>0</th>
       <td>lib_1_loose_bottle_func_score</td>
-      <td>0.00000</td>
+      <td>0.000000</td>
       <td>nonsynonymous</td>
       <td>shift_h2</td>
       <td>0.000000</td>
@@ -2958,7 +2968,7 @@ cache miss - this could take a moment
     <tr>
       <th>1</th>
       <td>lib_1_loose_bottle_func_score</td>
-      <td>0.00000</td>
+      <td>0.000000</td>
       <td>stop</td>
       <td>shift_h2</td>
       <td>0.000000</td>
@@ -2966,26 +2976,26 @@ cache miss - this could take a moment
     <tr>
       <th>2</th>
       <td>lib_1_loose_bottle_func_score</td>
-      <td>0.00001</td>
+      <td>0.000005</td>
       <td>nonsynonymous</td>
       <td>shift_h2</td>
-      <td>0.117895</td>
+      <td>0.071579</td>
     </tr>
     <tr>
       <th>3</th>
       <td>lib_1_loose_bottle_func_score</td>
-      <td>0.00001</td>
+      <td>0.000005</td>
       <td>stop</td>
       <td>shift_h2</td>
-      <td>0.000000</td>
+      <td>0.840000</td>
     </tr>
     <tr>
       <th>4</th>
       <td>lib_1_loose_bottle_func_score</td>
-      <td>0.00002</td>
+      <td>0.000010</td>
       <td>nonsynonymous</td>
       <td>shift_h2</td>
-      <td>0.268421</td>
+      <td>0.150526</td>
     </tr>
   </tbody>
 </table>
@@ -3007,7 +3017,7 @@ cache miss - this could take a moment
     <span class="n">ordered</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>
 <span class="n">data</span><span class="p">[</span><span class="s1">&#39;True Sparsity&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span> <span class="c1">#dummy col for plotting legend</span>
-<span class="n">data</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;scale_coeff_lasso_shift&quot;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="c1"># data.sort_values(&quot;scale_coeff_lasso_shift&quot;, inplace=True)</span>
 <span class="n">data</span><span class="p">[</span><span class="s2">&quot;scale_coeff_lasso_shift&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">scale_coeff_lasso_shift</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span>
 
 <span class="n">true_sparsity</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">mut_effects_df</span><span class="o">.</span><span class="n">shifted_site</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
@@ -3105,57 +3115,57 @@ cache miss - this could take a moment
       <td>0.0</td>
       <td>nonsynonymous</td>
       <td>shift_h2</td>
-      <td>0.0</td>
+      <td>0.00</td>
       <td>lib_1</td>
       <td>lib_1-nonsynonymous</td>
       <td>loose_bottle</td>
       <td></td>
     </tr>
     <tr>
-      <th>57</th>
-      <td>lib_2_observed_phenotype_func_score</td>
+      <th>1</th>
+      <td>lib_1_loose_bottle_func_score</td>
       <td>0.0</td>
       <td>stop</td>
       <td>shift_h2</td>
-      <td>0.0</td>
-      <td>lib_2</td>
-      <td>lib_2-stop</td>
-      <td>observed_phenotype</td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>56</th>
-      <td>lib_2_observed_phenotype_func_score</td>
-      <td>0.0</td>
-      <td>nonsynonymous</td>
-      <td>shift_h2</td>
-      <td>0.0</td>
-      <td>lib_2</td>
-      <td>lib_2-nonsynonymous</td>
-      <td>observed_phenotype</td>
-      <td></td>
-    </tr>
-    <tr>
-      <th>43</th>
-      <td>lib_2_loose_bottle_func_score</td>
-      <td>0.0</td>
-      <td>stop</td>
-      <td>shift_h2</td>
-      <td>0.0</td>
-      <td>lib_2</td>
-      <td>lib_2-stop</td>
+      <td>0.00</td>
+      <td>lib_1</td>
+      <td>lib_1-stop</td>
       <td>loose_bottle</td>
       <td></td>
     </tr>
     <tr>
-      <th>42</th>
-      <td>lib_2_loose_bottle_func_score</td>
-      <td>0.0</td>
+      <th>2</th>
+      <td>lib_1_loose_bottle_func_score</td>
+      <td>0.000005</td>
       <td>nonsynonymous</td>
       <td>shift_h2</td>
-      <td>0.0</td>
-      <td>lib_2</td>
-      <td>lib_2-nonsynonymous</td>
+      <td>0.07</td>
+      <td>lib_1</td>
+      <td>lib_1-nonsynonymous</td>
+      <td>loose_bottle</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>lib_1_loose_bottle_func_score</td>
+      <td>0.000005</td>
+      <td>stop</td>
+      <td>shift_h2</td>
+      <td>0.84</td>
+      <td>lib_1</td>
+      <td>lib_1-stop</td>
+      <td>loose_bottle</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>lib_1_loose_bottle_func_score</td>
+      <td>0.00001</td>
+      <td>nonsynonymous</td>
+      <td>shift_h2</td>
+      <td>0.15</td>
+      <td>lib_1</td>
+      <td>lib_1-nonsynonymous</td>
       <td>loose_bottle</td>
       <td></td>
     </tr>
@@ -3211,36 +3221,36 @@ cache miss - this could take a moment
       <th>0</th>
       <td>lib_1_loose_bottle_func_score,lib_1_observed_p...</td>
       <td>beta</td>
-      <td>0.981161</td>
-      <td>0.00000</td>
+      <td>0.845871</td>
+      <td>0.000000</td>
     </tr>
     <tr>
       <th>0</th>
       <td>lib_1_loose_bottle_func_score,lib_1_observed_p...</td>
       <td>beta</td>
-      <td>0.979097</td>
-      <td>0.00001</td>
+      <td>0.718330</td>
+      <td>0.000005</td>
     </tr>
     <tr>
       <th>0</th>
       <td>lib_1_loose_bottle_func_score,lib_1_observed_p...</td>
       <td>beta</td>
-      <td>0.985294</td>
-      <td>0.00002</td>
+      <td>0.739593</td>
+      <td>0.000010</td>
     </tr>
     <tr>
       <th>0</th>
       <td>lib_1_loose_bottle_func_score,lib_1_observed_p...</td>
       <td>beta</td>
-      <td>0.986169</td>
-      <td>0.00005</td>
+      <td>0.799330</td>
+      <td>0.000020</td>
     </tr>
     <tr>
       <th>0</th>
       <td>lib_1_loose_bottle_func_score,lib_1_observed_p...</td>
       <td>beta</td>
-      <td>0.984601</td>
-      <td>0.00010</td>
+      <td>0.835952</td>
+      <td>0.000040</td>
     </tr>
   </tbody>
 </table>
@@ -3307,71 +3317,71 @@ cache miss - this could take a moment
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.953692</td>
-      <td>0.00000</td>
+      <td>0.627078</td>
+      <td>0.000000</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.947651</td>
-      <td>0.00001</td>
+      <td>0.610255</td>
+      <td>0.000005</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.950421</td>
-      <td>0.00002</td>
+      <td>0.589943</td>
+      <td>0.000010</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.949120</td>
-      <td>0.00005</td>
+      <td>0.645271</td>
+      <td>0.000020</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.945247</td>
-      <td>0.00010</td>
+      <td>0.667735</td>
+      <td>0.000040</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.947921</td>
-      <td>0.00020</td>
+      <td>0.720566</td>
+      <td>0.000080</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.935994</td>
-      <td>0.00100</td>
+      <td>0.691134</td>
+      <td>0.000160</td>
+      <td>loose_bottle</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>beta</td>
+      <td>0.694179</td>
+      <td>0.000320</td>
+      <td>loose_bottle</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>beta</td>
+      <td>0.674395</td>
+      <td>0.000640</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>shift</td>
-      <td>0.613130</td>
-      <td>0.00000</td>
-      <td>loose_bottle</td>
-    </tr>
-    <tr>
-      <th>0</th>
-      <td>shift</td>
-      <td>0.798611</td>
-      <td>0.00001</td>
-      <td>loose_bottle</td>
-    </tr>
-    <tr>
-      <th>0</th>
-      <td>shift</td>
-      <td>0.898992</td>
-      <td>0.00002</td>
+      <td>0.005385</td>
+      <td>0.000000</td>
       <td>loose_bottle</td>
     </tr>
   </tbody>
@@ -3487,36 +3497,36 @@ cache miss - this could take a moment
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.95</td>
+      <td>0.63</td>
       <td>0.0</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.95</td>
+      <td>0.61</td>
+      <td>0.000005</td>
+      <td>loose_bottle</td>
+    </tr>
+    <tr>
+      <th>0</th>
+      <td>beta</td>
+      <td>0.59</td>
       <td>0.00001</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.95</td>
+      <td>0.65</td>
       <td>0.00002</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.95</td>
-      <td>0.00005</td>
-      <td>loose_bottle</td>
-    </tr>
-    <tr>
-      <th>0</th>
-      <td>beta</td>
-      <td>0.95</td>
-      <td>0.0001</td>
+      <td>0.67</td>
+      <td>0.00004</td>
       <td>loose_bottle</td>
     </tr>
   </tbody>
@@ -3605,12 +3615,12 @@ cache miss - this could take a moment
       <td>V24Q S25R H27P D29L H33C S41L C44F S47F</td>
       <td>-5.959752</td>
       <td>V24Q S25R H27P D29L H33C S41L C44F S47F</td>
-      <td>-10.984033</td>
-      <td>-5.959344</td>
+      <td>-11.106520</td>
+      <td>-5.958143</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>0.016072</td>
+      <td>0.016085</td>
       <td>0.016067</td>
       <td>0</td>
     </tr>
@@ -3620,12 +3630,12 @@ cache miss - this could take a moment
       <td>V8P H27T P30* L49P</td>
       <td>-5.959753</td>
       <td>V8P H27T P30* L49P</td>
-      <td>-7.918769</td>
-      <td>-5.957263</td>
+      <td>-36.886902</td>
+      <td>-5.958233</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>0.016095</td>
+      <td>0.016084</td>
       <td>0.016067</td>
       <td>0</td>
     </tr>
@@ -3635,12 +3645,12 @@ cache miss - this could take a moment
       <td>V19P V43Q</td>
       <td>-5.640393</td>
       <td>V19P V43Q</td>
-      <td>-2.611400</td>
-      <td>-5.548765</td>
+      <td>-2.910555</td>
+      <td>-5.648533</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>0.021363</td>
+      <td>0.019935</td>
       <td>0.020048</td>
       <td>0</td>
     </tr>
@@ -3650,12 +3660,12 @@ cache miss - this could take a moment
       <td>R20Y</td>
       <td>0.005959</td>
       <td>R20Y</td>
-      <td>5.128085</td>
-      <td>0.008551</td>
+      <td>5.165602</td>
+      <td>0.005662</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>1.005945</td>
+      <td>1.003932</td>
       <td>1.004139</td>
       <td>0</td>
     </tr>
@@ -3665,12 +3675,12 @@ cache miss - this could take a moment
       <td></td>
       <td>0.000000</td>
       <td></td>
-      <td>4.957311</td>
-      <td>0.002009</td>
+      <td>5.003634</td>
+      <td>-0.000285</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>1.001393</td>
+      <td>0.999803</td>
       <td>1.000000</td>
       <td>0</td>
     </tr>
@@ -3791,43 +3801,43 @@ cache miss - this could take a moment
       <th>0</th>
       <td>0.0</td>
       <td>lib_1_observed_phenotype_func_score</td>
-      <td>0.999975</td>
-      <td>0.000018</td>
+      <td>0.999989</td>
+      <td>1.726160e-04</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>0.00001</td>
+      <td>0.000005</td>
       <td>lib_1_observed_phenotype_func_score</td>
-      <td>0.999974</td>
-      <td>-0.000007</td>
+      <td>0.999997</td>
+      <td>2.699177e-04</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>0.00002</td>
+      <td>0.00001</td>
       <td>lib_1_observed_phenotype_func_score</td>
-      <td>0.999979</td>
-      <td>0.000220</td>
+      <td>0.999994</td>
+      <td>3.729924e-06</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>0.00005</td>
+      <td>0.00002</td>
       <td>lib_1_observed_phenotype_func_score</td>
-      <td>0.999933</td>
-      <td>0.000014</td>
+      <td>0.999985</td>
+      <td>6.342176e-06</td>
     </tr>
     <tr>
       <th>4</th>
-      <td>0.0001</td>
+      <td>0.00004</td>
       <td>lib_1_observed_phenotype_func_score</td>
-      <td>0.999805</td>
-      <td>0.000160</td>
+      <td>0.999954</td>
+      <td>-9.617601e-07</td>
     </tr>
   </tbody>
 </table>
 </div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[58]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[57]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># for metric in [&quot;corr&quot;, &quot;mae&quot;]:</span>
@@ -3881,7 +3891,7 @@ cache miss - this could take a moment
 </div>
 <p>As expected, the lasso constraint has a negative effect on the models’ ability to predict the true latent and observed phenotypes. This is because a model with more freedom to choose parameters is likely to overfit to the training data.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[59]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[58]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">csv_output_dir</span><span class="si">}</span><span class="s2">/model_vs_truth_variant_phenotype.csv&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -3890,7 +3900,7 @@ cache miss - this could take a moment
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[59]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[58]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -3934,16 +3944,16 @@ cache miss - this could take a moment
       <th>1</th>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.00001</td>
+      <td>0.000005</td>
       <td>lib_1_observed_phenotype_func_score</td>
       <td>1.0</td>
-      <td>-0.0</td>
+      <td>0.0</td>
     </tr>
     <tr>
       <th>2</th>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.00002</td>
+      <td>0.00001</td>
       <td>lib_1_observed_phenotype_func_score</td>
       <td>1.0</td>
       <td>0.0</td>
@@ -3952,7 +3962,7 @@ cache miss - this could take a moment
       <th>3</th>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.00005</td>
+      <td>0.00002</td>
       <td>lib_1_observed_phenotype_func_score</td>
       <td>1.0</td>
       <td>0.0</td>
@@ -3961,10 +3971,10 @@ cache miss - this could take a moment
       <th>4</th>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.0001</td>
+      <td>0.00004</td>
       <td>lib_1_observed_phenotype_func_score</td>
       <td>1.0</td>
-      <td>0.0</td>
+      <td>-0.0</td>
     </tr>
   </tbody>
 </table>
@@ -3975,7 +3985,7 @@ cache miss - this could take a moment
 <h2>Cross validation<a class="headerlink" href="#Cross-validation" title="Link to this heading">¶</a></h2>
 <p>Above, we saw evidence that the lasso negatively impacts the model performance on the training data. To test for overfitting, we can perform cross validation to test that the model is actually more accurate on unseen data.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[60]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[59]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">{}</span>
@@ -4003,7 +4013,7 @@ cache miss - this could take a moment
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[61]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[60]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fitting_params</span><span class="p">[</span><span class="s2">&quot;dataset&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">train</span>
@@ -4013,7 +4023,7 @@ cache miss - this could take a moment
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">multidms.ModelCollection.add_validation_loss</span></code> method takes in unseen data, computes model loss on that data, and appends it to the <code class="docutils literal notranslate"><span class="pre">ModelCollection.fit_models</span></code> dataframe.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[62]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[61]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mc</span> <span class="o">=</span> <span class="n">multidms</span><span class="o">.</span><span class="n">model_collection</span><span class="o">.</span><span class="n">ModelCollection</span><span class="p">(</span><span class="n">fit_collection_cv</span><span class="p">)</span>
@@ -4023,7 +4033,7 @@ cache miss - this could take a moment
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[62]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[61]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -4056,43 +4066,43 @@ cache miss - this could take a moment
       <th>0</th>
       <td>lib_1_observed_phenotype</td>
       <td>0.0</td>
-      <td>0.000344</td>
-      <td>0.000735</td>
+      <td>0.000182</td>
+      <td>0.000919</td>
     </tr>
     <tr>
       <th>1</th>
       <td>lib_1_observed_phenotype</td>
-      <td>0.00001</td>
-      <td>0.000164</td>
-      <td>0.000525</td>
+      <td>0.000005</td>
+      <td>0.000047</td>
+      <td>0.000160</td>
     </tr>
     <tr>
       <th>2</th>
       <td>lib_1_observed_phenotype</td>
-      <td>0.00002</td>
-      <td>0.000281</td>
-      <td>0.000815</td>
+      <td>0.00001</td>
+      <td>0.000074</td>
+      <td>0.000230</td>
     </tr>
     <tr>
       <th>3</th>
       <td>lib_1_observed_phenotype</td>
-      <td>0.00005</td>
-      <td>0.000832</td>
-      <td>0.002136</td>
+      <td>0.00002</td>
+      <td>0.000189</td>
+      <td>0.000603</td>
     </tr>
     <tr>
       <th>4</th>
       <td>lib_1_observed_phenotype</td>
-      <td>0.0001</td>
-      <td>0.002426</td>
-      <td>0.005565</td>
+      <td>0.00004</td>
+      <td>0.000581</td>
+      <td>0.001680</td>
     </tr>
   </tbody>
 </table>
 </div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[63]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[62]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span> <span class="o">=</span> <span class="n">mc</span><span class="o">.</span><span class="n">fit_models</span>
@@ -4163,7 +4173,7 @@ cache miss - this could take a moment
 </div>
 <p>Above we can see that indeed for both the loose and tight bottleneck datasets, the lasso constraint provides a more robust model to unseen data. We don’t however see this effect for the models trained on ground truth observed phenotypes, as there is no noise for the models to overfit to.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[64]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[63]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">csv_output_dir</span><span class="si">}</span><span class="s2">/cross_validation_loss.csv&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -4172,7 +4182,7 @@ cache miss - this could take a moment
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[64]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[63]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -4214,7 +4224,7 @@ cache miss - this could take a moment
     </tr>
     <tr>
       <th>1</th>
-      <td>0.00001</td>
+      <td>0.000005</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>training</td>
@@ -4223,7 +4233,7 @@ cache miss - this could take a moment
     </tr>
     <tr>
       <th>2</th>
-      <td>0.00002</td>
+      <td>0.00001</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>training</td>
@@ -4232,7 +4242,7 @@ cache miss - this could take a moment
     </tr>
     <tr>
       <th>3</th>
-      <td>0.00005</td>
+      <td>0.00002</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>training</td>
@@ -4241,7 +4251,7 @@ cache miss - this could take a moment
     </tr>
     <tr>
       <th>4</th>
-      <td>0.0001</td>
+      <td>0.00004</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>training</td>
@@ -4259,7 +4269,7 @@ cache miss - this could take a moment
 that a lasso penalty of <span class="math notranslate nohighlight">\(1e-4\)</span> provides a false positive rate of nearly zero (i.e. the stop codon sparsity <span class="math notranslate nohighlight">\(\approx 100\%\)</span>), a good correlation of inferred mutational effects between replicate libraries (&gt;0.95 pearsonr), and a relatively low loss on validation when compared to the other models.</p>
 <p>To validate the ability to correctly infer the shape of epistasis, we’ll plot the inferred global epistasis function for each of the models, and compare it to the true global epistasis function.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[67]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[64]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span> <span class="o">=</span> <span class="n">variants_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;scale_coeff_lasso_shift == </span><span class="si">{</span><span class="n">lasso_choice</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -4327,7 +4337,7 @@ that a lasso penalty of <span class="math notranslate nohighlight">\(1e-4\)</spa
 </div>
 <p>Plot model vs. measured (functional score) vs. ground truth enrichments.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[68]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[65]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="p">(</span>
@@ -4370,7 +4380,7 @@ that a lasso penalty of <span class="math notranslate nohighlight">\(1e-4\)</spa
 <p>Amazingly, the model does better at predicting true enrichments than even the counts based functional scores!</p>
 <p>Finally, let’s plot the relationship between the model’s inferred shifts, and the ground truth shifts.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[69]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[66]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># plot correlations of true and predicted shifts</span>
