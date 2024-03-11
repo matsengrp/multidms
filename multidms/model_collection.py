@@ -396,8 +396,19 @@ class ModelCollection:
             )
             all_mutations = set.union(all_mutations, set(fit.data.mutations))
 
-        # add the final training loss to the fit_models dataframe
-        fit_models["training_loss"] = fit_models.step_loss.apply(lambda x: x[-1])
+        # initialize empty columns for conditional loss
+        fit_models.assign(
+            **{
+                f"{condition}_loss_training": onp.nan
+                for condition in first_dataset.conditions
+            },
+            total_loss=onp.nan,
+        )
+        # assign coditional loss columns
+        for idx, fit in fit_models.iterrows():
+            conditional_loss = fit.model.conditional_loss
+            for condition, loss in conditional_loss.items():
+                fit_models.loc[idx, f"{condition}_loss_training"] = loss
 
         self._site_map_union = site_map_union
         self._conditions = first_dataset.conditions
@@ -432,7 +443,6 @@ class ModelCollection:
         """The mutations shared by each fitting dataset."""
         return self._all_mutations
 
-    # TODO remove verbose everywhere
     @lru_cache(maxsize=10)
     def split_apply_combine_muts(
         self,
@@ -482,31 +492,51 @@ class ModelCollection:
             A dataframe containing the aggregated mutational parameter values
         """
         print("cache miss - this could take a moment")
+        queried_fits = (
+            self.fit_models.query(query) if query is not None else self.fit_models
+        )
+        if len(queried_fits) == 0:
+            raise ValueError("invalid query, no fits returned")
+
         if groupby is None:
-            groupby = tuple(
-                set(self.fit_models.columns)
-                - set(["model", "data", "step_loss", "verbose"])
+            # groupby = tuple(
+            #     set(queried_fits.columns)
+            #     - set(
+            #         ["model", "dataset_name", "verbose"]
+            #         + [col for col in queried_fits.columns if "loss" in col]
+            #     )
+            # )
+            ret = (
+                pd.concat(
+                    [
+                        fit["model"].get_mutations_df(return_split=False, **kwargs)
+                        for _, fit in queried_fits.iterrows()
+                    ],
+                    join="inner",  # the columns will always match based on class req.
+                )
+                .query(
+                    f"mutation.isin({list(self.shared_mutations)})"
+                    if inner_merge_dataset_muts
+                    else "mutation.notna()"
+                )
+                .groupby("mutation")
+                .aggregate(aggregate_func)
             )
+            return ret
 
         elif isinstance(groupby, str):
             groupby = tuple([groupby])
 
         elif isinstance(groupby, tuple):
-            if not all(feature in self.fit_models.columns for feature in groupby):
+            if not all(feature in queried_fits.columns for feature in groupby):
                 raise ValueError(
                     f"invalid groupby, values must be in {self.fit_models.columns}"
                 )
         else:
             raise ValueError(
                 "invalid groupby, must be tuple with values "
-                f"in {self.fit_models.columns}"
+                f"in {queried_fits.columns}"
             )
-
-        queried_fits = (
-            self.fit_models.query(query) if query is not None else self.fit_models
-        )
-        if len(queried_fits) == 0:
-            raise ValueError("invalid query, no fits returned")
 
         ret = pd.concat(
             [
@@ -566,19 +596,68 @@ class ModelCollection:
         # check there's a testing dataframe for each unique dataset_name
         assert set(test_data.keys()) == set(self.fit_models["dataset_name"].unique())
 
-        if "validation_loss" in self.fit_models.columns and not overwrite:
+        validation_cols_exist = onp.any(
+            [
+                f"{condition}_loss_validation" in self.fit_models.columns
+                for condition in self.conditions
+            ]
+        )
+        if validation_cols_exist and not overwrite:
             raise ValueError(
                 "validation_loss already exists in self.fit_models, set overwrite=True "
                 "to overwrite"
             )
 
-        self.fit_models["validation_loss"] = onp.nan
+        self.fit_models = self.fit_models.assign(
+            **{
+                f"{condition}_loss_validation": onp.nan for condition in self.conditions
+            },
+            total_loss_validation=onp.nan,
+        )
+
         for idx, fit in self.fit_models.iterrows():
-            self.fit_models.loc[idx, "validation_loss"] = fit["model"].get_df_loss(
-                test_data[fit["dataset_name"]]
+            condional_df_loss = fit.model.get_df_loss(
+                test_data[fit["dataset_name"]], conditional=True
             )
+            for condition, loss in condional_df_loss.items():
+                self.fit_models.loc[idx, f"{condition}_loss_validation"] = loss
 
         return None
+
+    def get_conditional_loss_df(self, query=None):
+        """
+        return a long form dataframe with columns
+        "dataset_name", "scale_coeff_lasso_shift",
+        "split" ("training" or "validation"),
+        "loss" (actual value), and "condition".
+
+        Parameters
+        ----------
+        query : str, optional
+            The query to apply to the fit_models dataframe
+            before formatting the loss dataframe. The default is None.
+        """
+        if query is not None:
+            queried_fits = self.fit_models.query(query)
+        else:
+            queried_fits = self.fit_models
+        if len(queried_fits) == 0:
+            raise ValueError("invalid query, no fits returned")
+
+        id_vars = ["dataset_name", "scale_coeff_lasso_shift"]
+        value_vars = [
+            c for c in queried_fits.columns if "loss" in c and c != "step_loss"
+        ]
+        loss_df = queried_fits.melt(
+            id_vars=id_vars,
+            value_vars=value_vars,
+            var_name="condition",
+            value_name="loss",
+        ).assign(
+            split=lambda x: x.condition.str.split("_").str.get(-1),
+            condition=lambda x: x.condition.str.split("_").str[:-2].str.join("_"),
+        )
+        return loss_df
 
     def mut_param_heatmap(
         self,
@@ -652,7 +731,11 @@ class ModelCollection:
         if len(queried_fits) == 0:
             raise ValueError("invalid query, no fits returned")
         shouldbe_uniform = list(
-            set(queried_fits.columns) - set(["model", "dataset_name", "step_loss"])
+            set(queried_fits.columns)
+            - set(
+                ["model", "dataset_name"]
+                + [col for col in queried_fits.columns if "loss" in col]
+            )
         )
         if len(queried_fits.groupby(list(shouldbe_uniform)).groups) > 1:
             raise ValueError(
@@ -921,9 +1004,6 @@ class ModelCollection:
             return "stop" if mut.endswith("*") else "nonsynonymous"
 
         # apply, drop, and melt
-        # TODO This throws deprecation warning
-        # because of the include_groups argument ...
-        # set to False, and lose the drop call after ...
         sparsity_df = (
             df.drop(columns=to_throw)
             .assign(mut_type=lambda x: x.mutation.apply(mut_type))

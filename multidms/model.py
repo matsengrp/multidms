@@ -209,7 +209,7 @@ class Model:
         epistatic_model=multidms.biophysical.sigmoidal_global_epistasis,
         output_activation=multidms.biophysical.identity_activation,
         conditional_shifts=True,
-        alpha_d=False,  # TODO raise issue to be squashed in this PR
+        alpha_d=False,
         gamma_corrected=False,
         PRNGKey=0,
         init_beta_naught=0.0,
@@ -374,6 +374,25 @@ class Model:
         }
         data = (self.data.training_data["X"], self.data.training_data["y"])
         return jax.jit(self.model_components["objective"])(self.params, data, **kwargs)
+
+    @property
+    def conditional_loss(self) -> float:
+        """Compute loss individually for each condition."""
+        kwargs = {
+            "scale_coeff_ridge_beta": 0.0,
+            "scale_coeff_ridge_shift": 0.0,
+            "scale_coeff_ridge_gamma": 0.0,
+            "scale_ridge_alpha_d": 0.0,
+        }
+
+        X, y = self.data.training_data["X"], self.data.training_data["y"]
+        loss_fxn = jax.jit(self.model_components["objective"])
+        ret = {}
+        for condition in self.data.conditions:
+            condition_data = ({condition: X[condition]}, {condition: y[condition]})
+            ret[condition] = float(loss_fxn(self.params, condition_data, **kwargs))
+        ret["total"] = sum(ret.values())
+        return ret
 
     @property
     def variants_df(self):
@@ -546,7 +565,7 @@ class Model:
 
         return mutations_df[col_order]
 
-    def get_df_loss(self, df, error_if_unknown=False, verbose=False):
+    def get_df_loss(self, df, error_if_unknown=False, verbose=False, conditional=False):
         """
         Get the loss of the model on a given data frame.
 
@@ -563,10 +582,13 @@ class Model:
             in the loss calculation. If `True`, raise an error.
         verbose : bool
             If True, print the number of valid and invalid variants.
+        conditional : bool
+            If True, return the loss for each condition as a dictionary.
+            If False, return the total loss.
 
         Returns
         -------
-        float
+        float or dict
             The loss of the model on the given data frame.
         """
         substitutions_col = "aa_substitutions"
@@ -579,8 +601,11 @@ class Model:
         if condition_col not in df.columns:
             raise ValueError("`df` lacks `condition_col` " f"{condition_col}")
 
-        X, y = {}, {}
+        loss_fxn = jax.jit(self.model_components["objective"])
+
+        ret = {}
         for condition, condition_df in df.groupby(condition_col):
+            X, y = {}, {}
             variant_subs = condition_df[substitutions_col]
             if condition not in self.data.reference_sequence_conditions:
                 variant_subs = condition_df.apply(
@@ -592,14 +617,23 @@ class Model:
 
             # build binary variants as csr matrix, make prediction, and append
             valid, invalid = 0, 0  # row indices of elements that are one
-            binary_variants = []
+            # binary_variants = []
             variant_targets = []
+            row_ind = []  # row indices of elements that are one
+            col_ind = []  # column indices of elements that are one
 
             for subs, target in zip(variant_subs, condition_df[func_score_col]):
                 try:
-                    binary_variants.append(ref_bmap.sub_str_to_binary(subs))
+                    # binary_variants.append(ref_bmap.sub_str_to_binary(subs))
+                    # variant_targets.append(target)
+                    # valid += 1
+
+                    for isub in ref_bmap.sub_str_to_indices(subs):
+                        row_ind.append(valid)
+                        col_ind.append(isub)
                     variant_targets.append(target)
                     valid += 1
+
                 except ValueError:
                     if error_if_unknown:
                         raise ValueError(
@@ -615,12 +649,26 @@ class Model:
                     f"{valid}, n invalid variants: {invalid}"
                 )
 
+            # X[condition] = sparse.BCOO.from_scipy_sparse(
+            # scipy.sparse.csr_matrix(onp.vstack(binary_variants))
+            # )
             X[condition] = sparse.BCOO.from_scipy_sparse(
-                scipy.sparse.csr_matrix(onp.vstack(binary_variants))
+                scipy.sparse.csr_matrix(
+                    (onp.ones(len(row_ind), dtype="int8"), (row_ind, col_ind)),
+                    shape=(valid, ref_bmap.binarylength),
+                    dtype="int8",
+                )
             )
+
             y[condition] = jnp.array(variant_targets)
 
-        return self.model_components["objective"](self.params, (X, y))
+            ret[condition] = float(loss_fxn(self.params, (X, y)))
+
+        ret["total"] = sum(ret.values())
+
+        if not conditional:
+            return ret["total"]
+        return ret
 
     def add_phenotypes_to_df(
         self,
