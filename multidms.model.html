@@ -238,6 +238,12 @@ without ridge or lasso penalties included.</p>
 </dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="multidms.model.Model.conditional_loss">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">conditional_loss</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></em><a class="headerlink" href="#multidms.model.Model.conditional_loss" title="Link to this definition">¶</a></dt>
+<dd><p>Compute loss individually for each condition.</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="multidms.model.Model.variants_df">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">variants_df</span></span><a class="headerlink" href="#multidms.model.Model.variants_df" title="Link to this definition">¶</a></dt>
 <dd><p>Kept for backwards compatibility but will be removed in future versions.
@@ -310,7 +316,7 @@ based on the current state of the model.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.model.Model.get_df_loss">
-<span class="sig-name descname"><span class="pre">get_df_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_if_unknown</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model.Model.get_df_loss" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_df_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_if_unknown</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditional</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model.Model.get_df_loss" title="Link to this definition">¶</a></dt>
 <dd><p>Get the loss of the model on a given data frame.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -323,13 +329,15 @@ the model (not in <code class="xref py py-attr docutils literal notranslate"><sp
 then by default we do not include those variants
 in the loss calculation. If <cite>True</cite>, raise an error.</p></li>
 <li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, print the number of valid and invalid variants.</p></li>
+<li><p><strong>conditional</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, return the loss for each condition as a dictionary.
+If False, return the total loss.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The loss of the model on the given data frame.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)">float</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)">float</a> or <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)">dict</a></p>
 </dd>
 </dl>
 </dd></dl>
