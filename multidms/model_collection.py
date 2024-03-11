@@ -396,10 +396,6 @@ class ModelCollection:
             )
             all_mutations = set.union(all_mutations, set(fit.data.mutations))
 
-        # add the final training loss to the fit_models dataframe
-        # fit_models["training_loss"] = fit_models.step_loss.apply(lambda x: x[-1])
-        # TODO rename to fit_models_df
-
         # initialize empty columns for conditional loss
         fit_models.assign(
             **{
@@ -447,7 +443,6 @@ class ModelCollection:
         """The mutations shared by each fitting dataset."""
         return self._all_mutations
 
-    # TODO remove verbose everywhere
     @lru_cache(maxsize=10)
     def split_apply_combine_muts(
         self,
@@ -1009,9 +1004,6 @@ class ModelCollection:
             return "stop" if mut.endswith("*") else "nonsynonymous"
 
         # apply, drop, and melt
-        # TODO This throws deprecation warning
-        # because of the include_groups argument ...
-        # set to False, and lose the drop call after ...
         sparsity_df = (
             df.drop(columns=to_throw)
             .assign(mut_type=lambda x: x.mutation.apply(mut_type))

@@ -599,7 +599,6 @@ class Data:
         """The functional scores for each variant in the training data."""
         return self._training_data["y"]
 
-    # TODO, rename mutparser
     @property
     def mutparser(self) -> MutationParser:
         """
@@ -608,7 +607,6 @@ class Data:
         """
         return self._mutparser
 
-    # TODO, rename
     @property
     def parse_mut(self) -> MutationParser:
         """
@@ -618,7 +616,6 @@ class Data:
         """
         return self.mutparser.parse_mut
 
-    # TODO, document rename issue
     @property
     def parse_muts(self) -> partial:
         """
@@ -628,11 +625,6 @@ class Data:
         """
         return self._parse_muts
 
-    # TODO should this be cached? how does caching interact with the way in
-    # which we applying this function in parallel?
-    # although, unless the variants are un-collapsed, this cache will be
-    # pretty useless.
-    # although it could be useful for the Model.add_phenotypes_to_df method.
     def convert_subs_wrt_ref_seq(self, condition, aa_subs):
         """
         Covert amino acid substitutions to be with respect to the reference sequence.
