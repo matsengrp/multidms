@@ -43,6 +43,7 @@ data = multidms.Data(
     alphabet=multidms.AAS_WITHSTOP,
     reference="a",
     assert_site_integrity=True,
+    name="test_data",
 )
 
 model = multidms.Model(data, PRNGKey=23)
@@ -449,3 +450,69 @@ def test_model_get_df_loss():
     loss = model.loss
     df_loss = model.get_df_loss(TEST_FUNC_SCORES)
     assert loss == df_loss
+
+    # also test that is it's the same if we add an unknown variant to training
+    test_with_unknown = TEST_FUNC_SCORES.copy()
+    test_with_unknown.loc[len(test_with_unknown)] = ["a", "E100T MIE", 0.2]
+    df_loss = model.get_df_loss(test_with_unknown)
+    assert loss == df_loss
+
+
+def test_model_get_df_loss_conditional():
+    """
+    Test that the loss is correctly calculated
+    across each condition, by summing the conditions to be sure
+    they match the total loss.
+    """
+    model = multidms.Model(data, PRNGKey=23)
+    model.fit(maxiter=2)
+    loss = model.loss
+    df_loss = model.get_df_loss(TEST_FUNC_SCORES, conditional=True)
+    # remove full and compare sum of the rest
+    df_loss.pop("total")
+    assert loss == sum(df_loss.values())
+
+
+def test_conditional_loss():
+    """
+    Test that the conditional loss is correctly calculated
+    by comparing the result of model.conditional_loss()
+    to the results of model.get_df_loss()
+    when given the training dataframe.
+    """
+    model = multidms.Model(data, PRNGKey=23)
+    model.fit(maxiter=2)
+    loss = model.conditional_loss
+    df_loss = model.get_df_loss(TEST_FUNC_SCORES, conditional=True)
+    assert loss == df_loss
+
+
+def test_ModelCollection_get_conditional_loss_df():
+    """
+    Test that correctness of the conditional loss df
+    format and values by comparing the results of
+    ModelCollection.get_conditional_loss_df to the
+    results of Model.conditional_loss.
+    """
+    params = {
+        "dataset": [data],
+        "iterations_per_step": [2],
+        "scale_coeff_lasso_shift": [0.0, 1e-5],
+    }
+    _, _, fit_models_df = multidms.model_collection.fit_models(
+        params,
+        n_threads=-1,
+    )
+    mc = multidms.model_collection.ModelCollection(fit_models_df)
+    df_loss = mc.get_conditional_loss_df()
+    # without validation loss, we expect the loss dataframe
+    # to have a row for each model-condition pair + total loss
+    n_expected_training_loss_rows = len(mc.fit_models) * (len(data.conditions) + 1)
+    assert df_loss.shape[0] == n_expected_training_loss_rows
+
+    mc.add_validation_loss(TEST_FUNC_SCORES)
+    df_loss = mc.get_conditional_loss_df()
+    # with validation loss, we expect the loss dataframe
+    # to have a row for each model-condition-split (training/validation) pair
+    # + total loss
+    assert df_loss.shape[0] == n_expected_training_loss_rows * 2
