@@ -131,25 +131,16 @@
 <span class="n">iterations_per_step</span> <span class="o">=</span> <span class="mi">100000</span> <span class="c1"># default 20000</span>
 <span class="n">scale_coeff_lasso_shift</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">5.00e-6</span><span class="p">,</span> <span class="mf">1.00e-05</span><span class="p">,</span> <span class="mf">2.00e-05</span><span class="p">,</span> <span class="mf">4.00e-05</span><span class="p">,</span> <span class="mf">8.00e-05</span><span class="p">,</span> <span class="mf">1.60e-04</span><span class="p">,</span> <span class="mf">3.20e-04</span><span class="p">,</span> <span class="mf">6.40e-04</span><span class="p">]</span> <span class="c1"># the sweep of lasso coefficient params</span>
 <span class="n">init_beta_naught</span> <span class="o">=</span> <span class="mf">5.0</span> <span class="c1"># We&#39;ve found that we need to start with a higher beta_naught to get the model to converge correctly,</span>
-<span class="n">scale_coeff_ridge_beta</span> <span class="o">=</span> <span class="mf">0.0</span> <span class="c1"># the sweep of ridge coefficient params</span>
+<span class="n">scale_coeff_ridge_beta</span> <span class="o">=</span> <span class="mf">1e-7</span> <span class="c1"># the sweep of ridge coefficient params</span>
 <span class="n">train_frac</span> <span class="o">=</span> <span class="mf">0.8</span> <span class="c1"># fraction of data to use for cross validation training.</span>
 <span class="n">lasso_choice</span> <span class="o">=</span> <span class="mf">8e-5</span> <span class="c1"># the lasso coefficient to use for the final model</span>
 <span class="n">csv_output_dir</span> <span class="o">=</span> <span class="s1">&#39;output&#39;</span> <span class="c1"># the directory to save the output csv files</span>
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
-<span class="n">csv_output_dir</span> <span class="o">=</span> <span class="s2">&quot;output/default&quot;</span>
-<br/></pre></div>
-</div>
-</div>
 <p>Set some configurations and a few other more experimental parameters which could break things if not set correctly:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">matplotlib</span> inline
@@ -168,7 +159,7 @@
 <h2>Simulate a reference sequence<a class="headerlink" href="#Simulate-a-reference-sequence" title="Link to this heading">¶</a></h2>
 <p>Start by simulating a sequence of nucleotides, then translate it to amino acids. We’ll use this sequence as the reference sequence for the simulated datasets.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">geneseq_h1</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">choices</span><span class="p">(</span><span class="n">CODONS_NOSTOP</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">genelength</span><span class="p">))</span>
@@ -194,7 +185,7 @@ GSSFSGTVSGVVRSFTLFVRQFTVSSHQDPCCHCTTGYYFSQVCTLSRLG
 <h2>Mutational effects<a class="headerlink" href="#Mutational-effects" title="Link to this heading">¶</a></h2>
 <p>Simulate latent mutational effects, <span class="math notranslate nohighlight">\(\beta_m\)</span>, storing data in a <code class="docutils literal notranslate"><span class="pre">SigmoidPhenotypeSimulator</span></code> object. Also create an identical object for the second homolog. Later, we’ll update this object to include shifted mutational effects.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mut_pheno_args</span> <span class="o">=</span> <span class="p">{</span>
@@ -212,7 +203,7 @@ GSSFSGTVSGVVRSFTLFVRQFTVSSHQDPCCHCTTGYYFSQVCTLSRLG
 </div>
 <p>Plot the distribution of mutation effects for the first homolog.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="p">(</span>
@@ -232,7 +223,7 @@ GSSFSGTVSGVVRSFTLFVRQFTVSSHQDPCCHCTTGYYFSQVCTLSRLG
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_19_0.png" class="no-scaled-link" src="_images/simulation_validation_19_0.png" style="width: 500px; height: 300px;" />
+<img alt="_images/simulation_validation_18_0.png" class="no-scaled-link" src="_images/simulation_validation_18_0.png" style="width: 500px; height: 300px;" />
 </div>
 </div>
 <p>As expected, our mutational effects are weighted in the negative direction, as we expect the majority of mutations to be deleterious to a protein.</p>
@@ -242,7 +233,7 @@ GSSFSGTVSGVVRSFTLFVRQFTVSSHQDPCCHCTTGYYFSQVCTLSRLG
 <p>Next, we’ll simulate the DNA/protein sequence of second homolog by making a defined number of random amino-acid mutations to the first homolog. When choosing the “bundle” of mutation which separate the two homologs, we avoid mutations that decrease or increase the latent phenotype by more than <code class="docutils literal notranslate"><span class="pre">min_muteffect_in_bundle</span></code> and <code class="docutils literal notranslate"><span class="pre">max_muteffect_in_bundle</span></code> respectively. This is to ensure that the latent phenotype of the second homolog is not too different from the first homolog, an important
 assumption for the <code class="docutils literal notranslate"><span class="pre">multidms</span></code> model.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Input params</span>
@@ -308,7 +299,7 @@ Number of aa differences: 10
 <h2>Shifted mutational effects<a class="headerlink" href="#Shifted-mutational-effects" title="Link to this heading">¶</a></h2>
 <p>Next, randomly choose a subset of (identical and non-identical) sites that will have shifted mutational effects. Do this independently for sites that are identical and non-identical between homologs, so that we are sure to have shifted sites in each category.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Non-identical sites</span>
@@ -344,7 +335,7 @@ non-identical (n=6): 8, 14, 32, 37, 38, 42
 </div>
 <p>Next, we’ll create a dataframe for all mutational effects and shifts, simulating shifts at each of the above sites by randomly simulate a shift in the effect of each mutation by drawing shifts from a Gaussian distribution:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">sim_mut_shift</span><span class="p">(</span><span class="n">shifted_site</span><span class="p">,</span> <span class="n">mutation</span><span class="p">):</span>
@@ -392,7 +383,7 @@ non-identical (n=6): 8, 14, 32, 37, 38, 42
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -553,7 +544,7 @@ non-identical (n=6): 8, 14, 32, 37, 38, 42
 </div>
 <p>Plot the distribution of all simulated shifts, excluding mutations to stop codons and sites that have no shifted effects.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">non_stop_shifted_muts</span> <span class="o">=</span> <span class="n">mut_effects_df</span><span class="p">[</span>
@@ -578,12 +569,12 @@ non-identical (n=6): 8, 14, 32, 37, 38, 42
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_30_0.png" class="no-scaled-link" src="_images/simulation_validation_30_0.png" style="width: 500px; height: 300px;" />
+<img alt="_images/simulation_validation_29_0.png" class="no-scaled-link" src="_images/simulation_validation_29_0.png" style="width: 500px; height: 300px;" />
 </div>
 </div>
 <p>We can also plot the shifts as a heatmap, and mark the wildtype amino acid at each site (<code class="docutils literal notranslate"><span class="pre">x</span></code> for reference, <code class="docutils literal notranslate"><span class="pre">o</span></code> for non-reference):</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">max_abs_value</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">mut_effects_df</span><span class="p">[</span><span class="s1">&#39;shift&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="n">mut_effects_df</span><span class="p">[</span><span class="s1">&#39;shift&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
@@ -645,13 +636,13 @@ non-identical (n=6): 8, 14, 32, 37, 38, 42
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_32_0.png" class="no-scaled-link" src="_images/simulation_validation_32_0.png" style="width: 700px; height: 350px;" />
+<img alt="_images/simulation_validation_31_0.png" class="no-scaled-link" src="_images/simulation_validation_31_0.png" style="width: 700px; height: 350px;" />
 </div>
 </div>
 <p>Recal that we have already created a <code class="docutils literal notranslate"><span class="pre">SigmoidPhenotypeSimulator</span></code> object for the second homolog by making a copy of the one for the first homolog. This object stores the homolog’s wildtype latent phenotype and the latent effects of individual mutations. Below, we update both of these traits based on the simulated shifts from above. To update the wildtype latent phenotype of the second homolog, we add the effects of all mutations that separate the homologs. In computing this sum, we will use
 <span class="math notranslate nohighlight">\(\beta\)</span> parameters for the second homolog, which already include shifted effects.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Update individual mutational effects</span>
@@ -688,7 +679,7 @@ Characteristics of mutations separating homologs:
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -882,7 +873,7 @@ A30G.</p>
 <p>The above <span class="math notranslate nohighlight">\(\beta\)</span> parameters are effects in the background of the non-reference homolog, such that they account for shifts in mutational effects between homologs.</p>
 <p>The below cell adds mutational effects for missing entries using the above strategy:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># iterate over &quot;bundle&quot; of mutations which disguish the homologs</span>
@@ -916,7 +907,7 @@ A30G.</p>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mut_effects_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">csv_output_dir</span><span class="si">}</span><span class="s2">/simulated_muteffects.csv&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -925,7 +916,7 @@ A30G.</p>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -1040,7 +1031,7 @@ A30G.</p>
 <h2>Variant libraries<a class="headerlink" href="#Variant-libraries" title="Link to this heading">¶</a></h2>
 <p>Simulate a set of variant libraries that one might use in an actual experiment for each homolog, each with two replicate libraries.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">libs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;lib_1&quot;</span><span class="p">,</span> <span class="s2">&quot;lib_2&quot;</span><span class="p">]</span>  <span class="c1"># distinct libraries of gene</span>
@@ -1066,7 +1057,7 @@ A30G.</p>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">CodonVariantTable_h1</span><span class="o">.</span><span class="n">n_variants_df</span><span class="p">(</span><span class="n">samples</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
@@ -1074,7 +1065,7 @@ A30G.</p>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -1126,7 +1117,7 @@ A30G.</p>
 </div>
 <p>plot the number of variant support sequences as a histogram</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">CodonVariantTable_h1</span><span class="o">.</span><span class="n">plotVariantSupportHistogram</span><span class="p">(</span><span class="n">max_support</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
@@ -1143,11 +1134,11 @@ A30G.</p>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_44_0.png" class="no-scaled-link" src="_images/simulation_validation_44_0.png" style="width: 500px; height: 300px;" />
+<img alt="_images/simulation_validation_43_0.png" class="no-scaled-link" src="_images/simulation_validation_43_0.png" style="width: 500px; height: 300px;" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">CodonVariantTable_h2</span><span class="o">.</span><span class="n">n_variants_df</span><span class="p">(</span><span class="n">samples</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
@@ -1155,7 +1146,7 @@ A30G.</p>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -1206,7 +1197,7 @@ A30G.</p>
 </div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">CodonVariantTable_h2</span><span class="o">.</span><span class="n">plotVariantSupportHistogram</span><span class="p">(</span><span class="n">max_support</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
@@ -1223,7 +1214,7 @@ A30G.</p>
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_46_0.png" class="no-scaled-link" src="_images/simulation_validation_46_0.png" style="width: 500px; height: 300px;" />
+<img alt="_images/simulation_validation_45_0.png" class="no-scaled-link" src="_images/simulation_validation_45_0.png" style="width: 500px; height: 300px;" />
 </div>
 </div>
 </section>
@@ -1232,7 +1223,7 @@ A30G.</p>
 <p>Now that we have simulated libraries of variants <span class="math notranslate nohighlight">\(v_i \in V\)</span>, we’ll assign their respective ground truth phenotypes and enrichments.</p>
 <p>We’ll start by computing latent phenotype, <span class="math notranslate nohighlight">\(\phi(v_i)\)</span>. Recall that each of the two homologs has a <code class="docutils literal notranslate"><span class="pre">SigmoidPhenotypeSimulator</span></code> object that stores the latent effects of individual mutations. We will use these objects to compute the latent phenotypes of all variants in the libraries.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># we&#39;ll store a collection of functions for each homolog</span>
@@ -1253,7 +1244,7 @@ A30G.</p>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -1319,7 +1310,7 @@ A30G.</p>
 specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}\)</span> (<code class="docutils literal notranslate"><span class="pre">sigmoid_phenotype_scale</span></code>) and <span class="math notranslate nohighlight">\(\phi(v_{WT})\)</span> (<code class="docutils literal notranslate"><span class="pre">wt_latent</span></code>) such that the reference wildtype phenotype is exactly 0.</p>
 <p>Note that while the <code class="docutils literal notranslate"><span class="pre">SigmoidPhenotypeSimulator</span></code> object (as the name suggests) provides its own global epistasis object for computing phenotype and enrichments, we will only be using it to get mutational effects and the associated latent phenotypes. For computing the post-latent phenotypes and enrichments, we will use the <code class="docutils literal notranslate"><span class="pre">multidms</span></code> biophysical model such that we’re simulating under the same model we’ll be fitting as described above.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># define numpy wrapper for multidms native jax sigmoid fxn</span>
@@ -1333,7 +1324,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 <p>Visualize the sigmoidal function that we’ll be using to map latent phenotypes to observed phenotypes. Place vertical line at the reference (“h1”) wildtype latent phenotype, as well as a dashed line for the non-reference (“h2”) phenotype:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">resolution</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
@@ -1361,12 +1352,12 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_53_0.png" class="no-scaled-link" src="_images/simulation_validation_53_0.png" style="width: 400px; height: 400px;" />
+<img alt="_images/simulation_validation_52_0.png" class="no-scaled-link" src="_images/simulation_validation_52_0.png" style="width: 400px; height: 400px;" />
 </div>
 </div>
 <p>Next, assign each barcoded variant an <em>observed phenotype</em>, <span class="math notranslate nohighlight">\(p(v, d)\)</span>, as well as an <em>observed enrichment</em> , <span class="math notranslate nohighlight">\(2^{p(v, d)}\)</span>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="n">CodonVariantTable_h1</span><span class="o">.</span><span class="n">barcode_variant_df</span><span class="p">[</span><span class="s1">&#39;aa_substitutions&#39;</span><span class="p">]</span>
@@ -1400,7 +1391,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -1476,7 +1467,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 <p>Note that The enrichment score transforms phenotypes to be between 0 and 1, and can thus be used to compute the number of counts for each variant in the post-selection library using a multinomial distribution where the probability of observing a variant is proportional to its enrichment. Below, we plot each variant’s latent phenotype against its observed enrichment:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><span></span><span class="n">p</span> <span class="o">=</span> <span class="p">(</span>
@@ -1511,7 +1502,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_57_0.png" class="no-scaled-link" src="_images/simulation_validation_57_0.png" style="width: 500px; height: 300px;" />
+<img alt="_images/simulation_validation_56_0.png" class="no-scaled-link" src="_images/simulation_validation_56_0.png" style="width: 500px; height: 300px;" />
 </div>
 </div>
 </section>
@@ -1519,7 +1510,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <h2>Pre and post-selection variant read counts<a class="headerlink" href="#Pre-and-post-selection-variant-read-counts" title="Link to this heading">¶</a></h2>
 <p>Next, we will simulate both pre and post-selection counts of each variant subjected to an experimental selection step. Post-selection counts will be simulated by applying the specified selection bottleneck(s) to the pre-selection counts. To do this, we will use the functionality provided by <a class="reference external" href="https://jbloomlab.github.io/dms_variants/dms_variants.simulate.html#dms_variants.simulate.simulateSampleCounts">dms_variants.simulate.simulateSampleCounts</a> and feed it our custom phenotype function.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">bottlenecks</span> <span class="o">=</span> <span class="p">{</span>
@@ -1559,7 +1550,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 <p>Plot the number of counts for each variant in each sample. The horizontal dashed line shows the total number of variants. The plot shows that all variants are well-sampled in the pre-selection libraries, but that post- selection some variants are sampled more or less. This is expected since selection will decrease and increase the frequency of variants:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">variants</span><span class="p">,</span> <span class="n">title</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="n">CodonVariantTable_h1</span><span class="p">,</span> <span class="n">CodonVariantTable_h2</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;homolog 1&#39;</span><span class="p">,</span> <span class="s1">&#39;homolog 2&#39;</span><span class="p">]):</span>
@@ -1578,19 +1569,19 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_62_0.png" class="no-scaled-link" src="_images/simulation_validation_62_0.png" style="width: 500px; height: 500px;" />
+<img alt="_images/simulation_validation_61_0.png" class="no-scaled-link" src="_images/simulation_validation_61_0.png" style="width: 500px; height: 500px;" />
 </div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_62_1.png" class="no-scaled-link" src="_images/simulation_validation_62_1.png" style="width: 500px; height: 500px;" />
+<img alt="_images/simulation_validation_61_1.png" class="no-scaled-link" src="_images/simulation_validation_61_1.png" style="width: 500px; height: 500px;" />
 </div>
 </div>
 <p>Distribution of the number of amino-acid mutations per variant in each sample. As expected, mutations go down after selection:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">variants</span><span class="p">,</span> <span class="n">title</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="n">CodonVariantTable_h1</span><span class="p">,</span> <span class="n">CodonVariantTable_h2</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;homolog 1&#39;</span><span class="p">,</span> <span class="s1">&#39;homolog 2&#39;</span><span class="p">]):</span>
@@ -1606,19 +1597,19 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_64_0.png" class="no-scaled-link" src="_images/simulation_validation_64_0.png" style="width: 500px; height: 500px;" />
+<img alt="_images/simulation_validation_63_0.png" class="no-scaled-link" src="_images/simulation_validation_63_0.png" style="width: 500px; height: 500px;" />
 </div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_64_1.png" class="no-scaled-link" src="_images/simulation_validation_64_1.png" style="width: 500px; height: 500px;" />
+<img alt="_images/simulation_validation_63_1.png" class="no-scaled-link" src="_images/simulation_validation_63_1.png" style="width: 500px; height: 500px;" />
 </div>
 </div>
 <p>Plot how thoroughly amino-acid mutations are sampled. The plots below show that the stop mutations are sampled very poorly post-selection because they are eliminated during selection:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">variants</span><span class="p">,</span> <span class="n">title</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="n">CodonVariantTable_h1</span><span class="p">,</span> <span class="n">CodonVariantTable_h2</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;homolog 1&#39;</span><span class="p">,</span> <span class="s1">&#39;homolog 2&#39;</span><span class="p">]):</span>
@@ -1635,14 +1626,14 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_66_0.png" class="no-scaled-link" src="_images/simulation_validation_66_0.png" style="width: 600px; height: 500px;" />
+<img alt="_images/simulation_validation_65_0.png" class="no-scaled-link" src="_images/simulation_validation_65_0.png" style="width: 600px; height: 500px;" />
 </div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_66_1.png" class="no-scaled-link" src="_images/simulation_validation_66_1.png" style="width: 600px; height: 500px;" />
+<img alt="_images/simulation_validation_65_1.png" class="no-scaled-link" src="_images/simulation_validation_65_1.png" style="width: 600px; height: 500px;" />
 </div>
 </div>
 </section>
@@ -1658,7 +1649,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <p>For further details on how to prepare data and fit models, see the <code class="docutils literal notranslate"><span class="pre">multidms</span></code> <a class="reference external" href="https://matsengrp.github.io/multidms/fit_delta_BA1_example.html">quick-start tutorial</a>.</p>
 <p>Start by creating training data with ground truth phenotype target. Because the barcode replicates share ground truth phenotypes we can can collapse the counts accross replicates by simple dropping duplicates.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">req_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;library&quot;</span><span class="p">,</span> <span class="s2">&quot;homolog&quot;</span><span class="p">,</span> <span class="s2">&quot;aa_substitutions&quot;</span><span class="p">,</span> <span class="s2">&quot;func_score_type&quot;</span><span class="p">,</span> <span class="s2">&quot;func_score&quot;</span><span class="p">]</span>
@@ -1685,7 +1676,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -1761,7 +1752,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 <p>Next, compute functional scores from pre-post counts in each bottleneck <em>after</em> aggregating the barcode replicate counts for unique variants. The <a class="reference external" href="https://jbloomlab.github.io/dms_variants/dms_variants.codonvarianttable.html#dms_variants.codonvarianttable.CodonVariantTable.func_scores">dms_variants.CodonVariantTable.func_scores</a> method provides the ability to compute functional scores from pre and post-selection counts. We’ll use this to compute functional scores for each of the three targets:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">bottle_cbf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
@@ -1782,7 +1773,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -1858,7 +1849,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 <p>Finally, combine the two dataframes computed above and classify the variants based on the number of amino acid substitutions.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">classify_variant</span><span class="p">(</span><span class="n">aa_subs</span><span class="p">):</span>
@@ -1895,7 +1886,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -2044,7 +2035,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 <p>Let’s plot the functional scores as a function of the latent phenotype.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="p">(</span>
@@ -2062,12 +2053,12 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_76_0.png" class="no-scaled-link" src="_images/simulation_validation_76_0.png" style="width: 600px; height: 300px;" />
+<img alt="_images/simulation_validation_75_0.png" class="no-scaled-link" src="_images/simulation_validation_75_0.png" style="width: 600px; height: 300px;" />
 </div>
 </div>
 <p>Plot a pairplot to see how targets compare.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">pairplot</span><span class="p">(</span>
@@ -2095,13 +2086,13 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_78_0.png" class="no-scaled-link" src="_images/simulation_validation_78_0.png" style="width: 600px; height: 500px;" />
+<img alt="_images/simulation_validation_77_0.png" class="no-scaled-link" src="_images/simulation_validation_77_0.png" style="width: 600px; height: 500px;" />
 </div>
 </div>
 <p>We can see here that the tight bottleneck indeed introduces more noise in the data, as the functional scores are less correlated with the ground truth phenotype.</p>
 <p>Plot the functional scores distributions of the bottleneck counts-computed functional scores. Recall that we collapsed barcode replicates so there is only a single wildtype phenotype in each of the datasets, thus we will not plot them below.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[35]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="p">(</span>
@@ -2129,11 +2120,11 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_81_0.png" class="no-scaled-link" src="_images/simulation_validation_81_0.png" style="width: 600px; height: 500px;" />
+<img alt="_images/simulation_validation_80_0.png" class="no-scaled-link" src="_images/simulation_validation_80_0.png" style="width: 600px; height: 500px;" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[35]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">func_scores</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">csv_output_dir</span><span class="si">}</span><span class="s2">/simulated_func_scores.csv&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -2142,7 +2133,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[35]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -2233,7 +2224,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <h2>Create <code class="docutils literal notranslate"><span class="pre">Data</span></code> objects for each library replicate, and bottleneck<a class="headerlink" href="#Create-Data-objects-for-each-library-replicate,-and-bottleneck" title="Link to this heading">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">multidms</span></code> model fitting is generally a two-step process: (1) Create <code class="docutils literal notranslate"><span class="pre">Data</span></code> objects from functional score dataframes which, among other things, encode the variant data into one-hot encoded matrices, and (2) fit a collection of models across a grid of <code class="docutils literal notranslate"><span class="pre">Data</span></code> objects and hyperparameters. Here, we’ll create <code class="docutils literal notranslate"><span class="pre">Data</span></code> objects for each library replicate / fitting target combination:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[37]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data_objects</span> <span class="o">=</span> <span class="p">[</span>
@@ -2252,7 +2243,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[37]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -2270,7 +2261,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <h2>Fit models to training data (lasso sweep)<a class="headerlink" href="#Fit-models-to-training-data-(lasso-sweep)" title="Link to this heading">¶</a></h2>
 <p>Next, we’ll fit a set of models to each of the datasets defined above using the <code class="docutils literal notranslate"><span class="pre">multidms.fit_models</span></code> <a class="reference external" href="https://matsengrp.github.io/multidms/multidms.model_collection.html#multidms.model_collection.fit_models">function</a>. For each dataset, we independently fit models with a number of different lasso penalty coefficients (<span class="math notranslate nohighlight">\(\lambda_{L1}\)</span>) as defined at the top of this notebook.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[38]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[37]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fitting_params</span> <span class="o">=</span> <span class="p">{</span>
@@ -2309,12 +2300,12 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
                              0.00016,
                              0.00032,
                              0.00064],
- &#39;scale_coeff_ridge_beta&#39;: [0.0]}
+ &#39;scale_coeff_ridge_beta&#39;: [1e-07]}
 </pre></div></div>
 </div>
 <p>Fit the models:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[39]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[38]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">fit_collection_df</span> <span class="o">=</span> <span class="n">multidms</span><span class="o">.</span><span class="n">model_collection</span><span class="o">.</span><span class="n">fit_models</span><span class="p">(</span><span class="n">fitting_params</span><span class="p">)</span>
@@ -2323,7 +2314,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 <p>Note that the return type of <a class="reference external" href="https://matsengrp.github.io/multidms/multidms.html#multidms.fit_models">multidms.fit_models</a> is a <code class="docutils literal notranslate"><span class="pre">tuple(int,</span> <span class="pre">int,</span> <span class="pre">pd.DataFrame)</span></code> where the first two values are the number of fits that were successful and the number that failed, respectively, and the third value is a dataframe where each row contains a fit <code class="docutils literal notranslate"><span class="pre">Model</span></code> object and the hyperparameters used to fit it.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[40]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[39]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fit_collection_df</span><span class="p">[[</span><span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="s2">&quot;dataset_name&quot;</span><span class="p">,</span> <span class="s2">&quot;scale_coeff_lasso_shift&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
@@ -2331,7 +2322,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[40]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[39]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -2395,7 +2386,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 <p>Add a few helpful features to this dataframe for plotting by splitting the “dataset_name” (name of the Data Object that was used for fitting) into more understandable columns:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[40]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fit_collection_df</span> <span class="o">=</span> <span class="n">fit_collection_df</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
@@ -2415,7 +2406,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[40]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -2488,7 +2479,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 <h2>Model vs. truth mutational effects<a class="headerlink" href="#Model-vs.-truth-mutational-effects" title="Link to this heading">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">multidms.ModelCollection</span></code> takes a a dataframe such as the one created above and provides a few helpful methods for model selection and aggregation. We’ll use these methods to evaluate the fits and select the best model for each dataset.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[42]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model_collection</span> <span class="o">=</span> <span class="n">multidms</span><span class="o">.</span><span class="n">model_collection</span><span class="o">.</span><span class="n">ModelCollection</span><span class="p">(</span><span class="n">fit_collection_df</span><span class="p">)</span>
@@ -2497,7 +2488,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 <p>Get the mutational parameters for each of the models using <code class="docutils literal notranslate"><span class="pre">model_collection.split_apply_combine_muts()</span></code> <a class="reference external" href="https://matsengrp.github.io/multidms/multidms.model_collection.html#multidms.model_collection.ModelCollection.split_apply_combine_muts">method</a>, and merge them with the simulated ground truth parameters:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[43]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[42]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># the columns that distinguish fits are what we&#39;ll groupby such that none of the model collection parameters are aggregated</span>
@@ -2527,7 +2518,6 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
     <span class="p">)</span>
 <span class="p">)</span>
 <span class="k">assert</span> <span class="n">collection_muts_df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">mut_effects_df</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit_collection_df</span><span class="p">)</span>
-<span class="n">collection_muts_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">csv_output_dir</span><span class="si">}</span><span class="s2">/collection_muts.csv&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="n">collection_muts_df</span><span class="p">[[</span><span class="s2">&quot;mutation&quot;</span><span class="p">,</span> <span class="s2">&quot;library&quot;</span><span class="p">,</span> <span class="s2">&quot;measurement_type&quot;</span><span class="p">,</span> <span class="s2">&quot;scale_coeff_lasso_shift&quot;</span><span class="p">,</span> <span class="s2">&quot;predicted_shift_h2&quot;</span><span class="p">,</span> <span class="s2">&quot;true_shift&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -2541,7 +2531,7 @@ cache miss - this could take a moment
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[43]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[42]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -2578,7 +2568,7 @@ cache miss - this could take a moment
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>-15.345100</td>
+      <td>-15.289572</td>
       <td>0.0</td>
     </tr>
     <tr>
@@ -2587,7 +2577,7 @@ cache miss - this could take a moment
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>-0.000408</td>
+      <td>-0.003453</td>
       <td>0.0</td>
     </tr>
     <tr>
@@ -2596,7 +2586,7 @@ cache miss - this could take a moment
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>-0.000760</td>
+      <td>-0.030438</td>
       <td>0.0</td>
     </tr>
     <tr>
@@ -2605,7 +2595,7 @@ cache miss - this could take a moment
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>-0.012482</td>
+      <td>-0.086455</td>
       <td>0.0</td>
     </tr>
     <tr>
@@ -2614,7 +2604,7 @@ cache miss - this could take a moment
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>0.000498</td>
+      <td>-0.021350</td>
       <td>0.0</td>
     </tr>
   </tbody>
@@ -2623,7 +2613,7 @@ cache miss - this could take a moment
 </div>
 <p>To compare model fits parameter values to the simulated ground truth values, add mean squared error and pearsonr metrics to the <code class="docutils literal notranslate"><span class="pre">ModelCollection.fit_models</span></code> attribute:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[44]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[43]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">series_corr</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
@@ -2660,7 +2650,7 @@ cache miss - this could take a moment
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[44]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[43]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -2697,50 +2687,50 @@ cache miss - this could take a moment
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>0.871236</td>
-      <td>1.934541</td>
-      <td>0.099836</td>
-      <td>1.065247</td>
+      <td>0.977246</td>
+      <td>-0.268842</td>
+      <td>0.109992</td>
+      <td>1.172704</td>
     </tr>
     <tr>
       <th>1</th>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.000005</td>
-      <td>0.826691</td>
-      <td>1.871198</td>
-      <td>0.997361</td>
-      <td>-0.000972</td>
+      <td>0.985431</td>
+      <td>-0.206331</td>
+      <td>0.997367</td>
+      <td>0.000190</td>
     </tr>
     <tr>
       <th>2</th>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.00001</td>
-      <td>0.801337</td>
-      <td>2.319088</td>
-      <td>0.994544</td>
-      <td>-0.001228</td>
+      <td>0.984181</td>
+      <td>-0.217609</td>
+      <td>0.994465</td>
+      <td>-0.000601</td>
     </tr>
     <tr>
       <th>3</th>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.00002</td>
-      <td>0.820069</td>
-      <td>2.344910</td>
-      <td>0.989883</td>
-      <td>-0.000564</td>
+      <td>0.984685</td>
+      <td>-0.220858</td>
+      <td>0.990086</td>
+      <td>-0.000248</td>
     </tr>
     <tr>
       <th>4</th>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.00004</td>
-      <td>0.848422</td>
-      <td>2.090437</td>
-      <td>0.978463</td>
-      <td>0.000831</td>
+      <td>0.984756</td>
+      <td>-0.226117</td>
+      <td>0.979619</td>
+      <td>0.001351</td>
     </tr>
   </tbody>
 </table>
@@ -2748,7 +2738,7 @@ cache miss - this could take a moment
 </div>
 <p>Next, we’ll make some summary plots with the predicted vs. simulated ground MSE truth parameters across model fits</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[45]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[44]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metric</span> <span class="o">=</span> <span class="s2">&quot;corr&quot;</span>
@@ -2815,18 +2805,18 @@ cache miss - this could take a moment
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_103_0.png" class="no-scaled-link" src="_images/simulation_validation_103_0.png" style="width: 600px; height: 330px;" />
+<img alt="_images/simulation_validation_102_0.png" class="no-scaled-link" src="_images/simulation_validation_102_0.png" style="width: 600px; height: 330px;" />
 </div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_103_1.png" class="no-scaled-link" src="_images/simulation_validation_103_1.png" style="width: 600px; height: 330px;" />
+<img alt="_images/simulation_validation_102_1.png" class="no-scaled-link" src="_images/simulation_validation_102_1.png" style="width: 600px; height: 330px;" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[46]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[45]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">csv_output_dir</span><span class="si">}</span><span class="s2">/model_vs_truth_beta_shift.csv&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -2835,7 +2825,7 @@ cache miss - this could take a moment
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[46]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[45]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -2873,7 +2863,7 @@ cache miss - this could take a moment
       <td>0.0</td>
       <td>observed_phenotype lib_1</td>
       <td>beta</td>
-      <td>0.87</td>
+      <td>0.98</td>
     </tr>
     <tr>
       <th>1</th>
@@ -2882,7 +2872,7 @@ cache miss - this could take a moment
       <td>0.000005</td>
       <td>observed_phenotype lib_1</td>
       <td>beta</td>
-      <td>0.83</td>
+      <td>0.99</td>
     </tr>
     <tr>
       <th>2</th>
@@ -2891,7 +2881,7 @@ cache miss - this could take a moment
       <td>0.00001</td>
       <td>observed_phenotype lib_1</td>
       <td>beta</td>
-      <td>0.80</td>
+      <td>0.98</td>
     </tr>
     <tr>
       <th>3</th>
@@ -2900,7 +2890,7 @@ cache miss - this could take a moment
       <td>0.00002</td>
       <td>observed_phenotype lib_1</td>
       <td>beta</td>
-      <td>0.82</td>
+      <td>0.98</td>
     </tr>
     <tr>
       <th>4</th>
@@ -2909,7 +2899,7 @@ cache miss - this could take a moment
       <td>0.00004</td>
       <td>observed_phenotype lib_1</td>
       <td>beta</td>
-      <td>0.85</td>
+      <td>0.98</td>
     </tr>
   </tbody>
 </table>
@@ -2920,7 +2910,7 @@ cache miss - this could take a moment
 <h2>Shift sparsity<a class="headerlink" href="#Shift-sparsity" title="Link to this heading">¶</a></h2>
 <p>Another way we might evaluate the fits is by looking at the <em>sparsity</em> of the models by computing the percentage of shift parameters that are equal to zero among the models. We look at this metric separately for mutations to stop codons and mutations to non-stop codons because we expect the stop codons to be equally deleterious in both homologs, and thus we expect all the shift parameters associated with stop codon mutations to be zero in a “good” fit.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[47]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[46]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">chart</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">model_collection</span><span class="o">.</span><span class="n">shift_sparsity</span><span class="p">(</span><span class="n">return_data</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -2937,7 +2927,7 @@ cache miss - this could take a moment
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[47]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[46]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -2989,7 +2979,7 @@ cache miss - this could take a moment
       <td>0.000005</td>
       <td>nonsynonymous</td>
       <td>shift_h2</td>
-      <td>0.071579</td>
+      <td>0.078947</td>
     </tr>
     <tr>
       <th>3</th>
@@ -2997,7 +2987,7 @@ cache miss - this could take a moment
       <td>0.000005</td>
       <td>stop</td>
       <td>shift_h2</td>
-      <td>0.840000</td>
+      <td>0.660000</td>
     </tr>
     <tr>
       <th>4</th>
@@ -3005,14 +2995,14 @@ cache miss - this could take a moment
       <td>0.000010</td>
       <td>nonsynonymous</td>
       <td>shift_h2</td>
-      <td>0.150526</td>
+      <td>0.148421</td>
     </tr>
   </tbody>
 </table>
 </div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[48]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[47]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span> <span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
@@ -3072,11 +3062,11 @@ cache miss - this could take a moment
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_108_0.png" class="no-scaled-link" src="_images/simulation_validation_108_0.png" style="width: 600px; height: 330px;" />
+<img alt="_images/simulation_validation_107_0.png" class="no-scaled-link" src="_images/simulation_validation_107_0.png" style="width: 600px; height: 330px;" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[49]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[48]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">csv_output_dir</span><span class="si">}</span><span class="s2">/fit_sparsity.csv&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -3085,7 +3075,7 @@ cache miss - this could take a moment
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[49]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[48]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -3149,7 +3139,7 @@ cache miss - this could take a moment
       <td>0.000005</td>
       <td>nonsynonymous</td>
       <td>shift_h2</td>
-      <td>0.07</td>
+      <td>0.08</td>
       <td>lib_1</td>
       <td>lib_1-nonsynonymous</td>
       <td>loose_bottle</td>
@@ -3161,7 +3151,7 @@ cache miss - this could take a moment
       <td>0.000005</td>
       <td>stop</td>
       <td>shift_h2</td>
-      <td>0.84</td>
+      <td>0.66</td>
       <td>lib_1</td>
       <td>lib_1-stop</td>
       <td>loose_bottle</td>
@@ -3189,7 +3179,7 @@ cache miss - this could take a moment
 <p>Another common metric to look at when evaluating models is to look at the correlation of the inferred mutational effects between the two libraries. We can do this by computing the pearson correlation coefficient between the inferred mutational effects for each mutation in the two libraries using the <code class="docutils literal notranslate"><span class="pre">multidms.ModelCollection.mut_param_dataset_correlation</span></code>
 <a class="reference external" href="https://matsengrp.github.io/multidms/multidms.model_collection.html#multidms.model_collection.ModelCollection.mut_param_dataset_correlation">method</a>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[50]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[49]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">chart</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">model_collection</span><span class="o">.</span><span class="n">mut_param_dataset_correlation</span><span class="p">(</span><span class="n">return_data</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -3198,7 +3188,7 @@ cache miss - this could take a moment
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[50]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[49]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -3231,35 +3221,35 @@ cache miss - this could take a moment
       <th>0</th>
       <td>lib_1_loose_bottle_func_score,lib_1_observed_p...</td>
       <td>beta</td>
-      <td>0.845871</td>
+      <td>0.990554</td>
       <td>0.000000</td>
     </tr>
     <tr>
       <th>0</th>
       <td>lib_1_loose_bottle_func_score,lib_1_observed_p...</td>
       <td>beta</td>
-      <td>0.718330</td>
+      <td>0.992074</td>
       <td>0.000005</td>
     </tr>
     <tr>
       <th>0</th>
       <td>lib_1_loose_bottle_func_score,lib_1_observed_p...</td>
       <td>beta</td>
-      <td>0.739593</td>
+      <td>0.991360</td>
       <td>0.000010</td>
     </tr>
     <tr>
       <th>0</th>
       <td>lib_1_loose_bottle_func_score,lib_1_observed_p...</td>
       <td>beta</td>
-      <td>0.799330</td>
+      <td>0.993988</td>
       <td>0.000020</td>
     </tr>
     <tr>
       <th>0</th>
       <td>lib_1_loose_bottle_func_score,lib_1_observed_p...</td>
       <td>beta</td>
-      <td>0.835952</td>
+      <td>0.994166</td>
       <td>0.000040</td>
     </tr>
   </tbody>
@@ -3268,7 +3258,7 @@ cache miss - this could take a moment
 </div>
 <p>By default, the method returns a dataframe giving parameter between each unique pair of datasets, meaning it includes correlations between models fit on different measurement types. We’ll only be comparing models trained the same fitting target combination.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[51]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[50]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span> <span class="o">=</span> <span class="p">(</span>
@@ -3295,7 +3285,7 @@ cache miss - this could take a moment
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[51]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[50]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -3327,70 +3317,70 @@ cache miss - this could take a moment
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.627078</td>
+      <td>0.979013</td>
       <td>0.000000</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.610255</td>
+      <td>0.981865</td>
       <td>0.000005</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.589943</td>
+      <td>0.982301</td>
       <td>0.000010</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.645271</td>
+      <td>0.985200</td>
       <td>0.000020</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.667735</td>
+      <td>0.986082</td>
       <td>0.000040</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.720566</td>
+      <td>0.984596</td>
       <td>0.000080</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.691134</td>
+      <td>0.983572</td>
       <td>0.000160</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.694179</td>
+      <td>0.985226</td>
       <td>0.000320</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.674395</td>
+      <td>0.985968</td>
       <td>0.000640</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>shift</td>
-      <td>0.005385</td>
+      <td>0.435964</td>
       <td>0.000000</td>
       <td>loose_bottle</td>
     </tr>
@@ -3399,7 +3389,7 @@ cache miss - this could take a moment
 </div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[52]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[51]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><br/><span></span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;measurement_type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span>
@@ -3455,18 +3445,18 @@ cache miss - this could take a moment
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_115_0.png" class="no-scaled-link" src="_images/simulation_validation_115_0.png" style="width: 600px; height: 330px;" />
+<img alt="_images/simulation_validation_114_0.png" class="no-scaled-link" src="_images/simulation_validation_114_0.png" style="width: 600px; height: 330px;" />
 </div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_115_1.png" class="no-scaled-link" src="_images/simulation_validation_115_1.png" style="width: 600px; height: 330px;" />
+<img alt="_images/simulation_validation_114_1.png" class="no-scaled-link" src="_images/simulation_validation_114_1.png" style="width: 600px; height: 330px;" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[53]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[52]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">csv_output_dir</span><span class="si">}</span><span class="s2">/library_replicate_correlation.csv&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -3475,7 +3465,7 @@ cache miss - this could take a moment
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[53]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[52]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -3507,35 +3497,35 @@ cache miss - this could take a moment
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.63</td>
+      <td>0.98</td>
       <td>0.0</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.61</td>
+      <td>0.98</td>
       <td>0.000005</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.59</td>
+      <td>0.98</td>
       <td>0.00001</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.65</td>
+      <td>0.99</td>
       <td>0.00002</td>
       <td>loose_bottle</td>
     </tr>
     <tr>
       <th>0</th>
       <td>beta</td>
-      <td>0.67</td>
+      <td>0.99</td>
       <td>0.00004</td>
       <td>loose_bottle</td>
     </tr>
@@ -3549,7 +3539,7 @@ cache miss - this could take a moment
 <p>Let’s take a look at how the lasso constraint affects the models’ ability to predict the true latent and observed phenotypes.</p>
 <p>First, we grab the model predictions of latent and observed phenotypes for each of the datasets using <code class="docutils literal notranslate"><span class="pre">multidms.Model.get_variants_df</span></code>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[54]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[53]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">variants_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
@@ -3582,7 +3572,7 @@ cache miss - this could take a moment
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[54]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[53]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -3625,12 +3615,12 @@ cache miss - this could take a moment
       <td>V24Q S25R H27P D29L H33C S41L C44F S47F</td>
       <td>-5.959752</td>
       <td>V24Q S25R H27P D29L H33C S41L C44F S47F</td>
-      <td>-11.106520</td>
-      <td>-5.958143</td>
+      <td>-10.951781</td>
+      <td>-5.962394</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>0.016085</td>
+      <td>0.016038</td>
       <td>0.016067</td>
       <td>0</td>
     </tr>
@@ -3640,12 +3630,12 @@ cache miss - this could take a moment
       <td>V8P H27T P30* L49P</td>
       <td>-5.959753</td>
       <td>V8P H27T P30* L49P</td>
-      <td>-36.886902</td>
-      <td>-5.958233</td>
+      <td>-4.826468</td>
+      <td>-5.914732</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>0.016084</td>
+      <td>0.016576</td>
       <td>0.016067</td>
       <td>0</td>
     </tr>
@@ -3655,12 +3645,12 @@ cache miss - this could take a moment
       <td>V19P V43Q</td>
       <td>-5.640393</td>
       <td>V19P V43Q</td>
-      <td>-2.910555</td>
-      <td>-5.648533</td>
+      <td>-2.839960</td>
+      <td>-5.630857</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>0.019935</td>
+      <td>0.020181</td>
       <td>0.020048</td>
       <td>0</td>
     </tr>
@@ -3670,12 +3660,12 @@ cache miss - this could take a moment
       <td>R20Y</td>
       <td>0.005959</td>
       <td>R20Y</td>
-      <td>5.165602</td>
-      <td>0.005662</td>
+      <td>5.107153</td>
+      <td>0.009075</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>1.003932</td>
+      <td>1.006310</td>
       <td>1.004139</td>
       <td>0</td>
     </tr>
@@ -3685,12 +3675,12 @@ cache miss - this could take a moment
       <td></td>
       <td>0.000000</td>
       <td></td>
-      <td>5.003634</td>
-      <td>-0.000285</td>
+      <td>4.938403</td>
+      <td>0.002477</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>0.999803</td>
+      <td>1.001719</td>
       <td>1.000000</td>
       <td>0</td>
     </tr>
@@ -3700,7 +3690,7 @@ cache miss - this could take a moment
 </div>
 <p>Next, add the simulated ground truth phenotypes:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[55]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[54]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">variants_df</span>  <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
@@ -3732,7 +3722,7 @@ cache miss - this could take a moment
 </div>
 <p>For clarity, let’s define and arrange the columns we now have:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[56]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[55]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cols</span> <span class="o">=</span> <span class="p">[</span>
@@ -3763,7 +3753,7 @@ cache miss - this could take a moment
 </div>
 <p>Add correlation of ground truth targets / predicted phenotypes to the fit collection dataframe and plot them:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[57]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[56]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">model_variants_df</span> <span class="ow">in</span> <span class="n">variants_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;fit_idx&quot;</span><span class="p">):</span>
@@ -3778,7 +3768,7 @@ cache miss - this could take a moment
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[57]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[56]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -3811,43 +3801,43 @@ cache miss - this could take a moment
       <th>0</th>
       <td>0.0</td>
       <td>lib_1_observed_phenotype_func_score</td>
-      <td>0.999989</td>
-      <td>1.726160e-04</td>
+      <td>0.999985</td>
+      <td>8.611429e-06</td>
     </tr>
     <tr>
       <th>1</th>
       <td>0.000005</td>
       <td>lib_1_observed_phenotype_func_score</td>
-      <td>0.999997</td>
-      <td>2.699177e-04</td>
+      <td>0.999994</td>
+      <td>5.973305e-07</td>
     </tr>
     <tr>
       <th>2</th>
       <td>0.00001</td>
       <td>lib_1_observed_phenotype_func_score</td>
-      <td>0.999994</td>
-      <td>3.729924e-06</td>
+      <td>0.999989</td>
+      <td>1.648540e-04</td>
     </tr>
     <tr>
       <th>3</th>
       <td>0.00002</td>
       <td>lib_1_observed_phenotype_func_score</td>
-      <td>0.999985</td>
-      <td>6.342176e-06</td>
+      <td>0.999980</td>
+      <td>1.652058e-04</td>
     </tr>
     <tr>
       <th>4</th>
       <td>0.00004</td>
       <td>lib_1_observed_phenotype_func_score</td>
-      <td>0.999954</td>
-      <td>-9.617601e-07</td>
+      <td>0.999950</td>
+      <td>3.538619e-06</td>
     </tr>
   </tbody>
 </table>
 </div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[58]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[57]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># for metric in [&quot;corr&quot;, &quot;mae&quot;]:</span>
@@ -3896,12 +3886,12 @@ cache miss - this could take a moment
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="_images/simulation_validation_126_0.png" class="no-scaled-link" src="_images/simulation_validation_126_0.png" style="width: 650px; height: 330px;" />
+<img alt="_images/simulation_validation_125_0.png" class="no-scaled-link" src="_images/simulation_validation_125_0.png" style="width: 650px; height: 330px;" />
 </div>
 </div>
 <p>As expected, the lasso constraint has a negative effect on the models’ ability to predict the true latent and observed phenotypes. This is because a model with more freedom to choose parameters is likely to overfit to the training data.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[59]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[58]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">csv_output_dir</span><span class="si">}</span><span class="s2">/model_vs_truth_variant_phenotype.csv&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -3910,7 +3900,7 @@ cache miss - this could take a moment
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[59]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[58]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -3984,7 +3974,7 @@ cache miss - this could take a moment
       <td>0.00004</td>
       <td>lib_1_observed_phenotype_func_score</td>
       <td>1.0</td>
-      <td>-0.0</td>
+      <td>0.0</td>
     </tr>
   </tbody>
 </table>
@@ -3995,7 +3985,7 @@ cache miss - this could take a moment
 <h2>Cross validation<a class="headerlink" href="#Cross-validation" title="Link to this heading">¶</a></h2>
 <p>Above, we saw evidence that the lasso negatively impacts the model performance on the training data. To test for overfitting, we can perform cross validation to test that the model is actually more accurate on unseen data.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[60]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[59]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">{}</span>
@@ -4023,7 +4013,7 @@ cache miss - this could take a moment
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[61]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[60]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fitting_params</span><span class="p">[</span><span class="s2">&quot;dataset&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">train</span>
@@ -4032,13 +4022,20 @@ cache miss - this could take a moment
 </div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">multidms.ModelCollection.add_validation_loss</span></code> method takes in unseen data, computes model loss on that data, and appends it to the <code class="docutils literal notranslate"><span class="pre">ModelCollection.fit_models</span></code> dataframe.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[62]:
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mc</span> <span class="o">=</span> <span class="n">multidms</span><span class="o">.</span><span class="n">model_collection</span><span class="o">.</span><span class="n">ModelCollection</span><span class="p">(</span><span class="n">fit_collection_cv</span><span class="p">)</span>
 <span class="n">mc</span><span class="o">.</span><span class="n">add_validation_loss</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">mc</span><span class="o">.</span><span class="n">fit_models</span><span class="p">[[</span><span class="s2">&quot;dataset_name&quot;</span><span class="p">,</span> <span class="s2">&quot;scale_coeff_lasso_shift&quot;</span><span class="p">,</span> <span class="s2">&quot;training_loss&quot;</span><span class="p">,</span> <span class="s2">&quot;validation_loss&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[62]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mc</span><span class="o">.</span><span class="n">fit_models</span><span class="p">[[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">mc</span><span class="o">.</span><span class="n">fit_models</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="s2">&quot;loss&quot;</span> <span class="ow">in</span> <span class="n">c</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -4065,47 +4062,65 @@ cache miss - this could take a moment
   <thead>
     <tr style="text-align: right;">
       <th></th>
-      <th>dataset_name</th>
-      <th>scale_coeff_lasso_shift</th>
-      <th>training_loss</th>
-      <th>validation_loss</th>
+      <th>step_loss</th>
+      <th>h1_loss_training</th>
+      <th>h2_loss_training</th>
+      <th>total_loss_training</th>
+      <th>h1_loss_validation</th>
+      <th>h2_loss_validation</th>
+      <th>total_loss_validation</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <th>0</th>
-      <td>lib_1_observed_phenotype</td>
-      <td>0.0</td>
-      <td>0.000182</td>
-      <td>0.000919</td>
+      <td>[6.3576507568359375, 0.00012060716835549101]</td>
+      <td>0.000078</td>
+      <td>0.000043</td>
+      <td>0.000121</td>
+      <td>0.001116</td>
+      <td>0.000479</td>
+      <td>0.001595</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>lib_1_observed_phenotype</td>
-      <td>0.000005</td>
-      <td>0.000047</td>
-      <td>0.000160</td>
+      <td>[6.3576507568359375, 8.627029455965385e-05]</td>
+      <td>0.000032</td>
+      <td>0.000054</td>
+      <td>0.000086</td>
+      <td>0.000089</td>
+      <td>0.000804</td>
+      <td>0.000893</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>lib_1_observed_phenotype</td>
-      <td>0.00001</td>
-      <td>0.000074</td>
-      <td>0.000230</td>
+      <td>[6.3576507568359375, 0.00013628264423459768]</td>
+      <td>0.000053</td>
+      <td>0.000083</td>
+      <td>0.000136</td>
+      <td>0.000207</td>
+      <td>0.001059</td>
+      <td>0.001266</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>lib_1_observed_phenotype</td>
-      <td>0.00002</td>
-      <td>0.000189</td>
-      <td>0.000603</td>
+      <td>[6.3576507568359375, 0.000258071580901742]</td>
+      <td>0.000117</td>
+      <td>0.000141</td>
+      <td>0.000258</td>
+      <td>0.000618</td>
+      <td>0.001297</td>
+      <td>0.001914</td>
     </tr>
     <tr>
       <th>4</th>
-      <td>lib_1_observed_phenotype</td>
-      <td>0.00004</td>
-      <td>0.000581</td>
-      <td>0.001680</td>
+      <td>[6.3576507568359375, 0.0006348328315652907]</td>
+      <td>0.000305</td>
+      <td>0.000330</td>
+      <td>0.000635</td>
+      <td>0.001270</td>
+      <td>0.001042</td>
+      <td>0.002312</td>
     </tr>
   </tbody>
 </table>
@@ -4129,7 +4144,7 @@ cache miss - this could take a moment
     <span class="n">data</span>
     <span class="o">.</span><span class="n">melt</span><span class="p">(</span>
         <span class="n">id_vars</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;scale_coeff_lasso_shift&quot;</span><span class="p">,</span> <span class="s2">&quot;library&quot;</span><span class="p">,</span> <span class="s2">&quot;measurement_type&quot;</span><span class="p">],</span>
-        <span class="n">value_vars</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;training_loss&quot;</span><span class="p">,</span> <span class="s2">&quot;validation_loss&quot;</span><span class="p">],</span>
+        <span class="n">value_vars</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;total_loss_training&quot;</span><span class="p">,</span> <span class="s2">&quot;total_loss_validation&quot;</span><span class="p">],</span>
         <span class="n">var_name</span><span class="o">=</span><span class="s2">&quot;dataset&quot;</span><span class="p">,</span>
         <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;loss&quot;</span><span class="p">,</span>
     <span class="p">)</span>
@@ -4228,45 +4243,45 @@ cache miss - this could take a moment
       <td>0.0</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>training</td>
+      <td>total_training</td>
       <td>0.0</td>
-      <td>lib_1 training</td>
+      <td>lib_1 total_training</td>
     </tr>
     <tr>
       <th>1</th>
       <td>0.000005</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>training</td>
+      <td>total_training</td>
       <td>0.0</td>
-      <td>lib_1 training</td>
+      <td>lib_1 total_training</td>
     </tr>
     <tr>
       <th>2</th>
       <td>0.00001</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>training</td>
+      <td>total_training</td>
       <td>0.0</td>
-      <td>lib_1 training</td>
+      <td>lib_1 total_training</td>
     </tr>
     <tr>
       <th>3</th>
       <td>0.00002</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>training</td>
+      <td>total_training</td>
       <td>0.0</td>
-      <td>lib_1 training</td>
+      <td>lib_1 total_training</td>
     </tr>
     <tr>
       <th>4</th>
       <td>0.00004</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>training</td>
+      <td>total_training</td>
       <td>0.0</td>
-      <td>lib_1 training</td>
+      <td>lib_1 total_training</td>
     </tr>
   </tbody>
 </table>
