@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on `Keep a Changelog <https://keepachangelog.com>`_.
 
+0.4.0
+-----
+- new simulation validation analysis and plotting functions (at the time of re-submission)
+- fixes bug described in `#130 https://github.com/matsengrp/multidms/issues/130`_, having to do with pandas groupby.apply 2.2.0 behavior change.
+- updates python version requirements to 3.9 or newer, as 3.8 did not work with the new pandas version, 2.2.0 bug patch described above.
+- supresses the cpu warning from jax.
+- adds `ModelCollection.add_validation_loss <https://github.com/matsengrp/multidms/blob/b0e7cbe96216e1307d070adc531fe51a960ec32a/multidms/model_collection.py#L569`_, 
+    `ModelCollection.get_conditional_loss_df <https://github.com/matsengrp/multidms/blob/b0e7cbe96216e1307d070adc531fe51a960ec32a/multidms/model_collection.py#L627>`_,
+    `Model.conditional_loss <https://github.com/matsengrp/multidms/blob/b0e7cbe96216e1307d070adc531fe51a960ec32a/multidms/model.py#L379>`_, and 
+    `Model.get_df_loss <https://github.com/matsengrp/multidms/blob/b0e7cbe96216e1307d070adc531fe51a960ec32a/multidms/model.py#L568>`_ methods, which can all be used quite easily to perform cross validation analysis.
+
 0.3.3
 -----
 - simply updates the ruff linting to version `0.0.289`
