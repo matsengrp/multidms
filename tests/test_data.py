@@ -516,3 +516,22 @@ def test_ModelCollection_get_conditional_loss_df():
     # to have a row for each model-condition-split (training/validation) pair
     # + total loss
     assert df_loss.shape[0] == n_expected_training_loss_rows * 2
+
+
+def test_single_vs_multistep_acceleration():
+    """
+    We currently approach the model optimization problem with
+    a multi-step approach, where each step re-initializes the jaxopt.ProximalGradient
+    objects before fitting the latest parameters from the previous step for some number of
+    iterations per step. This behavior affects the FISTA acceleration, which is
+    re-set at each step. We want to make sure that the multi-step approach
+    is identical to a single step if we are remove the acceleration.
+    """
+    model = multidms.Model(data, PRNGKey=23)
+    model.fit(maxiter=4, acceleration=False)
+    loss = model.loss
+    model = multidms.Model(data, PRNGKey=23)
+    for i in range(2):
+        model.fit(maxiter=2, acceleration=False)
+    loss_no_accel = model.loss
+    assert loss == loss_no_accel

@@ -70,6 +70,7 @@ def fit_one_model(
     tol=1e-4,
     num_training_steps=1,
     iterations_per_step=20000,
+    acceleration=True,
     n_hidden_units=5,
     lower_bound=None,
     PRNGKey=0,
@@ -113,7 +114,7 @@ def fit_one_model(
         The initial value of the beta_naught parameter. The default is 0.0.
         Note that is lock_beta_naught is not None, then this value is irrelevant.
     tol : float, optional
-        The tolerance for the fit. The default is 1e-3.
+        The tolerance for the fit. The default is 1e-4.
     num_training_steps : int, optional
         The number of training steps to perform. The default is 1.
         If you would like to see training loss throughout training,
@@ -125,6 +126,9 @@ def fit_one_model(
         with the loss at the beginning each step.
     iterations_per_step : int, optional
         The number of iterations to perform per training step. The default is 20000.
+    acceleration : bool, optional
+        Whether to use the FISTA acceleration. The default is True. This is only useful
+        when using a single step with many iterations.
     n_hidden_units : int, optional
         The number of hidden units to use in the neural network model. The default is 5.
     lower_bound : float, optional
@@ -195,6 +199,7 @@ def fit_one_model(
             lasso_shift=scale_coeff_lasso_shift,
             maxiter=iterations_per_step,
             tol=tol,
+            acceleration=acceleration,
             huber_scale=huber_scale_huber,
             lock_params=lock_params,
             scale_coeff_ridge_shift=scale_coeff_ridge_shift,

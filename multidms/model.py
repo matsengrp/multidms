@@ -324,6 +324,7 @@ class Model:
         )
 
         self._name = name if isinstance(name, str) else f"Model-{Model.counter}"
+        self._state = None
         Model.counter += 1
 
     def __repr__(self):
@@ -343,6 +344,11 @@ class Model:
     def params(self) -> dict:
         """All current model parameters in a dictionary."""
         return self._params
+
+    @property
+    def state(self) -> dict:
+        """The current state of the model."""
+        return self._state
 
     @property
     def data(self) -> multidms.Data:
@@ -805,9 +811,9 @@ class Model:
             if phenotype_as_effect:
                 latent_predictions -= wildtype_df.loc[condition, "predicted_latent"]
             latent_predictions[nan_variant_indices] = onp.nan
-            ret.loc[
-                condition_df.index.values, latent_phenotype_col
-            ] = latent_predictions
+            ret.loc[condition_df.index.values, latent_phenotype_col] = (
+                latent_predictions
+            )
 
             # func_score predictions on binary variants, X
             phenotype_predictions = onp.array(
@@ -819,9 +825,9 @@ class Model:
                     condition, "predicted_func_score"
                 ]
             phenotype_predictions[nan_variant_indices] = onp.nan
-            ret.loc[
-                condition_df.index.values, observed_phenotype_col
-            ] = phenotype_predictions
+            ret.loc[condition_df.index.values, observed_phenotype_col] = (
+                phenotype_predictions
+            )
 
         return ret
 
@@ -953,7 +959,15 @@ class Model:
             lambda beta: ref_X @ beta, ref_y, init=self._params["beta"], **kwargs
         )
 
-    def fit(self, lasso_shift=1e-5, tol=1e-6, maxiter=1000, lock_params={}, **kwargs):
+    def fit(
+        self,
+        lasso_shift=1e-5,
+        tol=1e-6,
+        maxiter=1000,
+        acceleration=True,
+        lock_params={},
+        **kwargs,
+    ):
         r"""
         Use jaxopt.ProximalGradiant to optimize the model's free parameters.
 
@@ -965,6 +979,8 @@ class Model:
             Tolerance for the optimization. Defaults to 1e-6.
         maxiter : int
             Maximum number of iterations for the optimization. Defaults to 1000.
+        acceleration : bool
+            If True, use FISTA acceleration. Defaults to True.
         lock_params : dict
             Dictionary of parameters, and desired value to constrain
             them at during optimization. By default, none of the parameters
@@ -979,6 +995,7 @@ class Model:
             jax.jit(self._model_components["proximal"]),
             tol=tol,
             maxiter=maxiter,
+            acceleration=acceleration,
         )
 
         lock_params[f"shift_{self._data.reference}"] = jnp.zeros(
@@ -1006,7 +1023,7 @@ class Model:
                 continue
             lasso_params[f"shift_{non_ref_condition}"] = lasso_shift
 
-        self._params, state = solver.run(
+        self._params, self._state = solver.run(
             self._params,
             hyperparams_prox=dict(lasso_params=lasso_params, lock_params=lock_params),
             data=(self._data.training_data["X"], self._data.training_data["y"]),
