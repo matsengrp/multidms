@@ -325,6 +325,7 @@ class Model:
 
         self._name = name if isinstance(name, str) else f"Model-{Model.counter}"
         self._state = None
+        self._converged = False
         Model.counter += 1
 
     def __repr__(self):
@@ -349,6 +350,11 @@ class Model:
     def state(self) -> dict:
         """The current state of the model."""
         return self._state
+
+    @property
+    def converged(self) -> bool:
+        """Whether the model tolerance threshold was passed on last fit."""
+        return self._converged
 
     @property
     def data(self) -> multidms.Data:
@@ -811,9 +817,9 @@ class Model:
             if phenotype_as_effect:
                 latent_predictions -= wildtype_df.loc[condition, "predicted_latent"]
             latent_predictions[nan_variant_indices] = onp.nan
-            ret.loc[condition_df.index.values, latent_phenotype_col] = (
-                latent_predictions
-            )
+            ret.loc[
+                condition_df.index.values, latent_phenotype_col
+            ] = latent_predictions
 
             # func_score predictions on binary variants, X
             phenotype_predictions = onp.array(
@@ -825,9 +831,9 @@ class Model:
                     condition, "predicted_func_score"
                 ]
             phenotype_predictions[nan_variant_indices] = onp.nan
-            ret.loc[condition_df.index.values, observed_phenotype_col] = (
-                phenotype_predictions
-            )
+            ret.loc[
+                condition_df.index.values, observed_phenotype_col
+            ] = phenotype_predictions
 
         return ret
 
@@ -962,7 +968,7 @@ class Model:
     def fit(
         self,
         lasso_shift=1e-5,
-        tol=1e-6,
+        tol=1e-4,
         maxiter=1000,
         acceleration=True,
         lock_params={},
@@ -1029,6 +1035,8 @@ class Model:
             data=(self._data.training_data["X"], self._data.training_data["y"]),
             **kwargs,
         )
+
+        self._converged = self._state.error < tol
 
     def plot_pred_accuracy(
         self, hue=True, show=True, saveas=None, annotate_corr=True, ax=None, **kwargs

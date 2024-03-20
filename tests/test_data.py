@@ -12,14 +12,6 @@ import numpy as np
 import pandas as pd
 from io import StringIO
 
-# def warn_with_traceback(message, category, filename, lineno, file=None, line=None):
-
-#     log = file if hasattr(file,'write') else sys.stderr
-#     traceback.print_stack(file=log)
-#     log.write(warnings.formatwarning(message, category, filename, lineno, line))
-
-# warnings.showwarning = warn_with_traceback
-
 TEST_FUNC_SCORES = pd.read_csv(
     StringIO(
         """
@@ -522,8 +514,8 @@ def test_single_vs_multistep_acceleration():
     """
     We currently approach the model optimization problem with
     a multi-step approach, where each step re-initializes the jaxopt.ProximalGradient
-    objects before fitting the latest parameters from the previous step for some number of
-    iterations per step. This behavior affects the FISTA acceleration, which is
+    objects before fitting the latest parameters from the previous step for some number
+    of iterations per step. This behavior affects the FISTA acceleration, which is
     re-set at each step. We want to make sure that the multi-step approach
     is identical to a single step if we are remove the acceleration.
     """

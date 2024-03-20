@@ -5,6 +5,7 @@ and merges the results for comparison and visualization.
 
 # import os
 import itertools as it
+import warnings
 from functools import lru_cache
 from multiprocessing import get_context
 import multiprocessing
@@ -504,13 +505,6 @@ class ModelCollection:
             raise ValueError("invalid query, no fits returned")
 
         if groupby is None:
-            # groupby = tuple(
-            #     set(queried_fits.columns)
-            #     - set(
-            #         ["model", "dataset_name", "verbose"]
-            #         + [col for col in queried_fits.columns if "loss" in col]
-            #     )
-            # )
             ret = (
                 pd.concat(
                     [
@@ -743,9 +737,9 @@ class ModelCollection:
             )
         )
         if len(queried_fits.groupby(list(shouldbe_uniform)).groups) > 1:
-            raise ValueError(
-                "invalid query, more than one unique hyper-parameter"
-                "besides dataset_name"
+            warnings.warn(
+                "the fits that will be aggregated appear to differ by features "
+                "other than dataset_name, this may result in unexpected behavior"
             )
         if aggregate_func not in ["mean", "median"]:
             raise ValueError(f"invalid {aggregate_func=} must be mean or median")
@@ -1071,7 +1065,6 @@ class ModelCollection:
     def mut_param_dataset_correlation(
         self,
         x="scale_coeff_lasso_shift",
-        mut_param="shift",
         width_scalar=150,
         height=200,
         return_data=False,
@@ -1080,6 +1073,8 @@ class ModelCollection:
         """
         Visualize the correlation between replicate datasets across the lasso penalty
         weights (by default) in the form of an `altair.FacetChart`.
+        We compute correlation of mutation parameters accross each pair of datasets
+        in the collection.
 
         Returns
         -------
@@ -1090,7 +1085,7 @@ class ModelCollection:
         """
         query = "dataset_name.notna()" if "query" not in kwargs else kwargs["query"]
         if len(self.fit_models.query(query).dataset_name.unique()) < 2:
-            raise ValueError("Must specify a subset of fits with " "multiple datasets")
+            raise ValueError("Must specify a subset of fits with multiple datasets")
 
         muts_df = self.split_apply_combine_muts(
             groupby=("dataset_name", x), **kwargs
