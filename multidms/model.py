@@ -972,6 +972,7 @@ class Model:
         maxiter=1000,
         acceleration=True,
         lock_params={},
+        warn_unconverged=True,
         **kwargs,
     ):
         r"""
@@ -991,6 +992,11 @@ class Model:
             Dictionary of parameters, and desired value to constrain
             them at during optimization. By default, none of the parameters
             besides the reference shift, and reference latent offset are locked.
+        warn_unconverged : bool
+            If True, raise a warning if the optimization does not converge.
+            convergence is defined by whether the model tolerance (''tol'') threshold
+            was passed during the optimization process.
+            Defaults to True.
         **kwargs : dict
             Additional keyword arguments passed to the objective function.
             These include hyperparameters like a ridge penalty on beta, shift, and gamma
@@ -1036,7 +1042,14 @@ class Model:
             **kwargs,
         )
 
-        self._converged = self._state.error < tol
+        converged = self._state.error < tol
+        if not converged and warn_unconverged:
+            warnings.warn(
+                "Model training error did not reach the tolerance threshold. "
+                f"Final error: {self._state.error}, tolerance: {tol}",
+                RuntimeWarning,
+            )
+        self._converged = converged
 
     def plot_pred_accuracy(
         self, hue=True, show=True, saveas=None, annotate_corr=True, ax=None, **kwargs

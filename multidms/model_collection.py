@@ -5,6 +5,7 @@ and merges the results for comparison and visualization.
 
 # import os
 import itertools as it
+import time
 import warnings
 from functools import lru_cache
 from multiprocessing import get_context
@@ -183,7 +184,7 @@ def fit_one_model(
     del fit_attributes["dataset"]
     del fit_attributes["verbose"]
 
-    fit_attributes["step_loss"] = onp.zeros(num_training_steps + 1)
+    fit_attributes["step_loss"] = onp.repeat(onp.nan, num_training_steps + 1)
     fit_attributes["step_loss"][0] = float(imodel.loss)
     fit_attributes["dataset_name"] = dataset.name
     fit_attributes["model"] = imodel
@@ -195,7 +196,7 @@ def fit_one_model(
     total_iterations = 0
 
     for training_step in range(num_training_steps):
-        # start = time.time()
+        start = time.time()
         imodel.fit(
             lasso_shift=scale_coeff_lasso_shift,
             maxiter=iterations_per_step,
@@ -207,10 +208,11 @@ def fit_one_model(
             scale_coeff_ridge_beta=scale_coeff_ridge_beta,
             scale_coeff_ridge_gamma=scale_coeff_ridge_gamma,
             scale_coeff_ridge_alpha_d=scale_coeff_ridge_alpha_d,
+            warn_unconverged=False,
         )
-        # end = time.time()
+        end = time.time()
 
-        # fit_time = round(end - start)
+        fit_time = round(end - start)
         total_iterations += iterations_per_step
 
         if onp.isnan(float(imodel.loss)):
@@ -221,8 +223,8 @@ def fit_one_model(
         if verbose:
             print(
                 f"training_step {training_step}/{num_training_steps},"
-                # f"Loss: {imodel.loss}, Time: {fit_time} Seconds",
-                # flush=True,
+                f"Loss: {imodel.loss}, Time: {fit_time} Seconds",
+                flush=True,
             )
 
     col_order = [
@@ -402,15 +404,10 @@ class ModelCollection:
             )
             all_mutations = set.union(all_mutations, set(fit.data.mutations))
 
-        # initialize empty columns for conditional loss
-        fit_models.assign(
-            **{
-                f"{condition}_loss_training": onp.nan
-                for condition in first_dataset.conditions
-            },
-            total_loss=onp.nan,
+        # Add convergence flag.
+        fit_models["converged"] = fit_models.model.apply(lambda x: x.converged).astype(
+            bool
         )
-        # assign coditional loss columns
         for idx, fit in fit_models.iterrows():
             conditional_loss = fit.model.conditional_loss
             for condition, loss in conditional_loss.items():
@@ -736,7 +733,9 @@ class ModelCollection:
                 + [col for col in queried_fits.columns if "loss" in col]
             )
         )
-        if len(queried_fits.groupby(list(shouldbe_uniform)).groups) > 1:
+        print(shouldbe_uniform)
+        groups_to_combine = queried_fits.groupby(shouldbe_uniform).ngroups
+        if groups_to_combine > 1:
             warnings.warn(
                 "the fits that will be aggregated appear to differ by features "
                 "other than dataset_name, this may result in unexpected behavior"
