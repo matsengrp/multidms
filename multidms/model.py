@@ -324,6 +324,8 @@ class Model:
         )
 
         self._name = name if isinstance(name, str) else f"Model-{Model.counter}"
+        self._state = None
+        self._converged = False
         Model.counter += 1
 
     def __repr__(self):
@@ -343,6 +345,16 @@ class Model:
     def params(self) -> dict:
         """All current model parameters in a dictionary."""
         return self._params
+
+    @property
+    def state(self) -> dict:
+        """The current state of the model."""
+        return self._state
+
+    @property
+    def converged(self) -> bool:
+        """Whether the model tolerance threshold was passed on last fit."""
+        return self._converged
 
     @property
     def data(self) -> multidms.Data:
@@ -953,7 +965,16 @@ class Model:
             lambda beta: ref_X @ beta, ref_y, init=self._params["beta"], **kwargs
         )
 
-    def fit(self, lasso_shift=1e-5, tol=1e-6, maxiter=1000, lock_params={}, **kwargs):
+    def fit(
+        self,
+        lasso_shift=1e-5,
+        tol=1e-4,
+        maxiter=1000,
+        acceleration=True,
+        lock_params={},
+        warn_unconverged=True,
+        **kwargs,
+    ):
         r"""
         Use jaxopt.ProximalGradiant to optimize the model's free parameters.
 
@@ -965,10 +986,17 @@ class Model:
             Tolerance for the optimization. Defaults to 1e-6.
         maxiter : int
             Maximum number of iterations for the optimization. Defaults to 1000.
+        acceleration : bool
+            If True, use FISTA acceleration. Defaults to True.
         lock_params : dict
             Dictionary of parameters, and desired value to constrain
             them at during optimization. By default, none of the parameters
             besides the reference shift, and reference latent offset are locked.
+        warn_unconverged : bool
+            If True, raise a warning if the optimization does not converge.
+            convergence is defined by whether the model tolerance (''tol'') threshold
+            was passed during the optimization process.
+            Defaults to True.
         **kwargs : dict
             Additional keyword arguments passed to the objective function.
             These include hyperparameters like a ridge penalty on beta, shift, and gamma
@@ -979,6 +1007,7 @@ class Model:
             jax.jit(self._model_components["proximal"]),
             tol=tol,
             maxiter=maxiter,
+            acceleration=acceleration,
         )
 
         lock_params[f"shift_{self._data.reference}"] = jnp.zeros(
@@ -1006,12 +1035,21 @@ class Model:
                 continue
             lasso_params[f"shift_{non_ref_condition}"] = lasso_shift
 
-        self._params, state = solver.run(
+        self._params, self._state = solver.run(
             self._params,
             hyperparams_prox=dict(lasso_params=lasso_params, lock_params=lock_params),
             data=(self._data.training_data["X"], self._data.training_data["y"]),
             **kwargs,
         )
+
+        converged = self._state.error < tol
+        if not converged and warn_unconverged:
+            warnings.warn(
+                "Model training error did not reach the tolerance threshold. "
+                f"Final error: {self._state.error}, tolerance: {tol}",
+                RuntimeWarning,
+            )
+        self._converged = converged
 
     def plot_pred_accuracy(
         self, hue=True, show=True, saveas=None, annotate_corr=True, ax=None, **kwargs

@@ -12,14 +12,6 @@ import numpy as np
 import pandas as pd
 from io import StringIO
 
-# def warn_with_traceback(message, category, filename, lineno, file=None, line=None):
-
-#     log = file if hasattr(file,'write') else sys.stderr
-#     traceback.print_stack(file=log)
-#     log.write(warnings.formatwarning(message, category, filename, lineno, line))
-
-# warnings.showwarning = warn_with_traceback
-
 TEST_FUNC_SCORES = pd.read_csv(
     StringIO(
         """
@@ -156,7 +148,7 @@ def test_wildtype_mutant_predictions():
         assert_site_integrity=False,
     )
     model = multidms.Model(data, PRNGKey=23)
-    model.fit(maxiter=2)
+    model.fit(maxiter=2, warn_unconverged=False)
     wildtype_df = model.wildtype_df
     for condition in model.data.conditions:
         byhand_latent = model.params["beta_naught"][0]
@@ -197,7 +189,7 @@ def test_mutations_df():
         assert_site_integrity=False,
     )
     model = multidms.Model(data, PRNGKey=23)
-    model.fit(maxiter=2)
+    model.fit(maxiter=2, warn_unconverged=False)
     sig_params = model.params["theta"]
     scale, bias = sig_params["ge_scale"], sig_params["ge_bias"]
     mutations_df = model.get_mutations_df(phenotype_as_effect=False)
@@ -356,8 +348,8 @@ def test_model_fit_and_determinism():
     model_1 = multidms.Model(data, PRNGKey=23)
     model_2 = multidms.Model(data, PRNGKey=23)
 
-    model_1.fit(maxiter=5)
-    model_2.fit(maxiter=5)
+    model_1.fit(maxiter=5, warn_unconverged=False)
+    model_2.fit(maxiter=5, warn_unconverged=False)
 
     for param, values in model_1.params.items():
         assert np.all(values == model_2.params[param])
@@ -446,7 +438,7 @@ def test_model_get_df_loss():
     when given the training dataframe.
     """
     model = multidms.Model(data, PRNGKey=23)
-    model.fit(maxiter=2)
+    model.fit(maxiter=2, warn_unconverged=False)
     loss = model.loss
     df_loss = model.get_df_loss(TEST_FUNC_SCORES)
     assert loss == df_loss
@@ -465,7 +457,7 @@ def test_model_get_df_loss_conditional():
     they match the total loss.
     """
     model = multidms.Model(data, PRNGKey=23)
-    model.fit(maxiter=2)
+    model.fit(maxiter=2, warn_unconverged=False)
     loss = model.loss
     df_loss = model.get_df_loss(TEST_FUNC_SCORES, conditional=True)
     # remove full and compare sum of the rest
@@ -481,7 +473,7 @@ def test_conditional_loss():
     when given the training dataframe.
     """
     model = multidms.Model(data, PRNGKey=23)
-    model.fit(maxiter=2)
+    model.fit(maxiter=2, warn_unconverged=False)
     loss = model.conditional_loss
     df_loss = model.get_df_loss(TEST_FUNC_SCORES, conditional=True)
     assert loss == df_loss
@@ -516,3 +508,22 @@ def test_ModelCollection_get_conditional_loss_df():
     # to have a row for each model-condition-split (training/validation) pair
     # + total loss
     assert df_loss.shape[0] == n_expected_training_loss_rows * 2
+
+
+def test_single_vs_multistep_acceleration():
+    """
+    We currently approach the model optimization problem with
+    a multi-step approach, where each step re-initializes the jaxopt.ProximalGradient
+    objects before fitting the latest parameters from the previous step for some number
+    of iterations per step. This behavior affects the FISTA acceleration, which is
+    re-set at each step. We want to make sure that the multi-step approach
+    is identical to a single step if we are remove the acceleration.
+    """
+    model = multidms.Model(data, PRNGKey=23)
+    model.fit(maxiter=4, acceleration=False, warn_unconverged=False)
+    loss = model.loss
+    model = multidms.Model(data, PRNGKey=23)
+    for i in range(2):
+        model.fit(maxiter=2, acceleration=False, warn_unconverged=False)
+    loss_no_accel = model.loss
+    assert loss == loss_no_accel

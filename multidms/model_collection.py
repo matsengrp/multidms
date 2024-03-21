@@ -5,6 +5,8 @@ and merges the results for comparison and visualization.
 
 # import os
 import itertools as it
+import time
+import warnings
 from functools import lru_cache
 from multiprocessing import get_context
 import multiprocessing
@@ -70,6 +72,7 @@ def fit_one_model(
     tol=1e-4,
     num_training_steps=1,
     iterations_per_step=20000,
+    acceleration=True,
     n_hidden_units=5,
     lower_bound=None,
     PRNGKey=0,
@@ -113,7 +116,7 @@ def fit_one_model(
         The initial value of the beta_naught parameter. The default is 0.0.
         Note that is lock_beta_naught is not None, then this value is irrelevant.
     tol : float, optional
-        The tolerance for the fit. The default is 1e-3.
+        The tolerance for the fit. The default is 1e-4.
     num_training_steps : int, optional
         The number of training steps to perform. The default is 1.
         If you would like to see training loss throughout training,
@@ -125,6 +128,9 @@ def fit_one_model(
         with the loss at the beginning each step.
     iterations_per_step : int, optional
         The number of iterations to perform per training step. The default is 20000.
+    acceleration : bool, optional
+        Whether to use the FISTA acceleration. The default is True. This is only useful
+        when using a single step with many iterations.
     n_hidden_units : int, optional
         The number of hidden units to use in the neural network model. The default is 5.
     lower_bound : float, optional
@@ -178,7 +184,7 @@ def fit_one_model(
     del fit_attributes["dataset"]
     del fit_attributes["verbose"]
 
-    fit_attributes["step_loss"] = onp.zeros(num_training_steps + 1)
+    fit_attributes["step_loss"] = onp.repeat(onp.nan, num_training_steps + 1)
     fit_attributes["step_loss"][0] = float(imodel.loss)
     fit_attributes["dataset_name"] = dataset.name
     fit_attributes["model"] = imodel
@@ -190,21 +196,23 @@ def fit_one_model(
     total_iterations = 0
 
     for training_step in range(num_training_steps):
-        # start = time.time()
+        start = time.time()
         imodel.fit(
             lasso_shift=scale_coeff_lasso_shift,
             maxiter=iterations_per_step,
             tol=tol,
+            acceleration=acceleration,
             huber_scale=huber_scale_huber,
             lock_params=lock_params,
             scale_coeff_ridge_shift=scale_coeff_ridge_shift,
             scale_coeff_ridge_beta=scale_coeff_ridge_beta,
             scale_coeff_ridge_gamma=scale_coeff_ridge_gamma,
             scale_coeff_ridge_alpha_d=scale_coeff_ridge_alpha_d,
+            warn_unconverged=False,
         )
-        # end = time.time()
+        end = time.time()
 
-        # fit_time = round(end - start)
+        fit_time = round(end - start)
         total_iterations += iterations_per_step
 
         if onp.isnan(float(imodel.loss)):
@@ -215,8 +223,8 @@ def fit_one_model(
         if verbose:
             print(
                 f"training_step {training_step}/{num_training_steps},"
-                # f"Loss: {imodel.loss}, Time: {fit_time} Seconds",
-                # flush=True,
+                f"Loss: {imodel.loss}, Time: {fit_time} Seconds",
+                flush=True,
             )
 
     col_order = [
@@ -396,15 +404,10 @@ class ModelCollection:
             )
             all_mutations = set.union(all_mutations, set(fit.data.mutations))
 
-        # initialize empty columns for conditional loss
-        fit_models.assign(
-            **{
-                f"{condition}_loss_training": onp.nan
-                for condition in first_dataset.conditions
-            },
-            total_loss=onp.nan,
+        # Add convergence flag.
+        fit_models["converged"] = fit_models.model.apply(lambda x: x.converged).astype(
+            bool
         )
-        # assign coditional loss columns
         for idx, fit in fit_models.iterrows():
             conditional_loss = fit.model.conditional_loss
             for condition, loss in conditional_loss.items():
@@ -499,13 +502,6 @@ class ModelCollection:
             raise ValueError("invalid query, no fits returned")
 
         if groupby is None:
-            # groupby = tuple(
-            #     set(queried_fits.columns)
-            #     - set(
-            #         ["model", "dataset_name", "verbose"]
-            #         + [col for col in queried_fits.columns if "loss" in col]
-            #     )
-            # )
             ret = (
                 pd.concat(
                     [
@@ -737,10 +733,12 @@ class ModelCollection:
                 + [col for col in queried_fits.columns if "loss" in col]
             )
         )
-        if len(queried_fits.groupby(list(shouldbe_uniform)).groups) > 1:
-            raise ValueError(
-                "invalid query, more than one unique hyper-parameter"
-                "besides dataset_name"
+        print(shouldbe_uniform)
+        groups_to_combine = queried_fits.groupby(shouldbe_uniform).ngroups
+        if groups_to_combine > 1:
+            warnings.warn(
+                "the fits that will be aggregated appear to differ by features "
+                "other than dataset_name, this may result in unexpected behavior"
             )
         if aggregate_func not in ["mean", "median"]:
             raise ValueError(f"invalid {aggregate_func=} must be mean or median")
@@ -1066,7 +1064,6 @@ class ModelCollection:
     def mut_param_dataset_correlation(
         self,
         x="scale_coeff_lasso_shift",
-        mut_param="shift",
         width_scalar=150,
         height=200,
         return_data=False,
@@ -1075,6 +1072,8 @@ class ModelCollection:
         """
         Visualize the correlation between replicate datasets across the lasso penalty
         weights (by default) in the form of an `altair.FacetChart`.
+        We compute correlation of mutation parameters accross each pair of datasets
+        in the collection.
 
         Returns
         -------
@@ -1085,7 +1084,7 @@ class ModelCollection:
         """
         query = "dataset_name.notna()" if "query" not in kwargs else kwargs["query"]
         if len(self.fit_models.query(query).dataset_name.unique()) < 2:
-            raise ValueError("Must specify a subset of fits with " "multiple datasets")
+            raise ValueError("Must specify a subset of fits with multiple datasets")
 
         muts_df = self.split_apply_combine_muts(
             groupby=("dataset_name", x), **kwargs
