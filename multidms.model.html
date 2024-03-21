@@ -217,6 +217,18 @@ the loss reflects our models loss given its updated parameters.</p>
 </dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="multidms.model.Model.state">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">state</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.model.Model.state" title="Link to this definition">¶</a></dt>
+<dd><p>The current state of the model.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="multidms.model.Model.converged">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">converged</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></em><a class="headerlink" href="#multidms.model.Model.converged" title="Link to this definition">¶</a></dt>
+<dd><p>Whether the model tolerance threshold was passed on last fit.</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="multidms.model.Model.data">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="multidms.data.html#multidms.data.Data" title="multidms.data.Data"><span class="pre">Data</span></a></em><a class="headerlink" href="#multidms.model.Model.data" title="Link to this definition">¶</a></dt>
 <dd><p>multidms.Data Object this model references for fitting
@@ -465,7 +477,7 @@ for general use.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.model.Model.fit">
-<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lasso_shift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lock_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model.Model.fit" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lasso_shift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acceleration</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lock_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warn_unconverged</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model.Model.fit" title="Link to this definition">¶</a></dt>
 <dd><p>Use jaxopt.ProximalGradiant to optimize the model’s free parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -473,9 +485,14 @@ for general use.</p>
 <li><p><strong>lasso_shift</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – L1 penalty on the shift parameters. Defaults to 1e-5.</p></li>
 <li><p><strong>tol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Tolerance for the optimization. Defaults to 1e-6.</p></li>
 <li><p><strong>maxiter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Maximum number of iterations for the optimization. Defaults to 1000.</p></li>
+<li><p><strong>acceleration</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, use FISTA acceleration. Defaults to True.</p></li>
 <li><p><strong>lock_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Dictionary of parameters, and desired value to constrain
 them at during optimization. By default, none of the parameters
 besides the reference shift, and reference latent offset are locked.</p></li>
+<li><p><strong>warn_unconverged</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, raise a warning if the optimization does not converge.
+convergence is defined by whether the model tolerance (‘’tol’’) threshold
+was passed during the optimization process.
+Defaults to True.</p></li>
 <li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Additional keyword arguments passed to the objective function.
 These include hyperparameters like a ridge penalty on beta, shift, and gamma
 as well as huber loss scaling.</p></li>
