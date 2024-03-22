@@ -323,8 +323,7 @@ def _abstract_epistasis(
 def _lasso_lock_prox(
     params,
     hyperparams_prox=dict(
-        lasso_params=None,
-        lock_params=None,
+        lasso_params=None, lock_params=None, upper_bound_theta_ge_scale=None
     ),
     scaling=1.0,
 ):
@@ -340,9 +339,11 @@ def _lasso_lock_prox(
     scaling : float
         Scaling factor for lasso penalty
     """
-    # enforce monotonic epistasis
+    # enforce monotonic epistasis and constrain ge_scale upper limit
     if "ge_scale" in params["theta"]:
-        params["theta"]["ge_scale"] = params["theta"]["ge_scale"].clip(0)
+        params["theta"]["ge_scale"] = params["theta"]["ge_scale"].clip(
+            0, hyperparams_prox["upper_bound_theta_ge_scale"]
+        )
 
     if "p_weights_1" in params["theta"]:
         params["theta"]["p_weights_1"] = params["theta"]["p_weights_1"].clip(0)
