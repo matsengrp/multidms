@@ -55,28 +55,30 @@ def _explode_params_dict(params_dict):
     ]
 
 
+# everything below verbose could be a kwargs passed to fit()
 def fit_one_model(
     dataset,
-    huber_scale_huber=1,
-    scale_coeff_lasso_shift=2e-5,
-    scale_coeff_ridge_beta=0,
-    scale_coeff_ridge_shift=0,
-    scale_coeff_ridge_gamma=0,
-    scale_coeff_ridge_alpha_d=0,
     epistatic_model="Sigmoid",
     output_activation="Identity",
     lock_beta_naught_at=None,
     gamma_corrected=False,
     alpha_d=False,
     init_beta_naught=0.0,
-    tol=1e-4,
-    num_training_steps=1,
-    iterations_per_step=20000,
-    acceleration=True,
     n_hidden_units=5,
     lower_bound=None,
     PRNGKey=0,
     verbose=False,
+    tol=1e-4,
+    huber_scale_huber=1,
+    scale_coeff_lasso_shift=2e-5,
+    scale_coeff_ridge_beta=0,
+    scale_coeff_ridge_shift=0,
+    scale_coeff_ridge_gamma=0,
+    scale_coeff_ridge_alpha_d=0,
+    num_training_steps=1,
+    iterations_per_step=20000,
+    upper_bound_theta_ge_scale="infer",
+    acceleration=True,
 ):
     """
     Fit a multidms model to a dataset. This is a wrapper around the multidms
@@ -136,6 +138,8 @@ def fit_one_model(
     lower_bound : float, optional
         The lower bound for use with the softplus activation function.
         The default is None, but must be specified if using the softplus activation.
+    upper_bound_theta_ge_scale : float, optional
+        The upper bound for the theta_ge_scale parameter. The default is None.
     PRNGKey : int, optional
         The PRNGKey to use to initialize model parameters. The default is 0.
     verbose : bool, optional
@@ -164,6 +168,7 @@ def fit_one_model(
         "Softplus": multidms.biophysical.softplus_activation,
     }
 
+    # should these all be kwargs?
     imodel = multidms.Model(
         dataset,
         epistatic_model=biophysical_model[epistatic_model],
@@ -185,6 +190,7 @@ def fit_one_model(
     del fit_attributes["verbose"]
 
     fit_attributes["step_loss"] = onp.repeat(onp.nan, num_training_steps + 1)
+    fit_attributes["step_error"] = onp.repeat(onp.nan, num_training_steps + 1)
     fit_attributes["step_loss"][0] = float(imodel.loss)
     fit_attributes["dataset_name"] = dataset.name
     fit_attributes["model"] = imodel
@@ -208,6 +214,7 @@ def fit_one_model(
             scale_coeff_ridge_beta=scale_coeff_ridge_beta,
             scale_coeff_ridge_gamma=scale_coeff_ridge_gamma,
             scale_coeff_ridge_alpha_d=scale_coeff_ridge_alpha_d,
+            upper_bound_theta_ge_scale=upper_bound_theta_ge_scale,
             warn_unconverged=False,
         )
         end = time.time()
@@ -1067,6 +1074,7 @@ class ModelCollection:
         width_scalar=150,
         height=200,
         return_data=False,
+        r=2,
         **kwargs,
     ):
         """
@@ -1075,6 +1083,27 @@ class ModelCollection:
         We compute correlation of mutation parameters accross each pair of datasets
         in the collection.
 
+        Parameters
+        ----------
+        x : str, optional
+            The parameter to plot on the x-axis.
+            The default is "scale_coeff_lasso_shift".
+        width_scalar : int, optional
+            The width of the chart. The default is 150.
+        height : int, optional
+            The height of the chart. The default is 200.
+        return_data : bool, optional
+            Whether to return the underlying data. The default is False.
+        r : int, optional
+            The exponential of the correlation coefficient reported.
+            May be either 1 for pearson,
+            2 for coefficient of determination (r-squared),
+            The default is 2.
+        **kwargs : dict
+            The keyword arguments to pass to the
+            :func:`multidms.model_collection.ModelCollection.split_apply_combine_muts`
+            method. See the method docstring for details.
+
         Returns
         -------
         altair.Chart or Tuple(altair.Chart, pd.DataFrame)
@@ -1082,6 +1111,9 @@ class ModelCollection:
             or saved to a file. If `return_data=True`, then a tuple
             containing the chart and the underlying data will be returned.
         """
+        if r not in [1, 2]:
+            raise ValueError("invalid r, must be 1 or 2")
+
         query = "dataset_name.notna()" if "query" not in kwargs else kwargs["query"]
         if len(self.fit_models.query(query).dataset_name.unique()) < 2:
             raise ValueError("Must specify a subset of fits with multiple datasets")
@@ -1107,15 +1139,20 @@ class ModelCollection:
                         {
                             "datasets": ",".join(datasets),
                             "mut_param": mut_param,
-                            "correlation": replicate_params_df.T.corr().iloc[0, 1],
+                            "correlation": replicate_params_df.T.corr().iloc[0, 1] ** r,
                             x: x_i,
                         },
                         index=[0],
                     ),
                 )
 
-        replicate_df = pd.concat(replicate_series)
+        # https://github.com/microsoft/pylance-release/issues/5630
+        def my_concat(dfs_list, axis=0):
+            return pd.concat(dfs_list, axis=axis)
 
+        replicate_df = my_concat(replicate_series)
+
+        title_suffix = "(R^2)" if r == 2 else "(pearson)"
         # create altair chart
         base_chart = (
             alt.Chart(replicate_df)
@@ -1131,7 +1168,11 @@ class ModelCollection:
                 ).axis(
                     format=".1e",
                 ),
-                y=alt.Y("correlation", type="quantitative", title="Correlation"),
+                y=alt.Y(
+                    "correlation",
+                    type="quantitative",
+                    title=f"Correlation {title_suffix}",
+                ),
                 color=alt.Color("mut_param", type="nominal", title="Parameter"),
                 tooltip=["datasets", "correlation", "mut_param"],
             )

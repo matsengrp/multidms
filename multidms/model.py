@@ -193,12 +193,14 @@ class Model:
 
     Next, we fit the model with some chosen hyperparameters.
 
-    >>> model.fit(maxiter=1000, lasso_shift=1e-5)
+    >>> model.fit(maxiter=1000, lasso_shift=1e-5, warn_unconverged=False)
     >>> model.loss
     Array(6.0517805e-06, dtype=float32)
 
     The model tunes its parameters in place, and the subsequent call to retrieve
     the loss reflects our models loss given its updated parameters.
+
+    TODO: add more examples, and explain the convergence criteria and warning.
     """  # noqa: E501
 
     counter = 0
@@ -212,11 +214,11 @@ class Model:
         alpha_d=False,
         gamma_corrected=False,
         PRNGKey=0,
+        lower_bound=None,
+        n_hidden_units=5,
         init_beta_naught=0.0,
         init_theta_scale=5.0,
         init_theta_bias=-5.0,
-        n_hidden_units=5,
-        lower_bound=None,
         name=None,
     ):
         """See class docstring."""
@@ -267,6 +269,10 @@ class Model:
             self._params["theta"] = dict(ghost_param=jnp.zeros(shape=(1,)))
 
         elif epistatic_model == multidms.biophysical.nn_global_epistasis:
+            if n_hidden_units is None:
+                raise ValueError(
+                    "n_hidden_units must be specified for nn_global_epistasis"
+                )
             key, key1, key2, key3, key4 = jax.random.split(key, num=5)
             self._params["theta"] = dict(
                 p_weights_1=jax.random.normal(shape=(n_hidden_units,), key=key1).clip(
@@ -629,17 +635,12 @@ class Model:
 
             # build binary variants as csr matrix, make prediction, and append
             valid, invalid = 0, 0  # row indices of elements that are one
-            # binary_variants = []
             variant_targets = []
             row_ind = []  # row indices of elements that are one
             col_ind = []  # column indices of elements that are one
 
             for subs, target in zip(variant_subs, condition_df[func_score_col]):
                 try:
-                    # binary_variants.append(ref_bmap.sub_str_to_binary(subs))
-                    # variant_targets.append(target)
-                    # valid += 1
-
                     for isub in ref_bmap.sub_str_to_indices(subs):
                         row_ind.append(valid)
                         col_ind.append(isub)
@@ -973,6 +974,7 @@ class Model:
         acceleration=True,
         lock_params={},
         warn_unconverged=True,
+        upper_bound_theta_ge_scale="infer",
         **kwargs,
     ):
         r"""
@@ -997,6 +999,13 @@ class Model:
             convergence is defined by whether the model tolerance (''tol'') threshold
             was passed during the optimization process.
             Defaults to True.
+        upper_bound_theta_ge_scale : float, None, or 'infer'
+            The positive upper bound of the theta scale parameter -
+            negative values are not allowed.
+            Passing ``None`` allows the scale of the sigmoid to be unconstrained.
+            Passing the string literal 'infer' results in the
+            scale being set to double the range of the training data.
+            Defaults to 'infer'.
         **kwargs : dict
             Additional keyword arguments passed to the objective function.
             These include hyperparameters like a ridge penalty on beta, shift, and gamma
@@ -1035,9 +1044,28 @@ class Model:
                 continue
             lasso_params[f"shift_{non_ref_condition}"] = lasso_shift
 
+        if not isinstance(upper_bound_theta_ge_scale, (float, int, type(None), str)):
+            raise ValueError(
+                "upper_bound_theta_ge_scale must be a float, None, or 'infer'"
+            )
+        if isinstance(upper_bound_theta_ge_scale, (float, int)):
+            if upper_bound_theta_ge_scale < 0:
+                raise ValueError("upper_bound_theta_ge_scale must be non-negative")
+        # infer the range of the training data, and double it
+        # to set the upper bound of the theta scale parameter.
+        # see https://github.com/matsengrp/multidms/issues/143 for details
+        if upper_bound_theta_ge_scale == "infer":
+            y = jnp.concatenate(list(self.data.training_data["y"].values()))
+            y_range = y.max() - y.min()
+            upper_bound_theta_ge_scale = 2 * y_range
+
         self._params, self._state = solver.run(
             self._params,
-            hyperparams_prox=dict(lasso_params=lasso_params, lock_params=lock_params),
+            hyperparams_prox=dict(
+                lasso_params=lasso_params,
+                lock_params=lock_params,
+                upper_bound_theta_ge_scale=upper_bound_theta_ge_scale,
+            ),
             data=(self._data.training_data["X"], self._data.training_data["y"]),
             **kwargs,
         )
