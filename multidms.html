@@ -391,7 +391,7 @@ to converted</p></li>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="multidms.Model">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data:</span> <span class="pre">~multidms.data.Data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epistatic_model=&lt;function</span> <span class="pre">sigmoidal_global_epistasis&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_activation=&lt;function</span> <span class="pre">identity_activation&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditional_shifts=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_d=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma_corrected=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PRNGKey=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_beta_naught=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_theta_scale=5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_theta_bias=-5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_hidden_units=5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_bound=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data:</span> <span class="pre">~multidms.data.Data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epistatic_model=&lt;function</span> <span class="pre">sigmoidal_global_epistasis&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_activation=&lt;function</span> <span class="pre">identity_activation&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditional_shifts=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_d=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma_corrected=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PRNGKey=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_bound=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_hidden_units=5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_beta_naught=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_theta_scale=5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_theta_bias=-5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Represent one or more DMS experiments
 to obtain tuned parameters that provide insight into
@@ -542,13 +542,14 @@ given our initialized parameters</p>
 </pre></div>
 </div>
 <p>Next, we fit the model with some chosen hyperparameters.</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">maxiter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">lasso_shift</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">maxiter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">lasso_shift</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">warn_unconverged</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">loss</span>
 <span class="go">Array(6.0517805e-06, dtype=float32)</span>
 </pre></div>
 </div>
 <p>The model tunes its parameters in place, and the subsequent call to retrieve
 the loss reflects our models loss given its updated parameters.</p>
+<p>TODO: add more examples, and explain the convergence criteria and warning.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="multidms.Model.counter">
 <span class="sig-name descname"><span class="pre">counter</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#multidms.Model.counter" title="Link to this definition">¶</a></dt>
@@ -827,7 +828,7 @@ for general use.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.fit">
-<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lasso_shift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acceleration</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lock_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warn_unconverged</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.fit" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lasso_shift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acceleration</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lock_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warn_unconverged</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_bound_theta_ge_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'infer'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.fit" title="Link to this definition">¶</a></dt>
 <dd><p>Use jaxopt.ProximalGradiant to optimize the model’s free parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -843,6 +844,12 @@ besides the reference shift, and reference latent offset are locked.</p></li>
 convergence is defined by whether the model tolerance (‘’tol’’) threshold
 was passed during the optimization process.
 Defaults to True.</p></li>
+<li><p><strong>upper_bound_theta_ge_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>None</em><em>, or </em><em>'infer'</em>) – The positive upper bound of the theta scale parameter -
+negative values are not allowed.
+Passing <code class="docutils literal notranslate"><span class="pre">None</span></code> allows the scale of the sigmoid to be unconstrained.
+Passing the string literal ‘infer’ results in the
+scale being set to double the range of the training data.
+Defaults to ‘infer’.</p></li>
 <li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Additional keyword arguments passed to the objective function.
 These include hyperparameters like a ridge penalty on beta, shift, and gamma
 as well as huber loss scaling.</p></li>
@@ -1126,19 +1133,35 @@ containing the chart and the underlying data will be returned.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.ModelCollection.mut_param_dataset_correlation">
-<span class="sig-name descname"><span class="pre">mut_param_dataset_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">150</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.mut_param_dataset_correlation" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">mut_param_dataset_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">150</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.mut_param_dataset_correlation" title="Link to this definition">¶</a></dt>
 <dd><p>Visualize the correlation between replicate datasets across the lasso penalty
 weights (by default) in the form of an <cite>altair.FacetChart</cite>.
 We compute correlation of mutation parameters accross each pair of datasets
 in the collection.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>A chart object which can be displayed in a jupyter notebook
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – The parameter to plot on the x-axis.
+The default is “scale_coeff_lasso_shift”.</p></li>
+<li><p><strong>width_scalar</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – The width of the chart. The default is 150.</p></li>
+<li><p><strong>height</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – The height of the chart. The default is 200.</p></li>
+<li><p><strong>return_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to return the underlying data. The default is False.</p></li>
+<li><p><strong>r</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – The exponential of the correlation coefficient reported.
+May be either 1 for pearson,
+2 for coefficient of determination (r-squared),
+The default is 2.</p></li>
+<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – The keyword arguments to pass to the
+<a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.split_apply_combine_muts" title="multidms.model_collection.ModelCollection.split_apply_combine_muts"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.model_collection.ModelCollection.split_apply_combine_muts()</span></code></a>
+method. See the method docstring for details.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A chart object which can be displayed in a jupyter notebook
 or saved to a file. If <cite>return_data=True</cite>, then a tuple
 containing the chart and the underlying data will be returned.</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>altair.Chart or Tuple(altair.Chart, pd.DataFrame)</p>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>altair.Chart or Tuple(altair.Chart, pd.DataFrame)</p>
 </dd>
 </dl>
 </dd></dl>
