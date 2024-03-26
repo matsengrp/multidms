@@ -40,6 +40,12 @@ class ModelCollectionFitError(Exception):
     pass
 
 
+# https://github.com/microsoft/pylance-release/issues/5630
+def my_concat(dfs_list, axis=0):
+    """simple pd.concat wrapper for bug with vscode pylance"""  # noqa
+    return pd.concat(dfs_list, axis=axis)
+
+
 def _explode_params_dict(params_dict):
     """
     Given a dictionary of model parameters,
@@ -635,6 +641,35 @@ class ModelCollection:
         )
         return loss_df
 
+    def convergence_trajectory_df(
+        self,
+        query=None,
+        id_vars=("dataset_name", "scale_coeff_lasso_shift"),
+    ):
+        """TODO"""
+        queried_fits = (
+            self.fit_models.query(query) if query is not None else self.fit_models
+        )
+        if len(queried_fits) == 0:
+            raise ValueError("invalid query, no fits returned")
+
+        if not all([var in queried_fits.columns for var in id_vars]):
+            raise ValueError(f"invalid {id_vars=}")
+
+        convergence_trajectory_data = my_concat(
+            [
+                (
+                    fit.model.convergence_trajectory_df.assign(
+                        **{key: fit[key] for key in id_vars}
+                    )
+                )
+                for _, fit in queried_fits.iterrows()
+            ]
+        )
+
+        # TODO make altair chart
+        return convergence_trajectory_data
+
     def mut_param_heatmap(
         self,
         query=None,
@@ -1118,10 +1153,6 @@ class ModelCollection:
                         index=[0],
                     ),
                 )
-
-        # https://github.com/microsoft/pylance-release/issues/5630
-        def my_concat(dfs_list, axis=0):
-            return pd.concat(dfs_list, axis=axis)
 
         replicate_df = my_concat(replicate_series)
 
