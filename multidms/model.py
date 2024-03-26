@@ -827,9 +827,9 @@ class Model:
             if phenotype_as_effect:
                 latent_predictions -= wildtype_df.loc[condition, "predicted_latent"]
             latent_predictions[nan_variant_indices] = onp.nan
-            ret.loc[condition_df.index.values, latent_phenotype_col] = (
-                latent_predictions
-            )
+            ret.loc[
+                condition_df.index.values, latent_phenotype_col
+            ] = latent_predictions
 
             # func_score predictions on binary variants, X
             phenotype_predictions = onp.array(
@@ -841,9 +841,9 @@ class Model:
                     condition, "predicted_func_score"
                 ]
             phenotype_predictions[nan_variant_indices] = onp.nan
-            ret.loc[condition_df.index.values, observed_phenotype_col] = (
-                phenotype_predictions
-            )
+            ret.loc[
+                condition_df.index.values, observed_phenotype_col
+            ] = phenotype_predictions
 
         return ret
 
@@ -1100,7 +1100,6 @@ class Model:
         self._iter_error[0] = self._state.error
 
         for i in range(maxiter):
-
             self._params, self._state = solver.update(
                 self._params,
                 self._state,
