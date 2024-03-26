@@ -331,6 +331,7 @@ class Model:
 
         self._name = name if isinstance(name, str) else f"Model-{Model.counter}"
         self._state = None
+        self._iter_error = None
         self._converged = False
         Model.counter += 1
 
@@ -341,6 +342,14 @@ class Model:
     def __str__(self):
         """Returns a string representation of the object."""
         return f"{self.__class__.__name__}({self.name})"
+
+    @property
+    def iter_error(self):
+        """
+        The state.error through each training iteration.
+        Currentlty, this is reset each time the fit() method is called
+        """
+        return self._iter_error
 
     @property
     def name(self) -> str:
@@ -818,9 +827,9 @@ class Model:
             if phenotype_as_effect:
                 latent_predictions -= wildtype_df.loc[condition, "predicted_latent"]
             latent_predictions[nan_variant_indices] = onp.nan
-            ret.loc[
-                condition_df.index.values, latent_phenotype_col
-            ] = latent_predictions
+            ret.loc[condition_df.index.values, latent_phenotype_col] = (
+                latent_predictions
+            )
 
             # func_score predictions on binary variants, X
             phenotype_predictions = onp.array(
@@ -832,9 +841,9 @@ class Model:
                     condition, "predicted_func_score"
                 ]
             phenotype_predictions[nan_variant_indices] = onp.nan
-            ret.loc[
-                condition_df.index.values, observed_phenotype_col
-            ] = phenotype_predictions
+            ret.loc[condition_df.index.values, observed_phenotype_col] = (
+                phenotype_predictions
+            )
 
         return ret
 
@@ -1011,14 +1020,6 @@ class Model:
             These include hyperparameters like a ridge penalty on beta, shift, and gamma
             as well as huber loss scaling.
         """
-        solver = ProximalGradient(
-            jax.jit(self._model_components["objective"]),
-            jax.jit(self._model_components["proximal"]),
-            tol=tol,
-            maxiter=maxiter,
-            acceleration=acceleration,
-        )
-
         lock_params[f"shift_{self._data.reference}"] = jnp.zeros(
             len(self._params["beta"])
         )
@@ -1054,12 +1055,35 @@ class Model:
         # infer the range of the training data, and double it
         # to set the upper bound of the theta scale parameter.
         # see https://github.com/matsengrp/multidms/issues/143 for details
+        # TODO could make this a property of the Data object
+
         if upper_bound_theta_ge_scale == "infer":
             y = jnp.concatenate(list(self.data.training_data["y"].values()))
             y_range = y.max() - y.min()
             upper_bound_theta_ge_scale = 2 * y_range
 
-        self._params, self._state = solver.run(
+        solver = ProximalGradient(
+            jax.jit(self._model_components["objective"]),
+            jax.jit(self._model_components["proximal"]),
+            tol=tol,
+            maxiter=maxiter,
+            acceleration=acceleration,
+        )
+
+        ##################
+        # self._params, self._state = solver.run(
+        #    self._params,
+        #    hyperparams_prox=dict(
+        #        lasso_params=lasso_params,
+        #        lock_params=lock_params,
+        #        upper_bound_theta_ge_scale=upper_bound_theta_ge_scale,
+        #    ),
+        #    data=(self._data.training_data["X"], self._data.training_data["y"]),
+        #    **kwargs,
+        # )
+        ##################
+
+        self._state = solver.init_state(
             self._params,
             hyperparams_prox=dict(
                 lasso_params=lasso_params,
@@ -1070,17 +1094,47 @@ class Model:
             **kwargs,
         )
 
-        converged = self._state.error < tol
-        if not converged and warn_unconverged:
+        # TODO currently, this reset for each call to fit.
+        # is there any advantage to keeping the history of previous fit() calls?
+        self._iter_error = onp.repeat(onp.nan, maxiter + 1)
+        self._iter_error[0] = self._state.error
+
+        for i in range(maxiter):
+
+            self._params, self._state = solver.update(
+                self._params,
+                self._state,
+                hyperparams_prox=dict(
+                    lasso_params=lasso_params,
+                    lock_params=lock_params,
+                    upper_bound_theta_ge_scale=upper_bound_theta_ge_scale,
+                ),
+                data=(self._data.training_data["X"], self._data.training_data["y"]),
+                **kwargs,
+            )
+
+            self._iter_error[i + 1] = self._state.error
+
+            if self._state.error < tol:
+                self._converged = True
+                break
+
+        if not self.converged and warn_unconverged:
             warnings.warn(
                 "Model training error did not reach the tolerance threshold. "
                 f"Final error: {self._state.error}, tolerance: {tol}",
                 RuntimeWarning,
             )
-        self._converged = converged
 
     def plot_pred_accuracy(
-        self, hue=True, show=True, saveas=None, annotate_corr=True, ax=None, **kwargs
+        self,
+        hue=True,
+        show=True,
+        saveas=None,
+        annotate_corr=True,
+        ax=None,
+        r=2,
+        **kwargs,
     ):
         """
         Create a figure which visualizes the correlation
@@ -1124,9 +1178,10 @@ class Model:
         if annotate_corr:
             start_y = 0.95
             for c, cdf in df.groupby("condition"):
-                r = pearsonr(cdf[func_score], cdf["predicted_func_score"])[0]
+                corr = pearsonr(cdf[func_score], cdf["predicted_func_score"])[0] ** r
+                metric = "pearson" if r == 1 else "R^2"
                 ax.annotate(
-                    f"$r = {r:.2f}$",
+                    f"{metric} = {corr:.2f}",
                     (0.01, start_y),
                     xycoords="axes fraction",
                     fontsize=12,
