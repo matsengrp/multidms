@@ -1096,6 +1096,9 @@ class Model:
             index=range(maxiter + 1, convergence_trajectory_resolution)
         ).assign(loss=onp.nan, error=onp.nan)
 
+        # TODO should step be the index?
+        convergence_trajectory.index.name = "step"
+
         for i in range(maxiter):
             # record loss and error trajectories at regular intervals
             if i % convergence_trajectory_resolution == 0:
