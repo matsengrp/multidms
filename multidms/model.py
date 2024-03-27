@@ -330,7 +330,10 @@ class Model:
         )
 
         self._name = name if isinstance(name, str) else f"Model-{Model.counter}"
+
+        # None of the following are set until the fit() is called.
         self._state = None
+        self._convergence_trajectory = None
         self._converged = False
         Model.counter += 1
 
@@ -411,6 +414,14 @@ class Model:
             ret[condition] = float(loss_fxn(self.params, condition_data, **kwargs))
         ret["total"] = sum(ret.values())
         return ret
+
+    @property
+    def convergence_trajectory_df(self):
+        """
+        The state.error through each training iteration.
+        Currentlty, this is reset each time the fit() method is called
+        """
+        return self._convergence_trajectory
 
     @property
     def variants_df(self):
@@ -975,6 +986,7 @@ class Model:
         lock_params={},
         warn_unconverged=True,
         upper_bound_theta_ge_scale="infer",
+        convergence_trajectory_resolution=100,
         **kwargs,
     ):
         r"""
@@ -1006,19 +1018,14 @@ class Model:
             Passing the string literal 'infer' results in the
             scale being set to double the range of the training data.
             Defaults to 'infer'.
+        convergence_trajectory_resolution : int
+            The resolution of the loss and error trajectory recorded
+            during optimization. Defaults to 100.
         **kwargs : dict
             Additional keyword arguments passed to the objective function.
             These include hyperparameters like a ridge penalty on beta, shift, and gamma
             as well as huber loss scaling.
         """
-        solver = ProximalGradient(
-            jax.jit(self._model_components["objective"]),
-            jax.jit(self._model_components["proximal"]),
-            tol=tol,
-            maxiter=maxiter,
-            acceleration=acceleration,
-        )
-
         lock_params[f"shift_{self._data.reference}"] = jnp.zeros(
             len(self._params["beta"])
         )
@@ -1054,33 +1061,98 @@ class Model:
         # infer the range of the training data, and double it
         # to set the upper bound of the theta scale parameter.
         # see https://github.com/matsengrp/multidms/issues/143 for details
+        # TODO could make this a property of the Data object
+
         if upper_bound_theta_ge_scale == "infer":
             y = jnp.concatenate(list(self.data.training_data["y"].values()))
             y_range = y.max() - y.min()
             upper_bound_theta_ge_scale = 2 * y_range
 
-        self._params, self._state = solver.run(
+        compiled_objective = jax.jit(self._model_components["objective"])
+        compiled_proximal = jax.jit(self._model_components["proximal"])
+
+        solver = ProximalGradient(
+            compiled_objective,
+            compiled_proximal,
+            tol=tol,
+            maxiter=maxiter,
+            acceleration=acceleration,
+        )
+
+        training_data = (self._data.training_data["X"], self._data.training_data["y"])
+
+        self._state = solver.init_state(
             self._params,
             hyperparams_prox=dict(
                 lasso_params=lasso_params,
                 lock_params=lock_params,
                 upper_bound_theta_ge_scale=upper_bound_theta_ge_scale,
             ),
-            data=(self._data.training_data["X"], self._data.training_data["y"]),
+            data=training_data,
             **kwargs,
         )
 
-        converged = self._state.error < tol
-        if not converged and warn_unconverged:
-            warnings.warn(
-                "Model training error did not reach the tolerance threshold. "
-                f"Final error: {self._state.error}, tolerance: {tol}",
-                RuntimeWarning,
+        convergence_trajectory = pd.DataFrame(
+            index=range(maxiter + 1, convergence_trajectory_resolution)
+        ).assign(loss=onp.nan, error=onp.nan)
+
+        # TODO should step be the index?
+        convergence_trajectory.index.name = "step"
+
+        for i in range(maxiter):
+            # record loss and error trajectories at regular intervals
+            if i % convergence_trajectory_resolution == 0:
+                convergence_trajectory.loc[i, "loss"] = float(
+                    compiled_objective(self._params, training_data)
+                )
+                convergence_trajectory.loc[i, "error"] = float(self._state.error)
+
+            # early stopping criteria
+            if self._state.error < tol:
+                self._converged = True
+                break
+
+            # perform single optimization step
+            self._params, self._state = solver.update(
+                self._params,
+                self._state,
+                hyperparams_prox=dict(
+                    lasso_params=lasso_params,
+                    lock_params=lock_params,
+                    upper_bound_theta_ge_scale=upper_bound_theta_ge_scale,
+                ),
+                data=training_data,
+                **kwargs,
             )
-        self._converged = converged
+
+        if not self.converged:
+            # record final loss and error
+            convergence_trajectory.loc[maxiter, "loss"] = float(
+                compiled_objective(self._params, training_data)
+            )
+
+            convergence_trajectory.loc[maxiter, "error"] = float(self._state.error)
+
+            if warn_unconverged:
+                warnings.warn(
+                    "Model training error did not reach the tolerance threshold. "
+                    f"Final error: {self._state.error}, tolerance: {tol}",
+                    RuntimeWarning,
+                )
+
+        self._convergence_trajectory = convergence_trajectory
+
+        return None
 
     def plot_pred_accuracy(
-        self, hue=True, show=True, saveas=None, annotate_corr=True, ax=None, **kwargs
+        self,
+        hue=True,
+        show=True,
+        saveas=None,
+        annotate_corr=True,
+        ax=None,
+        r=2,
+        **kwargs,
     ):
         """
         Create a figure which visualizes the correlation
@@ -1124,9 +1196,10 @@ class Model:
         if annotate_corr:
             start_y = 0.95
             for c, cdf in df.groupby("condition"):
-                r = pearsonr(cdf[func_score], cdf["predicted_func_score"])[0]
+                corr = pearsonr(cdf[func_score], cdf["predicted_func_score"])[0] ** r
+                metric = "pearson" if r == 1 else "R^2"
                 ax.annotate(
-                    f"$r = {r:.2f}$",
+                    f"{metric} = {corr:.2f}",
                     (0.01, start_y),
                     xycoords="axes fraction",
                     fontsize=12,
