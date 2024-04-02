@@ -219,7 +219,7 @@ class Data:
         letter_suffixed_sites=False,
         assert_site_integrity=False,
         verbose=False,
-        nb_workers=None,
+        nb_workers=-1,
         name=None,
     ):
         """See main class docstring."""
@@ -325,7 +325,7 @@ class Data:
         sites_to_throw = na_rows[na_rows].index
         site_map.dropna(inplace=True)
 
-        nb_workers = min(os.cpu_count(), 4) if nb_workers is None else nb_workers
+        nb_workers = min(os.cpu_count(), 4) if nb_workers == -1 else nb_workers
         pandarallel.initialize(
             progress_bar=verbose, verbose=0 if not verbose else 2, nb_workers=nb_workers
         )

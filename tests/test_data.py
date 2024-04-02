@@ -157,7 +157,7 @@ def test_wildtype_mutant_predictions():
             bmap = model.data.binarymaps[model.data.reference]
             enc = bmap.sub_str_to_binary(converted_subs)
             assert sum(enc) == len(converted_subs.split())
-            mut_params = model.get_mutations_df(phenotype_as_effect=False).query(
+            mut_params = model.mutations_df(phenotype_as_effect=False).query(
                 "mutation.isin(@converted_subs.split())"
             )
             latent = (mut_params.beta + mut_params[f"shift_{condition}"]).sum()
@@ -192,7 +192,7 @@ def test_mutations_df():
     model.fit(maxiter=2, warn_unconverged=False)
     sig_params = model.params["theta"]
     scale, bias = sig_params["ge_scale"], sig_params["ge_bias"]
-    mutations_df = model.get_mutations_df(phenotype_as_effect=False)
+    mutations_df = model.mutations_df(phenotype_as_effect=False)
     for i, mutation in enumerate(model.data.mutations):
         effect = model.params["beta"][i]
         for condition in model.data.conditions:
@@ -279,7 +279,7 @@ def test_lower_bound():
         PRNGKey=23,
         lower_bound=1000.0,
     )
-    variants_df = model.get_variants_df(phenotype_as_effect=False)
+    variants_df = model.variants_df(phenotype_as_effect=False)
     assert np.all(variants_df.predicted_func_score >= 1000.0)
 
 
@@ -295,7 +295,7 @@ def test_null_post_latent():
         output_activation=multidms.biophysical.identity_activation,
         PRNGKey=23,
     )
-    variants_df = model.get_variants_df(phenotype_as_effect=False)
+    variants_df = model.variants_df(phenotype_as_effect=False)
     assert np.all(variants_df.predicted_latent == variants_df.predicted_func_score)
 
 
@@ -306,7 +306,7 @@ def test_model_phenotype_predictions():
     by comparing the training data internal predictions
     match those of external predictions on that same data.
     """
-    internal_pred = model.get_variants_df(phenotype_as_effect=False)
+    internal_pred = model.variants_df(phenotype_as_effect=False)
     external_pred = model.add_phenotypes_to_df(
         TEST_FUNC_SCORES, unknown_as_nan=True, phenotype_as_effect=False
     ).dropna()
@@ -326,7 +326,7 @@ def test_model_phenotype_effect_predictions():
     by comparing the training data internal predictions
     match those of external predictions on that same data.
     """
-    internal_pred = model.get_variants_df(phenotype_as_effect=True)
+    internal_pred = model.variants_df(phenotype_as_effect=True)
     external_pred = model.add_phenotypes_to_df(
         TEST_FUNC_SCORES, unknown_as_nan=True, phenotype_as_effect=True
     ).dropna()

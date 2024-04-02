@@ -69,7 +69,7 @@ def fit_one_model(
     PRNGKey=0,
     verbose=False,
     tol=1e-4,
-    huber_scale_huber=1,
+    scale_coeff_huber=1,
     scale_coeff_lasso_shift=2e-5,
     scale_coeff_ridge_beta=0,
     scale_coeff_ridge_shift=0,
@@ -91,7 +91,7 @@ def fit_one_model(
         The dataset to fit to. For bookkeeping and downstream analysis,
         the name of the dataset (Data.name) is saved in the fit attributes
         that are returned.
-    huber_scale_huber : float, optional
+    scale_coeff_huber : float, optional
         The scale of the huber loss function. The default is 1.
     scale_coeff_lasso_shift : float, optional
         The scale of the lasso penalty on the shift parameter. The default is 2e-5.
@@ -208,7 +208,7 @@ def fit_one_model(
             maxiter=iterations_per_step,
             tol=tol,
             acceleration=acceleration,
-            huber_scale=huber_scale_huber,
+            scale_coeff_huber=scale_coeff_huber,
             lock_params=lock_params,
             scale_coeff_ridge_shift=scale_coeff_ridge_shift,
             scale_coeff_ridge_beta=scale_coeff_ridge_beta,
@@ -245,7 +245,7 @@ def fit_one_model(
         "scale_coeff_ridge_shift",
         "scale_coeff_ridge_gamma",
         "scale_coeff_ridge_alpha_d",
-        "huber_scale_huber",
+        "scale_coeff_huber",
         "gamma_corrected",
         "alpha_d",
         "init_beta_naught",
@@ -492,7 +492,7 @@ class ModelCollection:
             The pandas query to apply to the `ModelCollection.fit_models`
             dataframe before splitting. The default is None.
         **kwargs : dict
-            Keyword arguments to pass to the :func:`multidms.Model.get_mutations_df`
+            Keyword arguments to pass to the :func:`multidms.Model.mutations_df`
             method ("phenotype_as_effect", and "times_seen_threshold") see the
             method docstring for details.
 
@@ -512,7 +512,7 @@ class ModelCollection:
             ret = (
                 pd.concat(
                     [
-                        fit["model"].get_mutations_df(return_split=False, **kwargs)
+                        fit["model"].mutations_df(return_split=False, **kwargs)
                         for _, fit in queried_fits.iterrows()
                     ],
                     join="inner",  # the columns will always match based on class req.
@@ -545,7 +545,7 @@ class ModelCollection:
             [
                 pd.concat(
                     [
-                        fit["model"].get_mutations_df(return_split=False, **kwargs)
+                        fit["model"].mutations_df(return_split=False, **kwargs)
                         for _, fit in fit_group.iterrows()
                     ],
                     join="inner",  # the columns will always match based on class req.
@@ -716,7 +716,7 @@ class ModelCollection:
             all conditions within a single fit to be included in the
             aggregation. The default is 0.
         phenotype_as_effect : bool, optional
-            Passed to `Model.get_mutations_df()`,
+            Passed to `Model.mutations_df()`,
             Only applies if `mut_param="predicted_func_score"`.
         **kwargs : dict
             Keyword arguments to pass to

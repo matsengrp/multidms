@@ -365,7 +365,7 @@ def _gamma_corrected_cost_smooth(
     f,
     params,
     data,
-    huber_scale=1,
+    scale_coeff_huber=1,
     scale_coeff_ridge_shift=0,
     scale_coeff_ridge_beta=0,
     scale_coeff_ridge_gamma=0,
@@ -384,7 +384,7 @@ def _gamma_corrected_cost_smooth(
     data : tuple
         Tuple of (X, y) data where each are dictionaries keyed by condition,
         return the respective binarymap and the row associated target functional scores
-    huber_scale : float
+    scale_coeff_huber : float
         Scale parameter for Huber loss function
     scale_coeff_ridge_shift : float
         Ridge penalty coefficient for shift parameters
@@ -424,7 +424,7 @@ def _gamma_corrected_cost_smooth(
         # compute the Huber loss between observed and predicted
         # functional scores
         loss += huber_loss(
-            y[condition] + d_params["gamma_d"], y_d_predicted, huber_scale
+            y[condition] + d_params["gamma_d"], y_d_predicted, scale_coeff_huber
         ).mean()
 
         # compute a regularization term that penalizes non-zero

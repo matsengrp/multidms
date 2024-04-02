@@ -137,7 +137,7 @@ class Model:
     features included. These are automatically updated each time you
     request the property.
 
-    >>> model.get_mutations_df()  # doctest: +NORMALIZE_WHITESPACE
+    >>> model.mutations_df()  # doctest: +NORMALIZE_WHITESPACE
                   beta  shift_b  predicted_func_score_a  predicted_func_score_b  \
     mutation
     M1E       1.816086      0.0                1.800479                1.379661
@@ -158,7 +158,7 @@ class Model:
     and predicted functional score (``F_d``) of each mutation in the model are now
     easily accessible. Similarly, we can take a look at the variants_df for the model,
 
-    >>> model.get_variants_df()  # doctest: +NORMALIZE_WHITESPACE
+    >>> model.variants_df()  # doctest: +NORMALIZE_WHITESPACE
       condition aa_substitutions  func_score var_wrt_ref  predicted_latent  \
     0         a              M1E         2.0         M1E          1.816086
     1         a              G3R        -7.0         G3R         -0.534835
@@ -412,16 +412,7 @@ class Model:
         ret["total"] = sum(ret.values())
         return ret
 
-    @property
-    def variants_df(self):
-        """
-        Kept for backwards compatibility but will be removed in future versions.
-        Please use `get_variants_df` instead.
-        """
-        warnings.warn("deprecated", DeprecationWarning)
-        return self.get_variants_df(phenotype_as_effect=False)
-
-    def get_variants_df(self, phenotype_as_effect=True):
+    def variants_df(self, phenotype_as_effect=True):
         """
         Training data with model predictions for latent,
         and functional score phenotypes.
@@ -482,16 +473,7 @@ class Model:
 
         return variants_df
 
-    @property
-    def mutations_df(self):
-        """
-        Kept for backwards compatibility but will be removed in future versions.
-        Please use `get_mutations_df` instead.
-        """
-        warnings.warn("deprecated", DeprecationWarning)
-        return self.get_mutations_df(phenotype_as_effect=False)
-
-    def get_mutations_df(
+    def mutations_df(
         self,
         phenotype_as_effect=True,
         times_seen_threshold=0,
@@ -818,9 +800,9 @@ class Model:
             if phenotype_as_effect:
                 latent_predictions -= wildtype_df.loc[condition, "predicted_latent"]
             latent_predictions[nan_variant_indices] = onp.nan
-            ret.loc[
-                condition_df.index.values, latent_phenotype_col
-            ] = latent_predictions
+            ret.loc[condition_df.index.values, latent_phenotype_col] = (
+                latent_predictions
+            )
 
             # func_score predictions on binary variants, X
             phenotype_predictions = onp.array(
@@ -832,9 +814,9 @@ class Model:
                     condition, "predicted_func_score"
                 ]
             phenotype_predictions[nan_variant_indices] = onp.nan
-            ret.loc[
-                condition_df.index.values, observed_phenotype_col
-            ] = phenotype_predictions
+            ret.loc[condition_df.index.values, observed_phenotype_col] = (
+                phenotype_predictions
+            )
 
         return ret
 
@@ -1438,7 +1420,7 @@ class Model:
             raise ValueError(f"invalid {mut_param=}")
 
         # aggregate mutation values between dataset fits
-        muts_df = self.get_mutations_df(
+        muts_df = self.mutations_df(
             times_seen_threshold=times_seen_threshold,
             phenotype_as_effect=phenotype_as_effect,
             return_split=False,

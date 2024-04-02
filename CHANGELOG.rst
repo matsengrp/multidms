@@ -35,8 +35,8 @@ The format is based on `Keep a Changelog <https://keepachangelog.com>`_.
 - Adds four altair plotting methods to ``ModelCollection``: ``mut_param_heatmap``, ``shift_sparsity``, ``mut_param_dataset_correlation``, and ``mut_param_traceplot``.
 - removes ``utils`` module.
 - Cleans up #114 
-- optionally removes "wts", "sites", "muts" from the mutations dataframe returned by ``Model.get_mutations_df``. 
-- Changes the naming of columns produced by ``Model.get_mutations_df()``, in particular, it moves the condition name for predicted func score to be a suffix (as with shift, and time_seen) rather than a prefix. e.g. "delta_predicted_func_score" -> "predicted_func_score_delta".
+- optionally removes "wts", "sites", "muts" from the mutations dataframe returned by ``Model.mutations_df``. 
+- Changes the naming of columns produced by ``Model.mutations_df()``, in particular, it moves the condition name for predicted func score to be a suffix (as with shift, and time_seen) rather than a prefix. e.g. "delta_predicted_func_score" -> "predicted_func_score_delta".
 
 
 0.2.2
@@ -49,7 +49,7 @@ The format is based on `Keep a Changelog <https://keepachangelog.com>`_.
 -----
 - Made lineplot_and_heatmap() more private to remove from docs.
 - Fixed bug pointed out by @jbloom #110
-- ``Model.get_mutations_df()`` now sets the mutation as the index
+- ``Model.mutations_df()`` now sets the mutation as the index
 - added some testing utils
 
 0.2.0
