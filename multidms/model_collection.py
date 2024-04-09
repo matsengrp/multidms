@@ -3,7 +3,6 @@ Contains the ModelCollection class, which takes a collection of models
 and merges the results for comparison and visualization.
 """
 
-# import os
 import itertools as it
 import time
 import warnings
@@ -11,15 +10,18 @@ from functools import lru_cache
 from multiprocessing import get_context
 import multiprocessing
 import pprint
+import logging
 
 import multidms
 
 import pandas as pd
+import jax
 import jax.numpy as jnp
 import numpy as onp
 import altair as alt
 
-import logging
+jax.config.update("jax_enable_x64", True)
+
 
 logging.getLogger("jax._src.xla_bridge").addFilter(
     logging.Filter(
@@ -40,6 +42,12 @@ class ModelCollectionFitError(Exception):
     pass
 
 
+# https://github.com/microsoft/pylance-release/issues/5630
+def my_concat(dfs_list, axis=0):
+    """simple pd.concat wrapper for bug with vscode pylance"""  # noqa
+    return pd.concat(dfs_list, axis=axis)
+
+
 def _explode_params_dict(params_dict):
     """
     Given a dictionary of model parameters,
@@ -56,29 +64,31 @@ def _explode_params_dict(params_dict):
 
 
 # everything below verbose could be a kwargs passed to fit()
+# but it's nice to have a single function for verbosity?
 def fit_one_model(
     dataset,
     epistatic_model="Sigmoid",
     output_activation="Identity",
-    lock_beta_naught_at=None,
-    gamma_corrected=False,
-    alpha_d=False,
+    lock_beta_naught_at=None,  # TODO experimental, remove
+    gamma_corrected=False,  # TODO experimental, mark as such
+    alpha_d=False,  # TODO, still not sure why this isn't the default
     init_beta_naught=0.0,
     n_hidden_units=5,
     lower_bound=None,
     PRNGKey=0,
     verbose=False,
-    tol=1e-4,
-    huber_scale_huber=1,
+    # **kwargs,
     scale_coeff_lasso_shift=2e-5,
+    tol=1e-4,
+    maxiter=20000,
+    acceleration=True,
+    maxls=15,
+    upper_bound_theta_ge_scale="infer",
+    huber_scale_huber=1,
     scale_coeff_ridge_beta=0,
     scale_coeff_ridge_shift=0,
     scale_coeff_ridge_gamma=0,
     scale_coeff_ridge_alpha_d=0,
-    num_training_steps=1,
-    iterations_per_step=20000,
-    upper_bound_theta_ge_scale="infer",
-    acceleration=True,
 ):
     """
     Fit a multidms model to a dataset. This is a wrapper around the multidms
@@ -117,19 +127,13 @@ def fit_one_model(
     init_beta_naught : float, optional
         The initial value of the beta_naught parameter. The default is 0.0.
         Note that is lock_beta_naught is not None, then this value is irrelevant.
+    maxls : int
+        Maximum number of iterations to perform during line search.
     tol : float, optional
         The tolerance for the fit. The default is 1e-4.
-    num_training_steps : int, optional
-        The number of training steps to perform. The default is 1.
-        If you would like to see training loss throughout training,
-        divide the number of total iterations by the number of steps.
-        In other words, if you specify 1 for num_training_steps and
-        20000 for iterations_per_step, that would be equivalent to
-        specifying 20 for num_training_steps and 1000 for iterations_per_step,
-        except that the latter will populate the step_loss attribute
-        with the loss at the beginning each step.
-    iterations_per_step : int, optional
-        The number of iterations to perform per training step. The default is 20000.
+    maxiter : int, optional
+        The max number of iterations to take if the tolerance threshold is not met.
+        The default is 20000.
     acceleration : bool, optional
         Whether to use the FISTA acceleration. The default is True. This is only useful
         when using a single step with many iterations.
@@ -144,6 +148,8 @@ def fit_one_model(
         The PRNGKey to use to initialize model parameters. The default is 0.
     verbose : bool, optional
         Whether to print out information about the fit to stdout. The default is False.
+    **kwargs : dict
+        Additional keyword arguments to pass to the multidms.Model.fit method.
 
     Returns
     -------
@@ -189,9 +195,6 @@ def fit_one_model(
     del fit_attributes["dataset"]
     del fit_attributes["verbose"]
 
-    fit_attributes["step_loss"] = onp.repeat(onp.nan, num_training_steps + 1)
-    fit_attributes["step_error"] = onp.repeat(onp.nan, num_training_steps + 1)
-    fit_attributes["step_loss"][0] = float(imodel.loss)
     fit_attributes["dataset_name"] = dataset.name
     fit_attributes["model"] = imodel
 
@@ -201,61 +204,51 @@ def fit_one_model(
 
     total_iterations = 0
 
-    for training_step in range(num_training_steps):
-        start = time.time()
-        imodel.fit(
-            lasso_shift=scale_coeff_lasso_shift,
-            maxiter=iterations_per_step,
-            tol=tol,
-            acceleration=acceleration,
-            huber_scale=huber_scale_huber,
-            lock_params=lock_params,
-            scale_coeff_ridge_shift=scale_coeff_ridge_shift,
-            scale_coeff_ridge_beta=scale_coeff_ridge_beta,
-            scale_coeff_ridge_gamma=scale_coeff_ridge_gamma,
-            scale_coeff_ridge_alpha_d=scale_coeff_ridge_alpha_d,
-            upper_bound_theta_ge_scale=upper_bound_theta_ge_scale,
-            warn_unconverged=False,
-        )
-        end = time.time()
+    # for training_step in range(num_training_steps):
+    start = time.time()
+    imodel.fit(
+        warn_unconverged=False,
+        # **kwargs,
+        scale_coeff_lasso_shift=scale_coeff_lasso_shift,
+        maxiter=maxiter,
+        tol=tol,
+        acceleration=acceleration,
+        maxls=maxls,
+        huber_scale=huber_scale_huber,
+        lock_params=lock_params,
+        scale_coeff_ridge_shift=scale_coeff_ridge_shift,
+        scale_coeff_ridge_beta=scale_coeff_ridge_beta,
+        scale_coeff_ridge_gamma=scale_coeff_ridge_gamma,
+        scale_coeff_ridge_alpha_d=scale_coeff_ridge_alpha_d,
+        upper_bound_theta_ge_scale=upper_bound_theta_ge_scale,
+    )
+    end = time.time()
 
-        fit_time = round(end - start)
-        total_iterations += iterations_per_step
-
-        if onp.isnan(float(imodel.loss)):
-            break
-
-        fit_attributes["step_loss"][training_step + 1] = float(imodel.loss)
-
-        if verbose:
-            print(
-                f"training_step {training_step}/{num_training_steps},"
-                f"Loss: {imodel.loss}, Time: {fit_time} Seconds",
-                flush=True,
-            )
+    fit_attributes["fit_time"] = round(end - start)
 
     col_order = [
         "model",
         "dataset_name",
-        "step_loss",
         "epistatic_model",
         "output_activation",
+        "gamma_corrected",
+        "alpha_d",
+        "n_hidden_units",
+        "lower_bound",
+        "PRNGKey",
         "scale_coeff_lasso_shift",
         "scale_coeff_ridge_beta",
         "scale_coeff_ridge_shift",
         "scale_coeff_ridge_gamma",
         "scale_coeff_ridge_alpha_d",
         "huber_scale_huber",
-        "gamma_corrected",
-        "alpha_d",
         "init_beta_naught",
         "lock_beta_naught_at",
         "tol",
-        "num_training_steps",
-        "iterations_per_step",
-        "n_hidden_units",
-        "lower_bound",
-        "PRNGKey",
+        "maxiter",
+        "acceleration",
+        "maxls",
+        "fit_time",
     ]
 
     return pd.Series(fit_attributes)[col_order]
@@ -661,6 +654,35 @@ class ModelCollection:
             condition=lambda x: x.condition.str.split("_").str[:-2].str.join("_"),
         )
         return loss_df
+
+    def convergence_trajectory_df(
+        self,
+        query=None,
+        id_vars=("dataset_name", "scale_coeff_lasso_shift"),
+    ):
+        """TODO"""
+        queried_fits = (
+            self.fit_models.query(query) if query is not None else self.fit_models
+        )
+        if len(queried_fits) == 0:
+            raise ValueError("invalid query, no fits returned")
+
+        if not all([var in queried_fits.columns for var in id_vars]):
+            raise ValueError(f"invalid {id_vars=}")
+
+        convergence_trajectory_data = my_concat(
+            [
+                (
+                    fit.model.convergence_trajectory_df.assign(
+                        **{key: fit[key] for key in id_vars}
+                    )
+                )
+                for _, fit in queried_fits.iterrows()
+            ]
+        )
+
+        # TODO make altair chart
+        return convergence_trajectory_data
 
     def mut_param_heatmap(
         self,
@@ -1145,10 +1167,6 @@ class ModelCollection:
                         index=[0],
                     ),
                 )
-
-        # https://github.com/microsoft/pylance-release/issues/5630
-        def my_concat(dfs_list, axis=0):
-            return pd.concat(dfs_list, axis=axis)
 
         replicate_df = my_concat(replicate_series)
 

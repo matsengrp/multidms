@@ -375,7 +375,7 @@ def test_fit_models():
     )
     params = {
         "dataset": [data],
-        "iterations_per_step": [2],
+        "maxiter": [2],
         "scale_coeff_lasso_shift": [0.0, 1e-5],
     }
     _, _, fit_models_df = multidms.model_collection.fit_models(
@@ -401,7 +401,7 @@ def test_ModelCollection_charts():
     )
     params = {
         "dataset": [data],
-        "iterations_per_step": [2],
+        "maxiter": [2],
         "scale_coeff_lasso_shift": [0.0, 1e-5],
     }
     _, _, fit_models_df = multidms.model_collection.fit_models(
@@ -488,7 +488,7 @@ def test_ModelCollection_get_conditional_loss_df():
     """
     params = {
         "dataset": [data],
-        "iterations_per_step": [2],
+        "maxiter": [2],
         "scale_coeff_lasso_shift": [0.0, 1e-5],
     }
     _, _, fit_models_df = multidms.model_collection.fit_models(

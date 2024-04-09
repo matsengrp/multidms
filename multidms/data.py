@@ -21,11 +21,14 @@ from tqdm.auto import tqdm
 
 from multidms import AAS
 
+import jax
 import jax.numpy as jnp
 import seaborn as sns
 from jax.experimental import sparse
 from matplotlib import pyplot as plt
 from pandarallel import pandarallel
+
+jax.config.update("jax_enable_x64", True)
 
 
 def split_sub(sub_string):
@@ -463,7 +466,7 @@ class Data:
 
         # Make BinaryMap representations for each condition
         allowed_subs = {s for subs in df.var_wrt_ref for s in subs.split()}
-        binmaps, X, y = {}, {}, {}
+        binmaps, X, y, w = {}, {}, {}, {}
         for condition, condition_func_score_df in df.groupby("condition"):
             ref_bmap = bmap.BinaryMap(
                 condition_func_score_df,
@@ -475,10 +478,12 @@ class Data:
             binmaps[condition] = ref_bmap
             X[condition] = sparse.BCOO.from_scipy_sparse(ref_bmap.binary_variants)
             y[condition] = jnp.array(condition_func_score_df["func_score"].values)
+            if "weight" in condition_func_score_df.columns:
+                w[condition] = jnp.array(condition_func_score_df["weight"].values)
 
         df.drop(["wts", "sites", "muts"], axis=1, inplace=True)
         self._variants_df = df
-        self._training_data = {"X": X, "y": y}
+        self._training_data = {"X": X, "y": y, "w": w}
         self._binarymaps = binmaps
         self._mutations = tuple(ref_bmap.all_subs)
 
