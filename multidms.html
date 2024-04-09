@@ -491,10 +491,10 @@ request the property.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">get_mutations_df</span><span class="p">()</span>  
 <span class="go">              beta  shift_b  predicted_func_score_a  predicted_func_score_b  \</span>
 <span class="go">mutation</span>
-<span class="go">M1E       1.816086      0.0                1.800479                1.379661</span>
-<span class="go">M1W      -0.754885      0.0               -0.901211               -1.322029</span>
-<span class="go">G3P       0.339889      0.0                0.420818                0.000000</span>
-<span class="go">G3R      -0.534835      0.0               -0.653051               -1.073869</span>
+<span class="go">M1E       0.080868      0.0                0.101030                0.565154</span>
+<span class="go">M1W      -0.386247      0.0               -0.476895               -0.012770</span>
+<span class="go">G3P      -0.375656      0.0               -0.464124                0.000000</span>
+<span class="go">G3R       1.668974      0.0                1.707195                2.171319</span>
 
 <span class="go">          times_seen_a  times_seen_b wts  sites muts</span>
 <span class="go">mutation</span>
@@ -510,26 +510,26 @@ and predicted functional score (<code class="docutils literal notranslate"><span
 easily accessible. Similarly, we can take a look at the variants_df for the model,</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">get_variants_df</span><span class="p">()</span>  
 <span class="go">  condition aa_substitutions  func_score var_wrt_ref  predicted_latent  \</span>
-<span class="go">0         a              M1E         2.0         M1E          1.816086</span>
-<span class="go">1         a              G3R        -7.0         G3R         -0.534835</span>
-<span class="go">2         a              G3P        -0.5         G3P          0.339889</span>
-<span class="go">3         a              M1W         2.3         M1W         -0.754885</span>
-<span class="go">4         b              M1E         1.0     G3P M1E          1.816086</span>
-<span class="go">5         b              P3R        -5.0         G3R         -0.874724</span>
-<span class="go">6         b              P3G         0.4                     -0.339889</span>
-<span class="go">7         b          M1E P3G         2.7         M1E          1.476197</span>
-<span class="go">8         b          M1E P3R        -2.7     G3R M1E          0.941362</span>
+<span class="go">0         a              M1E         2.0         M1E          0.080868</span>
+<span class="go">1         a              G3R        -7.0         G3R          1.668974</span>
+<span class="go">2         a              G3P        -0.5         G3P         -0.375656</span>
+<span class="go">3         a              M1W         2.3         M1W         -0.386247</span>
+<span class="go">4         b              M1E         1.0     G3P M1E          0.080868</span>
+<span class="go">5         b              P3R        -5.0         G3R          2.044630</span>
+<span class="go">6         b              P3G         0.4                      0.375656</span>
+<span class="go">7         b          M1E P3G         2.7         M1E          0.456523</span>
+<span class="go">8         b          M1E P3R        -2.7     G3R M1E          2.125498</span>
 
 <span class="go">   predicted_func_score</span>
-<span class="go">0              1.800479</span>
-<span class="go">1             -0.653051</span>
-<span class="go">2              0.420818</span>
-<span class="go">3             -0.901211</span>
-<span class="go">4              1.560311</span>
-<span class="go">5             -1.073869</span>
-<span class="go">6             -0.420818</span>
-<span class="go">7              1.379661</span>
-<span class="go">8              0.992495</span>
+<span class="go">0              0.101030</span>
+<span class="go">1              1.707195</span>
+<span class="go">2             -0.464124</span>
+<span class="go">3             -0.476895</span>
+<span class="go">4              0.098285</span>
+<span class="go">5              2.171319</span>
+<span class="go">6              0.464124</span>
+<span class="go">7              0.565154</span>
+<span class="go">8              2.223789</span>
 </pre></div>
 </div>
 <p>We now have access to the predicted (and gamma corrected) functional scores
@@ -538,13 +538,13 @@ as predicted by the models current parameters.</p>
 to the dataset. Let’s take a look at the loss on the training dataset
 given our initialized parameters</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">loss</span>
-<span class="go">Array(4.7124467, dtype=float32)</span>
+<span class="go">Array(7.19312981, dtype=float64)</span>
 </pre></div>
 </div>
 <p>Next, we fit the model with some chosen hyperparameters.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">maxiter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">lasso_shift</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">warn_unconverged</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">loss</span>
-<span class="go">Array(6.0517805e-06, dtype=float32)</span>
+<span class="go">Array(1.18200934e-05, dtype=float64)</span>
 </pre></div>
 </div>
 <p>The model tunes its parameters in place, and the subsequent call to retrieve
@@ -604,6 +604,13 @@ without ridge or lasso penalties included.</p>
 <dt class="sig sig-object py" id="multidms.Model.conditional_loss">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">conditional_loss</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></em><a class="headerlink" href="#multidms.Model.conditional_loss" title="Link to this definition">¶</a></dt>
 <dd><p>Compute loss individually for each condition.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="multidms.Model.convergence_trajectory_df">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">convergence_trajectory_df</span></span><a class="headerlink" href="#multidms.Model.convergence_trajectory_df" title="Link to this definition">¶</a></dt>
+<dd><p>The state.error through each training iteration.
+Currentlty, this is reset each time the fit() method is called</p>
 </dd></dl>
 
 <dl class="py property">
@@ -828,14 +835,15 @@ for general use.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.fit">
-<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lasso_shift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acceleration</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lock_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warn_unconverged</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_bound_theta_ge_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'infer'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.fit" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acceleration</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_coeff_lasso_shift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lock_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warn_unconverged</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_bound_theta_ge_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'infer'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">convergence_trajectory_resolution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.fit" title="Link to this definition">¶</a></dt>
 <dd><p>Use jaxopt.ProximalGradiant to optimize the model’s free parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>lasso_shift</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – L1 penalty on the shift parameters. Defaults to 1e-5.</p></li>
+<li><p><strong>scale_coeff_lasso_shift</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – L1 penalty on the shift parameters. Defaults to 1e-5.</p></li>
 <li><p><strong>tol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Tolerance for the optimization. Defaults to 1e-6.</p></li>
 <li><p><strong>maxiter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Maximum number of iterations for the optimization. Defaults to 1000.</p></li>
+<li><p><strong>maxls</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Maximum number of iterations to perform during line search.</p></li>
 <li><p><strong>acceleration</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, use FISTA acceleration. Defaults to True.</p></li>
 <li><p><strong>lock_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Dictionary of parameters, and desired value to constrain
 them at during optimization. By default, none of the parameters
@@ -850,6 +858,8 @@ Passing <code class="docutils literal notranslate"><span class="pre">None</span>
 Passing the string literal ‘infer’ results in the
 scale being set to double the range of the training data.
 Defaults to ‘infer’.</p></li>
+<li><p><strong>convergence_trajectory_resolution</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – The resolution of the loss and error trajectory recorded
+during optimization. Defaults to 100.</p></li>
 <li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Additional keyword arguments passed to the objective function.
 These include hyperparameters like a ridge penalty on beta, shift, and gamma
 as well as huber loss scaling.</p></li>
@@ -860,7 +870,7 @@ as well as huber loss scaling.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.plot_pred_accuracy">
-<span class="sig-name descname"><span class="pre">plot_pred_accuracy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hue</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotate_corr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.plot_pred_accuracy" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">plot_pred_accuracy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hue</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotate_corr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.plot_pred_accuracy" title="Link to this definition">¶</a></dt>
 <dd><p>Create a figure which visualizes the correlation
 between model predicted functional score of all
 variants in the training with ground truth measurements.</p>
@@ -1035,6 +1045,12 @@ The default is False.</p></li>
 before formatting the loss dataframe. The default is None.</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="multidms.ModelCollection.convergence_trajectory_df">
+<span class="sig-name descname"><span class="pre">convergence_trajectory_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id_vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('dataset_name',</span> <span class="pre">'scale_coeff_lasso_shift')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.convergence_trajectory_df" title="Link to this definition">¶</a></dt>
+<dd><p>TODO</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1257,6 +1273,7 @@ for comparison and visualization.</p>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.model_components"><code class="docutils literal notranslate"><span class="pre">Model.model_components</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.loss"><code class="docutils literal notranslate"><span class="pre">Model.loss</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.conditional_loss"><code class="docutils literal notranslate"><span class="pre">Model.conditional_loss</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.convergence_trajectory_df"><code class="docutils literal notranslate"><span class="pre">Model.convergence_trajectory_df</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.variants_df"><code class="docutils literal notranslate"><span class="pre">Model.variants_df</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_variants_df"><code class="docutils literal notranslate"><span class="pre">Model.get_variants_df()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.mutations_df"><code class="docutils literal notranslate"><span class="pre">Model.mutations_df</span></code></a></li>
@@ -1282,6 +1299,7 @@ for comparison and visualization.</p>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.model_collection.html"><code class="docutils literal notranslate"><span class="pre">ModelCollectionFitError</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.my_concat"><code class="docutils literal notranslate"><span class="pre">my_concat()</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.fit_one_model"><code class="docutils literal notranslate"><span class="pre">fit_one_model()</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.stack_fit_models"><code class="docutils literal notranslate"><span class="pre">stack_fit_models()</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.fit_models"><code class="docutils literal notranslate"><span class="pre">fit_models()</span></code></a></li>
@@ -1294,6 +1312,7 @@ for comparison and visualization.</p>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.split_apply_combine_muts"><code class="docutils literal notranslate"><span class="pre">ModelCollection.split_apply_combine_muts()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.add_validation_loss"><code class="docutils literal notranslate"><span class="pre">ModelCollection.add_validation_loss()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.get_conditional_loss_df"><code class="docutils literal notranslate"><span class="pre">ModelCollection.get_conditional_loss_df()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.convergence_trajectory_df"><code class="docutils literal notranslate"><span class="pre">ModelCollection.convergence_trajectory_df()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.mut_param_heatmap"><code class="docutils literal notranslate"><span class="pre">ModelCollection.mut_param_heatmap()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.mut_param_traceplot"><code class="docutils literal notranslate"><span class="pre">ModelCollection.mut_param_traceplot()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.shift_sparsity"><code class="docutils literal notranslate"><span class="pre">ModelCollection.shift_sparsity()</span></code></a></li>
