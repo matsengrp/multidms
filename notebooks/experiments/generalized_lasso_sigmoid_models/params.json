@@ -1,0 +1,9 @@
+{
+  "warmup_iterations" : [0],
+  "max_total_iterations" : [100000],
+  "data_replicate": [1,2],
+  "post_latent_fn": ["sigmoid"],
+  "smooth_obj_fn" : ["sum_penalty"],
+  "l2reg_beta" : [1e-3],
+  "lasso_coeff" : [0.0]
+}

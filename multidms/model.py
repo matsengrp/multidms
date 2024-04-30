@@ -8,24 +8,28 @@ Defines :class:`Model` objects.
 
 import math
 import warnings
-from functools import partial, reduce
+from functools import partial, reduce, cached_property
+from frozendict import frozendict
+
+from multidms import Data
+import multidms.biophysical
+from multidms.plot import _lineplot_and_heatmap
+from multidms.utils import transform, difference_matrix
 
 import jax
 import jax.numpy as jnp
 import numpy as onp
 import pandas as pd
 import scipy
-import seaborn as sns
-from frozendict import frozendict
+import pylops
+from scipy.stats import pearsonr
 from jax.experimental import sparse
 from jaxopt import ProximalGradient
-from jaxopt.linear_solve import solve_normal_cg
-from matplotlib import pyplot as plt
-from scipy.stats import pearsonr
 
-from multidms import Data
-import multidms.biophysical
-from multidms.plot import _lineplot_and_heatmap
+# from jaxopt.linear_solve import solve_normal_cg
+import seaborn as sns
+from matplotlib import pyplot as plt
+
 
 jax.config.update("jax_enable_x64", True)
 
@@ -140,20 +144,18 @@ class Model:
     request the property.
 
     >>> model.get_mutations_df()  # doctest: +NORMALIZE_WHITESPACE
-                  beta  shift_b  predicted_func_score_a  predicted_func_score_b  \
-    mutation           
-    M1E       0.080868      0.0                0.101030                0.565154
-    M1W      -0.386247      0.0               -0.476895               -0.012770
-    G3P      -0.375656      0.0               -0.464124                0.000000                                                                                                                                   
-    G3R       1.668974      0.0                1.707195                2.171319 
-    <BLANKLINE>
-              times_seen_a  times_seen_b wts  sites muts
+              beta_a  beta_b  shift_b  predicted_func_score_a  \
     mutation
-    M1E                  1           3.0   M      1    E
-    M1W                  1           0.0   M      1    W
-    G3P                  1           1.0   G      3    P
-    G3R                  1           2.0   G      3    R
-
+    M1E          0.0     0.0      0.0                     0.0
+    M1W          0.0     0.0      0.0                     0.0
+    G3P          0.0    -0.0      0.0                     0.0
+    G3R          0.0     0.0      0.0                     0.0
+              predicted_func_score_b  times_seen_a  times_seen_b wts  sites muts
+    mutation
+    M1E                          0.0             1           3.0   M      1    E
+    M1W                          0.0             1           0.0   M      1    W
+    G3P                          0.0             1           1.0   G      3    P
+    G3R                          0.0             1           2.0   G      3    R
 
     Notice the respective single mutation effects (``"beta"``), conditional shifts
     (``shift_d``),
@@ -161,27 +163,26 @@ class Model:
     easily accessible. Similarly, we can take a look at the variants_df for the model,
 
     >>> model.get_variants_df()  # doctest: +NORMALIZE_WHITESPACE
-      condition aa_substitutions  func_score var_wrt_ref  predicted_latent  \
-    0         a              M1E         2.0         M1E          0.080868
-    1         a              G3R        -7.0         G3R          1.668974
-    2         a              G3P        -0.5         G3P         -0.375656
-    3         a              M1W         2.3         M1W         -0.386247
-    4         b              M1E         1.0     G3P M1E          0.080868
-    5         b              P3R        -5.0         G3R          2.044630
-    6         b              P3G         0.4                      0.375656
-    7         b          M1E P3G         2.7         M1E          0.456523
-    8         b          M1E P3R        -2.7     G3R M1E          2.125498
-    <BLANKLINE>
+       condition aa_substitutions  func_score var_wrt_ref  predicted_latent  \
+    0         a              M1E         2.0         M1E               0.0
+    1         a              G3R        -7.0         G3R               0.0
+    2         a              G3P        -0.5         G3P               0.0
+    3         a              M1W         2.3         M1W               0.0
+    4         b              M1E         1.0     G3P M1E               0.0
+    5         b              P3R        -5.0         G3R               0.0
+    6         b              P3G         0.4                           0.0
+    7         b          M1E P3G         2.7         M1E               0.0
+    8         b          M1E P3R        -2.7     G3R M1E               0.0
        predicted_func_score
-    0              0.101030
-    1              1.707195
-    2             -0.464124
-    3             -0.476895
-    4              0.098285
-    5              2.171319
-    6              0.464124
-    7              0.565154
-    8              2.223789
+    0                   0.0
+    1                   0.0
+    2                   0.0
+    3                   0.0
+    4                   0.0
+    5                   0.0
+    6                   0.0
+    7                   0.0
+    8                   0.0
 
 
     We now have access to the predicted (and gamma corrected) functional scores
@@ -192,13 +193,13 @@ class Model:
     given our initialized parameters
 
     >>> model.loss
-    Array(7.19312981, dtype=float64)
+    2.9370000000000003
 
     Next, we fit the model with some chosen hyperparameters.
 
-    >>> model.fit(maxiter=1000, lasso_shift=1e-5, warn_unconverged=False)
+    >>> model.fit(maxiter=10, lasso_shift=1e-5, warn_unconverged=False)
     >>> model.loss
-    Array(1.18200934e-05, dtype=float64)
+    0.29835365289243454
 
     The model tunes its parameters in place, and the subsequent call to retrieve
     the loss reflects our models loss given its updated parameters.
@@ -215,23 +216,22 @@ class Model:
         output_activation=multidms.biophysical.identity_activation,
         conditional_shifts=True,
         alpha_d=False,
-        gamma_corrected=False,
+        # gamma_corrected=False,
         PRNGKey=0,
         lower_bound=None,
         n_hidden_units=5,
-        init_beta_naught=0.0,
         init_theta_scale=5.0,
         init_theta_bias=-5.0,
         name=None,
     ):
         """See class docstring."""
-        self.gamma_corrected = gamma_corrected
+        # self.gamma_corrected = gamma_corrected
         self.conditional_shifts = conditional_shifts
         self.alpha_d = alpha_d
 
         self._data = data
 
-        self._params = {}
+        self._scaled_data_params = {}
         key = jax.random.PRNGKey(PRNGKey)
 
         # initialize beta and shift parameters
@@ -240,22 +240,32 @@ class Model:
         latent_model = multidms.biophysical.additive_model
         if latent_model == multidms.biophysical.additive_model:
             n_beta_shift = len(self._data.mutations)
-            self._params["beta"] = jax.random.normal(shape=(n_beta_shift,), key=key)
-            for condition in data.conditions:
-                self._params[f"shift_{condition}"] = jnp.zeros(shape=(n_beta_shift,))
-                self._params[f"alpha_{condition}"] = jnp.zeros(shape=(1,))
-            self._params["beta_naught"] = jnp.array([init_beta_naught])
+            self._scaled_data_params["beta0"] = {
+                cond: jnp.zeros(shape=(1,)) for cond in data.conditions
+            }
+            self._scaled_data_params["beta"] = {
+                cond: jnp.zeros(shape=(n_beta_shift,)) for cond in data.conditions
+            }
+            self._scaled_data_params["shift"] = {
+                cond: jnp.zeros(shape=(n_beta_shift,)) for cond in data.conditions
+            }
+            # TODO GAMMA
+            # self._params["gamma"] = {
+            #     cond: jnp.zeros(shape=(1,)) for cond in data.conditions
+            # }
         else:
             raise ValueError(f"{latent_model} not recognized,")
 
         # initialize theta parameters
         if epistatic_model == multidms.biophysical.sigmoidal_global_epistasis:
-            self._params["theta"] = dict(
+            self._scaled_data_params["theta"] = dict(
                 ge_scale=jnp.array([init_theta_scale]),
                 ge_bias=jnp.array([init_theta_bias]),
             )
 
         elif epistatic_model == multidms.biophysical.softplus_global_epistasis:
+            # TODO Could infer here such that the parameters are initialized to the
+            # range of the data?
             if output_activation != multidms.biophysical.softplus_activation:
                 warnings.warn(
                     "softplus_global_epistasis has no natural lower bound,"
@@ -263,13 +273,13 @@ class Model:
                     "with a lower bound specified when using this model."
                 )
 
-            self._params["theta"] = dict(
+            self._scaled_data_params["theta"] = dict(
                 ge_scale=jnp.array([init_theta_scale]),
                 ge_bias=jnp.array([init_theta_bias]),
             )
 
         elif epistatic_model == multidms.biophysical.identity_activation:
-            self._params["theta"] = dict(ghost_param=jnp.zeros(shape=(1,)))
+            self._scaled_data_params["theta"] = dict(ghost_param=jnp.zeros(shape=(1,)))
 
         elif epistatic_model == multidms.biophysical.nn_global_epistasis:
             if n_hidden_units is None:
@@ -277,7 +287,7 @@ class Model:
                     "n_hidden_units must be specified for nn_global_epistasis"
                 )
             key, key1, key2, key3, key4 = jax.random.split(key, num=5)
-            self._params["theta"] = dict(
+            self._scaled_data_params["theta"] = dict(
                 p_weights_1=jax.random.normal(shape=(n_hidden_units,), key=key1).clip(
                     0
                 ),
@@ -303,9 +313,6 @@ class Model:
                 multidms.biophysical.softplus_activation, lower_bound=lower_bound
             )
 
-        for condition in data.conditions:
-            self._params[f"gamma_{condition}"] = jnp.zeros(shape=(1,))
-
         # compile the model components
         pred = partial(
             multidms.biophysical._abstract_epistasis,  # abstract function to compile
@@ -318,7 +325,7 @@ class Model:
             epistatic_model,
             output_activation,
         )
-        cost = partial(multidms.biophysical._gamma_corrected_cost_smooth, pred)
+        objective = partial(multidms.biophysical.smooth_objective, pred)
 
         self._model_components = frozendict(
             {
@@ -327,8 +334,8 @@ class Model:
                 "output_activation": output_activation,
                 "f": pred,
                 "from_latent": from_latent,
-                "objective": cost,
-                "proximal": multidms.biophysical._lasso_lock_prox,
+                "objective": objective,
+                "proximal": multidms.biophysical.proximal_objective,
             }
         )
 
@@ -348,15 +355,20 @@ class Model:
         """Returns a string representation of the object."""
         return f"{self.__class__.__name__}({self.name})"
 
+    def _clear_cache(self):
+        """Clear cached properties"""
+        if "params" in self.__dict__:
+            del self.__dict__["params"]
+
     @property
     def name(self) -> str:
         """The name of the data object."""
         return self._name
 
-    @property
+    @cached_property
     def params(self) -> dict:
-        """All current model parameters in a dictionary."""
-        return self._params
+        """A copy of all current model parameters"""
+        return transform(self._scaled_data_params, self.data.non_identical_idxs)
 
     @property
     def state(self) -> dict:
@@ -397,7 +409,9 @@ class Model:
             "scale_ridge_alpha_d": 0.0,
         }
         data = (self.data.training_data["X"], self.data.training_data["y"])
-        return jax.jit(self.model_components["objective"])(self.params, data, **kwargs)
+        return float(
+            jax.jit(self.model_components["objective"])(self.params, data, **kwargs)
+        )
 
     @property
     def conditional_loss(self) -> float:
@@ -415,7 +429,7 @@ class Model:
         for condition in self.data.conditions:
             condition_data = ({condition: X[condition]}, {condition: y[condition]})
             ret[condition] = float(loss_fxn(self.params, condition_data, **kwargs))
-        ret["total"] = sum(ret.values())
+        ret["total"] = sum(ret.values()) / len(ret.values())
         return ret
 
     @property
@@ -465,8 +479,9 @@ class Model:
 
         # if we're a gamma corrected model, also report the "corrected"
         # observed func score, as we do during training.
-        if self.gamma_corrected:
-            variants_df["corrected_func_score"] = variants_df["func_score"]
+        # TODO GAMMA
+        # if self.gamma_corrected:
+        # variants_df["corrected_func_score"] = variants_df["func_score"]
 
         # get the wildtype predictions for each condition
         if phenotype_as_effect:
@@ -489,10 +504,14 @@ class Model:
 
                 variants_df.loc[condition_df.index, f"predicted_{pheno}"] = Y_pred
 
-            if self.gamma_corrected:
-                variants_df.loc[condition_df.index, "corrected_func_score"] += d_params[
-                    "gamma_d"
-                ]
+            # TODO GAMMA
+            # if self.gamma_corrected:
+            #     variants_df.loc[
+            # condition_df.index,
+            # "corrected_func_score"
+            # ] += d_params[
+            #         "gamma"
+            #     ]
 
         return variants_df
 
@@ -505,6 +524,7 @@ class Model:
         warnings.warn("deprecated", DeprecationWarning)
         return self.get_mutations_df(phenotype_as_effect=False)
 
+    # TODO cached_property
     def get_mutations_df(
         self,
         phenotype_as_effect=True,
@@ -565,14 +585,15 @@ class Model:
         if phenotype_as_effect:
             wildtype_df = self.wildtype_df
 
-        # add betas i.e. 'latent effect'
-        mutations_df.loc[:, "beta"] = self._params["beta"]
         X = sparse.BCOO.fromdense(onp.identity(len(self._data.mutations)))
 
+        params = self.params
         for condition in self._data.conditions:
             # shift of latent effect
+            mutations_df[f"beta_{condition}"] = params["beta"][condition]
+
             if condition != self._data.reference:
-                mutations_df[f"shift_{condition}"] = self._params[f"shift_{condition}"]
+                mutations_df[f"shift_{condition}"] = params["shift"][condition]
 
             Y_pred = self.phenotype_frombinary(X, condition)
             if phenotype_as_effect:
@@ -587,10 +608,10 @@ class Model:
                 ]
 
         col_order = (
-            ["beta"]
-            + [c for c in mutations_df.columns if "shift_" in c]
-            + [c for c in mutations_df.columns if "predicted_" in c]
-            + [c for c in mutations_df.columns if "times_seen_" in c]
+            [c for c in mutations_df.columns if c.startswith("beta")]
+            + [c for c in mutations_df.columns if c.startswith("shift")]
+            + [c for c in mutations_df.columns if c.startswith("predicted")]
+            + [c for c in mutations_df.columns if c.startswith("times_seen")]
         )
         if return_split:
             col_order += ["wts", "sites", "muts"]
@@ -633,6 +654,12 @@ class Model:
         if condition_col not in df.columns:
             raise ValueError("`df` lacks `condition_col` " f"{condition_col}")
 
+        kwargs = {
+            "scale_coeff_ridge_beta": 0.0,
+            "scale_coeff_ridge_shift": 0.0,
+            "scale_coeff_ridge_gamma": 0.0,
+            "scale_ridge_alpha_d": 0.0,
+        }
         loss_fxn = jax.jit(self.model_components["objective"])
 
         ret = {}
@@ -688,10 +715,9 @@ class Model:
             )
 
             y[condition] = jnp.array(variant_targets)
+            ret[condition] = float(loss_fxn(self.params, (X, y), **kwargs))
 
-            ret[condition] = float(loss_fxn(self.params, (X, y)))
-
-        ret["total"] = sum(ret.values())
+        ret["total"] = sum(ret.values()) / len(ret.values())
 
         if not conditional:
             return ret["total"]
@@ -892,14 +918,13 @@ class Model:
         condition = self.data.reference if condition is None else condition
         if condition not in self.data.conditions:
             raise ValueError(f"condition {condition} does not exist in model")
-
         return {
+            "beta0": self.params["beta0"][condition],
+            "beta": self.params["beta"][condition],
+            "shift": self.params["shift"][condition],
+            # TODO GAMMA
+            # "gamma": self.params["gamma"][condition],
             "theta": self.params["theta"],
-            "beta_m": self.params["beta"],
-            "beta_naught": self.params["beta_naught"],
-            "s_md": self.params[f"shift_{condition}"],
-            "alpha_d": self.params[f"alpha_{condition}"],
-            "gamma_d": self.params[f"gamma_{condition}"],
         }
 
     def phenotype_fromsubs(self, aa_subs, condition=None):
@@ -966,31 +991,19 @@ class Model:
         d_params = self.get_condition_params(condition)
         return jax.jit(self.model_components["latent_model"])(d_params, X)
 
-    def fit_reference_beta(self, **kwargs):
-        """
-        Fit the Model beta's to the reference data.
-
-        This is an experimental feature and is not recommended
-        for general use.
-        """
-        ref_X = self.data.training_data["X"][self.data.reference]
-        ref_y = self.data.training_data["y"][self.data.reference]
-
-        self._params["beta"] = solve_normal_cg(
-            lambda beta: ref_X @ beta, ref_y, init=self._params["beta"], **kwargs
-        )
-
     def fit(
         self,
+        scale_coeff_lasso_shift=1e-5,
         tol=1e-4,
         maxiter=1000,
-        acceleration=True,
         maxls=15,
-        scale_coeff_lasso_shift=1e-5,
+        acceleration=True,
         lock_params={},
+        admm_niter=50,
+        admm_tau=1.0,
         warn_unconverged=True,
-        upper_bound_theta_ge_scale="infer",
-        convergence_trajectory_resolution=100,
+        upper_bound_ge_scale="infer",
+        convergence_trajectory_resolution=10,
         **kwargs,
     ):
         r"""
@@ -999,9 +1012,10 @@ class Model:
         Parameters
         ----------
         scale_coeff_lasso_shift : float
-            L1 penalty on the shift parameters. Defaults to 1e-5.
+            L1 penalty coefficient applied "shift" in beta_d parameters.
+            Defaults to 1e-4.
         tol : float
-            Tolerance for the optimization. Defaults to 1e-6.
+            Tolerance for the optimization convergence criteria. Defaults to 1e-4.
         maxiter : int
             Maximum number of iterations for the optimization. Defaults to 1000.
         maxls : int
@@ -1011,13 +1025,18 @@ class Model:
         lock_params : dict
             Dictionary of parameters, and desired value to constrain
             them at during optimization. By default, none of the parameters
-            besides the reference shift, and reference latent offset are locked.
+            reference-condition latent offset (TODO math? beta0[ref]) are locked.
+        admm_niter : int
+            Number of iterations to perform during the ADMM optimization.
+            Defaults to 50.
+        admm_tau : float
+            ADMM step size. Defaults to 1.0.
         warn_unconverged : bool
             If True, raise a warning if the optimization does not converge.
             convergence is defined by whether the model tolerance (''tol'') threshold
             was passed during the optimization process.
             Defaults to True.
-        upper_bound_theta_ge_scale : float, None, or 'infer'
+        upper_bound_ge_scale : float, None, or 'infer'
             The positive upper bound of the theta scale parameter -
             negative values are not allowed.
             Passing ``None`` allows the scale of the sigmoid to be unconstrained.
@@ -1029,53 +1048,74 @@ class Model:
             during optimization. Defaults to 100.
         **kwargs : dict
             Additional keyword arguments passed to the objective function.
-            These include hyperparameters like a ridge penalty on beta, shift, and gamma
-            as well as huber loss scaling.
+            See the multidms.biophysical.smooth_objective docstring for
+            details on the other hyperparameters that may be supplied to
+            regularize and otherwise modify the objective function
+            being optimized.
         """
-        lock_params[f"shift_{self._data.reference}"] = jnp.zeros(
-            len(self._params["beta"])
-        )
-        lock_params[f"gamma_{self._data.reference}"] = jnp.zeros(shape=(1,))
+        # TODO rename
 
-        if not self.conditional_shifts:
-            for condition in self._data.conditions:
-                lock_params[f"shift_{condition}"] = jnp.zeros(shape=(1,))
-
-        if not self.gamma_corrected:
-            for condition in self._data.conditions:
-                lock_params[f"gamma_{condition}"] = jnp.zeros(shape=(1,))
-
-        if not self.alpha_d:
-            for condition in self._data.conditions:
-                lock_params[f"alpha_{condition}"] = jnp.zeros(shape=(1,))
-        else:
-            lock_params[f"alpha_{self._data.reference}"] = jnp.zeros(shape=(1,))
-
-        lasso_params = {}
-        for non_ref_condition in self._data.conditions:
-            if non_ref_condition == self._data.reference:
-                continue
-            lasso_params[f"shift_{non_ref_condition}"] = scale_coeff_lasso_shift
-
-        if not isinstance(upper_bound_theta_ge_scale, (float, int, type(None), str)):
+        # CONFIG PROXIMAL
+        # infer the range of the training data, and double it
+        # to set the upper bound of the theta (post-latent e.g. sigmoid) scale parameter.
+        # see https://github.com/matsengrp/multidms/issues/143 for details
+        if not isinstance(upper_bound_ge_scale, (float, int, type(None), str)):
             raise ValueError(
                 "upper_bound_theta_ge_scale must be a float, None, or 'infer'"
             )
-        if isinstance(upper_bound_theta_ge_scale, (float, int)):
-            if upper_bound_theta_ge_scale < 0:
+        if isinstance(upper_bound_ge_scale, (float, int)):
+            if upper_bound_ge_scale < 0:
                 raise ValueError("upper_bound_theta_ge_scale must be non-negative")
-        # infer the range of the training data, and double it
-        # to set the upper bound of the theta scale parameter.
-        # see https://github.com/matsengrp/multidms/issues/143 for details
-        # TODO could make this a property of the Data object
 
-        if upper_bound_theta_ge_scale == "infer":
+        # TODO I wonder if this should be rounded?
+        if upper_bound_ge_scale == "infer":
             y = jnp.concatenate(list(self.data.training_data["y"].values()))
             y_range = y.max() - y.min()
-            upper_bound_theta_ge_scale = 2 * y_range
+            upper_bound_ge_scale = 2 * y_range
 
+        # TODO This should all be done in init(), as we don't expect anything
+        # here to change upon different calls to fit.
+        non_identical_signs = {
+            condition: jnp.where(self.data._non_identical_idxs[condition], -1, 1)
+            for condition in self.data.conditions
+        }
+        non_identical_sign_matrix = jnp.vstack(
+            [non_identical_signs[d] for d in self.data.conditions]
+        )
+        diff_matrix = difference_matrix(len(self.data.conditions))
+        D_block_diag = scipy.sparse.block_diag(
+            [
+                jnp.array(diff_matrix) @ jnp.diag(non_identical_sign_matrix[:, col])
+                for col in range(len(self.data.mutations))
+            ]
+        )
+        Dop = pylops.LinearOperator(
+            Op=scipy.sparse.linalg.aslinearoperator(D_block_diag),
+            dtype=diff_matrix.dtype,
+            shape=D_block_diag.shape,
+        )
+        # print(Dop)
+        # print((Dop.matvec))
+        eig = jnp.real((Dop.H * Dop).eigs(neigs=1, which="LM")[0])
+
+        admm_mu = 0.99 * admm_tau / eig
+        assert 0 < admm_mu < admm_tau / eig
+
+        lock_params[("beta0", self.data.reference)] = 0.0
+
+        hyperparams_prox = (
+            scale_coeff_lasso_shift,
+            admm_niter,
+            admm_tau,
+            admm_mu,
+            upper_bound_ge_scale,
+            lock_params,
+            self.data.non_identical_idxs,
+            # Dop,
+        )
+
+        compiled_proximal = partial(self._model_components["proximal"], Dop)
         compiled_objective = jax.jit(self._model_components["objective"])
-        compiled_proximal = jax.jit(self._model_components["proximal"])
 
         solver = ProximalGradient(
             compiled_objective,
@@ -1084,23 +1124,30 @@ class Model:
             maxiter=maxiter,
             acceleration=acceleration,
             maxls=maxls,
+            jit=False,
         )
 
-        training_data = (self._data.training_data["X"], self._data.training_data["y"])
+        # print(
+        #     compiled_proximal(self._scaled_data_params, hyperparams_prox, scaling=1.0)
+        # )
+
+        # GET DATA
+        scaled_training_data = (
+            self._data.scaled_training_data["X"],
+            self._data.scaled_training_data["y"],
+        )
+
+        # TODO get validation data if it exists?
 
         self._state = solver.init_state(
-            self._params,
-            hyperparams_prox=dict(
-                lasso_params=lasso_params,
-                lock_params=lock_params,
-                upper_bound_theta_ge_scale=upper_bound_theta_ge_scale,
-            ),
-            data=training_data,
+            self._scaled_data_params,
+            hyperparams_prox=hyperparams_prox,
+            data=scaled_training_data,
             **kwargs,
         )
 
         convergence_trajectory = pd.DataFrame(
-            index=range(maxiter + 1, convergence_trajectory_resolution)
+            index=range(0, maxiter + 1, convergence_trajectory_resolution)
         ).assign(loss=onp.nan, error=onp.nan)
 
         # TODO should step be the index?
@@ -1108,43 +1155,29 @@ class Model:
 
         # record initial loss and error
         convergence_trajectory.loc[0, "loss"] = float(
-            compiled_objective(self._params, training_data)
+            compiled_objective(self._scaled_data_params, scaled_training_data)
         )
 
         convergence_trajectory.loc[0, "error"] = float(self._state.error)
 
-        # prev_no_pen_obj_loss = jnp.inf
         for i in range(maxiter):
             # perform single optimization step
-            self._params, self._state = solver.update(
-                self._params,
+            self._scaled_data_params, self._state = solver.update(
+                self._scaled_data_params,
                 self._state,
-                hyperparams_prox=dict(
-                    lasso_params=lasso_params,
-                    lock_params=lock_params,
-                    upper_bound_theta_ge_scale=upper_bound_theta_ge_scale,
-                ),
-                data=training_data,
+                hyperparams_prox=hyperparams_prox,
+                data=scaled_training_data,
                 **kwargs,
             )
             # record loss and error trajectories at regular intervals
             if (i + 1) % convergence_trajectory_resolution == 0:
-                no_pen_obj_loss = float(compiled_objective(self._params, training_data))
+                no_pen_obj_loss = float(
+                    compiled_objective(self._scaled_data_params, scaled_training_data)
+                )
                 convergence_trajectory.loc[i + 1, "loss"] = no_pen_obj_loss
                 convergence_trajectory.loc[i + 1, "error"] = float(self._state.error)
 
-                # TODO, if you wanted to
-                # delta_no_pen_obj_loss = -1 * (no_pen_obj_loss - prev_no_pen_obj_loss)
-                # if delta_no_pen_obj_loss < tol:
-                #     self._converged = True
-                #     break
-
-                # prev_no_pen_obj_loss = no_pen_obj_loss
-
             # early stopping criteria
-            # TODO what if we had an auxilary attribute that we used for
-            # early stopping, that's probably really speed things up if we
-            # wanted to do the above.
             if self._state.error < tol:
                 self._converged = True
                 break
@@ -1158,8 +1191,9 @@ class Model:
                 )
 
         self._convergence_trajectory = convergence_trajectory
+        self._clear_cache()
 
-        # return None
+        return None
 
     def plot_pred_accuracy(
         self,
