@@ -46,6 +46,8 @@ dependencies = [
     "matplotlib",
     "seaborn",
     "scipy",
+    "pylops",
+    "pyproximal",
     "tqdm",
     "pandarallel",
 ]

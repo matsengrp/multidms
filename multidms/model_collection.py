@@ -220,7 +220,7 @@ def fit_one_model(
         scale_coeff_ridge_beta=scale_coeff_ridge_beta,
         scale_coeff_ridge_gamma=scale_coeff_ridge_gamma,
         scale_coeff_ridge_alpha_d=scale_coeff_ridge_alpha_d,
-        upper_bound_theta_ge_scale=upper_bound_theta_ge_scale,
+        upper_bound_ge_scale=upper_bound_theta_ge_scale,
     )
     end = time.time()
 

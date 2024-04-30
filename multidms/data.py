@@ -20,6 +20,7 @@ from polyclonal.utils import MutationParser
 from tqdm.auto import tqdm
 
 from multidms import AAS
+from multidms.utils import rereference
 
 import jax
 import jax.numpy as jnp
@@ -52,6 +53,11 @@ def split_subs(subs_string, parser=split_sub):
         sites.append(site)
         muts.append(mut)
     return wts, sites, muts
+
+
+# TODO add bundle_idxs property
+# TODO add validation split
+# TODO could compute the Difference matrix
 
 
 class Data:
@@ -234,9 +240,8 @@ class Data:
                 "condition column looks to be numeric type, converting to string",
                 UserWarning,
             )
-        self._conditions = tuple(sorted(variants_df["condition"].astype(str).unique()))
-
-        if str(reference) not in self._conditions:
+        unique_conditions = set(variants_df["condition"].astype(str))
+        if str(reference) not in unique_conditions:
             if not isinstance(reference, str):
                 raise ValueError(
                     "reference must be a string, note that if your "
@@ -244,6 +249,13 @@ class Data:
                     "converted to string"
                 )
             raise ValueError("reference must be in condition factor levels")
+
+        # set the reference as the first condition. We need it to be first because
+        # the difference matrix will be constructed with that assumption so the
+        # parameters are inserted in the correct order in the Model initialization
+        non_reference_conditions = unique_conditions - set([reference])
+        self._conditions = tuple([reference] + list(non_reference_conditions))
+
         self._reference = str(reference)
 
         self._collapse_identical_variants = collapse_identical_variants
@@ -464,6 +476,9 @@ class Data:
                 axis=1,
             )
 
+        df.drop(["wts", "sites", "muts"], axis=1, inplace=True)
+        self._variants_df = df
+
         # Make BinaryMap representations for each condition
         allowed_subs = {s for subs in df.var_wrt_ref for s in subs.split()}
         binmaps, X, y, w = {}, {}, {}, {}
@@ -481,11 +496,28 @@ class Data:
             if "weight" in condition_func_score_df.columns:
                 w[condition] = jnp.array(condition_func_score_df["weight"].values)
 
-        df.drop(["wts", "sites", "muts"], axis=1, inplace=True)
-        self._variants_df = df
+        # set training data properties
         self._training_data = {"X": X, "y": y, "w": w}
         self._binarymaps = binmaps
         self._mutations = tuple(ref_bmap.all_subs)
+
+        # next, we need to create a "scaled" dataset
+        # where the bits are flipped in the one-hot encoding
+        # for all non identical mutations
+        # see TODO for more
+        self._non_identical_idxs = {}
+        self._scaled_training_data = {"X": {}, "y": y, "w": w}
+        for condition in self._conditions:
+            self._non_identical_idxs[condition] = jnp.array(
+                [
+                    idx
+                    in ref_bmap.sub_str_to_indices(non_identical_mutations[condition])
+                    for idx in range(len(ref_bmap.all_subs))
+                ]
+            )
+            self._scaled_training_data["X"][condition] = rereference(
+                X[condition], self._non_identical_idxs[condition]
+            )
 
         # initialize single mutational effects df
         mut_df = pd.DataFrame({"mutation": self._mutations})
@@ -507,6 +539,7 @@ class Data:
 
         self._mutations_df = mut_df
         self._name = name if isinstance(name, str) else f"Data-{Data.counter}"
+
         Data.counter += 1
 
     def __repr__(self):
@@ -578,6 +611,16 @@ class Data:
         """
         return self._non_identical_sites
 
+    # TODO should we rename "non_identical" -> "bundle" everywhere?
+    @property
+    def non_identical_idxs(self) -> dict:
+        """
+        A dictionary keyed by condition names with values
+        being the indices into the binarymap representing
+        bundle (non_identical) mutations
+        """
+        return self._non_identical_idxs
+
     @property
     def reference_sequence_conditions(self) -> list:
         """
@@ -590,6 +633,11 @@ class Data:
     def training_data(self) -> dict:
         """A dictionary with keys 'X' and 'y' for the training data."""
         return self._training_data
+
+    @property
+    def scaled_training_data(self) -> dict:
+        """A dictionary with keys 'X' and 'y' for the scaled training data."""
+        return self._scaled_training_data
 
     @property
     def binarymaps(self) -> dict:

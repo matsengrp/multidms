@@ -49,7 +49,7 @@ jobs:
 
       - name: Test
         run: |
-          pytest
+          pytest --doctest-modules multidms tests
 
       - name: Build python package
         run: |

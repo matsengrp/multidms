@@ -35,7 +35,9 @@ This may change in the future.
 
 import jax.numpy as jnp
 from jaxopt.loss import huber_loss
-from jaxopt.prox import prox_lasso
+
+from multidms.utils import transform  # TODO namespace for utils?
+import pyproximal
 import jax
 
 # jax.config.update("jax_enable_x64", True)
@@ -76,11 +78,7 @@ def additive_model(d_params: dict, X_d: jnp.array):
     jnp.array
         Predicted latent phenotypes for each row in ``X_d``
     """
-    return (
-        d_params["beta_naught"]
-        + d_params["alpha_d"]
-        + (X_d @ (d_params["beta_m"] + d_params["s_md"]))
-    )
+    return d_params["beta0"] + X_d @ d_params["beta"]
 
 
 r"""
@@ -279,9 +277,12 @@ def softplus_activation(d_params, act, lower_bound=-3.5, hinge_scale=0.1, **kwar
     """
     return (
         hinge_scale
-        * (jnp.logaddexp(0, (act - (lower_bound + d_params["gamma_d"])) / hinge_scale))
+        # TODO GAMMA
+        # * (jnp.logaddexp(0, (act - (lower_bound + d_params["gamma_d"])) / hinge_scale))
+        * (jnp.logaddexp(0, act - lower_bound / hinge_scale))
         + lower_bound
-        + d_params["gamma_d"]
+        # TODO GAMMA
+        # + d_params["gamma_d"]
     )
 
 
@@ -320,56 +321,76 @@ def _abstract_epistasis(
     return t(d_params, g(d_params["theta"], additive_model(d_params, X_h)), **kwargs)
 
 
-def _lasso_lock_prox(
-    params,
-    hyperparams_prox=dict(
-        lasso_params=None, lock_params=None, upper_bound_theta_ge_scale=None
-    ),
-    scaling=1.0,
-):
-    """
-    Apply lasso and lock constraints to parameters
+def proximal_objective(Dop, params, hyperparameters, scaling=1.0):
+    """ADMM generalized lasso optimization."""
+    (
+        scale_coeff_lasso_shift,
+        admm_niter,
+        admm_tau,
+        admm_mu,
+        ge_scale_upper_bound,
+        lock_params,
+        bundle_idxs,
+        # Dop,
+    ) = hyperparameters
+    # apply prox
+    beta_ravel = jnp.vstack(params["beta"].values()).ravel(order="F")
 
-    Parameters
-    ----------
-    params : dict
-        Dictionary of parameters to constrain
-    hyperparams_prox : dict
-        Dictionary of hyperparameters for proximal operators
-    scaling : float
-        Scaling factor for lasso penalty
-    """
-    # enforce monotonic epistasis and constrain ge_scale upper limit
-    if "ge_scale" in params["theta"]:
-        params["theta"]["ge_scale"] = params["theta"]["ge_scale"].clip(
-            0, hyperparams_prox["upper_bound_theta_ge_scale"]
-        )
+    # see https://pyproximal.readthedocs.io/en/stable/index.html
+    beta_ravel, shift_ravel = pyproximal.optimization.primal.LinearizedADMM(
+        pyproximal.L2(b=beta_ravel),
+        pyproximal.L1(sigma=scaling * scale_coeff_lasso_shift),
+        Dop,
+        niter=admm_niter,
+        tau=admm_tau,
+        mu=admm_mu,
+        x0=beta_ravel,
+        show=False,
+    )
 
-    if "p_weights_1" in params["theta"]:
-        params["theta"]["p_weights_1"] = params["theta"]["p_weights_1"].clip(0)
-        params["theta"]["p_weights_2"] = params["theta"]["p_weights_2"].clip(0)
+    beta = beta_ravel.reshape(-1, len(beta_ravel) // len(params["beta"]), order="F")
+    shift = shift_ravel.reshape(-1, len(shift_ravel) // len(params["beta"]), order="F")
 
-    if hyperparams_prox["lasso_params"] is not None:
-        for key, value in hyperparams_prox["lasso_params"].items():
-            params[key] = prox_lasso(params[key], value, scaling)
+    # update beta dict
+    for i, d in enumerate(params["beta"]):
+        params["beta"][d] = beta[i]
 
+    # update shifts
+    for i, d in enumerate(params["shift"]):
+        params["shift"][d] = shift[i]
+
+    # clamp beta0 for reference condition in non-scaled parameterization
+    # (where it's a box constraint)
+    params = transform(params, bundle_idxs)
+
+    # should the following two conditions be within the transform?
+    # I'm pretty sure it doesn't matter since the the post latent
+    # stuff doesn't interfere with the beta's transformation.
+    #
+    # Though I do wonder if the beta's should be transformed before
+    # beting passed to the predictive function? HMM?
+    # clamp theta scale to monotonic, and with optional upper bound
+    params["theta"]["ge_scale"] = params["theta"]["ge_scale"].clip(
+        0, ge_scale_upper_bound
+    )
     # Any params to constrain during fit
-    if hyperparams_prox["lock_params"] is not None:
-        for key, value in hyperparams_prox["lock_params"].items():
-            params[key] = value
+    if lock_params is not None:
+        for (param, subparam), value in lock_params.items():
+            params[param][subparam] = value
+
+    # params["beta0"][params["beta0"].keys()] = 0.0
+    params = transform(params, bundle_idxs)
 
     return params
 
 
-def _gamma_corrected_cost_smooth(
+# TODO, add back gamma correction
+def smooth_objective(
     f,
     params,
     data,
-    huber_scale=1,
-    scale_coeff_ridge_shift=0,
     scale_coeff_ridge_beta=0,
-    scale_coeff_ridge_gamma=0,
-    scale_coeff_ridge_alpha_d=0,
+    huber_scale=1,
     **kwargs,
 ):
     """
@@ -386,14 +407,8 @@ def _gamma_corrected_cost_smooth(
         return the respective binarymap and the row associated target functional scores
     huber_scale : float
         Scale parameter for Huber loss function
-    scale_coeff_ridge_shift : float
-        Ridge penalty coefficient for shift parameters
     scale_coeff_ridge_beta : float
-        Ridge penalty coefficient for beta parameters
-    scale_coeff_ridge_gamma : float
-        Ridge penalty coefficient for gamma parameters
-    scale_coeff_ridge_alpha_d : float
-        Ridge penalty coefficient for alpha parameters
+        Ridge penalty coefficient for shift parameters
     kwargs : dict
         Additional keyword arguments to pass to the biophysical model function
 
@@ -403,19 +418,18 @@ def _gamma_corrected_cost_smooth(
         Summed loss across all conditions.
     """
     X, y = data
-    loss = 0
+    huber_cost = 0
+    beta_ridge_penalty = 0
 
     # Sum the huber loss across all conditions
-    # shift_ridge_penalty = 0
     for condition, X_d in X.items():
         # Subset the params for condition-specific prediction
         d_params = {
+            "beta0": params["beta0"][condition],
+            "beta": params["beta"][condition],
+            # TODO GAMMA
+            # "gamma": params["gamma"][condition],
             "theta": params["theta"],
-            "beta_m": params["beta"],
-            "beta_naught": params["beta_naught"],
-            "s_md": params[f"shift_{condition}"],
-            "alpha_d": params[f"alpha_{condition}"],
-            "gamma_d": params[f"gamma_{condition}"],
         }
 
         # compute predictions
@@ -423,16 +437,18 @@ def _gamma_corrected_cost_smooth(
 
         # compute the Huber loss between observed and predicted
         # functional scores
-        loss += huber_loss(
-            y[condition] + d_params["gamma_d"], y_d_predicted, huber_scale
+        huber_cost += huber_loss(
+            # TODO GAMMA
+            # y[condition] + d_params["gamma"], y_d_predicted, huber_scale
+            y[condition],
+            y_d_predicted,
+            huber_scale,
         ).mean()
 
         # compute a regularization term that penalizes non-zero
         # parameters and add it to the loss function
-        loss += scale_coeff_ridge_shift * jnp.sum(d_params["s_md"] ** 2)
-        loss += scale_coeff_ridge_alpha_d * jnp.sum(d_params["alpha_d"] ** 2)
-        loss += scale_coeff_ridge_gamma * jnp.sum(d_params["gamma_d"] ** 2)
+        beta_ridge_penalty += scale_coeff_ridge_beta * (d_params["beta"] ** 2).sum()
 
-    loss += scale_coeff_ridge_beta * jnp.sum(params["beta"] ** 2)
+    huber_cost /= len(X)
 
-    return loss
+    return huber_cost + beta_ridge_penalty
