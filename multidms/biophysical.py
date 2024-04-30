@@ -404,6 +404,7 @@ def _gamma_corrected_cost_smooth(
     """
     X, y = data
     loss = 0
+    n = 0
 
     # Sum the huber loss across all conditions
     # shift_ridge_penalty = 0
@@ -423,16 +424,27 @@ def _gamma_corrected_cost_smooth(
 
         # compute the Huber loss between observed and predicted
         # functional scores
-        loss += huber_loss(
+        huber_loss_d = huber_loss(
             y[condition] + d_params["gamma_d"], y_d_predicted, huber_scale
-        ).mean()
+        ).sum()
 
         # compute a regularization term that penalizes non-zero
         # parameters and add it to the loss function
-        loss += scale_coeff_ridge_shift * jnp.sum(d_params["s_md"] ** 2)
-        loss += scale_coeff_ridge_alpha_d * jnp.sum(d_params["alpha_d"] ** 2)
-        loss += scale_coeff_ridge_gamma * jnp.sum(d_params["gamma_d"] ** 2)
+        penalty_ridge_shift = scale_coeff_ridge_shift * (d_params["s_md"] ** 2).sum()
+        penalty_ridge_alpha_d = (
+            scale_coeff_ridge_alpha_d * (d_params["alpha_d"] ** 2).sum()
+        )
+        penalty_ridge_gamma = scale_coeff_ridge_gamma * (d_params["gamma_d"] ** 2).sum()
+        n_d = y[condition].shape[0]
+        n += n_d
 
-    loss += scale_coeff_ridge_beta * jnp.sum(params["beta"] ** 2)
+        loss += (
+            huber_loss_d
+            + penalty_ridge_shift
+            + penalty_ridge_alpha_d
+            + penalty_ridge_gamma
+        ) / n_d
 
-    return loss
+    loss += scale_coeff_ridge_beta * jnp.sum(params["beta"] ** 2) / n
+
+    return loss / len(X)

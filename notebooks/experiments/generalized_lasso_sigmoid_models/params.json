@@ -1,0 +1,8 @@
+{
+  "total_iterations" : [100000],
+  "data_replicate": [1, 2],
+  "post_latent_fn": ["sigmoid"],
+  "weighted_by_variant_support" : [true],
+  "smooth_obj_fn" : ["cond_norm_penalty"],
+  "lasso_coeff" : [4e-05]
+}
