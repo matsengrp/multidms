@@ -1,8 +1,9 @@
 {
-  "total_iterations" : [100000],
-  "data_replicate": [1, 2],
+  "warmup_iterations" : [0],
+  "max_total_iterations" : [100000],
+  "data_replicate": [1,2],
   "post_latent_fn": ["sigmoid"],
-  "weighted_by_variant_support" : [true],
-  "smooth_obj_fn" : ["cond_norm_penalty"],
-  "lasso_coeff" : [4e-05]
+  "smooth_obj_fn" : ["cond_norm_sum_penalty"],
+  "l2reg_beta" : [1e-6],
+  "lasso_coeff" : [0.0, 5.00e-6, 1.00e-05, 2.00e-05, 4.00e-05, 8.00e-05, 1.60e-04, 3.20e-04, 6.40e-04]
 }

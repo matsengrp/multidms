@@ -240,7 +240,8 @@ class Model:
         latent_model = multidms.biophysical.additive_model
         if latent_model == multidms.biophysical.additive_model:
             n_beta_shift = len(self._data.mutations)
-            self._params["beta"] = jax.random.normal(shape=(n_beta_shift,), key=key)
+            # self._params["beta"] = jax.random.normal(shape=(n_beta_shift,), key=key)
+            self._params["beta"] = jnp.zeros(shape=(n_beta_shift,))
             for condition in data.conditions:
                 self._params[f"shift_{condition}"] = jnp.zeros(shape=(n_beta_shift,))
                 self._params[f"alpha_{condition}"] = jnp.zeros(shape=(1,))
