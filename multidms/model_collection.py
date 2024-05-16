@@ -16,7 +16,7 @@ import multidms
 
 import pandas as pd
 import jax
-import jax.numpy as jnp
+
 import numpy as onp
 import altair as alt
 
@@ -42,12 +42,14 @@ class ModelCollectionFitError(Exception):
     pass
 
 
+# TODO move to utils
 # https://github.com/microsoft/pylance-release/issues/5630
 def my_concat(dfs_list, axis=0):
     """simple pd.concat wrapper for bug with vscode pylance"""  # noqa
     return pd.concat(dfs_list, axis=axis)
 
 
+# TODO move to utils
 def _explode_params_dict(params_dict):
     """
     Given a dictionary of model parameters,
@@ -63,32 +65,19 @@ def _explode_params_dict(params_dict):
     ]
 
 
-# everything below verbose could be a kwargs passed to fit()
-# but it's nice to have a single function for verbosity?
+# TODO could kwargs be used both for init and fit of model?
 def fit_one_model(
     dataset,
     epistatic_model="Sigmoid",
     output_activation="Identity",
-    lock_beta_naught_at=None,  # TODO experimental, remove
-    gamma_corrected=False,  # TODO experimental, mark as such
-    alpha_d=False,  # TODO, still not sure why this isn't the default
-    init_beta_naught=0.0,
+    # gamma_corrected=False,  # TODO GAMMA experimental, mark as such
+    init_theta_scale=6.5,
+    init_theta_bias=-3.5,
     n_hidden_units=5,
     lower_bound=None,
     PRNGKey=0,
     verbose=False,
-    # **kwargs,
-    scale_coeff_lasso_shift=2e-5,
-    tol=1e-4,
-    maxiter=20000,
-    acceleration=True,
-    maxls=15,
-    upper_bound_theta_ge_scale="infer",
-    huber_scale_huber=1,
-    scale_coeff_ridge_beta=0,
-    scale_coeff_ridge_shift=0,
-    scale_coeff_ridge_gamma=0,
-    scale_coeff_ridge_alpha_d=0,
+    **kwargs,
 ):
     """
     Fit a multidms model to a dataset. This is a wrapper around the multidms
@@ -101,49 +90,19 @@ def fit_one_model(
         The dataset to fit to. For bookkeeping and downstream analysis,
         the name of the dataset (Data.name) is saved in the fit attributes
         that are returned.
-    huber_scale_huber : float, optional
-        The scale of the huber loss function. The default is 1.
-    scale_coeff_lasso_shift : float, optional
-        The scale of the lasso penalty on the shift parameter. The default is 2e-5.
-    scale_coeff_ridge_beta : float, optional
-        The scale of the ridge penalty on the beta parameter. The default is 0.
-    scale_coeff_ridge_shift : float, optional
-        The scale of the ridge penalty on the shift parameter. The default is 0.
-    scale_coeff_ridge_gamma : float, optional
-        The scale of the ridge penalty on the gamma parameter. The default is 0.
-    scale_coeff_ridge_alpha_d : float, optional
-        The scale of the ridge penalty on the ch parameter. The default is 0.
     epistatic_model : str, optional
         The epistatic model to use. The default is "Identity".
     output_activation : str, optional
         The output activation function to use. The default is "Identity".
-    lock_beta_naught_at : float or None optional
-        The value to lock the beta_naught parameter to. If None,
-        the beta_naught parameter is free to vary. The default is None.
-    gamma_corrected : bool, optional
-        Whether to use the gamma corrected model. The default is True.
-    alpha_d : bool, optional
-        Whether to use the conditional c model. The default is False.
-    init_beta_naught : float, optional
-        The initial value of the beta_naught parameter. The default is 0.0.
-        Note that is lock_beta_naught is not None, then this value is irrelevant.
-    maxls : int
-        Maximum number of iterations to perform during line search.
-    tol : float, optional
-        The tolerance for the fit. The default is 1e-4.
-    maxiter : int, optional
-        The max number of iterations to take if the tolerance threshold is not met.
-        The default is 20000.
-    acceleration : bool, optional
-        Whether to use the FISTA acceleration. The default is True. This is only useful
-        when using a single step with many iterations.
+    init_theta_scale : float, optional
+        The scale to use for initializing the model parameters. The default is 6.5.
+    init_theta_bias : float, optional
+        The bias to use for initializing the model parameters. The default is -3.5.
     n_hidden_units : int, optional
         The number of hidden units to use in the neural network model. The default is 5.
     lower_bound : float, optional
         The lower bound for use with the softplus activation function.
         The default is None, but must be specified if using the softplus activation.
-    upper_bound_theta_ge_scale : float, optional
-        The upper bound for the theta_ge_scale parameter. The default is None.
     PRNGKey : int, optional
         The PRNGKey to use to initialize model parameters. The default is 0.
     verbose : bool, optional
@@ -166,7 +125,12 @@ def fit_one_model(
         3. "step_loss" which is a numpy array of the loss at the end of each training
         epoch.
     """
+    # save the passed parameters for bookkeeping
     fit_attributes = locals().copy()
+    del fit_attributes["kwargs"]
+    for key, value in kwargs.items():
+        fit_attributes[key] = value
+
     biophysical_model = {
         "Identity": multidms.biophysical.identity_activation,
         "Sigmoid": multidms.biophysical.sigmoidal_global_epistasis,
@@ -179,18 +143,13 @@ def fit_one_model(
         dataset,
         epistatic_model=biophysical_model[epistatic_model],
         output_activation=biophysical_model[output_activation],
-        alpha_d=alpha_d,
-        gamma_corrected=gamma_corrected,
-        init_beta_naught=init_beta_naught,
+        init_theta_scale=init_theta_scale,
+        init_theta_bias=init_theta_bias,
+        # gamma_corrected=gamma_corrected, TODO GAMMA
         n_hidden_units=n_hidden_units,
         lower_bound=lower_bound,
         PRNGKey=PRNGKey,
     )
-
-    lock_params = {}
-
-    if lock_beta_naught_at is not None:
-        lock_params["beta_naught"] = jnp.array([lock_beta_naught_at])
 
     del fit_attributes["dataset"]
     del fit_attributes["verbose"]
@@ -202,56 +161,17 @@ def fit_one_model(
         print("running:")
         pprint.pprint(fit_attributes)
 
-    total_iterations = 0
-
     # for training_step in range(num_training_steps):
     start = time.time()
     imodel.fit(
-        warn_unconverged=False,
-        # **kwargs,
-        scale_coeff_lasso_shift=scale_coeff_lasso_shift,
-        maxiter=maxiter,
-        tol=tol,
-        acceleration=acceleration,
-        maxls=maxls,
-        huber_scale=huber_scale_huber,
-        lock_params=lock_params,
-        scale_coeff_ridge_shift=scale_coeff_ridge_shift,
-        scale_coeff_ridge_beta=scale_coeff_ridge_beta,
-        scale_coeff_ridge_gamma=scale_coeff_ridge_gamma,
-        scale_coeff_ridge_alpha_d=scale_coeff_ridge_alpha_d,
-        upper_bound_ge_scale=upper_bound_theta_ge_scale,
+        warn_unconverged=verbose,
+        **kwargs,
     )
     end = time.time()
 
     fit_attributes["fit_time"] = round(end - start)
 
-    col_order = [
-        "model",
-        "dataset_name",
-        "epistatic_model",
-        "output_activation",
-        "gamma_corrected",
-        "alpha_d",
-        "n_hidden_units",
-        "lower_bound",
-        "PRNGKey",
-        "scale_coeff_lasso_shift",
-        "scale_coeff_ridge_beta",
-        "scale_coeff_ridge_shift",
-        "scale_coeff_ridge_gamma",
-        "scale_coeff_ridge_alpha_d",
-        "huber_scale_huber",
-        "init_beta_naught",
-        "lock_beta_naught_at",
-        "tol",
-        "maxiter",
-        "acceleration",
-        "maxls",
-        "fit_time",
-    ]
-
-    return pd.Series(fit_attributes)[col_order]
+    return pd.Series(fit_attributes)
 
 
 def _fit_fun(params):
@@ -271,6 +191,7 @@ def stack_fit_models(fit_models_list):
     return pd.concat([f.to_frame().T for f in fit_models_list], ignore_index=True)
 
 
+# TODO make it easier to debug failed fits
 def fit_models(params, n_threads=-1, failures="error"):
     """Fit collection of :class:`multidms.model.Model` models.
 
@@ -762,7 +683,7 @@ class ModelCollection:
                 + [col for col in queried_fits.columns if "loss" in col]
             )
         )
-        print(shouldbe_uniform)
+        # print(shouldbe_uniform)
         groups_to_combine = queried_fits.groupby(shouldbe_uniform).ngroups
         if groups_to_combine > 1:
             warnings.warn(
@@ -830,6 +751,7 @@ class ModelCollection:
         # melt conditions and stats cols, beta is already "tall"
         # note that we must rename conditions with "." in the
         # name to "_" to avoid altair errors
+        # TODO let's just make sure we don't have "." in the condition names
         if mut_param == "beta":
             muts_df_tall = muts_df.assign(condition=self.reference.replace(".", "_"))
         else:
@@ -986,6 +908,7 @@ class ModelCollection:
             column=alt.Column("condition", title="Experiment"),
         )
 
+    # TODO fix height scalar
     def shift_sparsity(
         self,
         x="scale_coeff_lasso_shift",

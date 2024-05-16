@@ -41,7 +41,8 @@ import pyproximal
 import jax
 
 # jax.config.update("jax_enable_x64", True)
-
+# TODO, each of these should be a class that decends from a base model_component class
+# and should have a method that returns the function with the parameters as arguments
 
 r"""
 +++++++++++++++++++++++++++++
@@ -321,6 +322,37 @@ def _abstract_epistasis(
     return t(d_params, g(d_params["theta"], additive_model(d_params, X_h)), **kwargs)
 
 
+def proximal_box_constraints(params, hyperparameters, *args, **kwargs):
+    """
+    Proximal operator for box constraints for single condition models.
+
+    Note that *args, and **kwargs are placeholders for additional arguments
+    that may be passed to this function by the optimizer.
+    """
+    (
+        ge_scale_upper_bound,
+        lock_params,
+        bundle_idxs,
+    ) = hyperparameters
+
+    params = transform(params, bundle_idxs)
+
+    # clamp theta scale to monotonic, and with optional upper bound
+    if "ge_scale" in params["theta"]:
+        params["theta"]["ge_scale"] = params["theta"]["ge_scale"].clip(
+            0, ge_scale_upper_bound
+        )
+    # Any params to constrain during fit
+    # clamp beta0 for reference condition in non-scaled parameterization
+    # (where it's a box constraint)
+    if lock_params is not None:
+        for (param, subparam), value in lock_params.items():
+            params[param][subparam] = value
+
+    params = transform(params, bundle_idxs)
+    return params
+
+
 def proximal_objective(Dop, params, hyperparameters, scaling=1.0):
     """ADMM generalized lasso optimization."""
     (
@@ -331,7 +363,6 @@ def proximal_objective(Dop, params, hyperparameters, scaling=1.0):
         ge_scale_upper_bound,
         lock_params,
         bundle_idxs,
-        # Dop,
     ) = hyperparameters
     # apply prox
     beta_ravel = jnp.vstack(params["beta"].values()).ravel(order="F")
@@ -363,16 +394,11 @@ def proximal_objective(Dop, params, hyperparameters, scaling=1.0):
     # (where it's a box constraint)
     params = transform(params, bundle_idxs)
 
-    # should the following two conditions be within the transform?
-    # I'm pretty sure it doesn't matter since the the post latent
-    # stuff doesn't interfere with the beta's transformation.
-    #
-    # Though I do wonder if the beta's should be transformed before
-    # beting passed to the predictive function? HMM?
     # clamp theta scale to monotonic, and with optional upper bound
-    params["theta"]["ge_scale"] = params["theta"]["ge_scale"].clip(
-        0, ge_scale_upper_bound
-    )
+    if "ge_scale" in params["theta"]:
+        params["theta"]["ge_scale"] = params["theta"]["ge_scale"].clip(
+            0, ge_scale_upper_bound
+        )
     # Any params to constrain during fit
     if lock_params is not None:
         for (param, subparam), value in lock_params.items():
@@ -384,12 +410,11 @@ def proximal_objective(Dop, params, hyperparameters, scaling=1.0):
     return params
 
 
-# TODO, add back gamma correction
 def smooth_objective(
     f,
     params,
     data,
-    scale_coeff_ridge_beta=0,
+    scale_coeff_ridge_beta=0.0,
     huber_scale=1,
     **kwargs,
 ):
@@ -449,6 +474,6 @@ def smooth_objective(
         # parameters and add it to the loss function
         beta_ridge_penalty += scale_coeff_ridge_beta * (d_params["beta"] ** 2).sum()
 
-    huber_cost /= len(X)
+    # huber_cost /= len(X)
 
     return huber_cost + beta_ridge_penalty
