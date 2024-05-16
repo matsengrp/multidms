@@ -214,8 +214,7 @@ class Model:
         data: Data,
         epistatic_model=multidms.biophysical.sigmoidal_global_epistasis,
         output_activation=multidms.biophysical.identity_activation,
-        conditional_shifts=True,
-        alpha_d=False,
+        # conditional_shifts=True,
         # gamma_corrected=False,
         PRNGKey=0,
         lower_bound=None,
@@ -225,9 +224,8 @@ class Model:
         name=None,
     ):
         """See class docstring."""
-        # self.gamma_corrected = gamma_corrected
-        self.conditional_shifts = conditional_shifts
-        self.alpha_d = alpha_d
+        # self.gamma_corrected = gamma_corrected TODO
+        # self.conditional_shifts = conditional_shifts
 
         self._data = data
 
@@ -327,6 +325,12 @@ class Model:
         )
         objective = partial(multidms.biophysical.smooth_objective, pred)
 
+        proximal = (
+            multidms.biophysical.proximal_objective
+            if len(self._data.conditions) > 1
+            else multidms.biophysical.proximal_box_constraints
+        )
+
         self._model_components = frozendict(
             {
                 "latent_model": multidms.biophysical.additive_model,
@@ -335,7 +339,7 @@ class Model:
                 "f": pred,
                 "from_latent": from_latent,
                 "objective": objective,
-                "proximal": multidms.biophysical.proximal_objective,
+                "proximal": proximal,
             }
         )
 
@@ -396,6 +400,7 @@ class Model:
         """
         return self._model_components
 
+    # TODO cached_property
     @property
     def loss(self) -> float:
         """
@@ -404,23 +409,24 @@ class Model:
         """
         kwargs = {
             "scale_coeff_ridge_beta": 0.0,
-            "scale_coeff_ridge_shift": 0.0,
-            "scale_coeff_ridge_gamma": 0.0,
-            "scale_ridge_alpha_d": 0.0,
+            # "scale_coeff_ridge_shift": 0.0,
+            # "scale_coeff_ridge_gamma": 0.0,
+            # "scale_ridge_alpha_d": 0.0,
         }
         data = (self.data.training_data["X"], self.data.training_data["y"])
         return float(
             jax.jit(self.model_components["objective"])(self.params, data, **kwargs)
         )
 
+    # TODO cached_property
     @property
     def conditional_loss(self) -> float:
         """Compute loss individually for each condition."""
         kwargs = {
             "scale_coeff_ridge_beta": 0.0,
-            "scale_coeff_ridge_shift": 0.0,
-            "scale_coeff_ridge_gamma": 0.0,
-            "scale_ridge_alpha_d": 0.0,
+            # "scale_coeff_ridge_shift": 0.0,
+            # "scale_coeff_ridge_gamma": 0.0,
+            # "scale_ridge_alpha_d": 0.0,
         }
 
         X, y = self.data.training_data["X"], self.data.training_data["y"]
@@ -429,7 +435,7 @@ class Model:
         for condition in self.data.conditions:
             condition_data = ({condition: X[condition]}, {condition: y[condition]})
             ret[condition] = float(loss_fxn(self.params, condition_data, **kwargs))
-        ret["total"] = sum(ret.values()) / len(ret.values())
+        ret["total"] = sum(ret.values())
         return ret
 
     @property
@@ -449,6 +455,7 @@ class Model:
         warnings.warn("deprecated", DeprecationWarning)
         return self.get_variants_df(phenotype_as_effect=False)
 
+    # TODO cached_property
     def get_variants_df(self, phenotype_as_effect=True):
         """
         Training data with model predictions for latent,
@@ -515,7 +522,7 @@ class Model:
 
         return variants_df
 
-    @property
+    @property  # TODO deprecated
     def mutations_df(self):
         """
         Kept for backwards compatibility but will be removed in future versions.
@@ -618,6 +625,7 @@ class Model:
 
         return mutations_df[col_order]
 
+    # TODO cached_property
     def get_df_loss(self, df, error_if_unknown=False, verbose=False, conditional=False):
         """
         Get the loss of the model on a given data frame.
@@ -717,7 +725,7 @@ class Model:
             y[condition] = jnp.array(variant_targets)
             ret[condition] = float(loss_fxn(self.params, (X, y), **kwargs))
 
-        ret["total"] = sum(ret.values()) / len(ret.values())
+        ret["total"] = sum(ret.values())  # / len(ret.values())
 
         if not conditional:
             return ret["total"]
@@ -1013,7 +1021,8 @@ class Model:
         ----------
         scale_coeff_lasso_shift : float
             L1 penalty coefficient applied "shift" in beta_d parameters.
-            Defaults to 1e-4.
+            Defaults to 1e-4. This parameter is used to regularize the
+            shift parameters in the model if there's more than one condition.
         tol : float
             Tolerance for the optimization convergence criteria. Defaults to 1e-4.
         maxiter : int
@@ -1028,7 +1037,9 @@ class Model:
             reference-condition latent offset (TODO math? beta0[ref]) are locked.
         admm_niter : int
             Number of iterations to perform during the ADMM optimization.
-            Defaults to 50.
+            Defaults to 50. Note that in the case of single-condition models,
+            This is set to zero as the generalized
+            lasso ADMM optimization is not used.
         admm_tau : float
             ADMM step size. Defaults to 1.0.
         warn_unconverged : bool
@@ -1073,49 +1084,62 @@ class Model:
             y_range = y.max() - y.min()
             upper_bound_ge_scale = 2 * y_range
 
-        # TODO This should all be done in init(), as we don't expect anything
-        # here to change upon different calls to fit.
-        non_identical_signs = {
-            condition: jnp.where(self.data._non_identical_idxs[condition], -1, 1)
-            for condition in self.data.conditions
-        }
-        non_identical_sign_matrix = jnp.vstack(
-            [non_identical_signs[d] for d in self.data.conditions]
-        )
-        diff_matrix = difference_matrix(len(self.data.conditions))
-        D_block_diag = scipy.sparse.block_diag(
-            [
-                jnp.array(diff_matrix) @ jnp.diag(non_identical_sign_matrix[:, col])
-                for col in range(len(self.data.mutations))
-            ]
-        )
-        Dop = pylops.LinearOperator(
-            Op=scipy.sparse.linalg.aslinearoperator(D_block_diag),
-            dtype=diff_matrix.dtype,
-            shape=D_block_diag.shape,
-        )
-        # print(Dop)
-        # print((Dop.matvec))
-        eig = jnp.real((Dop.H * Dop).eigs(neigs=1, which="LM")[0])
+        # box constraints for the reference beta0 parameter.
+        # lock_params[("beta0", self.data.reference)] = 0.0
 
-        admm_mu = 0.99 * admm_tau / eig
-        assert 0 < admm_mu < admm_tau / eig
-
-        lock_params[("beta0", self.data.reference)] = 0.0
-
-        hyperparams_prox = (
-            scale_coeff_lasso_shift,
-            admm_niter,
-            admm_tau,
-            admm_mu,
-            upper_bound_ge_scale,
-            lock_params,
-            self.data.non_identical_idxs,
-            # Dop,
-        )
-
-        compiled_proximal = partial(self._model_components["proximal"], Dop)
+        compiled_proximal = self._model_components["proximal"]
         compiled_objective = jax.jit(self._model_components["objective"])
+
+        # if we have more than one condition, we need to set up the ADMM optimization
+        if len(self.data.conditions) > 1:
+            non_identical_signs = {
+                condition: jnp.where(self.data._non_identical_idxs[condition], -1, 1)
+                for condition in self.data.conditions
+            }
+            non_identical_sign_matrix = jnp.vstack(
+                [non_identical_signs[d] for d in self.data.conditions]
+            )
+            diff_matrix = difference_matrix(
+                len(self.data.conditions), self.data.reference_index
+            )
+            D_block_diag = scipy.sparse.block_diag(
+                [
+                    jnp.array(diff_matrix) @ jnp.diag(non_identical_sign_matrix[:, col])
+                    for col in range(len(self.data.mutations))
+                ]
+            )
+            Dop = pylops.LinearOperator(
+                Op=scipy.sparse.linalg.aslinearoperator(D_block_diag),
+                dtype=diff_matrix.dtype,
+                shape=D_block_diag.shape,
+            )
+            eig = jnp.real((Dop.H * Dop).eigs(neigs=1, which="LM")[0])
+
+            admm_mu = 0.99 * admm_tau / eig
+
+            if len(self.data.conditions) > 1:
+                assert 0 < admm_mu < admm_tau / eig
+
+            hyperparams_prox = (
+                scale_coeff_lasso_shift,
+                admm_niter,
+                admm_tau,
+                admm_mu,
+                upper_bound_ge_scale,
+                lock_params,
+                self.data.non_identical_idxs,
+            )
+
+            compiled_proximal = partial(self._model_components["proximal"], Dop)
+
+        else:
+            hyperparams_prox = (
+                upper_bound_ge_scale,
+                lock_params,
+                self.data.non_identical_idxs,
+            )
+            # compiled_proximal = jax.jit(self._model_components["proximal"])
+            compiled_proximal = self._model_components["proximal"]
 
         solver = ProximalGradient(
             compiled_objective,
@@ -1126,10 +1150,6 @@ class Model:
             maxls=maxls,
             jit=False,
         )
-
-        # print(
-        #     compiled_proximal(self._scaled_data_params, hyperparams_prox, scaling=1.0)
-        # )
 
         # GET DATA
         scaled_training_data = (
@@ -1171,10 +1191,15 @@ class Model:
             )
             # record loss and error trajectories at regular intervals
             if (i + 1) % convergence_trajectory_resolution == 0:
-                no_pen_obj_loss = float(
-                    compiled_objective(self._scaled_data_params, scaled_training_data)
+                obj_loss = float(
+                    compiled_objective(
+                        self._scaled_data_params, scaled_training_data, **kwargs
+                    )
                 )
-                convergence_trajectory.loc[i + 1, "loss"] = no_pen_obj_loss
+                lasso_penalty = scale_coeff_lasso_shift * jnp.sum(
+                    jnp.abs(jnp.vstack(self._scaled_data_params["shift"].values()))
+                )
+                convergence_trajectory.loc[i + 1, "loss"] = obj_loss + lasso_penalty
                 convergence_trajectory.loc[i + 1, "error"] = float(self._state.error)
 
             # early stopping criteria
@@ -1332,6 +1357,10 @@ class Model:
             plt.show()
         return ax
 
+    # TODO - default param
+    # TODO - add docstring
+    # TODO - add tests
+    # TODO - optional stops
     def plot_param_hist(
         self, param, show=True, saveas=False, times_seen_threshold=3, ax=None, **kwargs
     ):

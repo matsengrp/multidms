@@ -32,6 +32,7 @@ from pandarallel import pandarallel
 jax.config.update("jax_enable_x64", True)
 
 
+# TODO why use these when we have the mut parser object? DEPRECATE probably
 def split_sub(sub_string):
     """String match the wt, site, and sub aa
     in a given string denoting a single substitution
@@ -55,11 +56,7 @@ def split_subs(subs_string, parser=split_sub):
     return wts, sites, muts
 
 
-# TODO add bundle_idxs property
 # TODO add validation split
-# TODO could compute the Difference matrix
-
-
 class Data:
     r"""
     Prep and store one-hot encoding of
@@ -241,6 +238,8 @@ class Data:
                 UserWarning,
             )
         unique_conditions = set(variants_df["condition"].astype(str))
+        if any("." in c for c in unique_conditions):
+            raise ValueError("condition names cannot contain '.'")
         if str(reference) not in unique_conditions:
             if not isinstance(reference, str):
                 raise ValueError(
@@ -253,10 +252,12 @@ class Data:
         # set the reference as the first condition. We need it to be first because
         # the difference matrix will be constructed with that assumption so the
         # parameters are inserted in the correct order in the Model initialization
-        non_reference_conditions = unique_conditions - set([reference])
-        self._conditions = tuple([reference] + list(non_reference_conditions))
-
+        # non_reference_conditions = unique_conditions - set([reference])
+        # self._conditions = tuple([reference] + list(non_reference_conditions))
         self._reference = str(reference)
+        sorted_conditions = sorted(list(unique_conditions))
+        self._reference_index = sorted_conditions.index(self._reference)
+        self._conditions = tuple(sorted_conditions)
 
         self._collapse_identical_variants = collapse_identical_variants
 
@@ -481,7 +482,10 @@ class Data:
 
         # Make BinaryMap representations for each condition
         allowed_subs = {s for subs in df.var_wrt_ref for s in subs.split()}
+        # assert isinstance(allowed_subs, set) # TODO remove
         binmaps, X, y, w = {}, {}, {}, {}
+        self._non_identical_idxs = {}
+        self._scaled_training_data = {"X": {}, "y": y, "w": w}
         for condition, condition_func_score_df in df.groupby("condition"):
             ref_bmap = bmap.BinaryMap(
                 condition_func_score_df,
@@ -490,24 +494,19 @@ class Data:
                 alphabet=self.alphabet,
                 sites_as_str=letter_suffixed_sites,
             )
+            # print(ref_bmap.all_subs)
+            # print(self._mutations)
+            # assert ref_bmap.all_subs == self._mutations
             binmaps[condition] = ref_bmap
             X[condition] = sparse.BCOO.from_scipy_sparse(ref_bmap.binary_variants)
             y[condition] = jnp.array(condition_func_score_df["func_score"].values)
             if "weight" in condition_func_score_df.columns:
                 w[condition] = jnp.array(condition_func_score_df["weight"].values)
 
-        # set training data properties
-        self._training_data = {"X": X, "y": y, "w": w}
-        self._binarymaps = binmaps
-        self._mutations = tuple(ref_bmap.all_subs)
-
-        # next, we need to create a "scaled" dataset
-        # where the bits are flipped in the one-hot encoding
-        # for all non identical mutations
-        # see TODO for more
-        self._non_identical_idxs = {}
-        self._scaled_training_data = {"X": {}, "y": y, "w": w}
-        for condition in self._conditions:
+            # next, we need to create a "scaled" dataset
+            # where the bits are flipped in the one-hot encoding
+            # for all non identical mutations
+            # see TODO for more
             self._non_identical_idxs[condition] = jnp.array(
                 [
                     idx
@@ -519,25 +518,35 @@ class Data:
                 X[condition], self._non_identical_idxs[condition]
             )
 
+        self._mutations = tuple(ref_bmap.all_subs)
         # initialize single mutational effects df
         mut_df = pd.DataFrame({"mutation": self._mutations})
-
         mut_df["wts"], mut_df["sites"], mut_df["muts"] = zip(
             *mut_df["mutation"].map(self._mutparser.parse_mut)
         )
 
-        # compute times seen in data
-        for condition, condition_vars in self._variants_df.groupby("condition"):
-            times_seen = (
-                condition_vars["var_wrt_ref"].str.split().explode().value_counts()
+        for condition in self._conditions:
+            # compute times seen in data
+            # compute the sum of each mutation (column) in the scaled data
+            times_seen = pd.Series(
+                self._scaled_training_data["X"][condition].sum(0).todense()
             )
-            if (times_seen == times_seen.astype(int)).all():
-                times_seen = times_seen.astype(int)
+            times_seen.index = ref_bmap.all_subs
+            # print(times_seen)
+
+            assert (times_seen == times_seen.astype(int)).all()
+            # times_seen = times_seen.astype(int)
             times_seen.index.name = "mutation"
             times_seen.name = f"times_seen_{condition}"
-            mut_df = mut_df.merge(times_seen, on="mutation", how="left").fillna(0)
+            mut_df = mut_df.merge(times_seen, on="mutation", how="left")  # .fillna(0)
+
+            # set training data properties
+        self._training_data = {"X": X, "y": y, "w": w}
+        self._binarymaps = binmaps
 
         self._mutations_df = mut_df
+
+        # TODO I think we don't need this anymore
         self._name = name if isinstance(name, str) else f"Data-{Data.counter}"
 
         Data.counter += 1
@@ -564,6 +573,11 @@ class Data:
     def reference(self) -> str:
         """The name of the reference condition."""
         return self._reference
+
+    @property
+    def reference_index(self) -> int:
+        """The index of the reference condition."""
+        return self._reference_index
 
     @property
     def mutations(self) -> tuple:

@@ -11,22 +11,26 @@ import jax
 import jax.numpy as jnp
 
 
-def difference_matrix(n):
+# TODO add
+# scale_coeff_lasso_shift = lambda x:
+# x.scale_coeff_lasso_shift.apply(lambda x: "{:.2e}".format(x))
+
+
+def difference_matrix(n, ref_index=0):
     """
     Given some number of conditions, return the difference matrix
     for computing shifts between adjacent conditional beta parameters.
     This always assumes the reference condition is the first condition.
     """
-    D = jnp.eye(n, n).at[:, 0].set(-1).at[0].set(0)
+    D = jnp.eye(n, n).at[:, ref_index].set(-1).at[ref_index].set(0)
 
     return D
 
 
-# TODO Finish, do shift params need to be transformed, as well?
 # TODO test
 def transform(params, bundle_idxs):
     """
-    Transforms the bet coefficient parameters of a `multidms` model to be
+    Transforms the beta coefficient parameters of a `multidms` model to be
     negative for the bundles specified in `bundle_idxs`.
 
     TODO Finish
@@ -44,6 +48,7 @@ def transform(params, bundle_idxs):
     return params_transformed
 
 
+# TODO test
 def rereference(X, cols):
     """Flip bits on columns (bool idxs)"""
     if cols.sum():

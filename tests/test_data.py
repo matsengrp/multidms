@@ -13,7 +13,7 @@ from jax.tree_util import tree_flatten
 import pandas as pd
 from io import StringIO
 
-
+# TODO test non numeric sites?
 TEST_FUNC_SCORES = pd.read_csv(
     StringIO(
         """
@@ -32,6 +32,7 @@ b,P2T,0.3
     )
 )
 
+# TODO figure out correct way to setup the data
 data = multidms.Data(
     TEST_FUNC_SCORES,
     alphabet=multidms.AAS_WITHSTOP,
@@ -49,12 +50,24 @@ DATA
 """
 
 
-def test_reference_first():
-    """
-    Test that the reference is always first in
-    data.conditions
-    """
-    assert data.conditions[0] == "a"
+# def test_reference_first():
+#     """
+#     Test that the reference is always first in
+#     data.conditions
+#     """
+#     # assert data.conditions[0] == "a"
+#     data_b = multidms.Data(
+#         TEST_FUNC_SCORES,
+#         alphabet=multidms.AAS_WITHSTOP,
+#         reference="b",
+#         assert_site_integrity=True,
+#         name="test_data",
+#     )
+#     assert data_b.conditions[0] == "b"
+#     model = multidms.Model(data_b)
+#     assert model.data.conditions == tuple(["b", "a"])
+#     assert tuple(model.params["beta"].keys()) == tuple(["b", "a"])
+#     assert tuple(model.params["shift"].keys()) == tuple(["b", "a"])
 
 
 def test_site_integrity():
@@ -242,10 +255,57 @@ MODEL
 """
 
 
+def test_linear_model_fit_simple():
+    """
+    Simple test to see that the linear model
+    fits without error.
+    """
+    data = multidms.Data(
+        TEST_FUNC_SCORES.query("condition == 'a'"),
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="a",
+        assert_site_integrity=False,
+    )
+    model = multidms.Model(data, multidms.biophysical.identity_activation, PRNGKey=23)
+    model.fit(maxiter=2, warn_unconverged=False)
+
+
+def test_linear_model_multi_cond_fit_simple():
+    """
+    Simple test to see that the linear model
+    fits multiple conditions without error.
+    """
+    data = multidms.Data(
+        TEST_FUNC_SCORES,
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="a",
+        assert_site_integrity=False,
+    )
+    model = multidms.Model(data, multidms.biophysical.identity_activation, PRNGKey=23)
+
+    model.fit(maxiter=2, warn_unconverged=False)
+
+
 def test_fit_simple():
     """
-    test that the wildtype predictions are correct
-    by comparing them to a "by-hand" calculation on the parameters.
+    Simple test to see that the single-condition model
+    fits without error.
+    """
+    data = multidms.Data(
+        TEST_FUNC_SCORES.query("condition == 'a'"),
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="a",
+        assert_site_integrity=False,
+    )
+    model = multidms.Model(data, PRNGKey=23)
+
+    model.fit(maxiter=2, warn_unconverged=False)
+
+
+def test_multi_cond_fit_simple():
+    """
+    Simple test to make sure the multi-condition model
+    fits without error.
     """
     data = multidms.Data(
         TEST_FUNC_SCORES,
@@ -476,7 +536,7 @@ def test_model_get_df_loss_conditional():
     df_loss = model.get_df_loss(TEST_FUNC_SCORES, conditional=True)
     # remove full and compare sum of the rest
     df_loss.pop("total")
-    assert loss == sum(df_loss.values()) / len(df_loss.values())
+    assert loss == sum(df_loss.values())
 
 
 def test_conditional_loss():
@@ -507,103 +567,85 @@ def test_explode_params_dict():
     assert exploded == [{"a": 1, "b": 3}, {"a": 2, "b": 3}]
 
 
-# def test_fit_models():
-#     """
-#     Test fitting two different models in
-#     parallel using multidms.model_collection.fit_models
-#     """
-#     data = multidms.Data(
-#         TEST_FUNC_SCORES,
-#         alphabet=multidms.AAS_WITHSTOP,
-#         reference="a",
-#         assert_site_integrity=False,
-#     )
-#     params = {
-#         "dataset": [data],
-#         "maxiter": [2],
-#         "scale_coeff_lasso_shift": [0.0, 1e-5],
-#     }
-#     _, _, fit_models_df = multidms.model_collection.fit_models(
-#         params,
-#         n_threads=-1,
-#     )
-#     mc = multidms.model_collection.ModelCollection(fit_models_df)
-#     tall_combined = mc.split_apply_combine_muts(groupby=("scale_coeff_lasso_shift"))
-#     assert len(tall_combined) == 2 * len(data.mutations_df)
-#     assert list(tall_combined.index.names) == ["scale_coeff_lasso_shift"]
-#
-#
-# def test_ModelCollection_charts():
-#    """
-#    Test fitting two different models in
-#    parallel using multidms.model_collection.fit_models
-#    """
-#    data = multidms.Data(
-#        TEST_FUNC_SCORES,
-#        alphabet=multidms.AAS_WITHSTOP,
-#        reference="a",
-#        assert_site_integrity=False,
-#    )
-#    params = {
-#        "dataset": [data],
-#        "maxiter": [2],
-#        "scale_coeff_lasso_shift": [0.0, 1e-5],
-#    }
-#    _, _, fit_models_df = multidms.model_collection.fit_models(
-#        params,
-#        n_threads=-1,
-#    )
-#    mc = multidms.model_collection.ModelCollection(fit_models_df)
-#
-#    mc.mut_param_heatmap(query="scale_coeff_lasso_shift == 0.0")
-#    mc.shift_sparsity()
-#
-#
-# def test_ModelCollection_get_conditional_loss_df():
-#    """
-#    Test that correctness of the conditional loss df
-#    format and values by comparing the results of
-#    ModelCollection.get_conditional_loss_df to the
-#    results of Model.conditional_loss.
-#    """
-#    params = {
-#        "dataset": [data],
-#        "maxiter": [2],
-#        "scale_coeff_lasso_shift": [0.0, 1e-5],
-#    }
-#    _, _, fit_models_df = multidms.model_collection.fit_models(
-#        params,
-#        n_threads=-1,
-#    )
-#    mc = multidms.model_collection.ModelCollection(fit_models_df)
-#    df_loss = mc.get_conditional_loss_df()
-#    # without validation loss, we expect the loss dataframe
-#    # to have a row for each model-condition pair + total loss
-#    n_expected_training_loss_rows = len(mc.fit_models) * (len(data.conditions) + 1)
-#    assert df_loss.shape[0] == n_expected_training_loss_rows
-#
-#    mc.add_validation_loss(TEST_FUNC_SCORES)
-#    df_loss = mc.get_conditional_loss_df()
-#    # with validation loss, we expect the loss dataframe
-#    # to have a row for each model-condition-split (training/validation) pair
-#    # + total loss
-#    assert df_loss.shape[0] == n_expected_training_loss_rows * 2
-#
-#
-# def test_single_vs_multistep_acceleration():
-#    """
-#    We currently approach the model optimization problem with
-#    a multi-step approach, where each step re-initializes the jaxopt.ProximalGradient
-#    objects before fitting the latest parameters from the previous step for some number
-#    of iterations per step. This behavior affects the FISTA acceleration, which is
-#    re-set at each step. We want to make sure that the multi-step approach
-#    is identical to a single step if we are remove the acceleration.
-#    """
-#    model = multidms.Model(data, PRNGKey=23)
-#    model.fit(maxiter=4, acceleration=False, warn_unconverged=False)
-#    loss = model.loss
-#    model = multidms.Model(data, PRNGKey=23)
-#    for i in range(2):
-#        model.fit(maxiter=2, acceleration=False, warn_unconverged=False)
-#    loss_no_accel = model.loss
-#    assert loss == loss_no_accel
+def test_fit_models():
+    """
+    Test fitting two different models in
+    parallel using multidms.model_collection.fit_models
+    """
+    data = multidms.Data(
+        TEST_FUNC_SCORES,
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="a",
+        assert_site_integrity=False,
+    )
+    params = {
+        "dataset": [data],
+        "maxiter": [2],
+        "scale_coeff_lasso_shift": [0.0, 1e-5],
+    }
+    _, _, fit_models_df = multidms.model_collection.fit_models(
+        params,
+        n_threads=-1,
+    )
+    # assert False
+    mc = multidms.model_collection.ModelCollection(fit_models_df)
+    tall_combined = mc.split_apply_combine_muts(groupby=("scale_coeff_lasso_shift"))
+    assert len(tall_combined) == 2 * len(data.mutations_df)
+    assert list(tall_combined.index.names) == ["scale_coeff_lasso_shift"]
+
+
+def test_ModelCollection_charts():
+    """
+    Test fitting two different models in
+    parallel using multidms.model_collection.fit_models
+    """
+    data = multidms.Data(
+        TEST_FUNC_SCORES,
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="a",
+        assert_site_integrity=False,
+    )
+    params = {
+        "dataset": [data],
+        "maxiter": [2],
+        "scale_coeff_lasso_shift": [0.0, 1e-5],
+    }
+    _, _, fit_models_df = multidms.model_collection.fit_models(
+        params,
+        n_threads=-1,
+    )
+    mc = multidms.model_collection.ModelCollection(fit_models_df)
+
+    mc.mut_param_heatmap(query="scale_coeff_lasso_shift == 0.0")
+    mc.shift_sparsity()
+
+
+def test_ModelCollection_get_conditional_loss_df():
+    """
+    Test that correctness of the conditional loss df
+    format and values by comparing the results of
+    ModelCollection.get_conditional_loss_df to the
+    results of Model.conditional_loss.
+    """
+    params = {
+        "dataset": [data],
+        "maxiter": [2],
+        "scale_coeff_lasso_shift": [0.0, 1e-5],
+    }
+    _, _, fit_models_df = multidms.model_collection.fit_models(
+        params,
+        n_threads=-1,
+    )
+    mc = multidms.model_collection.ModelCollection(fit_models_df)
+    df_loss = mc.get_conditional_loss_df()
+    # without validation loss, we expect the loss dataframe
+    # to have a row for each model-condition pair + total loss
+    n_expected_training_loss_rows = len(mc.fit_models) * (len(data.conditions) + 1)
+    assert df_loss.shape[0] == n_expected_training_loss_rows
+
+    mc.add_validation_loss(TEST_FUNC_SCORES)
+    df_loss = mc.get_conditional_loss_df()
+    # with validation loss, we expect the loss dataframe
+    # to have a row for each model-condition-split (training/validation) pair
+    # + total loss
+    assert df_loss.shape[0] == n_expected_training_loss_rows * 2
