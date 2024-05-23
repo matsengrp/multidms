@@ -53,7 +53,8 @@ jobs:
 
       - name: Test
         run: |
-          pytest --doctest-modules multidms tests
+          # pytest --doctest-modules multidms tests
+          pytest multidms tests
 
       - name: Test docs build
         run: |

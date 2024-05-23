@@ -133,10 +133,10 @@ class Model:
 
     >>> model.data.mutations_df  # doctest: +NORMALIZE_WHITESPACE
       mutation wts  sites muts  times_seen_a  times_seen_b
-    0      M1E   M      1    E             1           3.0
-    1      M1W   M      1    W             1           0.0
-    2      G3P   G      3    P             1           1.0
-    3      G3R   G      3    R             1           2.0
+    0      M1E   M      1    E             1             3
+    1      M1W   M      1    W             1             0
+    2      G3P   G      3    P             1             4
+    3      G3R   G      3    R             1             2
 
     However, if accessed directly through the :class:`Model` object, you will
     get the same information, along with model/parameter specific
@@ -144,18 +144,18 @@ class Model:
     request the property.
 
     >>> model.get_mutations_df()  # doctest: +NORMALIZE_WHITESPACE
-              beta_a  beta_b  shift_b  predicted_func_score_a  \
+             wts  sites muts  times_seen_a  times_seen_b  beta_a  beta_b  shift_b  \
     mutation
-    M1E          0.0     0.0      0.0                     0.0
-    M1W          0.0     0.0      0.0                     0.0
-    G3P          0.0    -0.0      0.0                     0.0
-    G3R          0.0     0.0      0.0                     0.0
-              predicted_func_score_b  times_seen_a  times_seen_b wts  sites muts
+    M1E        M      1    E             1             3     0.0     0.0      0.0
+    M1W        M      1    W             1             0     0.0     0.0      0.0
+    G3P        G      3    P             1             4     0.0    -0.0      0.0
+    G3R        G      3    R             1             2     0.0     0.0      0.0
+             predicted_func_score_a predicted_func_score_b
     mutation
-    M1E                          0.0             1           3.0   M      1    E
-    M1W                          0.0             1           0.0   M      1    W
-    G3P                          0.0             1           1.0   G      3    P
-    G3R                          0.0             1           2.0   G      3    R
+    M1E                         0.0                    0.0
+    M1W                         0.0                    0.0
+    G3P                         0.0                    0.0
+    G3R                         0.0                    0.0
 
     Notice the respective single mutation effects (``"beta"``), conditional shifts
     (``shift_d``),
@@ -199,7 +199,7 @@ class Model:
 
     >>> model.fit(maxiter=10, lasso_shift=1e-5, warn_unconverged=False)
     >>> model.loss
-    0.29835365289243454
+    0.3483478119356665
 
     The model tunes its parameters in place, and the subsequent call to retrieve
     the loss reflects our models loss given its updated parameters.
@@ -435,7 +435,7 @@ class Model:
         for condition in self.data.conditions:
             condition_data = ({condition: X[condition]}, {condition: y[condition]})
             ret[condition] = float(loss_fxn(self.params, condition_data, **kwargs))
-        ret["total"] = sum(ret.values())
+        ret["total"] = sum(ret.values()) / len(ret.values())
         return ret
 
     @property
@@ -532,26 +532,26 @@ class Model:
         return self.get_mutations_df(phenotype_as_effect=False)
 
     # TODO cached_property
+    # TODO output_shape "wide" or "long"
     def get_mutations_df(
         self,
-        phenotype_as_effect=True,
         times_seen_threshold=0,
+        phenotype_as_effect=True,
         return_split=True,
     ):
         """
-        Mutation attributes and phenotypic effects.
+        Mutation attributes and phenotypic effects
+        based on the current state of the model.
 
         Parameters
         ----------
-        phenotype_as_effect : bool, optional
-            if True, phenotypes (both latent, and func_score)
-            are calculated as the _difference_ between predicted
-            phenotype of a given variant and the respective experimental
-            wildtype prediction. Otherwise, report the unmodified
-            model prediction.
         times_seen_threshold : int, optional
             Only report mutations that have been seen at least
             this many times in each condition. Defaults to 0.
+        phenotype_as_effect : bool, optional
+            if True, phenotypes are reported as the difference
+            from the conditional wildtype prediction. Otherwise,
+            report the unmodified model prediction.
         return_split : bool, optional
             If True, return the split mutations as separate columns:
             'wts', 'sites', and 'muts'.
@@ -563,11 +563,14 @@ class Model:
             A copy of the mutations data, `self.data.mutations_df`,
             with the mutations column set as the index, and columns
             with the mutational attributes (e.g. betas, shifts) and
-            conditional phenotypes (e.g. func_scores) added.
-            Phenotypes are predicted
-            based on the current state of the model.
+            conditional functional score effect (e.g. ) added.
+
+            The columns are ordered as follows:
+            - beta_a, beta_b, ... : the latent effect of the mutation
+            - shift_b, shift_c, ... : the conditional shift of the mutation
+            - predicted_func_score_a, predicted_func_score_b, ... : the
+                predicted functional score of the mutation.
         """
-        # we're updating this
         mutations_df = self.data.mutations_df.set_index("mutation")
         if not return_split:
             mutations_df.drop(
@@ -588,24 +591,30 @@ class Model:
                 i
             ), f"mutation {sub} df index does not match binarymaps respective index"
 
-        # for effect calculation
-        if phenotype_as_effect:
-            wildtype_df = self.wildtype_df
-
-        X = sparse.BCOO.fromdense(onp.identity(len(self._data.mutations)))
-
         params = self.params
-        for condition in self._data.conditions:
+        for condition in self.data.conditions:
             # shift of latent effect
             mutations_df[f"beta_{condition}"] = params["beta"][condition]
 
             if condition != self._data.reference:
                 mutations_df[f"shift_{condition}"] = params["shift"][condition]
 
-            Y_pred = self.phenotype_frombinary(X, condition)
+        # if include_phenotype_predictions:
+        wildtype_df = self.wildtype_df
+        for condition in self.data.conditions:
+            wt_func_score = wildtype_df.loc[condition, "predicted_func_score"]
+            mutations_df[f"predicted_func_score_{condition}"] = [
+                pheno[0]
+                for pheno in list(
+                    map(
+                        partial(self.phenotype_fromsubs, condition=condition),
+                        mutations_df.index,
+                    )
+                )
+            ]
             if phenotype_as_effect:
-                Y_pred -= wildtype_df.loc[condition, "predicted_func_score"]
-            mutations_df[f"predicted_func_score_{condition}"] = Y_pred
+                # TODO always do phenotype "as effect"?
+                mutations_df[f"predicted_func_score_{condition}"] -= wt_func_score
 
         # filter by times seen
         if times_seen_threshold > 0:
@@ -614,18 +623,8 @@ class Model:
                     mutations_df[f"times_seen_{condition}"] >= times_seen_threshold
                 ]
 
-        col_order = (
-            [c for c in mutations_df.columns if c.startswith("beta")]
-            + [c for c in mutations_df.columns if c.startswith("shift")]
-            + [c for c in mutations_df.columns if c.startswith("predicted")]
-            + [c for c in mutations_df.columns if c.startswith("times_seen")]
-        )
-        if return_split:
-            col_order += ["wts", "sites", "muts"]
+        return mutations_df
 
-        return mutations_df[col_order]
-
-    # TODO cached_property
     def get_df_loss(self, df, error_if_unknown=False, verbose=False, conditional=False):
         """
         Get the loss of the model on a given data frame.
@@ -725,7 +724,7 @@ class Model:
             y[condition] = jnp.array(variant_targets)
             ret[condition] = float(loss_fxn(self.params, (X, y), **kwargs))
 
-        ret["total"] = sum(ret.values())  # / len(ret.values())
+        ret["total"] = sum(ret.values()) / len(ret.values())
 
         if not conditional:
             return ret["total"]
@@ -828,6 +827,7 @@ class Model:
                     axis=1,
                 )
 
+            # TODO, why convert above if this may be provided by user?
             if converted_substitutions_col is not None:
                 ret.loc[condition_df.index, converted_substitutions_col] = variant_subs
 
@@ -981,7 +981,10 @@ class Model:
             Condition to make predictions for. If None, use the reference
         """
         d_params = self.get_condition_params(condition)
-        return jax.jit(self.model_components["f"])(d_params, X)
+        if X.shape[0] > 1000:
+            return jax.jit(self.model_components["f"])(d_params, X)
+        else:
+            return self.model_components["f"](d_params, X)
 
     def latent_frombinary(self, X, condition=None):
         """
@@ -1064,8 +1067,6 @@ class Model:
             regularize and otherwise modify the objective function
             being optimized.
         """
-        # TODO rename
-
         # CONFIG PROXIMAL
         # infer the range of the training data, and double it
         # to set the upper bound of the theta (post-latent e.g. sigmoid) scale parameter.

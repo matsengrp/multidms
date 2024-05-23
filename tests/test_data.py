@@ -13,6 +13,8 @@ from jax.tree_util import tree_flatten
 import pandas as pd
 from io import StringIO
 
+import multidms.utils
+
 # TODO test non numeric sites?
 TEST_FUNC_SCORES = pd.read_csv(
     StringIO(
@@ -48,26 +50,6 @@ r"""
 DATA
 +++++++++++++++++++++++++++++
 """
-
-
-# def test_reference_first():
-#     """
-#     Test that the reference is always first in
-#     data.conditions
-#     """
-#     # assert data.conditions[0] == "a"
-#     data_b = multidms.Data(
-#         TEST_FUNC_SCORES,
-#         alphabet=multidms.AAS_WITHSTOP,
-#         reference="b",
-#         assert_site_integrity=True,
-#         name="test_data",
-#     )
-#     assert data_b.conditions[0] == "b"
-#     model = multidms.Model(data_b)
-#     assert model.data.conditions == tuple(["b", "a"])
-#     assert tuple(model.params["beta"].keys()) == tuple(["b", "a"])
-#     assert tuple(model.params["shift"].keys()) == tuple(["b", "a"])
 
 
 def test_site_integrity():
@@ -173,7 +155,7 @@ def test_non_identical_mutations_property():
     assert jnp.sum(data.non_identical_idxs["b"]) == 1
 
 
-# TODO take a closer look at this.
+## TODO take a closer look at this.
 def test_non_identical_conversion():
     """
     Test the conversion to with respect reference wt sequence.
@@ -246,6 +228,25 @@ def test_difference_matrix():
         expected_result = jnp.array(range(n))[:, None]
         D = multidms.utils.difference_matrix(n)
         assert jnp.all(D @ test_vec == expected_result)
+
+
+def test_transform_inverse():
+    """
+    Test that the transform operation is
+    its own inverse.
+    """
+    print(data.non_identical_idxs)
+    model = multidms.Model(data, multidms.biophysical.identity_activation, PRNGKey=23)
+    params = model._scaled_data_params
+    non_identical_idxs = data.non_identical_idxs
+    print(params)
+    double_inverse = multidms.utils.transform(
+        multidms.utils.transform(params, non_identical_idxs), non_identical_idxs
+    )
+    assert np.all(params["beta"]["a"] == double_inverse["beta"]["a"])
+    assert np.all(params["beta"]["b"] == double_inverse["beta"]["b"])
+    assert np.all(params["beta0"]["a"] == double_inverse["beta0"]["a"])
+    assert np.all(params["beta0"]["b"] == double_inverse["beta0"]["b"])
 
 
 r"""
@@ -335,12 +336,13 @@ def test_wildtype_mutant_predictions():
     for condition in model.data.conditions:
         latent_offset = model.params["beta0"][condition]
         byhand_wt_latent_pred = latent_offset
+
         if condition != model.data.reference:
             converted_subs = model.data.convert_subs_wrt_ref_seq(condition, "")
             bmap = model.data.binarymaps[model.data.reference]
             enc = bmap.sub_str_to_binary(converted_subs)
             assert sum(enc) == len(converted_subs.split())
-            mut_params = model.get_mutations_df(phenotype_as_effect=False).query(
+            mut_params = model.get_mutations_df().query(
                 "mutation.isin(@converted_subs.split())"
             )
             bundle_effect = mut_params[f"beta_{condition}"].sum()
@@ -380,18 +382,40 @@ def test_mutations_df():
     )
     model = multidms.Model(data, PRNGKey=23)
     model.fit(maxiter=2, warn_unconverged=False)
+
+    # We want to make sure the predictions in this method are as expected
+    mutations_df = model.get_mutations_df()
+
+    # we'll compare it to predictions done by hand
     sig_params = model.params["theta"]
     scale, bias = sig_params["ge_scale"], sig_params["ge_bias"]
-    mutations_df = model.get_mutations_df(phenotype_as_effect=False)
-    for i, mutation in enumerate(model.data.mutations):
-        effect = model.params["beta"][data.reference][i]
-        for condition in model.data.conditions:
+    wildtype_df = model.wildtype_df
+
+    for condition in model.data.conditions:
+        wildtype_func_score = wildtype_df.loc[condition, "predicted_func_score"]
+        for i, mutation in enumerate(model.data.mutations):
+            mut_df_pred = mutations_df.loc[
+                mutation, f"predicted_func_score_{condition}"
+            ]
+
+            ref_effect = model.params["beta"][data.reference][i]
             shift = model.params["shift"][f"{condition}"][i]
-            byhand_latent = effect + shift + model.params["beta0"][condition]
+            effect = ref_effect + shift
+            assert np.isclose(effect, model.params["beta"][condition][i])
+
+            converted_wrt_ref = model.data.convert_subs_wrt_ref_seq(condition, mutation)
+            binarymap = model.data.binarymaps[condition]
+            converted_wrt_ref_enc = binarymap.sub_str_to_binary(converted_wrt_ref)
+            bool_enc = converted_wrt_ref_enc.astype(bool)
+            additive_effect = sum(model.params["beta"][condition][bool_enc])
+            latent_offset = model.params["beta0"][condition]
+            byhand_latent = additive_effect + latent_offset
             byhand_func_score = scale / (1 + np.exp(-1 * byhand_latent)) + bias
+            byhand_func_score_effect = byhand_func_score - wildtype_func_score
+
             assert np.isclose(
-                byhand_func_score,
-                mutations_df.loc[mutation, f"predicted_func_score_{condition}"],
+                byhand_func_score_effect,
+                mut_df_pred,
             )
 
 
@@ -536,7 +560,7 @@ def test_model_get_df_loss_conditional():
     df_loss = model.get_df_loss(TEST_FUNC_SCORES, conditional=True)
     # remove full and compare sum of the rest
     df_loss.pop("total")
-    assert loss == sum(df_loss.values())
+    assert loss == sum(df_loss.values()) / len(df_loss)
 
 
 def test_conditional_loss():
