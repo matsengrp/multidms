@@ -195,10 +195,10 @@ class Data:
 
     >>> data.mutations_df  # doctest: +NORMALIZE_WHITESPACE
       mutation wts  sites muts  times_seen_a  times_seen_b
-    0      M1E   M      1    E             1           3.0
-    1      M1W   M      1    W             1           0.0
-    2      G3P   G      3    P             1           1.0
-    3      G3R   G      3    R             1           2.0
+    0      M1E   M      1    E             1             3
+    1      M1W   M      1    W             1             0
+    2      G3P   G      3    P             1             4
+    3      G3R   G      3    R             1             2
 
     >>> data.variants_df  # doctest: +NORMALIZE_WHITESPACE
       condition aa_substitutions  func_score var_wrt_ref
@@ -313,9 +313,7 @@ class Data:
 
         # Use the "aa_substitutions" to infer the
         # wild type for each condition
-        # site_map = pd.DataFrame()
         site_map = pd.DataFrame(columns=self.conditions)
-        # print(site_map.info())
         for hom, hom_func_df in df.groupby("condition"):
             if verbose:
                 print(f"inferring site map for {hom}")
@@ -487,6 +485,7 @@ class Data:
         self._non_identical_idxs = {}
         self._scaled_training_data = {"X": {}, "y": y, "w": w}
         for condition, condition_func_score_df in df.groupby("condition"):
+            # TODO rename
             ref_bmap = bmap.BinaryMap(
                 condition_func_score_df,
                 substitutions_col="var_wrt_ref",
@@ -494,9 +493,6 @@ class Data:
                 alphabet=self.alphabet,
                 sites_as_str=letter_suffixed_sites,
             )
-            # print(ref_bmap.all_subs)
-            # print(self._mutations)
-            # assert ref_bmap.all_subs == self._mutations
             binmaps[condition] = ref_bmap
             X[condition] = sparse.BCOO.from_scipy_sparse(ref_bmap.binary_variants)
             y[condition] = jnp.array(condition_func_score_df["func_score"].values)
@@ -532,15 +528,13 @@ class Data:
                 self._scaled_training_data["X"][condition].sum(0).todense()
             )
             times_seen.index = ref_bmap.all_subs
-            # print(times_seen)
 
             assert (times_seen == times_seen.astype(int)).all()
-            # times_seen = times_seen.astype(int)
             times_seen.index.name = "mutation"
             times_seen.name = f"times_seen_{condition}"
             mut_df = mut_df.merge(times_seen, on="mutation", how="left")  # .fillna(0)
 
-            # set training data properties
+        # set training data properties
         self._training_data = {"X": X, "y": y, "w": w}
         self._binarymaps = binmaps
 

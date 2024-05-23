@@ -27,7 +27,6 @@ def difference_matrix(n, ref_index=0):
     return D
 
 
-# TODO test
 def transform(params, bundle_idxs):
     """
     Transforms the beta coefficient parameters of a `multidms` model to be

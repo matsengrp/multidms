@@ -474,6 +474,6 @@ def smooth_objective(
         # parameters and add it to the loss function
         beta_ridge_penalty += scale_coeff_ridge_beta * (d_params["beta"] ** 2).sum()
 
-    # huber_cost /= len(X)
+    huber_cost /= len(X)
 
     return huber_cost + beta_ridge_penalty
