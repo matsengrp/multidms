@@ -36,13 +36,11 @@ This may change in the future.
 import jax.numpy as jnp
 from jaxopt.loss import huber_loss
 
-from multidms.utils import transform  # TODO namespace for utils?
+from multidms.utils import transform
 import pyproximal
 import jax
 
-# jax.config.update("jax_enable_x64", True)
-# TODO, each of these should be a class that decends from a base model_component class
-# and should have a method that returns the function with the parameters as arguments
+jax.config.update("jax_enable_x64", True)
 
 r"""
 +++++++++++++++++++++++++++++
@@ -278,11 +276,11 @@ def softplus_activation(d_params, act, lower_bound=-3.5, hinge_scale=0.1, **kwar
     """
     return (
         hinge_scale
-        # TODO GAMMA
+        # GAMMA
         # * (jnp.logaddexp(0, (act - (lower_bound + d_params["gamma_d"])) / hinge_scale))
         * (jnp.logaddexp(0, act - lower_bound / hinge_scale))
         + lower_bound
-        # TODO GAMMA
+        # GAMMA
         # + d_params["gamma_d"]
     )
 
@@ -452,7 +450,7 @@ def smooth_objective(
         d_params = {
             "beta0": params["beta0"][condition],
             "beta": params["beta"][condition],
-            # TODO GAMMA
+            # GAMMA
             # "gamma": params["gamma"][condition],
             "theta": params["theta"],
         }
@@ -463,7 +461,7 @@ def smooth_objective(
         # compute the Huber loss between observed and predicted
         # functional scores
         huber_cost += huber_loss(
-            # TODO GAMMA
+            # GAMMA
             # y[condition] + d_params["gamma"], y_d_predicted, huber_scale
             y[condition],
             y_d_predicted,

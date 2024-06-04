@@ -8,9 +8,8 @@ dms experiments under various conditions.
 """
 
 import os
-from functools import partial
+from functools import partial, cached_property
 import warnings
-import re
 
 import binarymap as bmap
 import numpy as onp
@@ -20,7 +19,7 @@ from polyclonal.utils import MutationParser
 from tqdm.auto import tqdm
 
 from multidms import AAS
-from multidms.utils import rereference
+from multidms.utils import rereference, split_subs
 
 import jax
 import jax.numpy as jnp
@@ -32,31 +31,6 @@ from pandarallel import pandarallel
 jax.config.update("jax_enable_x64", True)
 
 
-# TODO why use these when we have the mut parser object? DEPRECATE probably
-def split_sub(sub_string):
-    """String match the wt, site, and sub aa
-    in a given string denoting a single substitution
-    """
-    pattern = r"(?P<aawt>[A-Z])(?P<site>[\d\w]+)(?P<aamut>[A-Z\*])"
-    match = re.search(pattern, sub_string)
-    assert match is not None, sub_string
-    return match.group("aawt"), str(match.group("site")), match.group("aamut")
-
-
-def split_subs(subs_string, parser=split_sub):
-    """Wrap the split_sub func to work for a
-    string containing multiple substitutions
-    """
-    wts, sites, muts = [], [], []
-    for sub in subs_string.split():
-        wt, site, mut = parser(sub)
-        wts.append(wt)
-        sites.append(site)
-        muts.append(mut)
-    return wts, sites, muts
-
-
-# TODO add validation split
 class Data:
     r"""
     Prep and store one-hot encoding of
@@ -212,8 +186,6 @@ class Data:
     7         b          M1E P3G         2.7         M1E
     8         b          M1E P3R        -2.7     G3R M1E
     """
-
-    counter = 0
 
     def __init__(
         self,
@@ -480,21 +452,19 @@ class Data:
 
         # Make BinaryMap representations for each condition
         allowed_subs = {s for subs in df.var_wrt_ref for s in subs.split()}
-        # assert isinstance(allowed_subs, set) # TODO remove
         binmaps, X, y, w = {}, {}, {}, {}
-        self._non_identical_idxs = {}
+        self._bundle_idxs = {}
         self._scaled_training_data = {"X": {}, "y": y, "w": w}
         for condition, condition_func_score_df in df.groupby("condition"):
-            # TODO rename
-            ref_bmap = bmap.BinaryMap(
+            cond_bmap = bmap.BinaryMap(
                 condition_func_score_df,
                 substitutions_col="var_wrt_ref",
                 allowed_subs=allowed_subs,
                 alphabet=self.alphabet,
                 sites_as_str=letter_suffixed_sites,
             )
-            binmaps[condition] = ref_bmap
-            X[condition] = sparse.BCOO.from_scipy_sparse(ref_bmap.binary_variants)
+            binmaps[condition] = cond_bmap
+            X[condition] = sparse.BCOO.from_scipy_sparse(cond_bmap.binary_variants)
             y[condition] = jnp.array(condition_func_score_df["func_score"].values)
             if "weight" in condition_func_score_df.columns:
                 w[condition] = jnp.array(condition_func_score_df["weight"].values)
@@ -502,19 +472,19 @@ class Data:
             # next, we need to create a "scaled" dataset
             # where the bits are flipped in the one-hot encoding
             # for all non identical mutations
-            # see TODO for more
-            self._non_identical_idxs[condition] = jnp.array(
+            # see https://github.com/matsengrp/multidms/issues/156 for more
+            self._bundle_idxs[condition] = jnp.array(
                 [
                     idx
-                    in ref_bmap.sub_str_to_indices(non_identical_mutations[condition])
-                    for idx in range(len(ref_bmap.all_subs))
+                    in cond_bmap.sub_str_to_indices(non_identical_mutations[condition])
+                    for idx in range(len(cond_bmap.all_subs))
                 ]
             )
             self._scaled_training_data["X"][condition] = rereference(
-                X[condition], self._non_identical_idxs[condition]
+                X[condition], self._bundle_idxs[condition]
             )
 
-        self._mutations = tuple(ref_bmap.all_subs)
+        self._mutations = tuple(cond_bmap.all_subs)
         # initialize single mutational effects df
         mut_df = pd.DataFrame({"mutation": self._mutations})
         mut_df["wts"], mut_df["sites"], mut_df["muts"] = zip(
@@ -527,7 +497,7 @@ class Data:
             times_seen = pd.Series(
                 self._scaled_training_data["X"][condition].sum(0).todense()
             )
-            times_seen.index = ref_bmap.all_subs
+            times_seen.index = cond_bmap.all_subs
 
             assert (times_seen == times_seen.astype(int)).all()
             times_seen.index.name = "mutation"
@@ -540,18 +510,25 @@ class Data:
 
         self._mutations_df = mut_df
 
-        # TODO I think we don't need this anymore
-        self._name = name if isinstance(name, str) else f"Data-{Data.counter}"
-
-        Data.counter += 1
+        self._name = name if isinstance(name, str) else "unnamed"
 
     def __repr__(self):
         """Returns a string representation of the object."""
-        return f"{self.__class__.__name__}({self.name})"
+        return f"{self.__class__.__name__}"
 
-    def _str__(self):
-        """Returns a string representation of the object."""
-        return f"{self.__class__.__name__}({self.name})"
+    def __str__(self):
+        """
+        Returns a string representation of the object with a few helpful
+        attributes.
+        """
+        return (
+            f"{self.__class__.__name__}\n"
+            f"Name: {self.name}\n"
+            f"Conditions: {self.conditions}\n"
+            f"Reference: {self.reference}\n"
+            f"Number of Mutations: {len(self.mutations)}\n"
+            f"Number of Variants: {len(self.variants_df)}\n"
+        )
 
     @property
     def name(self) -> str:
@@ -619,15 +596,14 @@ class Data:
         """
         return self._non_identical_sites
 
-    # TODO should we rename "non_identical" -> "bundle" everywhere?
     @property
-    def non_identical_idxs(self) -> dict:
+    def bundle_idxs(self) -> dict:
         """
         A dictionary keyed by condition names with values
         being the indices into the binarymap representing
         bundle (non_identical) mutations
         """
-        return self._non_identical_idxs
+        return self._bundle_idxs
 
     @property
     def reference_sequence_conditions(self) -> list:
@@ -685,6 +661,34 @@ class Data:
         using the mutation parser.
         """
         return self._parse_muts
+
+    @cached_property
+    def single_mut_encodings(self):
+        """
+        A dictionary keyed by condition names with values
+        being the one-hot encoding of all single mutations
+        """
+        # all reference sequence conditions encodings are single the identity matrix
+        single_mut_encodings = {
+            condition: sparse.BCOO.fromdense(onp.identity(len(self.mutations)))
+            for condition in self.reference_sequence_conditions
+        }
+        # conditions which are not reference sequence conditions must call the
+        for condition in self.conditions:
+            if condition in self.reference_sequence_conditions:
+                continue
+            single_mut_encodings[condition] = sparse.BCOO.fromdense(
+                onp.vstack(
+                    [
+                        self.binarymaps[condition].sub_str_to_binary(
+                            self.convert_subs_wrt_ref_seq(condition, sub)
+                        )
+                        for sub in self.mutations
+                    ]
+                )
+            )
+
+        return single_mut_encodings
 
     def convert_subs_wrt_ref_seq(self, condition, aa_subs):
         """
