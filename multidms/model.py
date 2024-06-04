@@ -8,7 +8,7 @@ Defines :class:`Model` objects.
 
 import math
 import warnings
-from functools import partial, reduce, cached_property
+from functools import lru_cache, partial, reduce, cached_property
 from frozendict import frozendict
 
 from multidms import Data
@@ -203,18 +203,13 @@ class Model:
 
     The model tunes its parameters in place, and the subsequent call to retrieve
     the loss reflects our models loss given its updated parameters.
-
-    TODO: add more examples, and explain the convergence criteria and warning.
     """  # noqa: E501
-
-    counter = 0
 
     def __init__(
         self,
         data: Data,
         epistatic_model=multidms.biophysical.sigmoidal_global_epistasis,
         output_activation=multidms.biophysical.identity_activation,
-        # conditional_shifts=True,
         # gamma_corrected=False,
         PRNGKey=0,
         lower_bound=None,
@@ -224,8 +219,7 @@ class Model:
         name=None,
     ):
         """See class docstring."""
-        # self.gamma_corrected = gamma_corrected TODO
-        # self.conditional_shifts = conditional_shifts
+        # self.gamma_corrected = gamma_corrected GAMMA
 
         self._data = data
 
@@ -247,7 +241,7 @@ class Model:
             self._scaled_data_params["shift"] = {
                 cond: jnp.zeros(shape=(n_beta_shift,)) for cond in data.conditions
             }
-            # TODO GAMMA
+            # GAMMA
             # self._params["gamma"] = {
             #     cond: jnp.zeros(shape=(1,)) for cond in data.conditions
             # }
@@ -262,8 +256,6 @@ class Model:
             )
 
         elif epistatic_model == multidms.biophysical.softplus_global_epistasis:
-            # TODO Could infer here such that the parameters are initialized to the
-            # range of the data?
             if output_activation != multidms.biophysical.softplus_activation:
                 warnings.warn(
                     "softplus_global_epistasis has no natural lower bound,"
@@ -343,36 +335,53 @@ class Model:
             }
         )
 
-        self._name = name if isinstance(name, str) else f"Model-{Model.counter}"
+        self._name = name if isinstance(name, str) else "unnamed"
 
         # None of the following are set until the fit() is called.
         self._state = None
         self._convergence_trajectory = None
         self._converged = False
-        Model.counter += 1
 
     def __repr__(self):
         """Returns a string representation of the object."""
-        return f"{self.__class__.__name__}({self.name})"
+        return f"{self.__class__.__name__}"
 
     def __str__(self):
-        """Returns a string representation of the object."""
-        return f"{self.__class__.__name__}({self.name})"
+        """
+        Returns a string representation of the object with a few helpful
+        attributes.
+        """
+        return (
+            f"{self.__class__.__name__}\n"
+            f"Name: {self.name}\n"
+            f"Data: {self.data.name}\n"
+            f"Converged: {self.converged}\n"
+        )
 
     def _clear_cache(self):
-        """Clear cached properties"""
-        if "params" in self.__dict__:
-            del self.__dict__["params"]
+        """
+        identify and clear cached properties. This is useful
+        after a model has been fit and the parameters have been
+        updated.
+        """
+        # find all cached properties and clear them
+        cls = self.__class__
+        cached_properties = [
+            cp for cp in dir(self) if isinstance(getattr(cls, cp, cls), cached_property)
+        ]
+        for a in cached_properties:
+            self.__dict__.pop(a, None)
+
+        # find all lru_cache methods and call clear_cache on them
+        for a in dir(self):
+            attr = getattr(self, a)
+            if hasattr(attr, "cache_clear"):
+                attr.cache_clear()
 
     @property
     def name(self) -> str:
         """The name of the data object."""
         return self._name
-
-    @cached_property
-    def params(self) -> dict:
-        """A copy of all current model parameters"""
-        return transform(self._scaled_data_params, self.data.non_identical_idxs)
 
     @property
     def state(self) -> dict:
@@ -400,44 +409,6 @@ class Model:
         """
         return self._model_components
 
-    # TODO cached_property
-    @property
-    def loss(self) -> float:
-        """
-        Compute model loss on all experimental training data
-        without ridge or lasso penalties included.
-        """
-        kwargs = {
-            "scale_coeff_ridge_beta": 0.0,
-            # "scale_coeff_ridge_shift": 0.0,
-            # "scale_coeff_ridge_gamma": 0.0,
-            # "scale_ridge_alpha_d": 0.0,
-        }
-        data = (self.data.training_data["X"], self.data.training_data["y"])
-        return float(
-            jax.jit(self.model_components["objective"])(self.params, data, **kwargs)
-        )
-
-    # TODO cached_property
-    @property
-    def conditional_loss(self) -> float:
-        """Compute loss individually for each condition."""
-        kwargs = {
-            "scale_coeff_ridge_beta": 0.0,
-            # "scale_coeff_ridge_shift": 0.0,
-            # "scale_coeff_ridge_gamma": 0.0,
-            # "scale_ridge_alpha_d": 0.0,
-        }
-
-        X, y = self.data.training_data["X"], self.data.training_data["y"]
-        loss_fxn = jax.jit(self.model_components["objective"])
-        ret = {}
-        for condition in self.data.conditions:
-            condition_data = ({condition: X[condition]}, {condition: y[condition]})
-            ret[condition] = float(loss_fxn(self.params, condition_data, **kwargs))
-        ret["total"] = sum(ret.values()) / len(ret.values())
-        return ret
-
     @property
     def convergence_trajectory_df(self):
         """
@@ -446,16 +417,53 @@ class Model:
         """
         return self._convergence_trajectory
 
-    @property
-    def variants_df(self):
-        """
-        Kept for backwards compatibility but will be removed in future versions.
-        Please use `get_variants_df` instead.
-        """
-        warnings.warn("deprecated", DeprecationWarning)
-        return self.get_variants_df(phenotype_as_effect=False)
+    @cached_property
+    def params(self) -> dict:
+        """A copy of all current model parameters"""
+        return transform(self._scaled_data_params, self.data.bundle_idxs)
 
-    # TODO cached_property
+    @cached_property
+    def loss(self) -> float:
+        """
+        Compute un-penalized model loss on all experimental training data
+        without ridge or lasso penalties included.
+        """
+        data = (self.data.training_data["X"], self.data.training_data["y"])
+        return float(jax.jit(self.model_components["objective"])(self.params, data))
+
+    @cached_property
+    def conditional_loss(self) -> float:
+        """Compute un-penalized loss individually for each condition."""
+        X, y = self.data.training_data["X"], self.data.training_data["y"]
+        loss_fxn = jax.jit(self.model_components["objective"])
+        ret = {}
+        for condition in self.data.conditions:
+            condition_data = ({condition: X[condition]}, {condition: y[condition]})
+            ret[condition] = float(loss_fxn(self.params, condition_data))
+        ret["total"] = sum(ret.values()) / len(ret.values())
+        return ret
+
+    @cached_property
+    def wildtype_df(self):
+        """
+        Get a dataframe indexed by condition wildtype
+        containing the prediction features for each.
+        """
+        wildtype_df = (
+            pd.DataFrame(index=self.data.conditions)
+            .assign(predicted_latent=onp.nan)
+            .assign(predicted_func_score=onp.nan)
+        )
+        for condition in self.data.conditions:
+            for pheno, model in zip(
+                ["latent", "func_score"],
+                [self.latent_fromsubs, self.phenotype_fromsubs],
+            ):
+                wildtype_df.loc[condition, f"predicted_{pheno}"] = model("", condition)
+
+        return wildtype_df
+
+    @lru_cache(maxsize=3)
     def get_variants_df(self, phenotype_as_effect=True):
         """
         Training data with model predictions for latent,
@@ -486,7 +494,7 @@ class Model:
 
         # if we're a gamma corrected model, also report the "corrected"
         # observed func score, as we do during training.
-        # TODO GAMMA
+        # GAMMA
         # if self.gamma_corrected:
         # variants_df["corrected_func_score"] = variants_df["func_score"]
 
@@ -511,7 +519,7 @@ class Model:
 
                 variants_df.loc[condition_df.index, f"predicted_{pheno}"] = Y_pred
 
-            # TODO GAMMA
+            # GAMMA
             # if self.gamma_corrected:
             #     variants_df.loc[
             # condition_df.index,
@@ -522,22 +530,9 @@ class Model:
 
         return variants_df
 
-    @property  # TODO deprecated
-    def mutations_df(self):
-        """
-        Kept for backwards compatibility but will be removed in future versions.
-        Please use `get_mutations_df` instead.
-        """
-        warnings.warn("deprecated", DeprecationWarning)
-        return self.get_mutations_df(phenotype_as_effect=False)
-
-    # TODO cached_property
-    # TODO output_shape "wide" or "long"
+    @lru_cache(maxsize=3)
     def get_mutations_df(
-        self,
-        times_seen_threshold=0,
-        phenotype_as_effect=True,
-        return_split=True,
+        self, times_seen_threshold=0, phenotype_as_effect=True, return_split=True
     ):
         """
         Mutation attributes and phenotypic effects
@@ -571,7 +566,7 @@ class Model:
             - predicted_func_score_a, predicted_func_score_b, ... : the
                 predicted functional score of the mutation.
         """
-        mutations_df = self.data.mutations_df.set_index("mutation")
+        mutations_df = self.data.mutations_df.set_index("mutation")  # returns a copy
         if not return_split:
             mutations_df.drop(
                 ["wts", "sites", "muts"],
@@ -593,27 +588,18 @@ class Model:
 
         params = self.params
         for condition in self.data.conditions:
-            # shift of latent effect
             mutations_df[f"beta_{condition}"] = params["beta"][condition]
-
             if condition != self._data.reference:
                 mutations_df[f"shift_{condition}"] = params["shift"][condition]
 
-        # if include_phenotype_predictions:
-        wildtype_df = self.wildtype_df
         for condition in self.data.conditions:
-            wt_func_score = wildtype_df.loc[condition, "predicted_func_score"]
-            mutations_df[f"predicted_func_score_{condition}"] = [
-                pheno[0]
-                for pheno in list(
-                    map(
-                        partial(self.phenotype_fromsubs, condition=condition),
-                        mutations_df.index,
-                    )
-                )
-            ]
+            single_mut_binary = self.data.single_mut_encodings[condition]
+            mutations_df[f"predicted_func_score_{condition}"] = (
+                self.phenotype_frombinary(single_mut_binary, condition=condition)
+            )
+
             if phenotype_as_effect:
-                # TODO always do phenotype "as effect"?
+                wt_func_score = self.wildtype_df.loc[condition, "predicted_func_score"]
                 mutations_df[f"predicted_func_score_{condition}"] -= wt_func_score
 
         # filter by times seen
@@ -866,9 +852,9 @@ class Model:
             if phenotype_as_effect:
                 latent_predictions -= wildtype_df.loc[condition, "predicted_latent"]
             latent_predictions[nan_variant_indices] = onp.nan
-            ret.loc[
-                condition_df.index.values, latent_phenotype_col
-            ] = latent_predictions
+            ret.loc[condition_df.index.values, latent_phenotype_col] = (
+                latent_predictions
+            )
 
             # func_score predictions on binary variants, X
             phenotype_predictions = onp.array(
@@ -880,31 +866,11 @@ class Model:
                     condition, "predicted_func_score"
                 ]
             phenotype_predictions[nan_variant_indices] = onp.nan
-            ret.loc[
-                condition_df.index.values, observed_phenotype_col
-            ] = phenotype_predictions
+            ret.loc[condition_df.index.values, observed_phenotype_col] = (
+                phenotype_predictions
+            )
 
         return ret
-
-    @property
-    def wildtype_df(self):
-        """
-        Get a dataframe indexed by condition wildtype
-        containing the prediction features for each.
-        """
-        wildtype_df = (
-            pd.DataFrame(index=self.data.conditions)
-            .assign(predicted_latent=onp.nan)
-            .assign(predicted_func_score=onp.nan)
-        )
-        for condition in self.data.conditions:
-            for pheno, model in zip(
-                ["latent", "func_score"],
-                [self.latent_fromsubs, self.phenotype_fromsubs],
-            ):
-                wildtype_df.loc[condition, f"predicted_{pheno}"] = model("", condition)
-
-        return wildtype_df
 
     def mutation_site_summary_df(self, agg_func=onp.mean, times_seen_threshold=0):
         """
@@ -930,7 +896,7 @@ class Model:
             "beta0": self.params["beta0"][condition],
             "beta": self.params["beta"][condition],
             "shift": self.params["shift"][condition],
-            # TODO GAMMA
+            # GAMMA
             # "gamma": self.params["gamma"][condition],
             "theta": self.params["theta"],
         }
@@ -949,13 +915,13 @@ class Model:
                 )
             ]
         )
-        return self.phenotype_frombinary(X, condition)
+        return float(self.phenotype_frombinary(X, condition)[0])
 
     def latent_fromsubs(self, aa_subs, condition=None):
         """
         take a single string of subs which are
         not already converted wrt reference, convert them and
-        then make a latent prediction and return the result.
+        them make a latent prediction and return the result.
         """
         converted_subs = self.data.convert_subs_wrt_ref_seq(condition, aa_subs)
         X = jnp.array(
@@ -1094,7 +1060,7 @@ class Model:
         # if we have more than one condition, we need to set up the ADMM optimization
         if len(self.data.conditions) > 1:
             non_identical_signs = {
-                condition: jnp.where(self.data._non_identical_idxs[condition], -1, 1)
+                condition: jnp.where(self.data._bundle_idxs[condition], -1, 1)
                 for condition in self.data.conditions
             }
             non_identical_sign_matrix = jnp.vstack(
@@ -1128,7 +1094,7 @@ class Model:
                 admm_mu,
                 upper_bound_ge_scale,
                 lock_params,
-                self.data.non_identical_idxs,
+                self.data.bundle_idxs,
             )
 
             compiled_proximal = partial(self._model_components["proximal"], Dop)
@@ -1137,7 +1103,7 @@ class Model:
             hyperparams_prox = (
                 upper_bound_ge_scale,
                 lock_params,
-                self.data.non_identical_idxs,
+                self.data.bundle_idxs,
             )
             # compiled_proximal = jax.jit(self._model_components["proximal"])
             compiled_proximal = self._model_components["proximal"]
@@ -1358,10 +1324,6 @@ class Model:
             plt.show()
         return ax
 
-    # TODO - default param
-    # TODO - add docstring
-    # TODO - add tests
-    # TODO - optional stops
     def plot_param_hist(
         self, param, show=True, saveas=False, times_seen_threshold=3, ax=None, **kwargs
     ):

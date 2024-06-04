@@ -13,6 +13,7 @@ import pprint
 import logging
 
 import multidms
+from multidms.utils import explode_params_dict, my_concat
 
 import pandas as pd
 import jax
@@ -42,35 +43,11 @@ class ModelCollectionFitError(Exception):
     pass
 
 
-# TODO move to utils
-# https://github.com/microsoft/pylance-release/issues/5630
-def my_concat(dfs_list, axis=0):
-    """simple pd.concat wrapper for bug with vscode pylance"""  # noqa
-    return pd.concat(dfs_list, axis=axis)
-
-
-# TODO move to utils
-def _explode_params_dict(params_dict):
-    """
-    Given a dictionary of model parameters,
-    of which any of the values can be a list of values,
-    compute all combinations of model parameter sets
-    and returns a list of dictionaries representing each
-    of the parameter sets.
-    """
-    varNames = sorted(params_dict)
-    return [
-        dict(zip(varNames, prod))
-        for prod in it.product(*(params_dict[varName] for varName in varNames))
-    ]
-
-
-# TODO could kwargs be used both for init and fit of model?
 def fit_one_model(
     dataset,
     epistatic_model="Sigmoid",
     output_activation="Identity",
-    # gamma_corrected=False,  # TODO GAMMA experimental, mark as such
+    # gamma_corrected=False,  # GAMMA
     init_theta_scale=6.5,
     init_theta_bias=-3.5,
     n_hidden_units=5,
@@ -138,14 +115,13 @@ def fit_one_model(
         "Softplus": multidms.biophysical.softplus_activation,
     }
 
-    # should these all be kwargs?
     imodel = multidms.Model(
         dataset,
         epistatic_model=biophysical_model[epistatic_model],
         output_activation=biophysical_model[output_activation],
         init_theta_scale=init_theta_scale,
         init_theta_bias=init_theta_bias,
-        # gamma_corrected=gamma_corrected, TODO GAMMA
+        # gamma_corrected=gamma_corrected, GAMMA
         n_hidden_units=n_hidden_units,
         lower_bound=lower_bound,
         PRNGKey=PRNGKey,
@@ -191,7 +167,6 @@ def stack_fit_models(fit_models_list):
     return pd.concat([f.to_frame().T for f in fit_models_list], ignore_index=True)
 
 
-# TODO make it easier to debug failed fits
 def fit_models(params, n_threads=-1, failures="error"):
     """Fit collection of :class:`multidms.model.Model` models.
 
@@ -233,7 +208,7 @@ def fit_models(params, n_threads=-1, failures="error"):
     if n_threads == -1:
         n_threads = multiprocessing.cpu_count()
 
-    exploded_params = _explode_params_dict(params)
+    exploded_params = explode_params_dict(params)
     # if __name__ == "__main__":
     # see https://pythonspeed.com/articles/python-multiprocessing/ for why we spawn
     with get_context("spawn").Pool(n_threads) as p:

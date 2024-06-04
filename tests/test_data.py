@@ -35,6 +35,7 @@ b,P2T,0.3
 )
 
 # TODO figure out correct way to setup the data
+# using pytest fixtures.
 data = multidms.Data(
     TEST_FUNC_SCORES,
     alphabet=multidms.AAS_WITHSTOP,
@@ -149,13 +150,10 @@ def test_conversion_from_subs():
 
 def test_non_identical_mutations_property():
     """Make sure we're getting the correct indicies for the bundle mutations"""
-    assert jnp.all(
-        data.non_identical_idxs["a"] == jnp.repeat(False, len(data.mutations))
-    )
-    assert jnp.sum(data.non_identical_idxs["b"]) == 1
+    assert jnp.all(data.bundle_idxs["a"] == jnp.repeat(False, len(data.mutations)))
+    assert jnp.sum(data.bundle_idxs["b"]) == 1
 
 
-## TODO take a closer look at this.
 def test_non_identical_conversion():
     """
     Test the conversion to with respect reference wt sequence.
@@ -193,21 +191,26 @@ def test_non_identical_conversion():
     )
 
 
-def test_data_names():
+def test_single_mut_encodings():
     """
-    Test that the default data names are correctly
-    updated as new Data objects are created within a
-    single python session.
+    Test that the binary encoding of single mutations
+    is correct.
     """
-    num_datasets = multidms.Data.counter
-    for i in range(3):
-        d_i = multidms.Data(
-            TEST_FUNC_SCORES,
-            alphabet=multidms.AAS_WITHSTOP,
-            reference="a",
-            assert_site_integrity=False,
-        )
-        assert d_i.name == f"Data-{num_datasets + i}"
+    data = multidms.Data(
+        TEST_FUNC_SCORES,
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="a",
+        assert_site_integrity=False,
+    )
+    single_mut_encodings = data.single_mut_encodings
+    assert np.all(
+        np.array(single_mut_encodings["a"].todense()).flatten()
+        == np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]).flatten()
+    )
+    assert np.all(
+        np.array(single_mut_encodings["b"].todense()).flatten()
+        == np.array([[1, 0, 1, 0], [0, 1, 1, 0], [0, 0, 1, 0], [0, 0, 0, 1]]).flatten()
+    )
 
 
 r"""
@@ -215,6 +218,13 @@ r"""
 UTILS
 +++++++++++++++++++++++++++++
 """
+
+
+def test_explode_params_dict():
+    """Test multidms.model_collection.explode_params_dict"""
+    params_dict = {"a": [1, 2], "b": [3]}
+    exploded = multidms.utils.explode_params_dict(params_dict)
+    assert exploded == [{"a": 1, "b": 3}, {"a": 2, "b": 3}]
 
 
 def test_difference_matrix():
@@ -235,13 +245,11 @@ def test_transform_inverse():
     Test that the transform operation is
     its own inverse.
     """
-    print(data.non_identical_idxs)
     model = multidms.Model(data, multidms.biophysical.identity_activation, PRNGKey=23)
     params = model._scaled_data_params
-    non_identical_idxs = data.non_identical_idxs
-    print(params)
+    bundle_idxs = data.bundle_idxs
     double_inverse = multidms.utils.transform(
-        multidms.utils.transform(params, non_identical_idxs), non_identical_idxs
+        multidms.utils.transform(params, bundle_idxs), bundle_idxs
     )
     assert np.all(params["beta"]["a"] == double_inverse["beta"]["a"])
     assert np.all(params["beta"]["b"] == double_inverse["beta"]["b"])
@@ -299,8 +307,9 @@ def test_fit_simple():
         assert_site_integrity=False,
     )
     model = multidms.Model(data, PRNGKey=23)
-
+    loss = model.loss
     model.fit(maxiter=2, warn_unconverged=False)
+    assert loss != model.loss
 
 
 def test_multi_cond_fit_simple():
@@ -317,6 +326,38 @@ def test_multi_cond_fit_simple():
     model = multidms.Model(data, PRNGKey=23)
 
     model.fit(maxiter=2, warn_unconverged=False)
+
+
+def test_scaled_predictions():
+    """
+    Test that the scaled data and parameter predictions
+    are the same as unscaled predictions.
+    """
+    model = multidms.Model(data, PRNGKey=23)
+    model.fit(maxiter=2, warn_unconverged=False)
+    pred_fxn = model.model_components["f"]
+    scaled_params = model._scaled_data_params
+    scaled_data = model.data.scaled_training_data["X"]
+    unscaled_params = model.params
+    unscaled_data = model.data.training_data["X"]
+    for condition in model.data.conditions:
+        scaled_d_params = {
+            "beta": scaled_params["beta"][condition],
+            "beta0": scaled_params["beta0"][condition],
+            "theta": scaled_params["theta"],
+        }
+        scaled_d_data = scaled_data[condition]
+        scaled_predictions = pred_fxn(scaled_d_params, scaled_d_data)
+
+        unscaled_d_params = {
+            "beta": unscaled_params["beta"][condition],
+            "beta0": unscaled_params["beta0"][condition],
+            "theta": unscaled_params["theta"],
+        }
+        unscaled_d_data = unscaled_data[condition]
+        unscaled_predictions = pred_fxn(unscaled_d_params, unscaled_d_data)
+
+        assert np.all(scaled_predictions == unscaled_predictions)
 
 
 def test_wildtype_mutant_predictions():
@@ -388,7 +429,7 @@ def test_mutations_df():
 
     # we'll compare it to predictions done by hand
     sig_params = model.params["theta"]
-    scale, bias = sig_params["ge_scale"], sig_params["ge_bias"]
+    scale, bias = sig_params["ge_scale"][0], sig_params["ge_bias"][0]
     wildtype_df = model.wildtype_df
 
     for condition in model.data.conditions:
@@ -408,7 +449,7 @@ def test_mutations_df():
             converted_wrt_ref_enc = binarymap.sub_str_to_binary(converted_wrt_ref)
             bool_enc = converted_wrt_ref_enc.astype(bool)
             additive_effect = sum(model.params["beta"][condition][bool_enc])
-            latent_offset = model.params["beta0"][condition]
+            latent_offset = model.params["beta0"][condition][0]
             byhand_latent = additive_effect + latent_offset
             byhand_func_score = scale / (1 + np.exp(-1 * byhand_latent)) + bias
             byhand_func_score_effect = byhand_func_score - wildtype_func_score
@@ -582,13 +623,6 @@ r"""
 MODEL_COLLECTION
 +++++++++++++++++++++++++++++
 """
-
-
-def test_explode_params_dict():
-    """Test multidms.model_collection.explode_params_dict"""
-    params_dict = {"a": [1, 2], "b": [3]}
-    exploded = multidms.model_collection._explode_params_dict(params_dict)
-    assert exploded == [{"a": 1, "b": 3}, {"a": 2, "b": 3}]
 
 
 def test_fit_models():
