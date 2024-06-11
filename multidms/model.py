@@ -26,10 +26,8 @@ from scipy.stats import pearsonr
 from jax.experimental import sparse
 from jaxopt import ProximalGradient
 
-# from jaxopt.linear_solve import solve_normal_cg
 import seaborn as sns
 from matplotlib import pyplot as plt
-
 
 jax.config.update("jax_enable_x64", True)
 
@@ -594,9 +592,9 @@ class Model:
 
         for condition in self.data.conditions:
             single_mut_binary = self.data.single_mut_encodings[condition]
-            mutations_df[f"predicted_func_score_{condition}"] = (
-                self.phenotype_frombinary(single_mut_binary, condition=condition)
-            )
+            mutations_df[
+                f"predicted_func_score_{condition}"
+            ] = self.phenotype_frombinary(single_mut_binary, condition=condition)
 
             if phenotype_as_effect:
                 wt_func_score = self.wildtype_df.loc[condition, "predicted_func_score"]
@@ -800,6 +798,8 @@ class Model:
                 raise ValueError(f"`df` already contains column {col}")
             ret[col] = onp.nan
 
+        # if the user has provided a name for the converted subs, then
+        # we need to add it to the dataframe
         if converted_substitutions_col is not None:
             ret[converted_substitutions_col] = ""
 
@@ -813,7 +813,6 @@ class Model:
                     axis=1,
                 )
 
-            # TODO, why convert above if this may be provided by user?
             if converted_substitutions_col is not None:
                 ret.loc[condition_df.index, converted_substitutions_col] = variant_subs
 
@@ -852,9 +851,9 @@ class Model:
             if phenotype_as_effect:
                 latent_predictions -= wildtype_df.loc[condition, "predicted_latent"]
             latent_predictions[nan_variant_indices] = onp.nan
-            ret.loc[condition_df.index.values, latent_phenotype_col] = (
-                latent_predictions
-            )
+            ret.loc[
+                condition_df.index.values, latent_phenotype_col
+            ] = latent_predictions
 
             # func_score predictions on binary variants, X
             phenotype_predictions = onp.array(
@@ -866,9 +865,9 @@ class Model:
                     condition, "predicted_func_score"
                 ]
             phenotype_predictions[nan_variant_indices] = onp.nan
-            ret.loc[condition_df.index.values, observed_phenotype_col] = (
-                phenotype_predictions
-            )
+            ret.loc[
+                condition_df.index.values, observed_phenotype_col
+            ] = phenotype_predictions
 
         return ret
 
@@ -1002,8 +1001,7 @@ class Model:
             If True, use FISTA acceleration. Defaults to True.
         lock_params : dict
             Dictionary of parameters, and desired value to constrain
-            them at during optimization. By default, none of the parameters
-            reference-condition latent offset (TODO math? beta0[ref]) are locked.
+            them at during optimization. By default, no parameters are locked.
         admm_niter : int
             Number of iterations to perform during the ADMM optimization.
             Defaults to 50. Note that in the case of single-condition models,
@@ -1045,14 +1043,10 @@ class Model:
             if upper_bound_ge_scale < 0:
                 raise ValueError("upper_bound_theta_ge_scale must be non-negative")
 
-        # TODO I wonder if this should be rounded?
         if upper_bound_ge_scale == "infer":
             y = jnp.concatenate(list(self.data.training_data["y"].values()))
             y_range = y.max() - y.min()
             upper_bound_ge_scale = 2 * y_range
-
-        # box constraints for the reference beta0 parameter.
-        # lock_params[("beta0", self.data.reference)] = 0.0
 
         compiled_proximal = self._model_components["proximal"]
         compiled_objective = jax.jit(self._model_components["objective"])
@@ -1118,13 +1112,11 @@ class Model:
             jit=False,
         )
 
-        # GET DATA
+        # get training data
         scaled_training_data = (
             self._data.scaled_training_data["X"],
             self._data.scaled_training_data["y"],
         )
-
-        # TODO get validation data if it exists?
 
         self._state = solver.init_state(
             self._scaled_data_params,
@@ -1137,7 +1129,6 @@ class Model:
             index=range(0, maxiter + 1, convergence_trajectory_resolution)
         ).assign(loss=onp.nan, error=onp.nan)
 
-        # TODO should step be the index?
         convergence_trajectory.index.name = "step"
 
         # record initial loss and error

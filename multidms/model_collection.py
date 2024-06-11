@@ -1,5 +1,9 @@
 """
-Contains the ModelCollection class, which takes a collection of models
+================
+model_collection
+================
+
+Contains the :class:`ModelCollection` class, which takes a collection of models
 and merges the results for comparison and visualization.
 """
 
@@ -556,7 +560,10 @@ class ModelCollection:
         query=None,
         id_vars=("dataset_name", "scale_coeff_lasso_shift"),
     ):
-        """TODO"""
+        """
+        Combine the converence trajectory dataframes of
+        all fits in the queried collection.
+        """
         queried_fits = (
             self.fit_models.query(query) if query is not None else self.fit_models
         )
@@ -577,7 +584,6 @@ class ModelCollection:
             ]
         )
 
-        # TODO make altair chart
         return convergence_trajectory_data
 
     def mut_param_heatmap(
@@ -726,7 +732,6 @@ class ModelCollection:
         # melt conditions and stats cols, beta is already "tall"
         # note that we must rename conditions with "." in the
         # name to "_" to avoid altair errors
-        # TODO let's just make sure we don't have "." in the condition names
         if mut_param == "beta":
             muts_df_tall = muts_df.assign(condition=self.reference.replace(".", "_"))
         else:
@@ -883,12 +888,11 @@ class ModelCollection:
             column=alt.Column("condition", title="Experiment"),
         )
 
-    # TODO fix height scalar
     def shift_sparsity(
         self,
         x="scale_coeff_lasso_shift",
         width_scalar=100,
-        height_scalar=10,
+        height_scalar=100,
         return_data=False,
         **kwargs,
     ):
@@ -991,7 +995,7 @@ class ModelCollection:
     def mut_param_dataset_correlation(
         self,
         x="scale_coeff_lasso_shift",
-        width_scalar=150,
+        width_scalar=200,
         height=200,
         return_data=False,
         r=2,

@@ -50,10 +50,10 @@ __email__ = "jgallowa@fredhutch.org"
 __version__ = "0.4.0"
 __url__ = "https://github.com/matsengrp/multidms"
 
-from polyclonal.alphabets import AAS  # noqa: F401
-from polyclonal.alphabets import AAS_WITHGAP  # noqa: F401
-from polyclonal.alphabets import AAS_WITHSTOP  # noqa: F401
-from polyclonal.alphabets import AAS_WITHSTOP_WITHGAP  # noqa: F401
+from binarymap.binarymap import AAS_NOSTOP as AAS  # noqa: F401
+from binarymap.binarymap import AAS_WITHGAP  # noqa: F401
+from binarymap.binarymap import AAS_WITHSTOP  # noqa: F401
+from binarymap.binarymap import AAS_WITHSTOP_WITHGAP  # noqa: F401
 
 from multidms.data import Data  # noqa: F401
 from multidms.model import Model  # noqa: F401
