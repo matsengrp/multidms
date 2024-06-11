@@ -1,10 +1,5 @@
 """Tests for the Data class and its methods."""
 
-# import traceback
-# import warnings
-# import sys
-# import os
-
 import pytest
 import multidms
 import numpy as np
@@ -15,7 +10,6 @@ from io import StringIO
 
 import multidms.utils
 
-# TODO test non numeric sites?
 TEST_FUNC_SCORES = pd.read_csv(
     StringIO(
         """
@@ -34,8 +28,6 @@ b,P2T,0.3
     )
 )
 
-# TODO figure out correct way to setup the data
-# using pytest fixtures.
 data = multidms.Data(
     TEST_FUNC_SCORES,
     alphabet=multidms.AAS_WITHSTOP,
@@ -650,6 +642,45 @@ def test_fit_models():
     tall_combined = mc.split_apply_combine_muts(groupby=("scale_coeff_lasso_shift"))
     assert len(tall_combined) == 2 * len(data.mutations_df)
     assert list(tall_combined.index.names) == ["scale_coeff_lasso_shift"]
+
+
+def test_ModelCollection_mut_param_dataset_correlation():
+    """
+    Test that the correlation between the mutational
+    parameter estimates across conditions is correct.
+    by correlating two deterministic model fits from identical
+    datasets, meaning they should have a correlation of 1.0.
+    """
+    data_rep1 = multidms.Data(
+        TEST_FUNC_SCORES,
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="a",
+        assert_site_integrity=False,
+        name="rep1",
+    )
+
+    data_rep2 = multidms.Data(
+        TEST_FUNC_SCORES,
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="a",
+        assert_site_integrity=False,
+        name="rep2",
+    )
+
+    params = {
+        "dataset": [data_rep1, data_rep2],
+        "maxiter": [1],
+        "scale_coeff_lasso_shift": [0.0],
+    }
+
+    _, _, fit_models_df = multidms.model_collection.fit_models(
+        params,
+        n_threads=-1,
+    )
+    mc = multidms.model_collection.ModelCollection(fit_models_df)
+    chart, data = mc.mut_param_dataset_correlation(return_data=True)
+
+    assert np.all(data["correlation"] == 1.0)
 
 
 def test_ModelCollection_charts():
