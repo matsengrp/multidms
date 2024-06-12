@@ -22,7 +22,8 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
 ]
 keywords = [
-    "multidms", 
+    "multidms",
+    "generalized lasso",
     "deep", 
     "mutational", 
     "scanning", 
@@ -36,10 +37,10 @@ keywords = [
 requires-python = ">=3.9"
 dependencies = [
     "polyclonal",
-    "jax[cpu]==0.4.24",
+    "jax[cpu]>=0.4.29",
     "jaxopt",
     "typing_extensions",
-    "numpy",
+    "numpy<=1.26.0",
     "pandas>=2.2.0",
     "binarymap",
     "altair==5.1.2", # pandas convert_dtypes bug

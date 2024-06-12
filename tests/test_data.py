@@ -205,6 +205,19 @@ def test_single_mut_encodings():
     )
 
 
+def test_plotting_fxns():
+    """Test that the plotting functions work"""
+    Data = multidms.Data(
+        TEST_FUNC_SCORES,
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="a",
+        assert_site_integrity=False,
+    )
+
+    Data.plot_times_seen_hist(show=False)
+    Data.plot_func_score_boxplot(show=False)
+
+
 r"""
 +++++++++++++++++++++++++++++
 UTILS
@@ -270,6 +283,13 @@ def test_linear_model_fit_simple():
     model = multidms.Model(data, multidms.biophysical.identity_activation, PRNGKey=23)
     model.fit(maxiter=2, warn_unconverged=False)
 
+    # test all plotting fxn's
+    model.plot_pred_accuracy(show=False)
+    model.plot_epistasis(show=False)
+    model.plot_param_hist("beta_a", show=False)
+    model.plot_param_heatmap("beta_a", show=False)
+    _ = model.mut_param_heatmap("beta")
+
 
 def test_linear_model_multi_cond_fit_simple():
     """
@@ -283,8 +303,15 @@ def test_linear_model_multi_cond_fit_simple():
         assert_site_integrity=False,
     )
     model = multidms.Model(data, multidms.biophysical.identity_activation, PRNGKey=23)
-
     model.fit(maxiter=2, warn_unconverged=False)
+
+    # test all plotting fxn's
+    model.plot_pred_accuracy(show=False)
+    model.plot_epistasis(show=False)
+    model.plot_param_hist("shift_b", show=False)
+    model.plot_param_heatmap("shift_b", show=False)
+    model.plot_shifts_by_site("b", show=False)
+    _ = model.mut_param_heatmap("shift")
 
 
 def test_fit_simple():
@@ -303,6 +330,13 @@ def test_fit_simple():
     model.fit(maxiter=2, warn_unconverged=False)
     assert loss != model.loss
 
+    # test all plotting fxn's
+    model.plot_pred_accuracy(show=False)
+    model.plot_epistasis(show=False)
+    model.plot_param_hist("beta_a", show=False)
+    model.plot_param_heatmap("beta_a", show=False)
+    _ = model.mut_param_heatmap("beta")
+
 
 def test_multi_cond_fit_simple():
     """
@@ -316,8 +350,15 @@ def test_multi_cond_fit_simple():
         assert_site_integrity=False,
     )
     model = multidms.Model(data, PRNGKey=23)
-
     model.fit(maxiter=2, warn_unconverged=False)
+
+    # test all plotting fxn's
+    model.plot_pred_accuracy(show=False)
+    model.plot_epistasis(show=False)
+    model.plot_param_hist("shift_b", show=False)
+    model.plot_param_heatmap("shift_b", show=False)
+    model.plot_shifts_by_site("b", show=False)
+    _ = model.mut_param_heatmap()
 
 
 def test_scaled_predictions():

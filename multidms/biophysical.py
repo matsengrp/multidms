@@ -278,7 +278,7 @@ def softplus_activation(d_params, act, lower_bound=-3.5, hinge_scale=0.1, **kwar
         hinge_scale
         # GAMMA
         # * (jnp.logaddexp(0, (act - (lower_bound + d_params["gamma_d"])) / hinge_scale))
-        * (jnp.logaddexp(0, act - lower_bound / hinge_scale))
+        * (jnp.logaddexp(0, (act - lower_bound) / hinge_scale))
         + lower_bound
         # GAMMA
         # + d_params["gamma_d"]
@@ -413,6 +413,8 @@ def smooth_objective(
     params,
     data,
     scale_coeff_ridge_beta=0.0,
+    scale_coeff_ridge_ge_scale=0.0,
+    scale_coeff_ridge_ge_bias=0.0,
     huber_scale=1,
     **kwargs,
 ):
@@ -432,6 +434,10 @@ def smooth_objective(
         Scale parameter for Huber loss function
     scale_coeff_ridge_beta : float
         Ridge penalty coefficient for shift parameters
+    scale_coeff_ridge_ge_scale : float
+        Ridge penalty coefficient for global epistasis scale parameter
+    scale_coeff_ridge_ge_bias : float
+        Ridge penalty coefficient for global epistasis bias parameter
     kwargs : dict
         Additional keyword arguments to pass to the biophysical model function
 
@@ -474,4 +480,13 @@ def smooth_objective(
 
     huber_cost /= len(X)
 
-    return huber_cost + beta_ridge_penalty
+    ge_scale_ridge_penalty = (
+        scale_coeff_ridge_ge_scale * (params["theta"]["ge_scale"] ** 2).sum()
+    )
+    ge_bias_ridge_penalty = (
+        scale_coeff_ridge_ge_bias * (params["theta"]["ge_bias"] ** 2).sum()
+    )
+
+    return (
+        huber_cost + beta_ridge_penalty + ge_scale_ridge_penalty + ge_bias_ridge_penalty
+    )
