@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on `Keep a Changelog <https://keepachangelog.com>`_.
 
+
+0.5.0
+-----
+- This release re-implements the joint model as a using a generalized lasso, and bit-flipping, as described in `#156 https://github.com/matsengrp/multidms/issues/156`_. Please see the issue for more detailed description about how, and why these changes were made. Note that this changes the parameters that one may get from the model including a set of beta's for each experimental condition.
+- It also cleans up various TODO's in the code as checked-off in `# https://github.com/matsengrp/multidms/issues/153`.
+- Fixes a bug, where the phenotype predictions for single mutants did not correctly include the bundle effects.
+- Fixes and cleans various plotting bugs. 
+
 0.4.0
 -----
 - new simulation validation analysis and plotting functions (at the time of re-submission)
