@@ -1,16 +1,17 @@
+
 <!DOCTYPE html>
 
-<html lang="en" data-content_root="./">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
     <title>multidms package &#8212; multidms 0.4.0 documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
-    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=420b4293" />
-    <script src="_static/documentation_options.js?v=6c02275b"></script>
-    <script src="_static/doctools.js?v=888ff710"></script>
-    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -36,9 +37,9 @@
           <div class="body" role="main">
             
   <section id="module-multidms">
-<span id="multidms-package"></span><h1>multidms package<a class="headerlink" href="#module-multidms" title="Link to this heading">¶</a></h1>
+<span id="multidms-package"></span><h1>multidms package<a class="headerlink" href="#module-multidms" title="Permalink to this heading">¶</a></h1>
 <section id="multidms">
-<h2>multidms<a class="headerlink" href="#multidms" title="Link to this heading">¶</a></h2>
+<h2>multidms<a class="headerlink" href="#multidms" title="Permalink to this heading">¶</a></h2>
 <p>multidms is a Python package for modeling deep mutational scanning data.
 In particular, it is designed to model data from more than one experiment,
 even if they don’t share the same wildtype amino acid sequence.
@@ -78,7 +79,7 @@ at the moment.</p>
 </section>
 <dl class="py class">
 <dt class="sig sig-object py" id="multidms.Data">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.</span></span><span class="sig-name descname"><span class="pre">Data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variants_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.1)"><span class="pre">DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">alphabet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('A',</span> <span class="pre">'C',</span> <span class="pre">'D',</span> <span class="pre">'E',</span> <span class="pre">'F',</span> <span class="pre">'G',</span> <span class="pre">'H',</span> <span class="pre">'I',</span> <span class="pre">'K',</span> <span class="pre">'L',</span> <span class="pre">'M',</span> <span class="pre">'N',</span> <span class="pre">'P',</span> <span class="pre">'Q',</span> <span class="pre">'R',</span> <span class="pre">'S',</span> <span class="pre">'T',</span> <span class="pre">'V',</span> <span class="pre">'W',</span> <span class="pre">'Y')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collapse_identical_variants</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('#0072B2',</span> <span class="pre">'#CC79A7',</span> <span class="pre">'#009E73',</span> <span class="pre">'#17BECF',</span> <span class="pre">'#BCDB22')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">letter_suffixed_sites</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assert_site_integrity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nb_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Data" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.</span></span><span class="sig-name descname"><span class="pre">Data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variants_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">alphabet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('A',</span> <span class="pre">'C',</span> <span class="pre">'D',</span> <span class="pre">'E',</span> <span class="pre">'F',</span> <span class="pre">'G',</span> <span class="pre">'H',</span> <span class="pre">'I',</span> <span class="pre">'K',</span> <span class="pre">'L',</span> <span class="pre">'M',</span> <span class="pre">'N',</span> <span class="pre">'P',</span> <span class="pre">'Q',</span> <span class="pre">'R',</span> <span class="pre">'S',</span> <span class="pre">'T',</span> <span class="pre">'V',</span> <span class="pre">'W',</span> <span class="pre">'Y')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collapse_identical_variants</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('#0072B2',</span> <span class="pre">'#CC79A7',</span> <span class="pre">'#009E73',</span> <span class="pre">'#17BECF',</span> <span class="pre">'#BCDB22')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">letter_suffixed_sites</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assert_site_integrity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nb_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Data" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Prep and store one-hot encoding of
 variant substitutions data.
@@ -87,7 +88,7 @@ by multiple <a class="reference internal" href="#multidms.Model" title="multidms
 for efficiently fitting various models to the same data.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>You can initialize a <a class="reference internal" href="#multidms.Data" title="multidms.Data"><code class="xref py py-class docutils literal notranslate"><span class="pre">Data</span></code></a> object with a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>
+<p>You can initialize a <a class="reference internal" href="#multidms.Data" title="multidms.Data"><code class="xref py py-class docutils literal notranslate"><span class="pre">Data</span></code></a> object with a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>
 with a row for each variant sampled and annotations
 provided in the required columns:</p>
 <ol class="arabic simple">
@@ -115,7 +116,7 @@ condition wild types.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>variants_df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> or None) – The variant level information from all experiments you
+<li><p><strong>variants_df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> or None) – The variant level information from all experiments you
 wish to analyze. Should have columns named <code class="docutils literal notranslate"><span class="pre">'condition'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'aa_substitutions'</span></code>, and <code class="docutils literal notranslate"><span class="pre">'func_score'</span></code>.
 See the class note for descriptions of each of the features.</p></li>
@@ -219,10 +220,10 @@ for more information.</p>
 </div>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">mutations_df</span>  
 <span class="go">  mutation wts  sites muts  times_seen_a  times_seen_b</span>
-<span class="go">0      M1E   M      1    E             1           3.0</span>
-<span class="go">1      M1W   M      1    W             1           0.0</span>
-<span class="go">2      G3P   G      3    P             1           1.0</span>
-<span class="go">3      G3R   G      3    R             1           2.0</span>
+<span class="go">0      M1E   M      1    E             1             3</span>
+<span class="go">1      M1W   M      1    W             1             0</span>
+<span class="go">2      G3P   G      3    P             1             4</span>
+<span class="go">3      G3R   G      3    R             1             2</span>
 </pre></div>
 </div>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">variants_df</span>  
@@ -238,51 +239,52 @@ for more information.</p>
 <span class="go">8         b          M1E P3R        -2.7     G3R M1E</span>
 </pre></div>
 </div>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="multidms.Data.counter">
-<span class="sig-name descname"><span class="pre">counter</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#multidms.Data.counter" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Data.name">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></em><a class="headerlink" href="#multidms.Data.name" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></em><a class="headerlink" href="#multidms.Data.name" title="Permalink to this definition">¶</a></dt>
 <dd><p>The name of the data object.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Data.conditions">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">conditions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.Data.conditions" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">conditions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.Data.conditions" title="Permalink to this definition">¶</a></dt>
 <dd><p>A tuple of all conditions.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Data.reference">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reference</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></em><a class="headerlink" href="#multidms.Data.reference" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reference</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></em><a class="headerlink" href="#multidms.Data.reference" title="Permalink to this definition">¶</a></dt>
 <dd><p>The name of the reference condition.</p>
 </dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="multidms.Data.reference_index">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reference_index</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#multidms.Data.reference_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>The index of the reference condition.</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="multidms.Data.mutations">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.Data.mutations" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.Data.mutations" title="Permalink to this definition">¶</a></dt>
 <dd><p>A tuple of all mutations in the order relative to their index into
 the binarymap.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Data.mutations_df">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mutations_df</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.1)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.Data.mutations_df" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mutations_df</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.Data.mutations_df" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dataframe summarizing all single mutations</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Data.variants_df">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">variants_df</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.1)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.Data.variants_df" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">variants_df</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.Data.variants_df" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dataframe summarizing all variants in the training data.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Data.site_map">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">site_map</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.1)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.Data.site_map" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">site_map</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.Data.site_map" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dataframe indexed by site, with columns
 for all conditions giving the wild type amino acid
 at each site.</p>
@@ -290,7 +292,7 @@ at each site.</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Data.non_identical_mutations">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">non_identical_mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.non_identical_mutations" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">non_identical_mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.non_identical_mutations" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dictionary keyed by condition names with values
 being a string of all mutations that differ from the
 reference sequence.</p>
@@ -298,49 +300,63 @@ reference sequence.</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Data.non_identical_sites">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">non_identical_sites</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.non_identical_sites" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">non_identical_sites</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.non_identical_sites" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dictionary keyed by condition names with values
-being a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> indexed by site,
+being a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> indexed by site,
 with columns for the reference
 and non-reference amino acid at each site that differs.</p>
 </dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="multidms.Data.bundle_idxs">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">bundle_idxs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.bundle_idxs" title="Permalink to this definition">¶</a></dt>
+<dd><p>A dictionary keyed by condition names with values
+being the indices into the binarymap representing
+bundle (non_identical) mutations</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="multidms.Data.reference_sequence_conditions">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reference_sequence_conditions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a></em><a class="headerlink" href="#multidms.Data.reference_sequence_conditions" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reference_sequence_conditions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a></em><a class="headerlink" href="#multidms.Data.reference_sequence_conditions" title="Permalink to this definition">¶</a></dt>
 <dd><p>A list of conditions that have the same wild type
 sequence as the reference condition.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Data.training_data">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">training_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.training_data" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">training_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.training_data" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dictionary with keys ‘X’ and ‘y’ for the training data.</p>
 </dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="multidms.Data.scaled_training_data">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scaled_training_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.scaled_training_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>A dictionary with keys ‘X’ and ‘y’ for the scaled training data.</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="multidms.Data.binarymaps">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">binarymaps</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.binarymaps" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">binarymaps</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.binarymaps" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dictionary keyed by condition names with values
 being a <code class="docutils literal notranslate"><span class="pre">BinaryMap</span></code> object for each condition.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Data.targets">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">targets</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.targets" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">targets</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.targets" title="Permalink to this definition">¶</a></dt>
 <dd><p>The functional scores for each variant in the training data.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Data.mutparser">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mutparser</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">MutationParser</span></em><a class="headerlink" href="#multidms.Data.mutparser" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mutparser</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">MutationParser</span></em><a class="headerlink" href="#multidms.Data.mutparser" title="Permalink to this definition">¶</a></dt>
 <dd><p>The mutation <code class="docutils literal notranslate"><span class="pre">polyclonal.utils.MutationParser</span></code> used
 to parse mutations.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Data.parse_mut">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">parse_mut</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">MutationParser</span></em><a class="headerlink" href="#multidms.Data.parse_mut" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">parse_mut</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">MutationParser</span></em><a class="headerlink" href="#multidms.Data.parse_mut" title="Permalink to this definition">¶</a></dt>
 <dd><p>returns a function that splits a single amino acid substitutions
 into wildtype, site, and mutation
 using the mutation parser.</p>
@@ -348,15 +364,22 @@ using the mutation parser.</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Data.parse_muts">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">parse_muts</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">partial</span></em><a class="headerlink" href="#multidms.Data.parse_muts" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">parse_muts</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">partial</span></em><a class="headerlink" href="#multidms.Data.parse_muts" title="Permalink to this definition">¶</a></dt>
 <dd><p>A function that splits amino acid substitutions
 (a string of more than one) into wildtype, site, and mutation
 using the mutation parser.</p>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="multidms.Data.single_mut_encodings">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">single_mut_encodings</span></span><a class="headerlink" href="#multidms.Data.single_mut_encodings" title="Permalink to this definition">¶</a></dt>
+<dd><p>A dictionary keyed by condition names with values
+being the one-hot encoding of all single mutations</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Data.convert_subs_wrt_ref_seq">
-<span class="sig-name descname"><span class="pre">convert_subs_wrt_ref_seq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">condition</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aa_subs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Data.convert_subs_wrt_ref_seq" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">convert_subs_wrt_ref_seq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">condition</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aa_subs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Data.convert_subs_wrt_ref_seq" title="Permalink to this definition">¶</a></dt>
 <dd><p>Covert amino acid substitutions to be with respect to the reference sequence.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -377,13 +400,13 @@ to converted</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Data.plot_times_seen_hist">
-<span class="sig-name descname"><span class="pre">plot_times_seen_hist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Data.plot_times_seen_hist" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">plot_times_seen_hist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Data.plot_times_seen_hist" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plot a histogram of the number of times each mutation was seen.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Data.plot_func_score_boxplot">
-<span class="sig-name descname"><span class="pre">plot_func_score_boxplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Data.plot_func_score_boxplot" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">plot_func_score_boxplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Data.plot_func_score_boxplot" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plot a boxplot of the functional scores for each condition.</p>
 </dd></dl>
 
@@ -391,7 +414,7 @@ to converted</p></li>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="multidms.Model">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data:</span> <span class="pre">~multidms.data.Data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epistatic_model=&lt;function</span> <span class="pre">sigmoidal_global_epistasis&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_activation=&lt;function</span> <span class="pre">identity_activation&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditional_shifts=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_d=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma_corrected=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PRNGKey=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_bound=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_hidden_units=5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_beta_naught=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_theta_scale=5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_theta_bias=-5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data:</span> <span class="pre">~multidms.data.Data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epistatic_model=&lt;function</span> <span class="pre">sigmoidal_global_epistasis&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_activation=&lt;function</span> <span class="pre">identity_activation&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PRNGKey=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_bound=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_hidden_units=5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_theta_scale=5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_theta_bias=-5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Represent one or more DMS experiments
 to obtain tuned parameters that provide insight into
@@ -478,10 +501,10 @@ First, we set pandas to display all rows and columns.</p>
 </div>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">mutations_df</span>  
 <span class="go">  mutation wts  sites muts  times_seen_a  times_seen_b</span>
-<span class="go">0      M1E   M      1    E             1           3.0</span>
-<span class="go">1      M1W   M      1    W             1           0.0</span>
-<span class="go">2      G3P   G      3    P             1           1.0</span>
-<span class="go">3      G3R   G      3    R             1           2.0</span>
+<span class="go">0      M1E   M      1    E             1             3</span>
+<span class="go">1      M1W   M      1    W             1             0</span>
+<span class="go">2      G3P   G      3    P             1             4</span>
+<span class="go">3      G3R   G      3    R             1             2</span>
 </pre></div>
 </div>
 <p>However, if accessed directly through the <a class="reference internal" href="#multidms.Model" title="multidms.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">Model</span></code></a> object, you will
@@ -489,19 +512,18 @@ get the same information, along with model/parameter specific
 features included. These are automatically updated each time you
 request the property.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">get_mutations_df</span><span class="p">()</span>  
-<span class="go">              beta  shift_b  predicted_func_score_a  predicted_func_score_b  \</span>
+<span class="go">         wts  sites muts  times_seen_a  times_seen_b  beta_a  beta_b  shift_b  \</span>
 <span class="go">mutation</span>
-<span class="go">M1E       0.080868      0.0                0.101030                0.565154</span>
-<span class="go">M1W      -0.386247      0.0               -0.476895               -0.012770</span>
-<span class="go">G3P      -0.375656      0.0               -0.464124                0.000000</span>
-<span class="go">G3R       1.668974      0.0                1.707195                2.171319</span>
-
-<span class="go">          times_seen_a  times_seen_b wts  sites muts</span>
+<span class="go">M1E        M      1    E             1             3     0.0     0.0      0.0</span>
+<span class="go">M1W        M      1    W             1             0     0.0     0.0      0.0</span>
+<span class="go">G3P        G      3    P             1             4     0.0    -0.0      0.0</span>
+<span class="go">G3R        G      3    R             1             2     0.0     0.0      0.0</span>
+<span class="go">         predicted_func_score_a predicted_func_score_b</span>
 <span class="go">mutation</span>
-<span class="go">M1E                  1           3.0   M      1    E</span>
-<span class="go">M1W                  1           0.0   M      1    W</span>
-<span class="go">G3P                  1           1.0   G      3    P</span>
-<span class="go">G3R                  1           2.0   G      3    R</span>
+<span class="go">M1E                         0.0                    0.0</span>
+<span class="go">M1W                         0.0                    0.0</span>
+<span class="go">G3P                         0.0                    0.0</span>
+<span class="go">G3R                         0.0                    0.0</span>
 </pre></div>
 </div>
 <p>Notice the respective single mutation effects (<code class="docutils literal notranslate"><span class="pre">&quot;beta&quot;</span></code>), conditional shifts
@@ -509,27 +531,26 @@ request the property.</p>
 and predicted functional score (<code class="docutils literal notranslate"><span class="pre">F_d</span></code>) of each mutation in the model are now
 easily accessible. Similarly, we can take a look at the variants_df for the model,</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">get_variants_df</span><span class="p">()</span>  
-<span class="go">  condition aa_substitutions  func_score var_wrt_ref  predicted_latent  \</span>
-<span class="go">0         a              M1E         2.0         M1E          0.080868</span>
-<span class="go">1         a              G3R        -7.0         G3R          1.668974</span>
-<span class="go">2         a              G3P        -0.5         G3P         -0.375656</span>
-<span class="go">3         a              M1W         2.3         M1W         -0.386247</span>
-<span class="go">4         b              M1E         1.0     G3P M1E          0.080868</span>
-<span class="go">5         b              P3R        -5.0         G3R          2.044630</span>
-<span class="go">6         b              P3G         0.4                      0.375656</span>
-<span class="go">7         b          M1E P3G         2.7         M1E          0.456523</span>
-<span class="go">8         b          M1E P3R        -2.7     G3R M1E          2.125498</span>
-
+<span class="go">   condition aa_substitutions  func_score var_wrt_ref  predicted_latent  \</span>
+<span class="go">0         a              M1E         2.0         M1E               0.0</span>
+<span class="go">1         a              G3R        -7.0         G3R               0.0</span>
+<span class="go">2         a              G3P        -0.5         G3P               0.0</span>
+<span class="go">3         a              M1W         2.3         M1W               0.0</span>
+<span class="go">4         b              M1E         1.0     G3P M1E               0.0</span>
+<span class="go">5         b              P3R        -5.0         G3R               0.0</span>
+<span class="go">6         b              P3G         0.4                           0.0</span>
+<span class="go">7         b          M1E P3G         2.7         M1E               0.0</span>
+<span class="go">8         b          M1E P3R        -2.7     G3R M1E               0.0</span>
 <span class="go">   predicted_func_score</span>
-<span class="go">0              0.101030</span>
-<span class="go">1              1.707195</span>
-<span class="go">2             -0.464124</span>
-<span class="go">3             -0.476895</span>
-<span class="go">4              0.098285</span>
-<span class="go">5              2.171319</span>
-<span class="go">6              0.464124</span>
-<span class="go">7              0.565154</span>
-<span class="go">8              2.223789</span>
+<span class="go">0                   0.0</span>
+<span class="go">1                   0.0</span>
+<span class="go">2                   0.0</span>
+<span class="go">3                   0.0</span>
+<span class="go">4                   0.0</span>
+<span class="go">5                   0.0</span>
+<span class="go">6                   0.0</span>
+<span class="go">7                   0.0</span>
+<span class="go">8                   0.0</span>
 </pre></div>
 </div>
 <p>We now have access to the predicted (and gamma corrected) functional scores
@@ -538,91 +559,85 @@ as predicted by the models current parameters.</p>
 to the dataset. Let’s take a look at the loss on the training dataset
 given our initialized parameters</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">loss</span>
-<span class="go">Array(7.19312981, dtype=float64)</span>
+<span class="go">2.9370000000000003</span>
 </pre></div>
 </div>
 <p>Next, we fit the model with some chosen hyperparameters.</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">maxiter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">lasso_shift</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">warn_unconverged</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">maxiter</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">lasso_shift</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">warn_unconverged</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">loss</span>
-<span class="go">Array(1.18200934e-05, dtype=float64)</span>
+<span class="go">0.3483478119356665</span>
 </pre></div>
 </div>
 <p>The model tunes its parameters in place, and the subsequent call to retrieve
 the loss reflects our models loss given its updated parameters.</p>
-<p>TODO: add more examples, and explain the convergence criteria and warning.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="multidms.Model.counter">
-<span class="sig-name descname"><span class="pre">counter</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#multidms.Model.counter" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Model.name">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></em><a class="headerlink" href="#multidms.Model.name" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></em><a class="headerlink" href="#multidms.Model.name" title="Permalink to this definition">¶</a></dt>
 <dd><p>The name of the data object.</p>
 </dd></dl>
 
 <dl class="py property">
-<dt class="sig sig-object py" id="multidms.Model.params">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">params</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Model.params" title="Link to this definition">¶</a></dt>
-<dd><p>All current model parameters in a dictionary.</p>
-</dd></dl>
-
-<dl class="py property">
 <dt class="sig sig-object py" id="multidms.Model.state">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">state</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Model.state" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">state</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Model.state" title="Permalink to this definition">¶</a></dt>
 <dd><p>The current state of the model.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Model.converged">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">converged</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></em><a class="headerlink" href="#multidms.Model.converged" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">converged</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></em><a class="headerlink" href="#multidms.Model.converged" title="Permalink to this definition">¶</a></dt>
 <dd><p>Whether the model tolerance threshold was passed on last fit.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Model.data">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="multidms.data.html#multidms.data.Data" title="multidms.data.Data"><span class="pre">Data</span></a></em><a class="headerlink" href="#multidms.Model.data" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="multidms.data.html#multidms.data.Data" title="multidms.data.Data"><span class="pre">Data</span></a></em><a class="headerlink" href="#multidms.Model.data" title="Permalink to this definition">¶</a></dt>
 <dd><p>multidms.Data Object this model references for fitting
 its parameters.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Model.model_components">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">model_components</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">frozendict</span></em><a class="headerlink" href="#multidms.Model.model_components" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">model_components</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">frozendict</span></em><a class="headerlink" href="#multidms.Model.model_components" title="Permalink to this definition">¶</a></dt>
 <dd><p>A frozendict which hold the individual components of the model
 as well as the objective and forward functions.</p>
 </dd></dl>
 
 <dl class="py property">
-<dt class="sig sig-object py" id="multidms.Model.loss">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">loss</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></em><a class="headerlink" href="#multidms.Model.loss" title="Link to this definition">¶</a></dt>
-<dd><p>Compute model loss on all experimental training data
-without ridge or lasso penalties included.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="multidms.Model.conditional_loss">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">conditional_loss</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></em><a class="headerlink" href="#multidms.Model.conditional_loss" title="Link to this definition">¶</a></dt>
-<dd><p>Compute loss individually for each condition.</p>
-</dd></dl>
-
-<dl class="py property">
 <dt class="sig sig-object py" id="multidms.Model.convergence_trajectory_df">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">convergence_trajectory_df</span></span><a class="headerlink" href="#multidms.Model.convergence_trajectory_df" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">convergence_trajectory_df</span></span><a class="headerlink" href="#multidms.Model.convergence_trajectory_df" title="Permalink to this definition">¶</a></dt>
 <dd><p>The state.error through each training iteration.
 Currentlty, this is reset each time the fit() method is called</p>
 </dd></dl>
 
 <dl class="py property">
-<dt class="sig sig-object py" id="multidms.Model.variants_df">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">variants_df</span></span><a class="headerlink" href="#multidms.Model.variants_df" title="Link to this definition">¶</a></dt>
-<dd><p>Kept for backwards compatibility but will be removed in future versions.
-Please use <cite>get_variants_df</cite> instead.</p>
+<dt class="sig sig-object py" id="multidms.Model.params">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">params</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Model.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>A copy of all current model parameters</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="multidms.Model.loss">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">loss</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></em><a class="headerlink" href="#multidms.Model.loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute un-penalized model loss on all experimental training data
+without ridge or lasso penalties included.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="multidms.Model.conditional_loss">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">conditional_loss</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></em><a class="headerlink" href="#multidms.Model.conditional_loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute un-penalized loss individually for each condition.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="multidms.Model.wildtype_df">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">wildtype_df</span></span><a class="headerlink" href="#multidms.Model.wildtype_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a dataframe indexed by condition wildtype
+containing the prediction features for each.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.get_variants_df">
-<span class="sig-name descname"><span class="pre">get_variants_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phenotype_as_effect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.get_variants_df" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_variants_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phenotype_as_effect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.get_variants_df" title="Permalink to this definition">¶</a></dt>
 <dd><p>Training data with model predictions for latent,
 and functional score phenotypes.</p>
 <dl class="field-list simple">
@@ -639,59 +654,57 @@ with the phenotypes added. Phenotypes are predicted
 based on the current state of the model.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.1)">pandas.DataFrame</a></p>
+<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)">pandas.DataFrame</a></p>
 </dd>
 </dl>
 </dd></dl>
 
-<dl class="py property">
-<dt class="sig sig-object py" id="multidms.Model.mutations_df">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mutations_df</span></span><a class="headerlink" href="#multidms.Model.mutations_df" title="Link to this definition">¶</a></dt>
-<dd><p>Kept for backwards compatibility but will be removed in future versions.
-Please use <cite>get_mutations_df</cite> instead.</p>
-</dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.get_mutations_df">
-<span class="sig-name descname"><span class="pre">get_mutations_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phenotype_as_effect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times_seen_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.get_mutations_df" title="Link to this definition">¶</a></dt>
-<dd><p>Mutation attributes and phenotypic effects.</p>
+<span class="sig-name descname"><span class="pre">get_mutations_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">times_seen_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phenotype_as_effect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.get_mutations_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mutation attributes and phenotypic effects
+based on the current state of the model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>phenotype_as_effect</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – if True, phenotypes (both latent, and func_score)
-are calculated as the _difference_ between predicted
-phenotype of a given variant and the respective experimental
-wildtype prediction. Otherwise, report the unmodified
-model prediction.</p></li>
 <li><p><strong>times_seen_threshold</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – Only report mutations that have been seen at least
 this many times in each condition. Defaults to 0.</p></li>
+<li><p><strong>phenotype_as_effect</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – if True, phenotypes are reported as the difference
+from the conditional wildtype prediction. Otherwise,
+report the unmodified model prediction.</p></li>
 <li><p><strong>return_split</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, return the split mutations as separate columns:
 ‘wts’, ‘sites’, and ‘muts’.
 Defaults to True.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A copy of the mutations data, <cite>self.data.mutations_df</cite>,
+<dd class="field-even"><p><p>A copy of the mutations data, <cite>self.data.mutations_df</cite>,
 with the mutations column set as the index, and columns
 with the mutational attributes (e.g. betas, shifts) and
-conditional phenotypes (e.g. func_scores) added.
-Phenotypes are predicted
-based on the current state of the model.</p>
+conditional functional score effect (e.g. ) added.</p>
+<p>The columns are ordered as follows:
+- beta_a, beta_b, … : the latent effect of the mutation
+- shift_b, shift_c, … : the conditional shift of the mutation
+- predicted_func_score_a, predicted_func_score_b, … : the</p>
+<blockquote>
+<div><p>predicted functional score of the mutation.</p>
+</div></blockquote>
+</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.1)">pandas.DataFrame</a></p>
+<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)">pandas.DataFrame</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.get_df_loss">
-<span class="sig-name descname"><span class="pre">get_df_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_if_unknown</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditional</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.get_df_loss" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_df_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_if_unknown</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditional</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.get_df_loss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the loss of the model on a given data frame.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.1)"><em>pandas.DataFrame</em></a>) – Data frame containing variants. Requirements are the same as
+<li><p><strong>df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><em>pandas.DataFrame</em></a>) – Data frame containing variants. Requirements are the same as
 those used to initialize the <cite>multidms.Data</cite> object - except
 the indices must be unique.</p></li>
 <li><p><strong>error_if_unknown</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If some of the substitutions in a variant are not present in
@@ -714,12 +727,12 @@ If False, return the total loss.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.add_phenotypes_to_df">
-<span class="sig-name descname"><span class="pre">add_phenotypes_to_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">substitutions_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'aa_substitutions'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'condition'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_phenotype_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'predicted_latent'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observed_phenotype_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'predicted_func_score'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">converted_substitutions_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'aa_subs_wrt_ref'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite_cols</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unknown_as_nan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phenotype_as_effect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.add_phenotypes_to_df" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">add_phenotypes_to_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">substitutions_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'aa_substitutions'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'condition'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_phenotype_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'predicted_latent'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observed_phenotype_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'predicted_func_score'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">converted_substitutions_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'aa_subs_wrt_ref'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite_cols</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unknown_as_nan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phenotype_as_effect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.add_phenotypes_to_df" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add predicted phenotypes to data frame of variants.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.1)"><em>pandas.DataFrame</em></a>) – Data frame containing variants. Requirements are the same as
+<li><p><strong>df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><em>pandas.DataFrame</em></a>) – Data frame containing variants. Requirements are the same as
 those used to initialize the <cite>multidms.Data</cite> object - except
 the indices must be unique.</p></li>
 <li><p><strong>substitutions_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Column in <cite>df</cite> giving variants as substitution strings
@@ -750,36 +763,43 @@ model prediction.</p></li>
 based on the current state of the model.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.1)">pandas.DataFrame</a></p>
+<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)">pandas.DataFrame</a></p>
 </dd>
 </dl>
 </dd></dl>
 
-<dl class="py property">
-<dt class="sig sig-object py" id="multidms.Model.wildtype_df">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">wildtype_df</span></span><a class="headerlink" href="#multidms.Model.wildtype_df" title="Link to this definition">¶</a></dt>
-<dd><p>Get a dataframe indexed by condition wildtype
-containing the prediction features for each.</p>
-</dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.mutation_site_summary_df">
-<span class="sig-name descname"><span class="pre">mutation_site_summary_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agg_func=&lt;function</span> <span class="pre">mean&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times_seen_threshold=0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.mutation_site_summary_df" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">mutation_site_summary_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agg_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.mutation_site_summary_df" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get all single mutational attributes from self._data
 updated with all model specific attributes, then aggregate
-all numerical columns by “sites” using
-<code class="docutils literal notranslate"><span class="pre">agg</span></code> function. The mean values are given by default.</p>
+all numerical columns by “sites”</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agg_func</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Aggregation function to use on the numerical columns.
+Defaults to “mean”.</p></li>
+<li><p><strong>**kwargs</strong> – Additional keyword arguments to pass to get_mutations_df.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A summary of the mutation attributes aggregated by site.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)">pandas.DataFrame</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.get_condition_params">
-<span class="sig-name descname"><span class="pre">get_condition_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.get_condition_params" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_condition_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.get_condition_params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the relent parameters for a model prediction</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.phenotype_fromsubs">
-<span class="sig-name descname"><span class="pre">phenotype_fromsubs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aa_subs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.phenotype_fromsubs" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">phenotype_fromsubs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aa_subs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.phenotype_fromsubs" title="Permalink to this definition">¶</a></dt>
 <dd><p>take a single string of subs which are
 not already converted wrt reference, convert them and
 then make a functional score prediction and return the result.</p>
@@ -787,15 +807,15 @@ then make a functional score prediction and return the result.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.latent_fromsubs">
-<span class="sig-name descname"><span class="pre">latent_fromsubs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aa_subs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.latent_fromsubs" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">latent_fromsubs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aa_subs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.latent_fromsubs" title="Permalink to this definition">¶</a></dt>
 <dd><p>take a single string of subs which are
 not already converted wrt reference, convert them and
-then make a latent prediction and return the result.</p>
+them make a latent prediction and return the result.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.phenotype_frombinary">
-<span class="sig-name descname"><span class="pre">phenotype_frombinary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.phenotype_frombinary" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">phenotype_frombinary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.phenotype_frombinary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Condition specific functional score prediction
 on X using the biophysical model
 given current model parameters.</p>
@@ -811,7 +831,7 @@ given current model parameters.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.latent_frombinary">
-<span class="sig-name descname"><span class="pre">latent_frombinary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.latent_frombinary" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">latent_frombinary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.latent_frombinary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Condition specific latent phenotype prediction
 on X using the biophysical model
 given current model parameters.</p>
@@ -826,33 +846,31 @@ given current model parameters.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="multidms.Model.fit_reference_beta">
-<span class="sig-name descname"><span class="pre">fit_reference_beta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.fit_reference_beta" title="Link to this definition">¶</a></dt>
-<dd><p>Fit the Model beta’s to the reference data.</p>
-<p>This is an experimental feature and is not recommended
-for general use.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.fit">
-<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acceleration</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_coeff_lasso_shift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lock_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warn_unconverged</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_bound_theta_ge_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'infer'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">convergence_trajectory_resolution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.fit" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scale_coeff_lasso_shift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acceleration</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lock_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">admm_niter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">admm_tau</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warn_unconverged</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_bound_ge_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'infer'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">convergence_trajectory_resolution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.fit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use jaxopt.ProximalGradiant to optimize the model’s free parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>scale_coeff_lasso_shift</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – L1 penalty on the shift parameters. Defaults to 1e-5.</p></li>
-<li><p><strong>tol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Tolerance for the optimization. Defaults to 1e-6.</p></li>
+<li><p><strong>scale_coeff_lasso_shift</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – L1 penalty coefficient applied “shift” in beta_d parameters.
+Defaults to 1e-4. This parameter is used to regularize the
+shift parameters in the model if there’s more than one condition.</p></li>
+<li><p><strong>tol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Tolerance for the optimization convergence criteria. Defaults to 1e-4.</p></li>
 <li><p><strong>maxiter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Maximum number of iterations for the optimization. Defaults to 1000.</p></li>
 <li><p><strong>maxls</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Maximum number of iterations to perform during line search.</p></li>
 <li><p><strong>acceleration</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, use FISTA acceleration. Defaults to True.</p></li>
 <li><p><strong>lock_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Dictionary of parameters, and desired value to constrain
-them at during optimization. By default, none of the parameters
-besides the reference shift, and reference latent offset are locked.</p></li>
+them at during optimization. By default, no parameters are locked.</p></li>
+<li><p><strong>admm_niter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Number of iterations to perform during the ADMM optimization.
+Defaults to 50. Note that in the case of single-condition models,
+This is set to zero as the generalized
+lasso ADMM optimization is not used.</p></li>
+<li><p><strong>admm_tau</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – ADMM step size. Defaults to 1.0.</p></li>
 <li><p><strong>warn_unconverged</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, raise a warning if the optimization does not converge.
 convergence is defined by whether the model tolerance (‘’tol’’) threshold
 was passed during the optimization process.
 Defaults to True.</p></li>
-<li><p><strong>upper_bound_theta_ge_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>None</em><em>, or </em><em>'infer'</em>) – The positive upper bound of the theta scale parameter -
+<li><p><strong>upper_bound_ge_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>None</em><em>, or </em><em>'infer'</em>) – The positive upper bound of the theta scale parameter -
 negative values are not allowed.
 Passing <code class="docutils literal notranslate"><span class="pre">None</span></code> allows the scale of the sigmoid to be unconstrained.
 Passing the string literal ‘infer’ results in the
@@ -861,8 +879,10 @@ Defaults to ‘infer’.</p></li>
 <li><p><strong>convergence_trajectory_resolution</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – The resolution of the loss and error trajectory recorded
 during optimization. Defaults to 100.</p></li>
 <li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Additional keyword arguments passed to the objective function.
-These include hyperparameters like a ridge penalty on beta, shift, and gamma
-as well as huber loss scaling.</p></li>
+See the multidms.biophysical.smooth_objective docstring for
+details on the other hyperparameters that may be supplied to
+regularize and otherwise modify the objective function
+being optimized.</p></li>
 </ul>
 </dd>
 </dl>
@@ -870,7 +890,7 @@ as well as huber loss scaling.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.plot_pred_accuracy">
-<span class="sig-name descname"><span class="pre">plot_pred_accuracy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hue</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotate_corr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.plot_pred_accuracy" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">plot_pred_accuracy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hue</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotate_corr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.plot_pred_accuracy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a figure which visualizes the correlation
 between model predicted functional score of all
 variants in the training with ground truth measurements.</p>
@@ -878,7 +898,7 @@ variants in the training with ground truth measurements.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.plot_epistasis">
-<span class="sig-name descname"><span class="pre">plot_epistasis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hue</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.plot_epistasis" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">plot_epistasis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hue</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.plot_epistasis" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plot latent predictions against
 gamma corrected ground truth measurements
 of all samples in the training set.</p>
@@ -886,32 +906,26 @@ of all samples in the training set.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.plot_param_hist">
-<span class="sig-name descname"><span class="pre">plot_param_hist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times_seen_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.plot_param_hist" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">plot_param_hist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times_seen_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.plot_param_hist" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plot the histogram of a parameter.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.plot_param_heatmap">
-<span class="sig-name descname"><span class="pre">plot_param_heatmap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times_seen_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.plot_param_heatmap" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">plot_param_heatmap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times_seen_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.plot_param_heatmap" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plot the heatmap of a parameters
 associated with specific sites and substitutions.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.plot_shifts_by_site">
-<span class="sig-name descname"><span class="pre">plot_shifts_by_site</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">condition</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saveas=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times_seen_threshold=3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agg_func=&lt;function</span> <span class="pre">mean&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.plot_shifts_by_site" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">plot_shifts_by_site</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">condition</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times_seen_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agg_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.plot_shifts_by_site" title="Permalink to this definition">¶</a></dt>
 <dd><p>Summarize shift parameter values by associated sites and conditions.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="multidms.Model.plot_fit_param_comp_scatter">
-<span class="sig-name descname"><span class="pre">plot_fit_param_comp_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">self_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'beta'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">other_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'beta'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[5,</span> <span class="pre">4]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">site_agg_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.plot_fit_param_comp_scatter" title="Link to this definition">¶</a></dt>
-<dd><p>Plot a scatter plot of the parameter values of two models</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.mut_param_heatmap">
-<span class="sig-name descname"><span class="pre">mut_param_heatmap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mut_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times_seen_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phenotype_as_effect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">line_and_heat_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.mut_param_heatmap" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">mut_param_heatmap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mut_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times_seen_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phenotype_as_effect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">line_and_heat_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.mut_param_heatmap" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wrapper method for visualizing the shift plot.
 see <cite>multidms.plot.mut_shift_plot()</cite> for more</p>
 </dd></dl>
@@ -920,7 +934,7 @@ see <cite>multidms.plot.mut_shift_plot()</cite> for more</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="multidms.ModelCollection">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.</span></span><span class="sig-name descname"><span class="pre">ModelCollection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fit_models</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.</span></span><span class="sig-name descname"><span class="pre">ModelCollection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fit_models</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A class for the comparison and visualization of multiple
 <cite>multidms.Model</cite> fits. The respective collection of
@@ -933,43 +947,43 @@ the collection of models, and the resulting dataframe is passed to the
 constructor of this class.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>fit_models</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – A dataframe containing the fit attributes and pickled model objects
+<dd class="field-odd"><p><strong>fit_models</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – A dataframe containing the fit attributes and pickled model objects
 as returned by <cite>multidms.model_collection.fit_models</cite>.</p>
 </dd>
 </dl>
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.ModelCollection.site_map_union">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">site_map_union</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.1)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.ModelCollection.site_map_union" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">site_map_union</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.ModelCollection.site_map_union" title="Permalink to this definition">¶</a></dt>
 <dd><p>The union of all site maps of all datasets used for fitting.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.ModelCollection.conditions">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">conditions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a></em><a class="headerlink" href="#multidms.ModelCollection.conditions" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">conditions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a></em><a class="headerlink" href="#multidms.ModelCollection.conditions" title="Permalink to this definition">¶</a></dt>
 <dd><p>The conditions (shared by each fitting dataset) used for fitting.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.ModelCollection.reference">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reference</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></em><a class="headerlink" href="#multidms.ModelCollection.reference" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reference</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></em><a class="headerlink" href="#multidms.ModelCollection.reference" title="Permalink to this definition">¶</a></dt>
 <dd><p>The reference conditions (shared by each fitting dataset) used for fitting.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.ModelCollection.shared_mutations">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shared_mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.ModelCollection.shared_mutations" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shared_mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.ModelCollection.shared_mutations" title="Permalink to this definition">¶</a></dt>
 <dd><p>The mutations shared by each fitting dataset.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.ModelCollection.all_mutations">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">all_mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.ModelCollection.all_mutations" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">all_mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.ModelCollection.all_mutations" title="Permalink to this definition">¶</a></dt>
 <dd><p>The mutations shared by each fitting dataset.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.ModelCollection.split_apply_combine_muts">
-<span class="sig-name descname"><span class="pre">split_apply_combine_muts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groupby</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('dataset_name',</span> <span class="pre">'scale_coeff_lasso_shift')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_merge_dataset_muts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.split_apply_combine_muts" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">split_apply_combine_muts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groupby</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('dataset_name',</span> <span class="pre">'scale_coeff_lasso_shift')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_merge_dataset_muts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.split_apply_combine_muts" title="Permalink to this definition">¶</a></dt>
 <dd><p>wrapper to split-apply-combine the set of mutational dataframes
 harbored by each of the fits in the collection.</p>
 <p>Here, we group the collection of fits using attributes
@@ -1002,14 +1016,14 @@ method docstring for details.</p></li>
 <dd class="field-even"><p>A dataframe containing the aggregated mutational parameter values</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
+<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.ModelCollection.add_validation_loss">
-<span class="sig-name descname"><span class="pre">add_validation_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.add_validation_loss" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">add_validation_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.add_validation_loss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add validation loss to the fit collection dataframe.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1034,7 +1048,7 @@ The default is False.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.ModelCollection.get_conditional_loss_df">
-<span class="sig-name descname"><span class="pre">get_conditional_loss_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.get_conditional_loss_df" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_conditional_loss_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.get_conditional_loss_df" title="Permalink to this definition">¶</a></dt>
 <dd><p>return a long form dataframe with columns
 “dataset_name”, “scale_coeff_lasso_shift”,
 “split” (“training” or “validation”),
@@ -1049,13 +1063,14 @@ before formatting the loss dataframe. The default is None.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.ModelCollection.convergence_trajectory_df">
-<span class="sig-name descname"><span class="pre">convergence_trajectory_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id_vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('dataset_name',</span> <span class="pre">'scale_coeff_lasso_shift')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.convergence_trajectory_df" title="Link to this definition">¶</a></dt>
-<dd><p>TODO</p>
+<span class="sig-name descname"><span class="pre">convergence_trajectory_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id_vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('dataset_name',</span> <span class="pre">'scale_coeff_lasso_shift')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.convergence_trajectory_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combine the converence trajectory dataframes of
+all fits in the queried collection.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.ModelCollection.mut_param_heatmap">
-<span class="sig-name descname"><span class="pre">mut_param_heatmap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mut_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_merge_dataset_muts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times_seen_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phenotype_as_effect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.mut_param_heatmap" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">mut_param_heatmap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mut_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_merge_dataset_muts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times_seen_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phenotype_as_effect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.mut_param_heatmap" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create lineplot and heatmap altair chart
 across replicate datasets.
 This function optionally applies a given <cite>pandas.query</cite>
@@ -1108,7 +1123,7 @@ or saved to a file.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.ModelCollection.mut_param_traceplot">
-<span class="sig-name descname"><span class="pre">mut_param_traceplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mutations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mut_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.mut_param_traceplot" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">mut_param_traceplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mutations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mut_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.mut_param_traceplot" title="Permalink to this definition">¶</a></dt>
 <dd><p>visualize mutation parameter values across the lasso penalty weights
 (by default) of a given subset of the mutations in the form of an
 <cite>altair.FacetChart</cite>. This is useful when you would like to confirm
@@ -1127,7 +1142,7 @@ or saved to a file.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.ModelCollection.shift_sparsity">
-<span class="sig-name descname"><span class="pre">shift_sparsity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.shift_sparsity" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">shift_sparsity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.shift_sparsity" title="Permalink to this definition">¶</a></dt>
 <dd><p>Visualize shift parameter set sparsity across the lasso penalty weights
 (by default) in the form of an <cite>altair.FacetChart</cite>.
 We will group the mutations according to their status as either a
@@ -1149,7 +1164,7 @@ containing the chart and the underlying data will be returned.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.ModelCollection.mut_param_dataset_correlation">
-<span class="sig-name descname"><span class="pre">mut_param_dataset_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">150</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.mut_param_dataset_correlation" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">mut_param_dataset_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.mut_param_dataset_correlation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Visualize the correlation between replicate datasets across the lasso penalty
 weights (by default) in the form of an <cite>altair.FacetChart</cite>.
 We compute correlation of mutation parameters accross each pair of datasets
@@ -1186,7 +1201,7 @@ containing the chart and the underlying data will be returned.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="multidms.fit_models">
-<span class="sig-prename descclassname"><span class="pre">multidms.</span></span><span class="sig-name descname"><span class="pre">fit_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failures</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'error'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.fit_models" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">multidms.</span></span><span class="sig-name descname"><span class="pre">fit_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failures</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'error'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.fit_models" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fit collection of <a class="reference internal" href="multidms.model.html#multidms.model.Model" title="multidms.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">multidms.model.Model</span></code></a> models.</p>
 <p>Enables fitting of multiple models simultaneously using multiple threads.
 Most commonly, this function is used to fit a set of models across combinations
@@ -1226,7 +1241,7 @@ for comparison and visualization.</p>
 </dd></dl>
 
 <section id="submodules">
-<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="multidms.biophysical.html">biophysical</a></li>
@@ -1236,27 +1251,31 @@ for comparison and visualization.</p>
 <li class="toctree-l1"><a class="reference internal" href="multidms.biophysical.html#multidms.biophysical.nn_global_epistasis"><code class="docutils literal notranslate"><span class="pre">nn_global_epistasis()</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.biophysical.html#multidms.biophysical.identity_activation"><code class="docutils literal notranslate"><span class="pre">identity_activation()</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.biophysical.html#multidms.biophysical.softplus_activation"><code class="docutils literal notranslate"><span class="pre">softplus_activation()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.biophysical.html#multidms.biophysical.proximal_box_constraints"><code class="docutils literal notranslate"><span class="pre">proximal_box_constraints()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.biophysical.html#multidms.biophysical.proximal_objective"><code class="docutils literal notranslate"><span class="pre">proximal_objective()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.biophysical.html#multidms.biophysical.smooth_objective"><code class="docutils literal notranslate"><span class="pre">smooth_objective()</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.data.html">data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="multidms.data.html#multidms.data.split_sub"><code class="docutils literal notranslate"><span class="pre">split_sub()</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="multidms.data.html#multidms.data.split_subs"><code class="docutils literal notranslate"><span class="pre">split_subs()</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.data.html#multidms.data.Data"><code class="docutils literal notranslate"><span class="pre">Data</span></code></a><ul>
-<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.counter"><code class="docutils literal notranslate"><span class="pre">Data.counter</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.name"><code class="docutils literal notranslate"><span class="pre">Data.name</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.conditions"><code class="docutils literal notranslate"><span class="pre">Data.conditions</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.reference"><code class="docutils literal notranslate"><span class="pre">Data.reference</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.reference_index"><code class="docutils literal notranslate"><span class="pre">Data.reference_index</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.mutations"><code class="docutils literal notranslate"><span class="pre">Data.mutations</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.mutations_df"><code class="docutils literal notranslate"><span class="pre">Data.mutations_df</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.variants_df"><code class="docutils literal notranslate"><span class="pre">Data.variants_df</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.site_map"><code class="docutils literal notranslate"><span class="pre">Data.site_map</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.non_identical_mutations"><code class="docutils literal notranslate"><span class="pre">Data.non_identical_mutations</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.non_identical_sites"><code class="docutils literal notranslate"><span class="pre">Data.non_identical_sites</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.bundle_idxs"><code class="docutils literal notranslate"><span class="pre">Data.bundle_idxs</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.reference_sequence_conditions"><code class="docutils literal notranslate"><span class="pre">Data.reference_sequence_conditions</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.training_data"><code class="docutils literal notranslate"><span class="pre">Data.training_data</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.scaled_training_data"><code class="docutils literal notranslate"><span class="pre">Data.scaled_training_data</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.binarymaps"><code class="docutils literal notranslate"><span class="pre">Data.binarymaps</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.targets"><code class="docutils literal notranslate"><span class="pre">Data.targets</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.mutparser"><code class="docutils literal notranslate"><span class="pre">Data.mutparser</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.parse_mut"><code class="docutils literal notranslate"><span class="pre">Data.parse_mut</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.parse_muts"><code class="docutils literal notranslate"><span class="pre">Data.parse_muts</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.single_mut_encodings"><code class="docutils literal notranslate"><span class="pre">Data.single_mut_encodings</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.convert_subs_wrt_ref_seq"><code class="docutils literal notranslate"><span class="pre">Data.convert_subs_wrt_ref_seq()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.plot_times_seen_hist"><code class="docutils literal notranslate"><span class="pre">Data.plot_times_seen_hist()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.plot_func_score_boxplot"><code class="docutils literal notranslate"><span class="pre">Data.plot_func_score_boxplot()</span></code></a></li>
@@ -1264,42 +1283,37 @@ for comparison and visualization.</p>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.model.html">model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.model.html#multidms.model.Model"><code class="docutils literal notranslate"><span class="pre">Model</span></code></a><ul>
-<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.counter"><code class="docutils literal notranslate"><span class="pre">Model.counter</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.name"><code class="docutils literal notranslate"><span class="pre">Model.name</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.params"><code class="docutils literal notranslate"><span class="pre">Model.params</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.state"><code class="docutils literal notranslate"><span class="pre">Model.state</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.converged"><code class="docutils literal notranslate"><span class="pre">Model.converged</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.data"><code class="docutils literal notranslate"><span class="pre">Model.data</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.model_components"><code class="docutils literal notranslate"><span class="pre">Model.model_components</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.convergence_trajectory_df"><code class="docutils literal notranslate"><span class="pre">Model.convergence_trajectory_df</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.params"><code class="docutils literal notranslate"><span class="pre">Model.params</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.loss"><code class="docutils literal notranslate"><span class="pre">Model.loss</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.conditional_loss"><code class="docutils literal notranslate"><span class="pre">Model.conditional_loss</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.convergence_trajectory_df"><code class="docutils literal notranslate"><span class="pre">Model.convergence_trajectory_df</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.variants_df"><code class="docutils literal notranslate"><span class="pre">Model.variants_df</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.wildtype_df"><code class="docutils literal notranslate"><span class="pre">Model.wildtype_df</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_variants_df"><code class="docutils literal notranslate"><span class="pre">Model.get_variants_df()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.mutations_df"><code class="docutils literal notranslate"><span class="pre">Model.mutations_df</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_mutations_df"><code class="docutils literal notranslate"><span class="pre">Model.get_mutations_df()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_df_loss"><code class="docutils literal notranslate"><span class="pre">Model.get_df_loss()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.add_phenotypes_to_df"><code class="docutils literal notranslate"><span class="pre">Model.add_phenotypes_to_df()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.wildtype_df"><code class="docutils literal notranslate"><span class="pre">Model.wildtype_df</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.mutation_site_summary_df"><code class="docutils literal notranslate"><span class="pre">Model.mutation_site_summary_df()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_condition_params"><code class="docutils literal notranslate"><span class="pre">Model.get_condition_params()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.phenotype_fromsubs"><code class="docutils literal notranslate"><span class="pre">Model.phenotype_fromsubs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.latent_fromsubs"><code class="docutils literal notranslate"><span class="pre">Model.latent_fromsubs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.phenotype_frombinary"><code class="docutils literal notranslate"><span class="pre">Model.phenotype_frombinary()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.latent_frombinary"><code class="docutils literal notranslate"><span class="pre">Model.latent_frombinary()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.fit_reference_beta"><code class="docutils literal notranslate"><span class="pre">Model.fit_reference_beta()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.fit"><code class="docutils literal notranslate"><span class="pre">Model.fit()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.plot_pred_accuracy"><code class="docutils literal notranslate"><span class="pre">Model.plot_pred_accuracy()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.plot_epistasis"><code class="docutils literal notranslate"><span class="pre">Model.plot_epistasis()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.plot_param_hist"><code class="docutils literal notranslate"><span class="pre">Model.plot_param_hist()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.plot_param_heatmap"><code class="docutils literal notranslate"><span class="pre">Model.plot_param_heatmap()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.plot_shifts_by_site"><code class="docutils literal notranslate"><span class="pre">Model.plot_shifts_by_site()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.plot_fit_param_comp_scatter"><code class="docutils literal notranslate"><span class="pre">Model.plot_fit_param_comp_scatter()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.mut_param_heatmap"><code class="docutils literal notranslate"><span class="pre">Model.mut_param_heatmap()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="multidms.model_collection.html"><code class="docutils literal notranslate"><span class="pre">ModelCollectionFitError</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.my_concat"><code class="docutils literal notranslate"><span class="pre">my_concat()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.model_collection.html">model_collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollectionFitError"><code class="docutils literal notranslate"><span class="pre">ModelCollectionFitError</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.fit_one_model"><code class="docutils literal notranslate"><span class="pre">fit_one_model()</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.stack_fit_models"><code class="docutils literal notranslate"><span class="pre">stack_fit_models()</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.fit_models"><code class="docutils literal notranslate"><span class="pre">fit_models()</span></code></a></li>
@@ -1321,6 +1335,14 @@ for comparison and visualization.</p>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.plot.html">plot</a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.plot.html#multidms.plot.color_gradient_hex"><code class="docutils literal notranslate"><span class="pre">color_gradient_hex()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.explode_params_dict"><code class="docutils literal notranslate"><span class="pre">explode_params_dict()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.my_concat"><code class="docutils literal notranslate"><span class="pre">my_concat()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.split_sub"><code class="docutils literal notranslate"><span class="pre">split_sub()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.split_subs"><code class="docutils literal notranslate"><span class="pre">split_subs()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.difference_matrix"><code class="docutils literal notranslate"><span class="pre">difference_matrix()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.transform"><code class="docutils literal notranslate"><span class="pre">transform()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.rereference"><code class="docutils literal notranslate"><span class="pre">rereference()</span></code></a></li>
 </ul>
 </div>
 </section>
@@ -1407,7 +1429,7 @@ for comparison and visualization.</p>
       &#169;2023, Jared Galloway, Hugh Haddox.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 6.2.1</a>
       &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
       
       |

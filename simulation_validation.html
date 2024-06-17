@@ -1,17 +1,18 @@
+
 <!DOCTYPE html>
 
-<html lang="en" data-content_root="./">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
     <title>Simulation validation &#8212; multidms 0.4.0 documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
-    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=420b4293" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
     <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css" />
-    <script src="_static/documentation_options.js?v=6c02275b"></script>
-    <script src="_static/doctools.js?v=888ff710"></script>
-    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -37,9 +38,9 @@
           <div class="body" role="main">
             
   <section id="Simulation-validation">
-<h1>Simulation validation<a class="headerlink" href="#Simulation-validation" title="Link to this heading">¶</a></h1>
+<h1>Simulation validation<a class="headerlink" href="#Simulation-validation" title="Permalink to this heading">¶</a></h1>
 <section id="Overview">
-<h2>Overview<a class="headerlink" href="#Overview" title="Link to this heading">¶</a></h2>
+<h2>Overview<a class="headerlink" href="#Overview" title="Permalink to this heading">¶</a></h2>
 <p>The bloom lab had developed a <a class="reference external" href="https://jbloomlab.github.io/dms_variants/codonvariant_sim_data.html">pipeline to simulate DMS data</a> to test <code class="docutils literal notranslate"><span class="pre">dms_variants</span></code> global epistasis fitting. Taking inspriation from that, we build upon the pipeline by simulating data for <em>two</em> homologs - introducing shifts in mutational effects at a subset of sites with the goal validating the <code class="docutils literal notranslate"><span class="pre">multidms</span></code> joint-fitting approach.</p>
 <p>This notebook has a few major steps involved:</p>
 <ol class="arabic simple">
@@ -52,7 +53,7 @@
 </ol>
 </section>
 <section id="Import-Python-modules">
-<h2>Import <code class="docutils literal notranslate"><span class="pre">Python</span></code> modules<a class="headerlink" href="#Import-Python-modules" title="Link to this heading">¶</a></h2>
+<h2>Import <code class="docutils literal notranslate"><span class="pre">Python</span></code> modules<a class="headerlink" href="#Import-Python-modules" title="Permalink to this heading">¶</a></h2>
 <p>For this analysis, we’ll be using the <code class="docutils literal notranslate"><span class="pre">dms_variants</span></code> package for simulation. All dependencies needed can be installed by cloning the <code class="docutils literal notranslate"><span class="pre">multidms</span></code> repo and executing the command:</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>$ pip install &#39;.[dev]&#39;
 </pre></div>
@@ -86,7 +87,7 @@
 </div>
 </section>
 <section id="Define-notebook-parameters">
-<h2>Define notebook parameters<a class="headerlink" href="#Define-notebook-parameters" title="Link to this heading">¶</a></h2>
+<h2>Define notebook parameters<a class="headerlink" href="#Define-notebook-parameters" title="Permalink to this heading">¶</a></h2>
 <p>Set parameters that define this notebook’s behavior. These can all be modifed (using <code class="docutils literal notranslate"><span class="pre">papermill</span></code>) to reasonable values and the notebook should execute as expected.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
@@ -156,7 +157,7 @@
 </div>
 </section>
 <section id="Simulate-a-reference-sequence">
-<h2>Simulate a reference sequence<a class="headerlink" href="#Simulate-a-reference-sequence" title="Link to this heading">¶</a></h2>
+<h2>Simulate a reference sequence<a class="headerlink" href="#Simulate-a-reference-sequence" title="Permalink to this heading">¶</a></h2>
 <p>Start by simulating a sequence of nucleotides, then translate it to amino acids. We’ll use this sequence as the reference sequence for the simulated datasets.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
@@ -182,7 +183,7 @@ GSSFSGTVSGVVRSFTLFVRQFTVSSHQDPCCHCTTGYYFSQVCTLSRLG
 </div>
 </section>
 <section id="Mutational-effects">
-<h2>Mutational effects<a class="headerlink" href="#Mutational-effects" title="Link to this heading">¶</a></h2>
+<h2>Mutational effects<a class="headerlink" href="#Mutational-effects" title="Permalink to this heading">¶</a></h2>
 <p>Simulate latent mutational effects, <span class="math notranslate nohighlight">\(\beta_m\)</span>, storing data in a <code class="docutils literal notranslate"><span class="pre">SigmoidPhenotypeSimulator</span></code> object. Also create an identical object for the second homolog. Later, we’ll update this object to include shifted mutational effects.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
@@ -229,7 +230,7 @@ GSSFSGTVSGVVRSFTLFVRQFTVSSHQDPCCHCTTGYYFSQVCTLSRLG
 <p>As expected, our mutational effects are weighted in the negative direction, as we expect the majority of mutations to be deleterious to a protein.</p>
 </section>
 <section id="Non-reference-homolog-sequence">
-<h2>Non-reference homolog sequence<a class="headerlink" href="#Non-reference-homolog-sequence" title="Link to this heading">¶</a></h2>
+<h2>Non-reference homolog sequence<a class="headerlink" href="#Non-reference-homolog-sequence" title="Permalink to this heading">¶</a></h2>
 <p>Next, we’ll simulate the DNA/protein sequence of second homolog by making a defined number of random amino-acid mutations to the first homolog. When choosing the “bundle” of mutation which separate the two homologs, we avoid mutations that decrease or increase the latent phenotype by more than <code class="docutils literal notranslate"><span class="pre">min_muteffect_in_bundle</span></code> and <code class="docutils literal notranslate"><span class="pre">max_muteffect_in_bundle</span></code> respectively. This is to ensure that the latent phenotype of the second homolog is not too different from the first homolog, an important
 assumption for the <code class="docutils literal notranslate"><span class="pre">multidms</span></code> model.</p>
 <div class="nbinput docutils container">
@@ -296,7 +297,7 @@ Number of aa differences: 10
 </div>
 </section>
 <section id="Shifted-mutational-effects">
-<h2>Shifted mutational effects<a class="headerlink" href="#Shifted-mutational-effects" title="Link to this heading">¶</a></h2>
+<h2>Shifted mutational effects<a class="headerlink" href="#Shifted-mutational-effects" title="Permalink to this heading">¶</a></h2>
 <p>Next, randomly choose a subset of (identical and non-identical) sites that will have shifted mutational effects. Do this independently for sites that are identical and non-identical between homologs, so that we are sure to have shifted sites in each category.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
@@ -1028,7 +1029,7 @@ A30G.</p>
 </div>
 </section>
 <section id="Variant-libraries">
-<h2>Variant libraries<a class="headerlink" href="#Variant-libraries" title="Link to this heading">¶</a></h2>
+<h2>Variant libraries<a class="headerlink" href="#Variant-libraries" title="Permalink to this heading">¶</a></h2>
 <p>Simulate a set of variant libraries that one might use in an actual experiment for each homolog, each with two replicate libraries.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
@@ -1219,7 +1220,7 @@ A30G.</p>
 </div>
 </section>
 <section id="Variant-phenotypes-and-enrichments">
-<h2>Variant phenotypes and enrichments<a class="headerlink" href="#Variant-phenotypes-and-enrichments" title="Link to this heading">¶</a></h2>
+<h2>Variant phenotypes and enrichments<a class="headerlink" href="#Variant-phenotypes-and-enrichments" title="Permalink to this heading">¶</a></h2>
 <p>Now that we have simulated libraries of variants <span class="math notranslate nohighlight">\(v_i \in V\)</span>, we’ll assign their respective ground truth phenotypes and enrichments.</p>
 <p>We’ll start by computing latent phenotype, <span class="math notranslate nohighlight">\(\phi(v_i)\)</span>. Recall that each of the two homologs has a <code class="docutils literal notranslate"><span class="pre">SigmoidPhenotypeSimulator</span></code> object that stores the latent effects of individual mutations. We will use these objects to compute the latent phenotypes of all variants in the libraries.</p>
 <div class="nbinput docutils container">
@@ -1507,7 +1508,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 </section>
 <section id="Pre-and-post-selection-variant-read-counts">
-<h2>Pre and post-selection variant read counts<a class="headerlink" href="#Pre-and-post-selection-variant-read-counts" title="Link to this heading">¶</a></h2>
+<h2>Pre and post-selection variant read counts<a class="headerlink" href="#Pre-and-post-selection-variant-read-counts" title="Permalink to this heading">¶</a></h2>
 <p>Next, we will simulate both pre and post-selection counts of each variant subjected to an experimental selection step. Post-selection counts will be simulated by applying the specified selection bottleneck(s) to the pre-selection counts. To do this, we will use the functionality provided by <a class="reference external" href="https://jbloomlab.github.io/dms_variants/dms_variants.simulate.html#dms_variants.simulate.simulateSampleCounts">dms_variants.simulate.simulateSampleCounts</a> and feed it our custom phenotype function.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
@@ -1638,7 +1639,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 </section>
 <section id="Prep-training-data">
-<h2>Prep training data<a class="headerlink" href="#Prep-training-data" title="Link to this heading">¶</a></h2>
+<h2>Prep training data<a class="headerlink" href="#Prep-training-data" title="Permalink to this heading">¶</a></h2>
 <p>Prepare the training dataframes for fitting our <code class="docutils literal notranslate"><span class="pre">multidms</span></code> models.</p>
 <p>As this is a joint-fitting approach, we combine homolog variants from each of the corresponding library replicates into a single training dataset. Additionally, for each replicate dataset, we’ll train models on each of the following targets representing different levels of noise in the data:</p>
 <ol class="arabic simple">
@@ -2221,7 +2222,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 </section>
 <section id="Create-Data-objects-for-each-library-replicate,-and-bottleneck">
-<h2>Create <code class="docutils literal notranslate"><span class="pre">Data</span></code> objects for each library replicate, and bottleneck<a class="headerlink" href="#Create-Data-objects-for-each-library-replicate,-and-bottleneck" title="Link to this heading">¶</a></h2>
+<h2>Create <code class="docutils literal notranslate"><span class="pre">Data</span></code> objects for each library replicate, and bottleneck<a class="headerlink" href="#Create-Data-objects-for-each-library-replicate,-and-bottleneck" title="Permalink to this heading">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">multidms</span></code> model fitting is generally a two-step process: (1) Create <code class="docutils literal notranslate"><span class="pre">Data</span></code> objects from functional score dataframes which, among other things, encode the variant data into one-hot encoded matrices, and (2) fit a collection of models across a grid of <code class="docutils literal notranslate"><span class="pre">Data</span></code> objects and hyperparameters. Here, we’ll create <code class="docutils literal notranslate"><span class="pre">Data</span></code> objects for each library replicate / fitting target combination:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
@@ -2258,7 +2259,7 @@ specified parameters for <span class="math notranslate nohighlight">\(\theta_{s}
 </div>
 </section>
 <section id="Fit-models-to-training-data-(lasso-sweep)">
-<h2>Fit models to training data (lasso sweep)<a class="headerlink" href="#Fit-models-to-training-data-(lasso-sweep)" title="Link to this heading">¶</a></h2>
+<h2>Fit models to training data (lasso sweep)<a class="headerlink" href="#Fit-models-to-training-data-(lasso-sweep)" title="Permalink to this heading">¶</a></h2>
 <p>Next, we’ll fit a set of models to each of the datasets defined above using the <code class="docutils literal notranslate"><span class="pre">multidms.fit_models</span></code> <a class="reference external" href="https://matsengrp.github.io/multidms/multidms.model_collection.html#multidms.model_collection.fit_models">function</a>. For each dataset, we independently fit models with a number of different lasso penalty coefficients (<span class="math notranslate nohighlight">\(\lambda_{L1}\)</span>) as defined at the top of this notebook.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[115]:
@@ -2539,7 +2540,7 @@ memory usage: 3.5+ KB
 </div>
 </section>
 <section id="Model-convergence">
-<h2>Model convergence<a class="headerlink" href="#Model-convergence" title="Link to this heading">¶</a></h2>
+<h2>Model convergence<a class="headerlink" href="#Model-convergence" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[79]:
 </pre></div>
@@ -2951,7 +2952,7 @@ Name: count, dtype: int64
 </div>
 </section>
 <section id="Model-vs.-truth-mutational-effects">
-<h2>Model vs. truth mutational effects<a class="headerlink" href="#Model-vs.-truth-mutational-effects" title="Link to this heading">¶</a></h2>
+<h2>Model vs. truth mutational effects<a class="headerlink" href="#Model-vs.-truth-mutational-effects" title="Permalink to this heading">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">multidms.ModelCollection</span></code> takes a a dataframe such as the one created above and provides a few helpful methods for model selection and aggregation. We’ll use these methods to evaluate the fits and select the best model for each dataset.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[42]:
@@ -3525,7 +3526,7 @@ cache miss - this could take a moment
 </div>
 </section>
 <section id="Shift-sparsity">
-<h2>Shift sparsity<a class="headerlink" href="#Shift-sparsity" title="Link to this heading">¶</a></h2>
+<h2>Shift sparsity<a class="headerlink" href="#Shift-sparsity" title="Permalink to this heading">¶</a></h2>
 <p>Another way we might evaluate the fits is by looking at the <em>sparsity</em> of the models by computing the percentage of shift parameters that are equal to zero among the models. We look at this metric separately for mutations to stop codons and mutations to non-stop codons because we expect the stop codons to be equally deleterious in both homologs, and thus we expect all the shift parameters associated with stop codon mutations to be zero in a “good” fit.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[46]:
@@ -3793,7 +3794,7 @@ cache miss - this could take a moment
 </div>
 </section>
 <section id="Replicate-correlations">
-<h2>Replicate correlations<a class="headerlink" href="#Replicate-correlations" title="Link to this heading">¶</a></h2>
+<h2>Replicate correlations<a class="headerlink" href="#Replicate-correlations" title="Permalink to this heading">¶</a></h2>
 <p>Another common metric to look at when evaluating models is to look at the correlation of the inferred mutational effects between the two libraries. We can do this by computing the pearson correlation coefficient between the inferred mutational effects for each mutation in the two libraries using the <code class="docutils literal notranslate"><span class="pre">multidms.ModelCollection.mut_param_dataset_correlation</span></code>
 <a class="reference external" href="https://matsengrp.github.io/multidms/multidms.model_collection.html#multidms.model_collection.ModelCollection.mut_param_dataset_correlation">method</a>.</p>
 <div class="nbinput docutils container">
@@ -4153,7 +4154,7 @@ cache miss - this could take a moment
 </div>
 </section>
 <section id="Model-vs.-truth-variant-phenotypes">
-<h2>Model vs. truth variant phenotypes<a class="headerlink" href="#Model-vs.-truth-variant-phenotypes" title="Link to this heading">¶</a></h2>
+<h2>Model vs. truth variant phenotypes<a class="headerlink" href="#Model-vs.-truth-variant-phenotypes" title="Permalink to this heading">¶</a></h2>
 <p>Let’s take a look at how the lasso constraint affects the models’ ability to predict the true latent and observed phenotypes.</p>
 <p>First, we grab the model predictions of latent and observed phenotypes for each of the datasets using <code class="docutils literal notranslate"><span class="pre">multidms.Model.get_variants_df</span></code>.</p>
 <div class="nbinput docutils container">
@@ -4600,7 +4601,7 @@ cache miss - this could take a moment
 </div>
 </section>
 <section id="Cross-validation">
-<h2>Cross validation<a class="headerlink" href="#Cross-validation" title="Link to this heading">¶</a></h2>
+<h2>Cross validation<a class="headerlink" href="#Cross-validation" title="Permalink to this heading">¶</a></h2>
 <p>Above, we saw evidence that the lasso negatively impacts the model performance on the training data. To test for overfitting, we can perform cross validation to test that the model is actually more accurate on unseen data.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[59]:
@@ -4907,7 +4908,7 @@ cache miss - this could take a moment
 </div>
 </section>
 <section id="Final-Selection">
-<h2>Final Selection<a class="headerlink" href="#Final-Selection" title="Link to this heading">¶</a></h2>
+<h2>Final Selection<a class="headerlink" href="#Final-Selection" title="Permalink to this heading">¶</a></h2>
 <p>This analysis above provides a number of clues to inform our choice of model. With empricial data we obviously won’t have comparisons to the ground truth values, and thus the choice of a lasso penalty will laregely depend on the shift parameter sparsity, correlation of inferred mutational effects between replicate libraries, and cross validation performance. Focusing on the <em>loose bottleneck</em> training dataset (a fairly realistic level of noise that we often observe in real experiments), it seems
 that a lasso penalty of <span class="math notranslate nohighlight">\(1e-4\)</span> provides a false positive rate of nearly zero (i.e. the stop codon sparsity <span class="math notranslate nohighlight">\(\approx 100\%\)</span>), a good correlation of inferred mutational effects between replicate libraries (&gt;0.95 pearsonr), and a relatively low loss on validation when compared to the other models.</p>
 <p>To validate the ability to correctly infer the shape of epistasis, we’ll plot the inferred global epistasis function for each of the models, and compare it to the true global epistasis function.</p>
@@ -5153,7 +5154,7 @@ that a lasso penalty of <span class="math notranslate nohighlight">\(1e-4\)</spa
       &#169;2023, Jared Galloway, Hugh Haddox.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 6.2.1</a>
       &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
       
       |

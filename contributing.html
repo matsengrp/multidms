@@ -1,16 +1,17 @@
+
 <!DOCTYPE html>
 
-<html lang="en" data-content_root="./">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
     <title>Contributing &#8212; multidms 0.4.0 documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
-    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=420b4293" />
-    <script src="_static/documentation_options.js?v=6c02275b"></script>
-    <script src="_static/doctools.js?v=888ff710"></script>
-    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -34,13 +35,13 @@
           <div class="body" role="main">
             
   <section id="contributing">
-<h1>Contributing<a class="headerlink" href="#contributing" title="Link to this heading">¶</a></h1>
+<h1>Contributing<a class="headerlink" href="#contributing" title="Permalink to this heading">¶</a></h1>
 <p>We welcome contributions to <cite>multidms &lt;multidms&gt;</cite>!
 This document describes how to edit the package, run the tests, build the docs, put tagged versions on <a class="reference external" href="https://pypi.org/">PyPI</a>, etc.</p>
 <section id="editing-the-project">
-<h2>Editing the project<a class="headerlink" href="#editing-the-project" title="Link to this heading">¶</a></h2>
+<h2>Editing the project<a class="headerlink" href="#editing-the-project" title="Permalink to this heading">¶</a></h2>
 <section id="package-structure">
-<h3>Package structure<a class="headerlink" href="#package-structure" title="Link to this heading">¶</a></h3>
+<h3>Package structure<a class="headerlink" href="#package-structure" title="Permalink to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Package code is in <a class="reference external" href="multidms">multidms</a></p></li>
 <li><p>Docs are in <a class="reference external" href="docs">docs</a></p></li>
@@ -49,7 +50,7 @@ This document describes how to edit the package, run the tests, build the docs, 
 </ul>
 </section>
 <section id="modify-the-code-via-pull-requests">
-<h3>Modify the code via pull requests<a class="headerlink" href="#modify-the-code-via-pull-requests" title="Link to this heading">¶</a></h3>
+<h3>Modify the code via pull requests<a class="headerlink" href="#modify-the-code-via-pull-requests" title="Permalink to this heading">¶</a></h3>
 <p>To make changes to the code, you should make a branch or fork, make your changes, and then submit a pull request.
 If you aren’t sure about pull requests:</p>
 <blockquote>
@@ -62,28 +63,28 @@ If you aren’t sure about pull requests:</p>
 </div></blockquote>
 </section>
 <section id="documentation">
-<h3>Documentation<a class="headerlink" href="#documentation" title="Link to this heading">¶</a></h3>
+<h3>Documentation<a class="headerlink" href="#documentation" title="Permalink to this heading">¶</a></h3>
 <p>You should document your code clearly with <a class="reference external" href="https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_numpy.html">numpy style documentation</a>.
 You may also want to write <a class="reference external" href="https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html">sphinx</a> documentation / examples in <a class="reference external" href="docs">docs</a> or the <a class="reference external" href="notebooks">notebooks</a> to demonstrate large-scale functionality.</p>
 <p>For more elaborate functionality, put unit tests in <a class="reference external" href="tests">tests</a>.</p>
 </section>
 <section id="formatting">
-<h3>Formatting<a class="headerlink" href="#formatting" title="Link to this heading">¶</a></h3>
+<h3>Formatting<a class="headerlink" href="#formatting" title="Permalink to this heading">¶</a></h3>
 <p>The code is formatted using <a class="reference external" href="https://black.readthedocs.io/en/stable/index.html">Black</a>, which you can install using <cite>pip install “black[jupyter]”</cite>.
 You may also wish to install a Black extension in your editor to, for example, auto-format upon save.
 In any case, please run Black using <cite>black .</cite> before submitting your PR, because the actions tests will not pass unless the files have been formatted.
 Note that this will change files/notebooks that you may be actively editing.</p>
 </section>
 <section id="adding-dependencies">
-<h3>Adding dependencies<a class="headerlink" href="#adding-dependencies" title="Link to this heading">¶</a></h3>
+<h3>Adding dependencies<a class="headerlink" href="#adding-dependencies" title="Permalink to this heading">¶</a></h3>
 <p>When you add code that uses a new package that is not in the standard python library, you should add it to the dependencies specified in the
 “dependencies” section of the <a class="reference external" href="pyproject.toml">pyproject.toml</a> file.</p>
 </section>
 </section>
 <section id="testing">
-<h2>Testing<a class="headerlink" href="#testing" title="Link to this heading">¶</a></h2>
+<h2>Testing<a class="headerlink" href="#testing" title="Permalink to this heading">¶</a></h2>
 <section id="adding-tests">
-<h3>Adding tests<a class="headerlink" href="#adding-tests" title="Link to this heading">¶</a></h3>
+<h3>Adding tests<a class="headerlink" href="#adding-tests" title="Permalink to this heading">¶</a></h3>
 <p>As you add new codes, you should create tests to make sure it is working correctly.
 These can include:</p>
 <blockquote>
@@ -94,7 +95,7 @@ These can include:</p>
 </div></blockquote>
 </section>
 <section id="running-the-tests-locally">
-<h3>Running the tests locally<a class="headerlink" href="#running-the-tests-locally" title="Link to this heading">¶</a></h3>
+<h3>Running the tests locally<a class="headerlink" href="#running-the-tests-locally" title="Permalink to this heading">¶</a></h3>
 <p>After you make changes, you should run two sets of tests.
 To run the tests, go to the top-level packag directory -
 making sure to install and activate a <a class="reference external" href="https://matsengrp.github.io/multidms/installation.html">development environment</a>.</p>
@@ -110,17 +111,17 @@ making sure to install and activate a <a class="reference external" href="https:
 <p>If you need to change the <a class="reference external" href="https://docs.pytest.org">pytest</a> configuration, edit the <a class="reference external" href="pytest.ini">pytest.ini</a> file.</p>
 </section>
 <section id="automated-testing-using-github-actions">
-<h3>Automated testing using github actions<a class="headerlink" href="#automated-testing-using-github-actions" title="Link to this heading">¶</a></h3>
+<h3>Automated testing using github actions<a class="headerlink" href="#automated-testing-using-github-actions" title="Permalink to this heading">¶</a></h3>
 <p>The aforementioned <a class="reference external" href="https://black.readthedocs.io/en/stable/index.html">black</a>, <a class="reference external" href="https://github.com/charliermarsh/ruff">ruff</a> and <a class="reference external" href="https://docs.pytest.org">pytest</a> tests will be run automatically
 by the github actions continuous integration (CI) system once a pull request is submitted.</p>
 </section>
 </section>
 <section id="building-documentation">
-<h2>Building documentation<a class="headerlink" href="#building-documentation" title="Link to this heading">¶</a></h2>
+<h2>Building documentation<a class="headerlink" href="#building-documentation" title="Permalink to this heading">¶</a></h2>
 <p>See <a class="reference external" href="docs/README.rst">docs/README.rst</a> for information on how to build the documentation.</p>
 </section>
 <section id="tagging-versions-and-putting-on-pypi">
-<h2>Tagging versions and putting on PyPI<a class="headerlink" href="#tagging-versions-and-putting-on-pypi" title="Link to this heading">¶</a></h2>
+<h2>Tagging versions and putting on PyPI<a class="headerlink" href="#tagging-versions-and-putting-on-pypi" title="Permalink to this heading">¶</a></h2>
 <p>When you have a new stable release that has been commited and pushed to the main branch,
 you will want to tag it and put it on <a class="reference external" href="https://pypi.org/">PyPI</a> where it can be installed with <a class="reference external" href="https://pip.pypa.io">pip</a>.We recommend making use of the <a class="reference external" href="https://github.com/mbarkhau/bumpver">bumpver</a> package to do this - as the pyproject.toml is setup to automatically fetch the latest version and
 update all the version numbers in the code/docs.</p>
@@ -223,7 +224,7 @@ the package to the <strong>real</strong> PyPI repository.</p>
       &#169;2023, Jared Galloway, Hugh Haddox.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 6.2.1</a>
       &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
       
       |

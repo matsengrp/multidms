@@ -17,3 +17,4 @@ Submodules
    multidms.model
    multidms.model_collection
    multidms.plot
+   multidms.utils
