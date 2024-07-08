@@ -302,7 +302,7 @@ def test_linear_model_multi_cond_fit_simple():
         reference="a",
         assert_site_integrity=False,
     )
-    assert np.all(data.bundle_idxs["a"] is False)
+    assert np.all([not bi for bi in list(data.bundle_idxs["a"])])
     model = multidms.Model(data, multidms.biophysical.identity_activation, PRNGKey=23)
     model.fit(maxiter=2, warn_unconverged=False)
 
