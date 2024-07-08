@@ -330,10 +330,10 @@ def proximal_box_constraints(params, hyperparameters, *args, **kwargs):
     (
         ge_scale_upper_bound,
         lock_params,
-        bundle_idxs,
+        # bundle_idxs,
     ) = hyperparameters
 
-    params = transform(params, bundle_idxs)
+    # params = transform(params, bundle_idxs)
 
     # clamp theta scale to monotonic, and with optional upper bound
     if "ge_scale" in params["theta"]:
@@ -347,7 +347,7 @@ def proximal_box_constraints(params, hyperparameters, *args, **kwargs):
         for (param, subparam), value in lock_params.items():
             params[param][subparam] = value
 
-    params = transform(params, bundle_idxs)
+    # params = transform(params, bundle_idxs)
     return params
 
 

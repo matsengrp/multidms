@@ -214,6 +214,7 @@ class Model:
         n_hidden_units=5,
         init_theta_scale=5.0,
         init_theta_bias=-5.0,
+        init_beta_variance=1.0,  # TODO document and test
         name=None,
     ):
         """See class docstring."""
@@ -229,16 +230,29 @@ class Model:
         # as defined in multidms.biophysical.additive_model
         latent_model = multidms.biophysical.additive_model
         if latent_model == multidms.biophysical.additive_model:
-            n_beta_shift = len(self._data.mutations)
             self._scaled_data_params["beta0"] = {
                 cond: jnp.zeros(shape=(1,)) for cond in data.conditions
             }
+
+            n_beta_shift = len(self._data.mutations)
+            ###################
+            beta_keys = jax.random.split(key, num=len(self.data.conditions))
             self._scaled_data_params["beta"] = {
-                cond: jnp.zeros(shape=(n_beta_shift,)) for cond in data.conditions
+                # cond: jnp.zeros(shape=(n_beta_shift,))
+                # for cond in data.conditions
+                cond: init_beta_variance
+                * jax.random.normal(shape=(n_beta_shift,), key=ikey)
+                for cond, ikey in zip(data.conditions, beta_keys)
             }
             self._scaled_data_params["shift"] = {
-                cond: jnp.zeros(shape=(n_beta_shift,)) for cond in data.conditions
+                # cond: jnp.zeros(shape=(n_beta_shift,))
+                # for cond in data.conditions
+                cond: self._scaled_data_params["beta"][self.data.reference]
+                - self._scaled_data_params["beta"][cond]
+                for cond in data.conditions
             }
+            # assert jnp.all(self._scaled_data_params["shift"][self.data.reference] == 0)
+            ###################
             # GAMMA
             # self._params["gamma"] = {
             #     cond: jnp.zeros(shape=(1,)) for cond in data.conditions
@@ -595,9 +609,9 @@ class Model:
 
         for condition in self.data.conditions:
             single_mut_binary = self.data.single_mut_encodings[condition]
-            mutations_df[
-                f"predicted_func_score_{condition}"
-            ] = self.phenotype_frombinary(single_mut_binary, condition=condition)
+            mutations_df[f"predicted_func_score_{condition}"] = (
+                self.phenotype_frombinary(single_mut_binary, condition=condition)
+            )
 
             if phenotype_as_effect:
                 wt_func_score = self.wildtype_df.loc[condition, "predicted_func_score"]
@@ -854,9 +868,9 @@ class Model:
             if phenotype_as_effect:
                 latent_predictions -= wildtype_df.loc[condition, "predicted_latent"]
             latent_predictions[nan_variant_indices] = onp.nan
-            ret.loc[
-                condition_df.index.values, latent_phenotype_col
-            ] = latent_predictions
+            ret.loc[condition_df.index.values, latent_phenotype_col] = (
+                latent_predictions
+            )
 
             # func_score predictions on binary variants, X
             phenotype_predictions = onp.array(
@@ -868,9 +882,9 @@ class Model:
                     condition, "predicted_func_score"
                 ]
             phenotype_predictions[nan_variant_indices] = onp.nan
-            ret.loc[
-                condition_df.index.values, observed_phenotype_col
-            ] = phenotype_predictions
+            ret.loc[condition_df.index.values, observed_phenotype_col] = (
+                phenotype_predictions
+            )
 
         return ret
 
@@ -1108,10 +1122,10 @@ class Model:
             hyperparams_prox = (
                 upper_bound_ge_scale,
                 lock_params,
-                self.data.bundle_idxs,
+                # self.data.bundle_idxs,
             )
-            # compiled_proximal = jax.jit(self._model_components["proximal"])
-            compiled_proximal = self._model_components["proximal"]
+            compiled_proximal = jax.jit(self._model_components["proximal"])
+            # compiled_proximal = self._model_components["proximal"]
 
         solver = ProximalGradient(
             compiled_objective,

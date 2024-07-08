@@ -54,6 +54,7 @@ def fit_one_model(
     # gamma_corrected=False,  # GAMMA
     init_theta_scale=6.5,
     init_theta_bias=-3.5,
+    init_beta_variance=1.0,  # TODO document
     n_hidden_units=5,
     lower_bound=None,
     PRNGKey=0,
@@ -125,6 +126,7 @@ def fit_one_model(
         output_activation=biophysical_model[output_activation],
         init_theta_scale=init_theta_scale,
         init_theta_bias=init_theta_bias,
+        init_beta_variance=init_beta_variance,
         # gamma_corrected=gamma_corrected, GAMMA
         n_hidden_units=n_hidden_units,
         lower_bound=lower_bound,
