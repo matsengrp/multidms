@@ -54,7 +54,7 @@ def fit_one_model(
     # gamma_corrected=False,  # GAMMA
     init_theta_scale=6.5,
     init_theta_bias=-3.5,
-    init_beta_variance=1.0,  # TODO document
+    init_beta_variance=1.0,
     n_hidden_units=5,
     lower_bound=None,
     PRNGKey=0,
@@ -80,6 +80,9 @@ def fit_one_model(
         The scale to use for initializing the model parameters. The default is 6.5.
     init_theta_bias : float, optional
         The bias to use for initializing the model parameters. The default is -3.5.
+    init_beta_variance : float, optional
+        The variance to use for initializing the model's beta parameters from a normal
+        distribution. The default is 1.0.
     n_hidden_units : int, optional
         The number of hidden units to use in the neural network model. The default is 5.
     lower_bound : float, optional

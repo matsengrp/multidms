@@ -88,6 +88,10 @@ class Model:
     init_theta_bias : float
         Initialize the bias parameter :math:`\theta_{\text{bias}}` of
         a two parameter epistatic model (Sigmoid or Softplus).
+    init_beta_variance : float
+        Beta parameters are initialized by sampling from
+        a normal distribution. This parameter specifies the
+        variance of the distribution being sampled.
     n_hidden_units : int or None
         If using :func:`multidms.biophysical.nn_global_epistasis`
         as the epistatic model, this is the number of hidden units
@@ -215,7 +219,7 @@ class Model:
         n_hidden_units=5,
         init_theta_scale=5.0,
         init_theta_bias=-5.0,
-        init_beta_variance=0.0,  # TODO document and test
+        init_beta_variance=0.0,
         name=None,
     ):
         """See class docstring."""
@@ -603,9 +607,9 @@ class Model:
 
         for condition in self.data.conditions:
             single_mut_binary = self.data.single_mut_encodings[condition]
-            mutations_df[f"predicted_func_score_{condition}"] = (
-                self.phenotype_frombinary(single_mut_binary, condition=condition)
-            )
+            mutations_df[
+                f"predicted_func_score_{condition}"
+            ] = self.phenotype_frombinary(single_mut_binary, condition=condition)
 
             if phenotype_as_effect:
                 wt_func_score = self.wildtype_df.loc[condition, "predicted_func_score"]
@@ -862,9 +866,9 @@ class Model:
             if phenotype_as_effect:
                 latent_predictions -= wildtype_df.loc[condition, "predicted_latent"]
             latent_predictions[nan_variant_indices] = onp.nan
-            ret.loc[condition_df.index.values, latent_phenotype_col] = (
-                latent_predictions
-            )
+            ret.loc[
+                condition_df.index.values, latent_phenotype_col
+            ] = latent_predictions
 
             # func_score predictions on binary variants, X
             phenotype_predictions = onp.array(
@@ -876,9 +880,9 @@ class Model:
                     condition, "predicted_func_score"
                 ]
             phenotype_predictions[nan_variant_indices] = onp.nan
-            ret.loc[condition_df.index.values, observed_phenotype_col] = (
-                phenotype_predictions
-            )
+            ret.loc[
+                condition_df.index.values, observed_phenotype_col
+            ] = phenotype_predictions
 
         return ret
 
