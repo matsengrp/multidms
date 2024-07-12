@@ -1120,10 +1120,8 @@ class Model:
             hyperparams_prox = (
                 upper_bound_ge_scale,
                 lock_params,
-                # self.data.bundle_idxs,
             )
-            # compiled_proximal = jax.jit(self._model_components["proximal"])
-            compiled_proximal = self._model_components["proximal"]
+            compiled_proximal = jax.jit(self._model_components["proximal"])
 
         solver = ProximalGradient(
             compiled_objective,

@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on `Keep a Changelog <https://keepachangelog.com>`_.
 
+1.1.0
+-----
+* Single condition models can now be jit-compiled as they do not need to transform parameters. 
+
 
 1.0.0
 -----
