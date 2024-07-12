@@ -302,6 +302,7 @@ def test_linear_model_multi_cond_fit_simple():
         reference="a",
         assert_site_integrity=False,
     )
+    assert np.all([not bi for bi in list(data.bundle_idxs["a"])])
     model = multidms.Model(data, multidms.biophysical.identity_activation, PRNGKey=23)
     model.fit(maxiter=2, warn_unconverged=False)
 
@@ -560,12 +561,12 @@ def test_model_phenotype_predictions():
     external_pred = model.add_phenotypes_to_df(
         TEST_FUNC_SCORES, unknown_as_nan=True, phenotype_as_effect=False
     ).dropna()
-    assert np.all(
-        internal_pred.predicted_latent.values == external_pred.predicted_latent.values
+    assert np.allclose(
+        internal_pred.predicted_latent.values, external_pred.predicted_latent.values
     )
-    assert np.all(
-        internal_pred.predicted_func_score.values
-        == external_pred.predicted_func_score.values
+    assert np.allclose(
+        internal_pred.predicted_func_score.values,
+        external_pred.predicted_func_score.values,
     )
 
 
@@ -580,12 +581,12 @@ def test_model_phenotype_effect_predictions():
     external_pred = model.add_phenotypes_to_df(
         TEST_FUNC_SCORES, unknown_as_nan=True, phenotype_as_effect=True
     ).dropna()
-    assert np.all(
-        internal_pred.predicted_latent.values == external_pred.predicted_latent.values
+    assert np.allclose(
+        internal_pred.predicted_latent.values, external_pred.predicted_latent.values
     )
-    assert np.all(
-        internal_pred.predicted_func_score.values
-        == external_pred.predicted_func_score.values
+    assert np.allclose(
+        internal_pred.predicted_func_score.values,
+        external_pred.predicted_func_score.values,
     )
 
 

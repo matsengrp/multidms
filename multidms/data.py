@@ -16,7 +16,7 @@ import numpy as onp
 import pandas as pd
 from polyclonal.plot import DEFAULT_POSITIVE_COLORS
 from polyclonal.utils import MutationParser
-from tqdm.auto import tqdm
+from tqdm import tqdm
 
 from multidms import AAS
 from multidms.utils import rereference, split_subs

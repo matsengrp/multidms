@@ -88,6 +88,10 @@ class Model:
     init_theta_bias : float
         Initialize the bias parameter :math:`\theta_{\text{bias}}` of
         a two parameter epistatic model (Sigmoid or Softplus).
+    init_beta_variance : float
+        Beta parameters are initialized by sampling from
+        a normal distribution. This parameter specifies the
+        variance of the distribution being sampled.
     n_hidden_units : int or None
         If using :func:`multidms.biophysical.nn_global_epistasis`
         as the epistatic model, this is the number of hidden units
@@ -145,15 +149,16 @@ class Model:
              wts  sites muts  times_seen_a  times_seen_b  beta_a  beta_b  shift_b  \
     mutation
     M1E        M      1    E             1             3     0.0     0.0      0.0
-    M1W        M      1    W             1             0     0.0     0.0      0.0
-    G3P        G      3    P             1             4     0.0    -0.0      0.0
-    G3R        G      3    R             1             2     0.0     0.0      0.0
-             predicted_func_score_a predicted_func_score_b
+    M1W        M      1    W             1             0     0.0    -0.0      0.0
+    G3P        G      3    P             1             4    -0.0    -0.0     -0.0
+    G3R        G      3    R             1             2    -0.0     0.0     -0.0
+    <BLANKLINE>
+              predicted_func_score_a  predicted_func_score_b
     mutation
-    M1E                         0.0                    0.0
-    M1W                         0.0                    0.0
-    G3P                         0.0                    0.0
-    G3R                         0.0                    0.0
+    M1E                          0.0                     0.0
+    M1W                          0.0                     0.0
+    G3P                          0.0                     0.0
+    G3R                          0.0                     0.0
 
     Notice the respective single mutation effects (``"beta"``), conditional shifts
     (``shift_d``),
@@ -214,6 +219,7 @@ class Model:
         n_hidden_units=5,
         init_theta_scale=5.0,
         init_theta_bias=-5.0,
+        init_beta_variance=0.0,
         name=None,
     ):
         """See class docstring."""
@@ -229,15 +235,21 @@ class Model:
         # as defined in multidms.biophysical.additive_model
         latent_model = multidms.biophysical.additive_model
         if latent_model == multidms.biophysical.additive_model:
-            n_beta_shift = len(self._data.mutations)
             self._scaled_data_params["beta0"] = {
                 cond: jnp.zeros(shape=(1,)) for cond in data.conditions
             }
+
+            n_beta_shift = len(self._data.mutations)
+            beta_keys = jax.random.split(key, num=len(self.data.conditions))
             self._scaled_data_params["beta"] = {
-                cond: jnp.zeros(shape=(n_beta_shift,)) for cond in data.conditions
+                cond: init_beta_variance
+                * jax.random.normal(shape=(n_beta_shift,), key=ikey)
+                for cond, ikey in zip(data.conditions, beta_keys)
             }
             self._scaled_data_params["shift"] = {
-                cond: jnp.zeros(shape=(n_beta_shift,)) for cond in data.conditions
+                cond: self._scaled_data_params["beta"][self.data.reference]
+                - self._scaled_data_params["beta"][cond]
+                for cond in data.conditions
             }
             # GAMMA
             # self._params["gamma"] = {
@@ -1108,10 +1120,8 @@ class Model:
             hyperparams_prox = (
                 upper_bound_ge_scale,
                 lock_params,
-                self.data.bundle_idxs,
             )
-            # compiled_proximal = jax.jit(self._model_components["proximal"])
-            compiled_proximal = self._model_components["proximal"]
+            compiled_proximal = jax.jit(self._model_components["proximal"])
 
         solver = ProximalGradient(
             compiled_objective,
