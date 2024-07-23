@@ -354,7 +354,7 @@ def proximal_box_constraints(params, hyperparameters, *args, **kwargs):
 def proximal_objective(Dop, params, hyperparameters, scaling=1.0):
     """ADMM generalized lasso optimization."""
     (
-        scale_coeff_lasso_shift,
+        coef_lasso_shift,
         admm_niter,
         admm_tau,
         admm_mu,
@@ -368,7 +368,7 @@ def proximal_objective(Dop, params, hyperparameters, scaling=1.0):
     # see https://pyproximal.readthedocs.io/en/stable/index.html
     beta_ravel, shift_ravel = pyproximal.optimization.primal.LinearizedADMM(
         pyproximal.L2(b=beta_ravel),
-        pyproximal.L1(sigma=scaling * scale_coeff_lasso_shift),
+        pyproximal.L1(sigma=scaling * coef_lasso_shift),
         Dop,
         niter=admm_niter,
         tau=admm_tau,
@@ -412,9 +412,9 @@ def smooth_objective(
     f,
     params,
     data,
-    scale_coeff_ridge_beta=0.0,
-    scale_coeff_ridge_ge_scale=0.0,
-    scale_coeff_ridge_ge_bias=0.0,
+    coef_ridge_beta=0.0,
+    coef_ridge_ge_scale=0.0,
+    coef_ridge_ge_bias=0.0,
     huber_scale=1,
     **kwargs,
 ):
@@ -432,11 +432,11 @@ def smooth_objective(
         return the respective binarymap and the row associated target functional scores
     huber_scale : float
         Scale parameter for Huber loss function
-    scale_coeff_ridge_beta : float
+    coef_ridge_beta : float
         Ridge penalty coefficient for shift parameters
-    scale_coeff_ridge_ge_scale : float
+    coef_ridge_ge_scale : float
         Ridge penalty coefficient for global epistasis scale parameter
-    scale_coeff_ridge_ge_bias : float
+    coef_ridge_ge_bias : float
         Ridge penalty coefficient for global epistasis bias parameter
     kwargs : dict
         Additional keyword arguments to pass to the biophysical model function
@@ -476,15 +476,15 @@ def smooth_objective(
 
         # compute a regularization term that penalizes non-zero
         # parameters and add it to the loss function
-        beta_ridge_penalty += scale_coeff_ridge_beta * (d_params["beta"] ** 2).sum()
+        beta_ridge_penalty += coef_ridge_beta * (d_params["beta"] ** 2).sum()
 
     huber_cost /= len(X)
 
     ge_scale_ridge_penalty = (
-        scale_coeff_ridge_ge_scale * (params["theta"]["ge_scale"] ** 2).sum()
+        coef_ridge_ge_scale * (params["theta"]["ge_scale"] ** 2).sum()
     )
     ge_bias_ridge_penalty = (
-        scale_coeff_ridge_ge_bias * (params["theta"]["ge_bias"] ** 2).sum()
+        coef_ridge_ge_bias * (params["theta"]["ge_bias"] ** 2).sum()
     )
 
     return (

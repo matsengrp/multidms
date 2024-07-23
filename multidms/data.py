@@ -26,7 +26,6 @@ import jax.numpy as jnp
 import seaborn as sns
 from jax.experimental import sparse
 from matplotlib import pyplot as plt
-from pandarallel import pandarallel
 
 jax.config.update("jax_enable_x64", True)
 
@@ -97,9 +96,6 @@ class Data:
         have the same wild type amino acid, grouped by condition.
     verbose : bool
         If True, will print progress bars.
-    nb_workers : int
-        Number of workers to use for parallel operations.
-        If None, will use all available CPUs.
     name : str or None
         Name of the data object. If None, will be assigned
         a unique name based upon the number of data objects
@@ -197,7 +193,6 @@ class Data:
         letter_suffixed_sites=False,
         assert_site_integrity=False,
         verbose=False,
-        nb_workers=None,
         name=None,
     ):
         """See main class docstring."""
@@ -252,7 +247,7 @@ class Data:
         self._mutparser = MutationParser(alphabet, letter_suffixed_sites)
 
         # Configure new variants df
-        cols = ["condition", "aa_substitutions", "func_score"]
+        cols = ["condition", "aa_substitutions", "func_score", "pre_count", "post_count"]
         if "weight" in variants_df.columns:
             cols.append(
                 "weight"
@@ -311,11 +306,6 @@ class Data:
         sites_to_throw = na_rows[na_rows].index
         site_map.dropna(inplace=True)
 
-        nb_workers = min(os.cpu_count(), 4) if nb_workers is None else nb_workers
-        pandarallel.initialize(
-            progress_bar=verbose, verbose=0 if not verbose else 2, nb_workers=nb_workers
-        )
-
         def flags_invalid_sites(disallowed_sites, sites_list):
             """Check to see if a sites list contains
             any disallowed sites
@@ -325,7 +315,7 @@ class Data:
                     return False
             return True
 
-        df["allowed_variant"] = df.sites.parallel_apply(
+        df["allowed_variant"] = df.sites.apply(
             lambda sl: flags_invalid_sites(sites_to_throw, sl)
         )
         if verbose:
@@ -394,7 +384,7 @@ class Data:
                     invalid_nim.append(site)
 
         # find variants that contain mutations at invalid sites
-        df["allowed_variant"] = df.sites.parallel_apply(
+        df["allowed_variant"] = df.sites.apply(
             lambda sl: flags_invalid_sites(invalid_nim, sl)
         )
         if verbose:
@@ -440,7 +430,7 @@ class Data:
                 continue
 
             idx = condition_func_df.index
-            df.loc[idx, "var_wrt_ref"] = condition_func_df.parallel_apply(
+            df.loc[idx, "var_wrt_ref"] = condition_func_df.apply(
                 lambda x: self._convert_split_subs_wrt_ref_seq(
                     condition, x.wts, x.sites, x.muts
                 ),
@@ -452,9 +442,9 @@ class Data:
 
         # Make BinaryMap representations for each condition
         allowed_subs = {s for subs in df.var_wrt_ref for s in subs.split()}
-        binmaps, X, y, w = {}, {}, {}, {}
+        binmaps, X, y, w, pre_count, post_count = {}, {}, {}, {}, {}, {}
         self._bundle_idxs = {}
-        self._scaled_training_data = {"X": {}, "y": y, "w": w}
+        self._scaled_arrays = {"X": {}, "y": y, "w": w}
         for condition, condition_func_score_df in df.groupby("condition"):
             cond_bmap = bmap.BinaryMap(
                 condition_func_score_df,
@@ -466,6 +456,8 @@ class Data:
             binmaps[condition] = cond_bmap
             X[condition] = sparse.BCOO.from_scipy_sparse(cond_bmap.binary_variants)
             y[condition] = jnp.array(condition_func_score_df["func_score"].values)
+            pre_count[condition] = jnp.array(condition_func_score_df["pre_count"].values)
+            post_count[condition] = jnp.array(condition_func_score_df["post_count"].values)
             if "weight" in condition_func_score_df.columns:
                 w[condition] = jnp.array(condition_func_score_df["weight"].values)
 
@@ -480,7 +472,7 @@ class Data:
                     for idx in range(len(cond_bmap.all_subs))
                 ]
             )
-            self._scaled_training_data["X"][condition] = rereference(
+            self._scaled_arrays["X"][condition] = rereference(
                 X[condition], self._bundle_idxs[condition]
             )
 
@@ -495,7 +487,7 @@ class Data:
             # compute times seen in data
             # compute the sum of each mutation (column) in the scaled data
             times_seen = pd.Series(
-                self._scaled_training_data["X"][condition].sum(0).todense()
+                self._scaled_arrays["X"][condition].sum(0).todense()
             )
             times_seen.index = cond_bmap.all_subs
 
@@ -505,7 +497,7 @@ class Data:
             mut_df = mut_df.merge(times_seen, on="mutation", how="left")  # .fillna(0)
 
         # set training data properties
-        self._training_data = {"X": X, "y": y, "w": w}
+        self._arrays = {"X": X, "y": y, "w": w, "pre_count": pre_count, "post_count": post_count}
         self._binarymaps = binmaps
 
         self._mutations_df = mut_df
@@ -614,14 +606,14 @@ class Data:
         return self._reference_sequence_conditions
 
     @property
-    def training_data(self) -> dict:
+    def arrays(self) -> dict:
         """A dictionary with keys 'X' and 'y' for the training data."""
-        return self._training_data
+        return self._arrays
 
     @property
-    def scaled_training_data(self) -> dict:
+    def scaled_arrays(self) -> dict:
         """A dictionary with keys 'X' and 'y' for the scaled training data."""
-        return self._scaled_training_data
+        return self._scaled_arrays
 
     @property
     def binarymaps(self) -> dict:
@@ -634,7 +626,7 @@ class Data:
     @property
     def targets(self) -> dict:
         """The functional scores for each variant in the training data."""
-        return self._training_data["y"]
+        return self._arrays["y"]
 
     @property
     def mutparser(self) -> MutationParser:
