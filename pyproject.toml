@@ -50,7 +50,7 @@ dependencies = [
     "pylops",
     "pyproximal",
     "tqdm",
-    "pandarallel",
+    "equinox",
 ]
 
 [project.optional-dependencies]
