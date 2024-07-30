@@ -7,7 +7,6 @@ Defines :class:`Data` objects for handling data from one or more
 dms experiments under various conditions.
 """
 
-import os
 from functools import partial, cached_property
 import warnings
 
@@ -247,7 +246,13 @@ class Data:
         self._mutparser = MutationParser(alphabet, letter_suffixed_sites)
 
         # Configure new variants df
-        cols = ["condition", "aa_substitutions", "func_score", "pre_count", "post_count"]
+        cols = [
+            "condition",
+            "aa_substitutions",
+            "func_score",
+            "pre_count",
+            "post_count",
+        ]
         if "weight" in variants_df.columns:
             cols.append(
                 "weight"
@@ -456,8 +461,12 @@ class Data:
             binmaps[condition] = cond_bmap
             X[condition] = sparse.BCOO.from_scipy_sparse(cond_bmap.binary_variants)
             y[condition] = jnp.array(condition_func_score_df["func_score"].values)
-            pre_count[condition] = jnp.array(condition_func_score_df["pre_count"].values)
-            post_count[condition] = jnp.array(condition_func_score_df["post_count"].values)
+            pre_count[condition] = jnp.array(
+                condition_func_score_df["pre_count"].values
+            )
+            post_count[condition] = jnp.array(
+                condition_func_score_df["post_count"].values
+            )
             if "weight" in condition_func_score_df.columns:
                 w[condition] = jnp.array(condition_func_score_df["weight"].values)
 
@@ -486,9 +495,7 @@ class Data:
         for condition in self._conditions:
             # compute times seen in data
             # compute the sum of each mutation (column) in the scaled data
-            times_seen = pd.Series(
-                self._scaled_arrays["X"][condition].sum(0).todense()
-            )
+            times_seen = pd.Series(self._scaled_arrays["X"][condition].sum(0).todense())
             times_seen.index = cond_bmap.all_subs
 
             assert (times_seen == times_seen.astype(int)).all()
@@ -497,7 +504,13 @@ class Data:
             mut_df = mut_df.merge(times_seen, on="mutation", how="left")  # .fillna(0)
 
         # set training data properties
-        self._arrays = {"X": X, "y": y, "w": w, "pre_count": pre_count, "post_count": post_count}
+        self._arrays = {
+            "X": X,
+            "y": y,
+            "w": w,
+            "pre_count": pre_count,
+            "post_count": post_count,
+        }
         self._binarymaps = binmaps
 
         self._mutations_df = mut_df

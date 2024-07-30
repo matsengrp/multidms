@@ -1,12 +1,18 @@
-r"""A simple API for global epistasis modeling."""
+r"""
+jaxmodels
+=========
+
+A simple API for global epistasis modeling."""
 
 import multidms
 
-import equinox as eqx
-from jaxtyping import Array, Float, Int
 import jax
 import jax.numpy as jnp
-from jax.scipy.special import expit, xlogy, gammaln
+
+import equinox as eqx
+from jaxtyping import Array, Float, Int
+from typing import Any
+
 import jaxopt
 
 import scipy
@@ -16,14 +22,9 @@ jax.config.update("jax_enable_x64", True)
 
 
 class Data(eqx.Module):
-    r"""Data for a DMS experiment.
+    r"""Data for a DMS experiment."""
 
-    Args:
-        multidms_data: The data to use. Note: the WT must be the first variant in each condition.
-        condition: The condition to extract data for.
-    """
-
-    x_wt: Int[Array, "n_mutations"]
+    x_wt: Int[Array, "  n_mutations"]
     """Binary encoding of the wildtype sequence."""
     pre_count_wt: Int[Array, ""]
     """Wildtype pre-selection count."""
@@ -31,14 +32,20 @@ class Data(eqx.Module):
     """Wildtype post-selection count."""
     X: Int[Array, "n_variants n_mutations"]
     """Variant encoding matrix (sparse format)."""
-    pre_counts: Int[Array, "n_variants"]
+    pre_counts: Int[Array, " n_variants"]
     """Pre-selection counts for each variant."""
-    post_counts: Int[Array, "n_variants"]
+    post_counts: Int[Array, " n_variants"]
     """Post-selection counts for each variant."""
-    functional_scores: Float[Array, "n_variants"]
+    functional_scores: Float[Array, " n_variants"]
     """Functional scores for each variant."""
 
     def __init__(self, multidms_data: multidms.Data, condition: str) -> None:
+        r"""
+        Arguments:
+            multidms_data: The data to use. Note the WT must be the first variant
+                        in each condition.
+            condition: The condition to extract data for.
+        """        
         X = multidms_data.arrays["X"][condition]
         not_wt = X.indices[:, 0] != 0  # assumes WT is the first
         sparse_data = X.data[not_wt]
@@ -49,25 +56,30 @@ class Data(eqx.Module):
         )
 
         self.x_wt = multidms_data.arrays["X"][condition][0].todense()
-        self.pre_count_wt = multidms_data.arrays["pre_count"][condition][0]  # assumes WT is the first
-        self.post_count_wt = multidms_data.arrays["post_count"][condition][0]  # assumes WT is the first
+        self.pre_count_wt = multidms_data.arrays["pre_count"][condition][
+            0
+        ]  # assumes WT is the first
+        self.post_count_wt = multidms_data.arrays["post_count"][condition][
+            0
+        ]  # assumes WT is the first
         self.X = X
-        self.pre_counts = multidms_data.arrays["pre_count"][condition][1:]  # assumes WT is the first
-        self.post_counts = multidms_data.arrays["post_count"][condition][1:]  # assumes WT is the first
-        self.functional_scores = multidms_data.arrays["y"][condition][1:]  # assumes WT is the first
+        self.pre_counts = multidms_data.arrays["pre_count"][condition][
+            1:
+        ]  # assumes WT is the first
+        self.post_counts = multidms_data.arrays["post_count"][condition][
+            1:
+        ]  # assumes WT is the first
+        self.functional_scores = multidms_data.arrays["y"][condition][
+            1:
+        ]  # assumes WT is the first
 
 
 class Latent(eqx.Module):
-    r"""Model a latent phenotype.
-
-    Args:
-        data: Data to initialize the model shape for.
-        l2reg: L2 regularization strength for warmstart of latent models.
-    """
+    r"""Model a latent phenotype."""
 
     β0: Float[Array, ""]
     """Intercept."""
-    β: Float[Array, "n_mutations"]
+    β: Float[Array, " n_mutations"]
     """Mutation effects."""
 
     def __init__(
@@ -75,6 +87,11 @@ class Latent(eqx.Module):
         data: Data,
         l2reg=0.0,
     ) -> None:
+        r"""
+        Args:
+            data: Data to initialize the model shape for.
+            l2reg: L2 regularization strength for warmstart of latent models.
+        """
         X = scipy.sparse.csr_array(
             (data.X.data, data.X.indices.T), shape=(data.X.shape[0], len(data.x_wt))
         )
@@ -87,14 +104,16 @@ class Latent(eqx.Module):
     def __call__(
         self,
         X: Float[Array, "n_variants n_mutations"],
-    ) -> Float[Array, "n_variants"]:
-        return self.β0 + X @ self.β
+    ) -> Float[Array, " n_variants"]:
+        r"""Evaluate latent phenotype of variant encodings.
 
-    def predict_latent(
-        self,
-        data: Data,
-    ) -> Float[Array, "n_variants"]:
-        return self(data.X)
+        Args:
+            X: Variant encoding matrix.
+        
+        Returns:
+            Latent phenotype for each variant.
+        """
+        return self.β0 + X @ self.β
 
 
 class Model(eqx.Module):
@@ -102,20 +121,21 @@ class Model(eqx.Module):
 
     Args:
         φ: Latent models for each condition.
-        α: fitness-functional score scaling factors for each condition.
+        logα: fitness-functional score scaling factors for each condition.
+        logθ: Overdispersion parameter for each condition.
         reference_condition: The condition to use as a reference.
     """
 
     φ: dict[str, Latent]
     """Latent models for each condition."""
-    α: dict[str, Float[Array, ""]]
+    logα: dict[str, Float[Array, ""]]
     """Fitness-functional score scaling factors for each condition."""
     logθ: dict[str, Float[Array, ""]]
     """Overdispersion parameter for each condition."""
     reference_condition: str = eqx.field(static=True)
     """The condition to use as a reference."""
 
-    def g(self, φ_val: Float[Array, "n_variants"]) -> Float[Array, "n_variants"]:
+    def g(self, φ_val: Float[Array, " n_variants"]) -> Float[Array, " n_variants"]:
         r"""The global epistasis function.
 
         Args:
@@ -124,28 +144,13 @@ class Model(eqx.Module):
         Returns:
             The fitness score for the given latent phenotype.
         """
-        return expit(φ_val)
+        return jax.scipy.special.expit(φ_val)
 
-    def predict_latent(
-        self,
-        data_sets: dict[str, Data],
-    ) -> dict[str, Float[Array, "n_variants"]]:
-        r"""Predict latent phenotypes.
-
-        Args:
-            data_sets: Data sets for each condition.
-        """
-        result = {}
-        for d in data_sets:
-            φ = self.φ[d]
-            X = data_sets[d].X
-            result[d] = φ(X)
-        return result
 
     def predict_score(
         self,
         data_sets: dict[str, Data],
-    ) -> dict[str, Float[Array, "n_variants"]]:
+    ) -> dict[str, Float[Array, " n_variants"]]:
         r"""Predict fitness-functional scores.
 
         Args:
@@ -154,7 +159,7 @@ class Model(eqx.Module):
         result = {}
         for d in data_sets:
             φ = self.φ[d]
-            α = self.α[d]
+            α = jnp.exp(self.logα[d])
             X = data_sets[d].X
             x_wt = data_sets[d].x_wt
             result[d] = α * (self.g(φ(X)) - self.g(φ(x_wt)))
@@ -163,7 +168,7 @@ class Model(eqx.Module):
     def predict_post_count(
         self,
         data_sets: dict[str, Data],
-    ) -> dict[str, Float[Array, "n_variants"]]:
+    ) -> dict[str, Float[Array, " n_variants"]]:
         r"""Predict post-selection counts.
 
         Args:
@@ -194,22 +199,29 @@ class Model(eqx.Module):
         post_count_pred = self.predict_post_count(data_sets)
         result = {}
         for d in data_sets:
-            m = data_sets[d].post_counts
-            m_pred = post_count_pred[d]
+            k = data_sets[d].post_counts
+            μ = post_count_pred[d]
             logθ = self.logθ[d]
             θ = jnp.exp(logθ)
-            result[d] = (-gammaln(m + θ) + gammaln(m + 1) + gammaln(θ) - θ * logθ - m * jnp.log(m_pred) + (θ + m) * jnp.log(θ + m_pred)).sum()
+            # standard negative binomial parameterization
+            σ2 = μ + θ * μ**2
+            p = μ / σ2
+            n = μ**2 / (σ2 - μ)
+            result[d] = -jax.scipy.stats.nbinom.logpmf(k, n, p).sum()
         return result
 
 
 def fit(
     data_sets: dict[str, Data],
     reference_condition: str,
-    l2reg=0.0,
-    fusionreg=0.0,
-    share_calibration=False,
-    opt_kwargs=dict(tol=1e-8, maxiter=1000),
-) -> tuple[Model, jaxopt._src.proximal_gradient.ProxGradState]:
+    l2reg: Float = 0.0,
+    fusionreg: Float = 0.0,
+    precondition: bool = True,
+    block_iters: int = 10,
+    block_tol: Float = 1e-4,
+    ge_kwargs: dict[str, Any] = dict(),
+    cal_kwargs: dict[str, Any] = dict(),
+) -> Model:
     r"""
     Fit a model to data.
 
@@ -218,8 +230,12 @@ def fit(
         reference_condition: The condition to use as a reference.
         l2reg: L2 regularization strength for mutation effects.
         fusionreg: Fusion (shift lasso) regularization strength.
-        share_calibration: Whether to share experimental calibration parameters across conditions.
-        opt_kwargs: Keyword arguments to pass to solver.
+        precondition: Whether to use preconditioning.
+        block_iters: Number iterations for block coordinate descent.
+        block_tol: Convergence tolerance for block coordinate descent.
+        ge_kwargs: Keyword arguments for the global epistasis model optimizer.
+        cal_kwargs: Keyword arguments for the experimental calibration
+                    parameter optimizer.
 
     Returns:
         Fitted model.
@@ -229,55 +245,138 @@ def fit(
             "WT sequence of the reference condition should have no mutations."
         )
 
-    opt = jaxopt.ProximalGradient(
-        _objective_smooth_preconditioned,
-        prox=_prox_shared_calibration if share_calibration else _prox,
+    opt_φ = jaxopt.ProximalGradient(
+        _objective_φ_smooth_value_and_grad_preconditioned,
+        prox=_prox,
         value_and_grad=True,
-        **opt_kwargs,
+        **ge_kwargs,
     )
 
+    opt_cal = jaxopt.GradientDescent(
+        _objective_cal,
+        **cal_kwargs,
+    )
+
+    if precondition:
+        Ps = {
+            d: jnp.diag(1 / (1 + data_sets[d].X.sum(axis=0).todense()))
+            for d in data_sets
+        }
+    else:
+        Ps = {d: jnp.eye(data_sets[d].X.shape[1]) for d in data_sets}
+
+    hyperparams_prox = dict(fusionreg=fusionreg, Ps=Ps)
+
+    filter_spec = Model(
+        φ=True, logα=False, logθ=False, reference_condition=reference_condition
+    )
+
+    # initialize
     model = Model(
         φ={d: Latent(data_sets[d], l2reg=l2reg) for d in data_sets},
-        α={d: jnp.ptp(data_sets[d].functional_scores) for d in data_sets},
-        logθ={d: 0.0 for d in data_sets},
+        logα={d: jnp.array(0.0) for d in data_sets},
+        logθ={d: jnp.array(0.0) for d in data_sets},
         reference_condition=reference_condition,
     )
 
-    Ps = {d: jnp.diag(1 / (1 + data_sets[d].X.sum(axis=0).todense())) for d in data_sets}
+    try:
+        for k in range(block_iters):
+            print(f"iter {k + 1}:")
+            obj_old = _objective_total(
+                model, data_sets, l2reg=l2reg, fusionreg=fusionreg
+            )
+            model_φ, model_cal = eqx.partition(model, filter_spec)
+            model_cal, state_cal = opt_cal.run(
+                model_cal, model_φ, data_sets, l2reg=l2reg,
+                )
+            print(
+                f"  calibration block: model_error={state_cal.error:.2e}, "
+                f"γ={state_cal.stepsize:.1e}, iter={state_cal.iter_num}"
+            )
+            model_φ, state_φ = opt_φ.run(
+                model_φ, hyperparams_prox, model_cal, data_sets, Ps, l2reg=l2reg
+            )
+            print(
+                f"  latent block: model_error={state_φ.error:.2e}, "
+                f"γ={state_φ.stepsize:.1e}, iter={state_φ.iter_num}"
+            )
+            model = eqx.combine(model_φ, model_cal)
+            obj = _objective_total(model, data_sets, l2reg=l2reg, fusionreg=fusionreg)
+            objective_error = (obj_old - obj) / max(abs(obj_old), abs(obj), 1)
+            jnp.abs(obj - obj_old) / max(obj_old, obj)
+            print(f"  {objective_error=:.2e}")
+            for d in model.φ:
+                if d != model.reference_condition:
+                    sparsity = (
+                        model.φ[d].β - model.φ[model.reference_condition].β == 0
+                    ).mean()
+                    print(f"  {d} sparsity={sparsity:.2f}")
 
-    hyperparameters = dict(fusionreg=fusionreg, Ps=Ps)
+            if (
+                state_φ.error < opt_φ.tol and
+                state_cal.error < opt_cal.tol and
+                objective_error < block_tol
+                ):
+                break
 
-    model, state = opt.run(model, hyperparameters, data_sets, Ps, l2reg=l2reg)
+    except KeyboardInterrupt:
+        pass
 
-    return model, state
+    return model
 
 
 # The following private functions are used internally by the fit function
 
 
 @jax.jit
-@jax.value_and_grad
-def _objective_smooth(model, data_sets, l2reg_α=0.0, l2reg=0.0):
+def _objective_smooth(model, data_sets, l2reg=0.0):
     n = sum(data_set.X.shape[0] for data_set in data_sets.values())
     loss = sum(model.loss(data_sets).values())
-    ridge_α = sum((model.α[d] ** 2).sum() for d in model.φ)
-    ridge_β = sum((model.φ[d].β ** 2).sum() for d in model.φ)
-    return loss / n + l2reg_α * ridge_α + l2reg * ridge_β
+    # L2 regularization for mutation effects wrt their mean
+    ridge_β = sum(((model.φ[d].β - model.φ[d].β.mean()) ** 2).sum() for d in model.φ)
+    return (loss + l2reg * ridge_β) / n
+
 
 
 @jax.jit
-def _objective_smooth_preconditioned(model, data_sets, Ps, l2reg_α=0.0, l2reg=0.0):
-    value, grad = _objective_smooth(model, data_sets, l2reg_α, l2reg)
-    for d in model.φ:
-        P = Ps[d]
-        grad = eqx.tree_at(lambda grad_: grad_.φ[d].β, grad, P @ grad.φ[d].β)
+def _objective_cal(model_cal, model_φ, data_sets, l2reg=0.0):
+    model = eqx.combine(model_cal, model_φ)
+    return _objective_smooth(model, data_sets, l2reg=l2reg)
+
+
+@jax.jit
+@jax.value_and_grad
+def _objective_φ_smooth_value_and_grad(model_φ, model_cal, data_sets, l2reg=0.0):
+    model = eqx.combine(model_φ, model_cal)
+    return _objective_smooth(model, data_sets, l2reg=l2reg)
+
+
+@jax.jit
+def _objective_φ_smooth_value_and_grad_preconditioned(
+    model_φ, model_cal, data_sets, Ps, l2reg=0.0
+):
+    value, grad = _objective_φ_smooth_value_and_grad(
+        model_φ, model_cal, data_sets, l2reg=l2reg
+    )
+    grad = _precondition_mul(Ps, grad)
     return value, grad
 
 
-def _objective(model, data_sets, fusionreg=0.0, l2reg_α=0.0, l2reg=0.0):
-    return _objective_smooth(
-        model, data_sets, l2reg_α=l2reg_α, l2reg=l2reg
-    ) + fusionreg * sum(
+def _precondition_mul(Ps, x):
+    Px = x
+    for d in Ps:
+        Px = eqx.tree_at(lambda Px_: Px_.φ[d].β, Px, Ps[d] @ Px.φ[d].β)
+    return Px
+
+
+@jax.jit
+def _objective_total(model, data_sets, l2reg=0.0, fusionreg=0.0):
+    return _objective_smooth(model, data_sets, l2reg) + _shift_lasso(model, fusionreg)
+
+
+@jax.jit
+def _shift_lasso(model, fusionreg=0.0):
+    return fusionreg * sum(
         jnp.abs(model.φ[d].β - model.φ[model.reference_condition].β).sum()
         for d in model.φ
         if d != model.reference_condition
@@ -285,32 +384,17 @@ def _objective(model, data_sets, fusionreg=0.0, l2reg_α=0.0, l2reg=0.0):
 
 
 @jax.jit
-def _prox(model, hyperparameters, scaling=1.0):
+def _prox(x, hyperparameters, scaling=1.0):
     fusionreg = hyperparameters["fusionreg"]
     Ps = hyperparameters["Ps"]
     # fused lasso for β
-    β_ref = model.φ[model.reference_condition].β
-    for d in model.φ:
-        if d != model.reference_condition:
-            β0 = model.φ[d].β0
-            β = model.φ[d].β
+    β_ref = x.φ[x.reference_condition].β
+    for d in x.φ:
+        if d != x.reference_condition:
+            β = x.φ[d].β
             P = Ps[d]
-            β_prox = β_ref + jaxopt.prox.prox_lasso(β - β_ref, fusionreg * jnp.diag(P), scaling)
-            model = eqx.tree_at(lambda model_: model_.φ[d].β0, model, β0)
-            model = eqx.tree_at(lambda model_: model_.φ[d].β, model, β_prox)
-    # box constrain α to the non-negative orthant
-    for d in model.φ:
-        model = eqx.tree_at(
-            lambda model: model.α[d], model, jnp.clip(model.α[d], 0.0, jnp.inf)
-        )
-    return model
-
-
-def _prox_shared_calibration(model, hyperparameters, scaling=1.0):
-    model = _prox(model, hyperparameters, scaling)
-    α_mean = sum(model.α.values()) / len(model.α)
-    logθ_mean = sum(model.logθ.values()) / len(model.logθ)
-    for d in model.α:
-        model = eqx.tree_at(lambda model_: model_.α[d], model, α_mean)
-        model = eqx.tree_at(lambda model_: model_.logθ[d], model, logθ_mean)
-    return model
+            β_prox = β_ref + jaxopt.prox.prox_lasso(
+                β - β_ref, fusionreg * jnp.diag(P), scaling
+            )
+            x = eqx.tree_at(lambda x_: x_.φ[d].β, x, β_prox)
+    return x

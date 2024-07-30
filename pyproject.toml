@@ -72,6 +72,7 @@ dev = [
 ]
 
 [tool.ruff]
+pydocstyle.convention = "google"
 select = [
   "E",   # pycodestyle
   "F",   # pyflakes
@@ -96,7 +97,8 @@ ignore = [
     "D400",
     "D415",
     "D416",
-    "D401"
+    "D401",
+    "F722",
 ]
 
 # Poetry
