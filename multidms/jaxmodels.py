@@ -151,7 +151,7 @@ class Model(eqx.Module):
         self,
         data_sets: dict[str, Data],
     ) -> dict[str, Float[Array, " n_variants"]]:
-        r"""Predict fitness-functional scores.
+        r"""Predict functional scores, interpreted as :math:`\log_e` enrichment wrt WT.
 
         Args:
             data_sets: Data sets for each condition.
@@ -181,9 +181,8 @@ class Model(eqx.Module):
             n_v = data_sets[d].pre_counts
             n_wt = data_sets[d].pre_count_wt
             m_wt = data_sets[d].post_count_wt
-            result[d] = jnp.power(
-                2,
-                f + jnp.log2(m_wt) - jnp.log2(n_wt) + jnp.log2(n_v),
+            result[d] = jnp.exp(
+                f + jnp.log(m_wt) - jnp.log(n_wt) + jnp.log(n_v),
             )
         return result
 
