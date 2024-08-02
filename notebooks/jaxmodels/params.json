@@ -1,0 +1,4 @@
+{
+    "replicate" : [1,2],
+    "fusionreg" : [1e-5]
+}
