@@ -28,7 +28,7 @@ and how much the effects differ between experiments.
 
 - The source code is `on GitHub <https://github.com/matsengrp/multidms>`_.
 
-- For questions or inquaries about the software please `raise an issue <https://github.com/matsengrp/multidms/issues>`_, or contact jgallowa \<at\> fredhutch.org.
+- For questions or inquiries about the software please `raise an issue <https://github.com/matsengrp/multidms/issues>`_, or contact jgallowa \<at\> fredhutch.org.
 
 .. toctree::
     :hidden:
