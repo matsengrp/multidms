@@ -1,4 +1,5 @@
 {
     "replicate" : [1,2],
-    "fusionreg" : [1e-5]
+    "l2reg" : [1e-5, 1e-4, 1e-3],
+    "fusionreg" : [1e-6, 1e-5, 1e-4, 1e-3]
 }

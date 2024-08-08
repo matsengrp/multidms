@@ -11,6 +11,7 @@
 #===================================
 
 /usr/bin/time python nb_papermill.py \
+    --nproc 2 \
     --nb jaxmodels.ipynb \
     --params params.json \
     --output papermill_results
