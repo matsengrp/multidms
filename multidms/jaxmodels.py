@@ -333,7 +333,7 @@ def fit(
                     sparsity = (
                         model.φ[d].β - model.φ[model.reference_condition].β == 0
                     ).mean()
-                    print(f"  {d} sparsity={sparsity:.3f}")
+                    print(f"  {d} sparsity={sparsity:.3%}")
 
             obj = _objective_total(model, data_sets, l2reg=l2reg, fusionreg=fusionreg, scale=scale)
             objective_error = abs(obj_old - obj) / max(abs(obj_old), abs(obj), 1)
