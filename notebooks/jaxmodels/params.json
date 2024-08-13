@@ -1,5 +1,7 @@
 {
-    "replicate" : [1,2],
-    "l2reg" : [1e-4, 1e-3, 1e-2],
-    "fusionreg" : [1e-1, 1e0, 1e1]
+    "replicate" : [1, 2],
+    "l2reg" : [1e-4, 1e-3],
+    "fusionreg" : [1e-1, 2e-1, 4e-1],
+    "loss_fn" : ["functional_score_loss"],
+    "global_epistasis" : ["Identity"]
 }
