@@ -36,13 +36,13 @@ keywords = [
 requires-python = ">=3.9"
 dependencies = [
     "polyclonal",
-    "jax[cpu]==0.4.24",
+    "jax[cpu]>=0.4.35",
     "jaxopt",
     "typing_extensions",
     "numpy",
     "pandas>=2.2.0",
     "binarymap",
-    "altair==5.1.2", # pandas convert_dtypes bug
+    "altair>=5.1.2",
     "matplotlib",
     "seaborn",
     "scipy",
