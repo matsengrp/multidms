@@ -25,6 +25,7 @@ import jax.numpy as jnp
 import seaborn as sns
 from jax.experimental import sparse
 from matplotlib import pyplot as plt
+import scipy
 
 jax.config.update("jax_enable_x64", True)
 
@@ -459,7 +460,8 @@ class Data:
                 sites_as_str=letter_suffixed_sites,
             )
             binmaps[condition] = cond_bmap
-            X[condition] = sparse.BCOO.from_scipy_sparse(cond_bmap.binary_variants)
+            X[condition] = sparse.BCOO.from_scipy_sparse(cond_bmap.binary_variants.tocoo())
+            assert (X[condition].indices.max(0) < onp.array(X[condition].shape)).all()
             y[condition] = jnp.array(condition_func_score_df["func_score"].values)
             pre_count[condition] = jnp.array(
                 condition_func_score_df["pre_count"].values

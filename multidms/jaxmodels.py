@@ -8,6 +8,7 @@ import multidms
 
 import jax
 import jax.numpy as jnp
+from jax.experimental.sparse import BCOO
 
 import equinox as eqx
 from jaxtyping import Array, Float, Int
@@ -54,18 +55,13 @@ class Data(eqx.Module):
         Returns:
             Data object.
         """
-        # NOTE: assumes WT is the first variant
+        # NOTE: assumes WT is the first variant!
+
+        # slicing the BCOO array messes up indices, so we need to go to scipy
         X = multidms_data.arrays["X"][condition]
-        not_wt = X.indices[:, 0] != 0
-        sparse_data = X.data[not_wt]
-        sparse_idxs = X.indices[not_wt]
-        sparse_idxs = sparse_idxs.at[:, 0].add(-1)
-        X = jax.experimental.sparse.BCOO(
-            (sparse_data, sparse_idxs),
-            shape=(X.shape[0] - 1, X.shape[1]),
-            unique_indices=True,
-        )
-        X = X.sort_indices()
+        X = scipy.sparse.csr_array((X.data, (X.indices[:, 0], X.indices[:, 1])), shape=X.shape)
+        X = X[1:] # exclude WT
+        X = BCOO.from_scipy_sparse(X)
 
         return Data(
             x_wt=multidms_data.arrays["X"][condition][0].todense(),
@@ -105,7 +101,7 @@ class Latent(eqx.Module):
 
         """
         X = scipy.sparse.csr_array(
-            (data.X.data, data.X.indices.T), shape=(data.X.shape[0], len(data.x_wt))
+            (data.X.data, (data.X.indices[:, 0], data.X.indices[:, 1])), shape=(data.X.shape[0], len(data.x_wt))
         )
         y = data.functional_scores
         ridge_solver = linear_model.Ridge(alpha=l2reg)
@@ -312,13 +308,13 @@ def fit(
         )
 
     @jax.jit
-    def _objective_part(model_part, model_rest, data_sets, scale=1.0):
+    def objective_part(model_part, model_rest, data_sets, scale=1.0):
         model = eqx.combine(model_part, model_rest)
         loss = sum(loss_fn(model, data_sets, **loss_kwargs).values())
         return loss / scale
 
     @jax.jit
-    def _objective_block(β_block, idxs, model, data_sets, l2reg=0.0, scale=1.0):
+    def objective_block(β_block, idxs, model, data_sets, l2reg=0.0, scale=1.0):
         for d in β_block:
             model = eqx.tree_at(
                 lambda model_: model_.φ[d].β,
@@ -333,7 +329,7 @@ def fit(
         return (loss + l2reg * l2_penalty) / scale
 
     @jax.jit
-    def _objective_total(model, data_sets, l2reg=0.0, fusionreg=0.0, scale=1.0):
+    def objective_total(model, data_sets, l2reg=0.0, fusionreg=0.0, scale=1.0):
         loss = sum(loss_fn(model, data_sets, **loss_kwargs).values())
         l2_penalty = 0.0
         fusion_penalty = 0.0
@@ -347,10 +343,11 @@ def fit(
         return (loss + l2reg * l2_penalty + fusionreg * fusion_penalty) / scale
 
     @jax.jit
-    def _prox_block(β_block, hyperparameters, scaling=1.0):
+    def prox_block(β_block, hyperparameters, scaling=1.0):
         model = hyperparameters["model"]
         fusionreg = hyperparameters["fusionreg"]
         scale = hyperparameters["scale"]
+        # lasso
         β_ref = β_block[model.reference_condition]
         for d in β_block:
             if d != model.reference_condition:
@@ -358,11 +355,14 @@ def fit(
                 Δ = β - β_ref
                 Δ_lasso = jaxopt.prox.prox_lasso(Δ, fusionreg / scale, scaling)
                 β_block[d] = β_ref + Δ_lasso
+        # box
+        for d in β_block:
+            β_block[d] = jnp.clip(β_block[d], -10.0, 10.0)
         return β_block
 
-    opt_calibration = jaxopt.GradientDescent(_objective_part, **cal_kwargs)
-    opt_β0 = jaxopt.GradientDescent(_objective_part, **ge_kwargs)
-    opt_β = jaxopt.ProximalGradient(_objective_block, prox=_prox_block, **ge_kwargs)
+    opt_calibration = jaxopt.GradientDescent(objective_part, **cal_kwargs)
+    opt_β0 = jaxopt.GradientDescent(objective_part, **ge_kwargs)
+    opt_β = jaxopt.ProximalGradient(objective_block, prox=prox_block, **ge_kwargs)
 
     filter_spec_calibration = Model(
         φ=False,
@@ -389,12 +389,12 @@ def fit(
     )
 
     # numerical rescaling
-    scale = abs(_objective_total(model, data_sets, l2reg=l2reg, fusionreg=fusionreg))
+    scale = abs(objective_total(model, data_sets, l2reg=l2reg, fusionreg=fusionreg))
 
     try:
         for k in range(block_iters):
             print(f"iter {k + 1}:")
-            obj_old = _objective_total(
+            obj_old = objective_total(
                 model, data_sets, l2reg=l2reg, fusionreg=fusionreg, scale=scale
             )
 
@@ -479,7 +479,7 @@ def fit(
                     ).mean()
                     print(f"  {d} sparsity={sparsity:.1%}")
 
-            obj = _objective_total(
+            obj = objective_total(
                 model, data_sets, l2reg=l2reg, fusionreg=fusionreg, scale=scale
             )
             objective_error = abs(obj_old - obj) / max(abs(obj_old), abs(obj), 1)

@@ -175,16 +175,13 @@ def rereference(X, bundle_idxs):
         A re-referenced binary matrix
     """
     if bundle_idxs.sum():
-        X_scipy = sp.sparse.csr_matrix(
+        X_scipy = sp.sparse.csr_array(
             (X.data, (X.indices[:, 0], X.indices[:, 1])), shape=X.shape
         ).tolil()
         tmp = X_scipy[:, bundle_idxs].copy()
         X_scipy[:, bundle_idxs] = 1
         X_scipy[:, bundle_idxs] -= tmp
-        X_scaled = jax.experimental.sparse.BCOO.from_scipy_sparse(X_scipy)
-        X_scaled = jax.experimental.sparse.BCOO(
-            (X_scaled.data.astype(jnp.int8), X_scaled.indices), shape=X.shape
-        )
+        X_scaled = jax.experimental.sparse.BCOO.from_scipy_sparse(X_scipy.tocoo())
 
         assert (
             X[:, bundle_idxs].sum(0).todense()

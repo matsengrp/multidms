@@ -710,10 +710,10 @@ class Model:
                 )
 
             # X[condition] = sparse.BCOO.from_scipy_sparse(
-            # scipy.sparse.csr_matrix(onp.vstack(binary_variants))
+            # scipy.sparse.csr_array(onp.vstack(binary_variants))
             # )
             X[condition] = sparse.BCOO.from_scipy_sparse(
-                scipy.sparse.csr_matrix(
+                scipy.sparse.coo_array(
                     (onp.ones(len(row_ind), dtype="int8"), (row_ind, col_ind)),
                     shape=(valid, ref_bmap.binarylength),
                     dtype="int8",
@@ -851,7 +851,7 @@ class Model:
                         )
 
             X = sparse.BCOO.from_scipy_sparse(
-                scipy.sparse.csr_matrix(
+                scipy.sparse.coo_array(
                     (onp.ones(len(row_ind), dtype="int8"), (row_ind, col_ind)),
                     shape=(len(condition_df), ref_bmap.binarylength),
                     dtype="int8",
