@@ -170,3 +170,5 @@ cython_debug/
 
 
 notebooks/test_dump.pkl
+notebooks/jaxmodels/papermill_results
+notebooks/jaxmodels/output
