@@ -10,6 +10,7 @@ import scipy as sp
 import pandas as pd
 import jax
 import jax.numpy as jnp
+import numpy as np
 import re
 import itertools as it
 
@@ -177,11 +178,11 @@ def rereference(X, bundle_idxs):
     if bundle_idxs.sum():
         X_scipy = sp.sparse.csr_array(
             (X.data, (X.indices[:, 0], X.indices[:, 1])), shape=X.shape
-        ).tolil()
+        )
         tmp = X_scipy[:, bundle_idxs].copy()
         X_scipy[:, bundle_idxs] = 1
         X_scipy[:, bundle_idxs] -= tmp
-        X_scaled = jax.experimental.sparse.BCOO.from_scipy_sparse(X_scipy.tocoo())
+        X_scaled = jax.experimental.sparse.BCOO.from_scipy_sparse(X_scipy)
 
         assert (
             X[:, bundle_idxs].sum(0).todense()
