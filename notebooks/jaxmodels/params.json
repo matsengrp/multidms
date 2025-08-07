@@ -1,7 +1,6 @@
 {
     "replicate" : [1, 2],
-    "l2reg" : [1e-3],
-    "fusionreg" : [0, 1e0, 2e0, 3e0],
-    "loss_fn" : ["count_loss"],
-    "global_epistasis" : ["Identity"]
+    "l2reg" : [1e-4],
+    "fusionreg" : [0.0, 0.5, 1.0, 2.0, 4.0],
+    "global_epistasis" : ["Sigmoid"]
 }
