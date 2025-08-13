@@ -281,7 +281,7 @@ def fit(
         [Model, dict[str, Data]], dict[str, Float[Array, ""]]
     ] = functional_score_loss,
     loss_kwargs: dict[str, Any] = dict(δ=1.0),
-) -> Model:
+) -> tuple[Model, list[float]]:
     r"""
     Fit a model to data.
 
@@ -300,7 +300,7 @@ def fit(
         loss_kwargs: Keyword arguments for the loss function.
 
     Returns:
-        Fitted model.
+        Tuple of (fitted model, loss trajectory).
     """
     if data_sets[reference_condition].x_wt.sum() != 0:
         raise ValueError(
@@ -390,6 +390,9 @@ def fit(
 
     # numerical rescaling
     scale = abs(objective_total(model, data_sets, l2reg=l2reg, fusionreg=fusionreg))
+
+    # track loss trajectory
+    loss_trajectory = []
 
     try:
         for k in range(block_iters):
@@ -482,8 +485,12 @@ def fit(
             obj = objective_total(
                 model, data_sets, l2reg=l2reg, fusionreg=fusionreg, scale=scale
             )
+            print(f"  {obj=:.2e}")
             objective_error = abs(obj_old - obj) / max(abs(obj_old), abs(obj), 1)
             print(f"  {objective_error=:.2e}")
+            
+            # store loss for trajectory
+            loss_trajectory.append(float(obj))
 
             if (
                 state_calibration.error < opt_calibration.tol
@@ -497,4 +504,4 @@ def fit(
     except KeyboardInterrupt:
         pass
 
-    return model
+    return model, loss_trajectory
