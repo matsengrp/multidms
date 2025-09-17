@@ -4,6 +4,8 @@ jaxmodels
 
 A simple API for global epistasis modeling."""
 
+from __future__ import annotations
+
 import multidms
 
 import jax
@@ -20,7 +22,6 @@ import jaxopt
 import scipy
 from sklearn import linear_model
 
-from multidms import data
 
 jax.config.update("jax_enable_x64", True)
 
@@ -44,7 +45,7 @@ class Data(eqx.Module):
     """Functional scores for each variant."""
 
     @staticmethod
-    def from_multidms(multidms_data: multidms.Data, condition: str) -> Self:
+    def from_multidms(multidms_data: "multidms.Data", condition: str) -> Self:
         r"""Create data from a multidms data object.
 
         Arguments:
@@ -59,8 +60,10 @@ class Data(eqx.Module):
 
         # slicing the BCOO array messes up indices, so we need to go to scipy
         X = multidms_data.arrays["X"][condition]
-        X = scipy.sparse.csr_array((X.data, (X.indices[:, 0], X.indices[:, 1])), shape=X.shape)
-        X = X[1:] # exclude WT
+        X = scipy.sparse.csr_array(
+            (X.data, (X.indices[:, 0], X.indices[:, 1])), shape=X.shape
+        )
+        X = X[1:]  # exclude WT
         X = BCOO.from_scipy_sparse(X)
 
         return Data(
@@ -101,7 +104,8 @@ class Latent(eqx.Module):
 
         """
         X = scipy.sparse.csr_array(
-            (data.X.data, (data.X.indices[:, 0], data.X.indices[:, 1])), shape=(data.X.shape[0], len(data.x_wt))
+            (data.X.data, (data.X.indices[:, 0], data.X.indices[:, 1])),
+            shape=(data.X.shape[0], len(data.x_wt)),
         )
         y = data.functional_scores
         ridge_solver = linear_model.Ridge(alpha=l2reg)
@@ -488,7 +492,7 @@ def fit(
             print(f"  {obj=:.2e}")
             objective_error = abs(obj_old - obj) / max(abs(obj_old), abs(obj), 1)
             print(f"  {objective_error=:.2e}")
-            
+
             # store loss for trajectory
             loss_trajectory.append(float(obj))
 

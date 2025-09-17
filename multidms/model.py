@@ -5,13 +5,14 @@ model
 
 Defines :class:`Model` objects.
 """
+from __future__ import annotations
 
 import math
 import warnings
 from functools import lru_cache, partial, cached_property
 from frozendict import frozendict
 
-from multidms import Data
+from multidms.data import Data
 import multidms.biophysical
 from multidms.plot import _lineplot_and_heatmap
 from multidms.utils import transform, difference_matrix
@@ -407,7 +408,7 @@ class Model:
         return self._converged
 
     @property
-    def data(self) -> multidms.Data:
+    def data(self) -> "Data":
         """
         multidms.Data Object this model references for fitting
         its parameters.

@@ -17,7 +17,7 @@ from polyclonal.plot import DEFAULT_POSITIVE_COLORS
 from polyclonal.utils import MutationParser
 from tqdm import tqdm
 
-from multidms import AAS
+from binarymap.binarymap import AAS_NOSTOP as AAS
 from multidms.utils import rereference, split_subs
 
 import jax

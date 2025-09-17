@@ -50,6 +50,8 @@ dependencies = [
     "scikit-learn",
     "tqdm",
     "equinox",
+    "pylops",
+    "pyproximal",
 ]
 
 [project.optional-dependencies]
