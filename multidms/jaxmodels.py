@@ -90,6 +90,41 @@ class Latent(eqx.Module):
     """Mutation effects."""
 
     @staticmethod
+    def from_params(
+        β0: Float,
+        β: Float[Array, " n_mutations"],
+    ) -> Self:
+        r"""Create a latent model from explicit parameters.
+
+        Args:
+            β0: Intercept value.
+            β: Mutation effects array.
+
+        Returns:
+            Latent model with specified parameters.
+        """
+        return Latent(β0=β0, β=β)
+
+    @staticmethod
+    def zeros(
+        n_mutations: int,
+        β0: Float = 0.0,
+    ) -> Self:
+        r"""Create a zero-initialized latent model with optional intercept.
+
+        Args:
+            n_mutations: Number of mutations.
+            β0: Intercept value (default: 0.0).
+
+        Returns:
+            Latent model with β set to zeros and specified β0.
+        """
+        return Latent(
+            β0=jnp.array(β0),
+            β=jnp.zeros(n_mutations),
+        )
+
+    @staticmethod
     def warmstart(
         data: Data,
         l2reg: float = 0.0,
@@ -285,6 +320,9 @@ def fit(
         [Model, dict[str, Data]], dict[str, Float[Array, ""]]
     ] = functional_score_loss,
     loss_kwargs: dict[str, Any] = dict(δ=1.0),
+    warmstart: bool = True,
+    beta_naught_init: dict[str, Float] | None = None,
+    beta_init: dict[str, Float[Array, " n_mutations"]] | None = None,
 ) -> tuple[Model, list[float]]:
     r"""
     Fit a model to data.
@@ -302,6 +340,16 @@ def fit(
         global_epistasis: Global epistasis model.
         loss_fn: Loss function.
         loss_kwargs: Keyword arguments for the loss function.
+        warmstart: Whether to use Ridge regression warmstart (default: True).
+                   If True, performs Ridge regression to initialize parameters.
+                   The warmstart values will be overridden by any explicit values
+                   provided in beta_naught_init or beta_init.
+        beta_naught_init: Initial β0 (intercept) values for each condition.
+                         If None, uses zeros (or warmstart values if warmstart=True).
+                         If dict provided, uses those values for specified conditions.
+        beta_init: Initial β (mutation effects) values for each condition.
+                  If None, uses zeros (or warmstart values if warmstart=True).
+                  If dict provided, uses those values for specified conditions.
 
     Returns:
         Tuple of (fitted model, loss trajectory).
@@ -383,9 +431,35 @@ def fit(
         global_epistasis=global_epistasis,
     )
 
-    # initialize
+    # initialize latent models with independent control over each parameter
+    latent_models = {}
+
+    for d in data_sets:
+        n_mut = len(data_sets[d].x_wt)
+
+        # Step 1: Start with zeros as the base
+        β0_val = jnp.array(0.0)
+        β_val = jnp.zeros(n_mut)
+
+        # Step 2: If warmstart is True, use Ridge regression to get initial values
+        if warmstart:
+            warmstart_latent = Latent.warmstart(data_sets[d], l2reg=l2reg)
+            β0_val = warmstart_latent.β0
+            β_val = warmstart_latent.β
+
+        # Step 3: Override with explicit values if provided
+        if beta_naught_init is not None and d in beta_naught_init:
+            β0_val = jnp.array(beta_naught_init[d])
+
+        if beta_init is not None and d in beta_init:
+            β_val = beta_init[d]
+
+        # Create the Latent model with the final values
+        latent_models[d] = Latent(β0=β0_val, β=β_val)
+
+    # initialize model
     model = Model(
-        φ={d: Latent.warmstart(data_sets[d], l2reg=l2reg) for d in data_sets},
+        φ=latent_models,
         α={d: jnp.array(1.0) for d in data_sets},
         logθ={d: jnp.array(0.0) for d in data_sets},
         reference_condition=reference_condition,
