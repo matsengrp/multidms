@@ -2,7 +2,8 @@ r"""
 jaxmodels
 =========
 
-A simple API for global epistasis modeling."""
+A simple API for global epistasis modeling.
+"""
 
 from __future__ import annotations
 
@@ -31,21 +32,24 @@ class Data(eqx.Module):
 
     x_wt: Int[Array, "  n_mutations"]
     """Binary encoding of the wildtype sequence."""
-    pre_count_wt: Int[Array, ""]
-    """Wildtype pre-selection count."""
-    post_count_wt: Int[Array, ""]
-    """Wildtype post-selection count."""
     X: Int[Array, "n_variants n_mutations"]
     """Variant encoding matrix (sparse format)."""
-    pre_counts: Int[Array, " n_variants"]
-    """Pre-selection counts for each variant."""
-    post_counts: Int[Array, " n_variants"]
-    """Post-selection counts for each variant."""
     functional_scores: Float[Array, " n_variants"]
     """Functional scores for each variant."""
+    pre_count_wt: Int[Array, ""] | None = None
+    """Wildtype pre-selection count (optional)."""
+    post_count_wt: Int[Array, ""] | None = None
+    """Wildtype post-selection count (optional)."""
+    pre_counts: Int[Array, " n_variants"] | None = None
+    """Pre-selection counts for each variant (optional)."""
+    post_counts: Int[Array, " n_variants"] | None = None
+    """Post-selection counts for each variant (optional)."""
 
     @staticmethod
-    def from_multidms(multidms_data: "multidms.Data", condition: str) -> Self:
+    def from_multidms(
+        multidms_data: multidms.Data,
+        condition: str,
+    ) -> Self:
         r"""Create data from a multidms data object.
 
         Arguments:
@@ -54,7 +58,7 @@ class Data(eqx.Module):
             condition: The condition to extract data for.
 
         Returns:
-            Data object.
+            Data object with count data if available in the source.
         """
         # NOTE: assumes WT is the first variant!
 
@@ -66,14 +70,26 @@ class Data(eqx.Module):
         X = X[1:]  # exclude WT
         X = BCOO.from_scipy_sparse(X)
 
+        # Check if count data is available and extract if present
+        if "pre_count" in multidms_data.arrays and "post_count" in multidms_data.arrays:
+            pre_count_wt = multidms_data.arrays["pre_count"][condition][0]
+            post_count_wt = multidms_data.arrays["post_count"][condition][0]
+            pre_counts = multidms_data.arrays["pre_count"][condition][1:]
+            post_counts = multidms_data.arrays["post_count"][condition][1:]
+        else:
+            pre_count_wt = None
+            post_count_wt = None
+            pre_counts = None
+            post_counts = None
+
         return Data(
             x_wt=multidms_data.arrays["X"][condition][0].todense(),
-            pre_count_wt=multidms_data.arrays["pre_count"][condition][0],
-            post_count_wt=multidms_data.arrays["post_count"][condition][0],
-            pre_counts=multidms_data.arrays["pre_count"][condition][1:],
-            post_counts=multidms_data.arrays["post_count"][condition][1:],
-            functional_scores=multidms_data.arrays["y"][condition][1:],
             X=X,
+            functional_scores=multidms_data.arrays["y"][condition][1:],
+            pre_count_wt=pre_count_wt,
+            post_count_wt=post_count_wt,
+            pre_counts=pre_counts,
+            post_counts=post_counts,
         )
 
 
@@ -136,8 +152,13 @@ class Latent(eqx.Module):
             l2reg: L2 regularization strength for warmstart.
 
         Returns:
-
+            Latent model initialized with warmstart parameters.
         """
+        if data.pre_counts is None:
+            raise ValueError(
+                "Warmstart requires pre_counts data. Either provide count data "
+                "or disable warmstart by setting warmstart=False."
+            )
         X = scipy.sparse.csr_array(
             (data.X.data, (data.X.indices[:, 0], data.X.indices[:, 1])),
             shape=(data.X.shape[0], len(data.x_wt)),
@@ -242,6 +263,16 @@ class Model(eqx.Module):
         Args:
             data_sets: Data sets for each condition.
         """
+        # Check that all required count data is available
+        for condition, data in data_sets.items():
+            if any(count_data is None for count_data in [
+                data.pre_counts, data.pre_count_wt, data.post_count_wt
+            ]):
+                raise ValueError(
+                    f"predict_post_count requires count data for condition "
+                    f"'{condition}'. Provide pre_counts, pre_count_wt, post_count_wt."
+                )
+
         result = {}
         score_pred = self.predict_score(data_sets)
         for d in data_sets:
@@ -268,6 +299,14 @@ def count_loss(
     Returns:
         Loss for each condition.
     """
+    # Check that all required count data is available
+    for condition, data in data_sets.items():
+        if data.post_counts is None:
+            raise ValueError(
+                f"count_loss requires post_counts data for condition '{condition}'. "
+                "Use functional_score_loss instead if you only have functional scores."
+            )
+
     post_count_pred = model.predict_post_count(data_sets)
     result = {}
     for d in data_sets:
@@ -323,6 +362,7 @@ def fit(
     warmstart: bool = True,
     beta_naught_init: dict[str, Float] | None = None,
     beta_init: dict[str, Float[Array, " n_mutations"]] | None = None,
+    beta_clip_range: tuple[Float, Float] | None = None,
 ) -> tuple[Model, list[float]]:
     r"""
     Fit a model to data.
@@ -350,6 +390,10 @@ def fit(
         beta_init: Initial β (mutation effects) values for each condition.
                   If None, uses zeros (or warmstart values if warmstart=True).
                   If dict provided, uses those values for specified conditions.
+        beta_clip_range: Optional tuple of (min, max) values for clipping β parameters.
+                        If None, no clipping is applied. Example: (-10.0, 10.0).
+                        This constrains mutation effect parameters during optimization
+                        to prevent extreme values.
 
     Returns:
         Tuple of (fitted model, loss trajectory).
@@ -399,6 +443,7 @@ def fit(
         model = hyperparameters["model"]
         fusionreg = hyperparameters["fusionreg"]
         scale = hyperparameters["scale"]
+        beta_clip_range = hyperparameters.get("beta_clip_range", None)
         # lasso
         β_ref = β_block[model.reference_condition]
         for d in β_block:
@@ -407,9 +452,11 @@ def fit(
                 Δ = β - β_ref
                 Δ_lasso = jaxopt.prox.prox_lasso(Δ, fusionreg / scale, scaling)
                 β_block[d] = β_ref + Δ_lasso
-        # box
-        for d in β_block:
-            β_block[d] = jnp.clip(β_block[d], -10.0, 10.0)
+        # box clipping (if specified)
+        if beta_clip_range is not None:
+            clip_min, clip_max = beta_clip_range
+            for d in β_block:
+                β_block[d] = jnp.clip(β_block[d], clip_min, clip_max)
         return β_block
 
     opt_calibration = jaxopt.GradientDescent(objective_part, **cal_kwargs)
@@ -512,7 +559,9 @@ def fit(
             )[-1]
             idxs = jnp.where(bundle_idxs)[0]
             β_block = {d: model.φ[d].β[idxs] for d in model.φ}
-            hyperparameters_prox = dict(model=model, fusionreg=fusionreg, scale=scale)
+            hyperparameters_prox = dict(
+                model=model, fusionreg=fusionreg, scale=scale, beta_clip_range=beta_clip_range
+            )
             β_block, state_bundle = opt_β.run(
                 β_block,
                 hyperparameters_prox,
@@ -534,7 +583,9 @@ def fit(
             # β non-bundle block
             idxs = jnp.where(~bundle_idxs)[0]
             β_block = {d: model.φ[d].β[idxs] for d in model.φ}
-            hyperparameters_prox = dict(model=model, fusionreg=fusionreg, scale=scale)
+            hyperparameters_prox = dict(
+                model=model, fusionreg=fusionreg, scale=scale, beta_clip_range=beta_clip_range
+            )
             β_block, state_nonbundle = opt_β.run(
                 β_block,
                 hyperparameters_prox,

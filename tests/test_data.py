@@ -34,6 +34,7 @@ data = multidms.Data(
     reference="a",
     assert_site_integrity=True,
     name="test_data",
+    include_counts=False,
 )
 model = multidms.Model(data, PRNGKey=23)
 
@@ -91,6 +92,7 @@ def test_non_identical_mutations():
         alphabet=multidms.AAS_WITHSTOP,
         reference="a",
         assert_site_integrity=False,
+        include_counts=False,
     )
     assert data.non_identical_mutations["a"] == ""
     assert data.non_identical_mutations["b"] == "G3P"
@@ -193,6 +195,7 @@ def test_single_mut_encodings():
         alphabet=multidms.AAS_WITHSTOP,
         reference="a",
         assert_site_integrity=False,
+        include_counts=False,
     )
     single_mut_encodings = data.single_mut_encodings
     assert np.all(
@@ -279,6 +282,7 @@ def test_linear_model_fit_simple():
         alphabet=multidms.AAS_WITHSTOP,
         reference="a",
         assert_site_integrity=False,
+        include_counts=False,
     )
     model = multidms.Model(data, multidms.biophysical.identity_activation, PRNGKey=23)
     model.fit(maxiter=2, warn_unconverged=False)
@@ -301,6 +305,7 @@ def test_linear_model_multi_cond_fit_simple():
         alphabet=multidms.AAS_WITHSTOP,
         reference="a",
         assert_site_integrity=False,
+        include_counts=False,
     )
     assert np.all([not bi for bi in list(data.bundle_idxs["a"])])
     model = multidms.Model(data, multidms.biophysical.identity_activation, PRNGKey=23)
@@ -325,6 +330,7 @@ def test_fit_simple():
         alphabet=multidms.AAS_WITHSTOP,
         reference="a",
         assert_site_integrity=False,
+        include_counts=False,
     )
     model = multidms.Model(data, PRNGKey=23)
     loss = model.loss
@@ -349,6 +355,7 @@ def test_multi_cond_fit_simple():
         alphabet=multidms.AAS_WITHSTOP,
         reference="a",
         assert_site_integrity=False,
+        include_counts=False,
     )
     model = multidms.Model(data, PRNGKey=23)
     model.fit(maxiter=2, warn_unconverged=False)
@@ -404,6 +411,7 @@ def test_wildtype_mutant_predictions():
         alphabet=multidms.AAS_WITHSTOP,
         reference="a",
         assert_site_integrity=False,
+        include_counts=False,
     )
     model = multidms.Model(data, PRNGKey=23)
     model.fit(maxiter=2, warn_unconverged=False)
@@ -454,6 +462,7 @@ def test_mutations_df():
         alphabet=multidms.AAS_WITHSTOP,
         reference="a",
         assert_site_integrity=False,
+        include_counts=False,
     )
     model = multidms.Model(data, PRNGKey=23)
     model.fit(maxiter=2, warn_unconverged=False)
@@ -669,6 +678,7 @@ def test_fit_models():
         alphabet=multidms.AAS_WITHSTOP,
         reference="a",
         assert_site_integrity=False,
+        include_counts=False,
     )
     params = {
         "dataset": [data],
@@ -699,6 +709,7 @@ def test_ModelCollection_mut_param_dataset_correlation():
         reference="a",
         assert_site_integrity=False,
         name="rep1",
+        include_counts=False,
     )
 
     data_rep2 = multidms.Data(
@@ -707,6 +718,7 @@ def test_ModelCollection_mut_param_dataset_correlation():
         reference="a",
         assert_site_integrity=False,
         name="rep2",
+        include_counts=False,
     )
 
     params = {
@@ -735,6 +747,7 @@ def test_ModelCollection_charts():
         alphabet=multidms.AAS_WITHSTOP,
         reference="a",
         assert_site_integrity=False,
+        include_counts=False,
     )
     params = {
         "dataset": [data],

@@ -100,6 +100,10 @@ class Data:
         Name of the data object. If None, will be assigned
         a unique name based upon the number of data objects
         instantiated.
+    include_counts : bool
+        If True (default), expects 'pre_count' and 'post_count' columns in the
+        input DataFrame and includes them in the data arrays. If False, these
+        columns are not required and count data will not be available.
 
     Example
     -------
@@ -194,6 +198,7 @@ class Data:
         assert_site_integrity=False,
         verbose=False,
         name=None,
+        include_counts=True,
     ):
         """See main class docstring."""
         # Check and initialize conditions attribute
@@ -251,9 +256,9 @@ class Data:
             "condition",
             "aa_substitutions",
             "func_score",
-            "pre_count",
-            "post_count",
         ]
+        if include_counts:
+            cols.extend(["pre_count", "post_count"])
         if "weight" in variants_df.columns:
             cols.append(
                 "weight"
@@ -448,7 +453,11 @@ class Data:
 
         # Make BinaryMap representations for each condition
         allowed_subs = {s for subs in df.var_wrt_ref for s in subs.split()}
-        binmaps, X, y, w, pre_count, post_count = {}, {}, {}, {}, {}, {}
+        binmaps, X, y, w = {}, {}, {}, {}
+        if include_counts:
+            pre_count, post_count = {}, {}
+        else:
+            pre_count, post_count = None, None
         self._bundle_idxs = {}
         self._scaled_arrays = {"X": {}, "y": y, "w": w}
         for condition, condition_func_score_df in df.groupby("condition"):
@@ -463,12 +472,13 @@ class Data:
             X[condition] = sparse.BCOO.from_scipy_sparse(cond_bmap.binary_variants.tocoo())
             assert (X[condition].indices.max(0) < onp.array(X[condition].shape)).all()
             y[condition] = jnp.array(condition_func_score_df["func_score"].values)
-            pre_count[condition] = jnp.array(
-                condition_func_score_df["pre_count"].values
-            )
-            post_count[condition] = jnp.array(
-                condition_func_score_df["post_count"].values
-            )
+            if include_counts:
+                pre_count[condition] = jnp.array(
+                    condition_func_score_df["pre_count"].values
+                )
+                post_count[condition] = jnp.array(
+                    condition_func_score_df["post_count"].values
+                )
             if "weight" in condition_func_score_df.columns:
                 w[condition] = jnp.array(condition_func_score_df["weight"].values)
 
@@ -510,9 +520,10 @@ class Data:
             "X": X,
             "y": y,
             "w": w,
-            "pre_count": pre_count,
-            "post_count": post_count,
         }
+        if include_counts:
+            self._arrays["pre_count"] = pre_count
+            self._arrays["post_count"] = post_count
         self._binarymaps = binmaps
 
         self._mutations_df = mut_df
@@ -626,8 +637,18 @@ class Data:
         return self._arrays
 
     @property
+    def training_data(self) -> dict:
+        """Alias for arrays - provides training data with keys 'X' and 'y'."""
+        return self._arrays
+
+    @property
     def scaled_arrays(self) -> dict:
         """A dictionary with keys 'X' and 'y' for the scaled training data."""
+        return self._scaled_arrays
+
+    @property
+    def scaled_training_data(self) -> dict:
+        """Alias for scaled_arrays - provides scaled training data."""
         return self._scaled_arrays
 
     @property
