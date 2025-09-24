@@ -563,34 +563,6 @@ def fit(
                 jnp.array([data_sets[d].x_wt.astype(bool) for d in data_sets]),
             )[-1]
 
-            # β non-bundle block
-            idxs = jnp.where(~bundle_idxs)[0]
-            β_block = {d: model.φ[d].β[idxs] for d in model.φ}
-            hyperparameters_prox = dict(
-                model=model,
-                fusionreg=fusionreg,
-                scale=scale,
-                beta_clip_range=beta_clip_range,
-            )
-            β_block, state_nonbundle = opt_β.run(
-                β_block,
-                hyperparameters_prox,
-                idxs,
-                model,
-                data_sets,
-                l2reg=l2reg,
-                scale=scale,
-            )
-            for d in β_block:
-                model = eqx.tree_at(
-                    lambda model_: model_.φ[d].β,
-                    model,
-                    model.φ[d].β.at[idxs].set(β_block[d]),
-                )
-            print(
-                f"  β_nonbundle: error={state_nonbundle.error:.2e}, stepsize={state_nonbundle.stepsize:.1e}, iter={state_nonbundle.iter_num}"
-            )
-
             # β bundle block
             idxs = jnp.where(bundle_idxs)[0]
             β_block = {d: model.φ[d].β[idxs] for d in model.φ}
@@ -617,6 +589,34 @@ def fit(
                 )
             print(
                 f"  β_bundle: error={state_bundle.error:.2e}, stepsize={state_bundle.stepsize:.1e}, iter={state_bundle.iter_num}"
+            )
+
+            # β non-bundle block
+            idxs = jnp.where(~bundle_idxs)[0]
+            β_block = {d: model.φ[d].β[idxs] for d in model.φ}
+            hyperparameters_prox = dict(
+                model=model,
+                fusionreg=fusionreg,
+                scale=scale,
+                beta_clip_range=beta_clip_range,
+            )
+            β_block, state_nonbundle = opt_β.run(
+                β_block,
+                hyperparameters_prox,
+                idxs,
+                model,
+                data_sets,
+                l2reg=l2reg,
+                scale=scale,
+            )
+            for d in β_block:
+                model = eqx.tree_at(
+                    lambda model_: model_.φ[d].β,
+                    model,
+                    model.φ[d].β.at[idxs].set(β_block[d]),
+                )
+            print(
+                f"  β_nonbundle: error={state_nonbundle.error:.2e}, stepsize={state_nonbundle.stepsize:.1e}, iter={state_nonbundle.iter_num}"
             )
 
             # diagnostics
