@@ -367,6 +367,7 @@ def fit(
     warmstart: bool = True,
     beta_naught_init: dict[str, Float] | None = None,
     beta_init: dict[str, Float[Array, " n_mutations"]] | None = None,
+    alpha_init: dict[str, Float] | None = None,
     beta_clip_range: tuple[Float, Float] | None = None,
 ) -> tuple[Model, list[float]]:
     r"""
@@ -395,6 +396,9 @@ def fit(
         beta_init: Initial β (mutation effects) values for each condition.
                   If None, uses zeros (or warmstart values if warmstart=True).
                   If dict provided, uses those values for specified conditions.
+        alpha_init: Initial α (fitness-functional score scaling) values for each condition.
+                   If None, uses 1.0 for all conditions.
+                   If dict provided, uses those values for specified conditions.
         beta_clip_range: Optional tuple of (min, max) values for clipping β parameters.
                         If None, no clipping is applied. Example: (-10.0, 10.0).
                         This constrains mutation effect parameters during optimization
@@ -509,10 +513,22 @@ def fit(
         # Create the Latent model with the final values
         latent_models[d] = Latent(β0=β0_val, β=β_val)
 
+    # Initialize alpha values with control over each parameter
+    alpha_models = {}
+    for d in data_sets:
+        # Default to 1.0
+        α_val = jnp.array(1.0)
+
+        # Override with explicit values if provided
+        if alpha_init is not None and d in alpha_init:
+            α_val = jnp.array(alpha_init[d])
+
+        alpha_models[d] = α_val
+
     # initialize model
     model = Model(
         φ=latent_models,
-        α={d: jnp.array(1.0) for d in data_sets},
+        α=alpha_models,
         logθ={d: jnp.array(0.0) for d in data_sets},
         reference_condition=reference_condition,
         global_epistasis=global_epistasis,
@@ -531,29 +547,29 @@ def fit(
                 model, data_sets, l2reg=l2reg, fusionreg=fusionreg, scale=scale
             )
 
-            # calibration block
-            model_calibration, model_rest = eqx.partition(
-                model, filter_spec=filter_spec_calibration
-            )
-            model_calibration, state_calibration = opt_calibration.run(
-                model_calibration, model_rest, data_sets, scale=scale
-            )
-            model = eqx.combine(model_calibration, model_rest)
-            print(
-                f"  calibration block: error={state_calibration.error:.2e}, stepsize={state_calibration.stepsize:.1e}, iter={state_calibration.iter_num}"
-            )
+            # # calibration block
+            # model_calibration, model_rest = eqx.partition(
+            #     model, filter_spec=filter_spec_calibration
+            # )
+            # model_calibration, state_calibration = opt_calibration.run(
+            #     model_calibration, model_rest, data_sets, scale=scale
+            # )
+            # model = eqx.combine(model_calibration, model_rest)
+            # print(
+            #     f"  calibration block: error={state_calibration.error:.2e}, stepsize={state_calibration.stepsize:.1e}, iter={state_calibration.iter_num}"
+            # )
             for d in model.φ:
                 print(f"    {d}: α={model.α[d]:.2f}, θ={jnp.exp(model.logθ[d]):.2f}")
 
-            # β0 block
-            model_β0, model_rest = eqx.partition(model, filter_spec=filter_spec_β0)
-            model_β0, state_β0 = opt_β0.run(
-                model_β0, model_rest, data_sets, scale=scale
-            )
-            model = eqx.combine(model_β0, model_rest)
-            print(
-                f"  β0 block: error={state_β0.error:.2e}, stepsize={state_β0.stepsize:.1e}, iter={state_β0.iter_num}"
-            )
+            # # β0 block
+            # model_β0, model_rest = eqx.partition(model, filter_spec=filter_spec_β0)
+            # model_β0, state_β0 = opt_β0.run(
+            #     model_β0, model_rest, data_sets, scale=scale
+            # )
+            # model = eqx.combine(model_β0, model_rest)
+            # print(
+            #     f"  β0 block: error={state_β0.error:.2e}, stepsize={state_β0.stepsize:.1e}, iter={state_β0.iter_num}"
+            # )
             for d in model.φ:
                 print(f"    {d}: β0={model.φ[d].β0:.2f}")
 
@@ -562,34 +578,6 @@ def fit(
                 jnp.logical_or,
                 jnp.array([data_sets[d].x_wt.astype(bool) for d in data_sets]),
             )[-1]
-
-            # β bundle block
-            idxs = jnp.where(bundle_idxs)[0]
-            β_block = {d: model.φ[d].β[idxs] for d in model.φ}
-            hyperparameters_prox = dict(
-                model=model,
-                fusionreg=fusionreg,
-                scale=scale,
-                beta_clip_range=beta_clip_range,
-            )
-            β_block, state_bundle = opt_β.run(
-                β_block,
-                hyperparameters_prox,
-                idxs,
-                model,
-                data_sets,
-                l2reg=l2reg,
-                scale=scale,
-            )
-            for d in β_block:
-                model = eqx.tree_at(
-                    lambda model_: model_.φ[d].β,
-                    model,
-                    model.φ[d].β.at[idxs].set(β_block[d]),
-                )
-            print(
-                f"  β_bundle: error={state_bundle.error:.2e}, stepsize={state_bundle.stepsize:.1e}, iter={state_bundle.iter_num}"
-            )
 
             # β non-bundle block
             idxs = jnp.where(~bundle_idxs)[0]
@@ -619,6 +607,34 @@ def fit(
                 f"  β_nonbundle: error={state_nonbundle.error:.2e}, stepsize={state_nonbundle.stepsize:.1e}, iter={state_nonbundle.iter_num}"
             )
 
+            # β bundle block
+            idxs = jnp.where(bundle_idxs)[0]
+            β_block = {d: model.φ[d].β[idxs] for d in model.φ}
+            hyperparameters_prox = dict(
+                model=model,
+                fusionreg=fusionreg,
+                scale=scale,
+                beta_clip_range=beta_clip_range,
+            )
+            β_block, state_bundle = opt_β.run(
+                β_block,
+                hyperparameters_prox,
+                idxs,
+                model,
+                data_sets,
+                l2reg=l2reg,
+                scale=scale,
+            )
+            for d in β_block:
+                model = eqx.tree_at(
+                    lambda model_: model_.φ[d].β,
+                    model,
+                    model.φ[d].β.at[idxs].set(β_block[d]),
+                )
+            print(
+                f"  β_bundle: error={state_bundle.error:.2e}, stepsize={state_bundle.stepsize:.1e}, iter={state_bundle.iter_num}"
+            )
+
             # diagnostics
             for d in model.φ:
                 if d != model.reference_condition:
@@ -637,14 +653,14 @@ def fit(
             # store loss for trajectory
             loss_trajectory.append(float(obj))
 
-            if (
-                state_calibration.error < opt_calibration.tol
-                and state_β0.error < opt_β0.tol
-                and state_bundle.error < opt_β.tol
-                and state_nonbundle.error < opt_β.tol
-                and objective_error < block_tol
-            ):
-                break
+            # if (
+            #     state_calibration.error < opt_calibration.tol
+            #     and state_β0.error < opt_β0.tol
+            #     and state_bundle.error < opt_β.tol
+            #     and state_nonbundle.error < opt_β.tol
+            #     and objective_error < block_tol
+            # ):
+            #     break
 
     except KeyboardInterrupt:
         pass
