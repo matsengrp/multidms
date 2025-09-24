@@ -265,9 +265,14 @@ class Model(eqx.Module):
         """
         # Check that all required count data is available
         for condition, data in data_sets.items():
-            if any(count_data is None for count_data in [
-                data.pre_counts, data.pre_count_wt, data.post_count_wt
-            ]):
+            if any(
+                count_data is None
+                for count_data in [
+                    data.pre_counts,
+                    data.pre_count_wt,
+                    data.post_count_wt,
+                ]
+            ):
                 raise ValueError(
                     f"predict_post_count requires count data for condition "
                     f"'{condition}'. Provide pre_counts, pre_count_wt, post_count_wt."
@@ -552,39 +557,20 @@ def fit(
             for d in model.φ:
                 print(f"    {d}: β0={model.φ[d].β0:.2f}")
 
-            # β bundle block
+            # determine bundle idxs (mutations that are non-wt in any condition)
             bundle_idxs = jax.lax.associative_scan(
                 jnp.logical_or,
                 jnp.array([data_sets[d].x_wt.astype(bool) for d in data_sets]),
             )[-1]
-            idxs = jnp.where(bundle_idxs)[0]
-            β_block = {d: model.φ[d].β[idxs] for d in model.φ}
-            hyperparameters_prox = dict(
-                model=model, fusionreg=fusionreg, scale=scale, beta_clip_range=beta_clip_range
-            )
-            β_block, state_bundle = opt_β.run(
-                β_block,
-                hyperparameters_prox,
-                idxs,
-                model,
-                data_sets,
-                l2reg=l2reg,
-                scale=scale,
-            )
-            for d in β_block:
-                model = eqx.tree_at(
-                    lambda model_: model_.φ[d].β,
-                    model,
-                    model.φ[d].β.at[idxs].set(β_block[d]),
-                )
-            print(
-                f"  β_bundle: error={state_bundle.error:.2e}, stepsize={state_bundle.stepsize:.1e}, iter={state_bundle.iter_num}"
-            )
+
             # β non-bundle block
             idxs = jnp.where(~bundle_idxs)[0]
             β_block = {d: model.φ[d].β[idxs] for d in model.φ}
             hyperparameters_prox = dict(
-                model=model, fusionreg=fusionreg, scale=scale, beta_clip_range=beta_clip_range
+                model=model,
+                fusionreg=fusionreg,
+                scale=scale,
+                beta_clip_range=beta_clip_range,
             )
             β_block, state_nonbundle = opt_β.run(
                 β_block,
@@ -604,6 +590,36 @@ def fit(
             print(
                 f"  β_nonbundle: error={state_nonbundle.error:.2e}, stepsize={state_nonbundle.stepsize:.1e}, iter={state_nonbundle.iter_num}"
             )
+
+            # β bundle block
+            idxs = jnp.where(bundle_idxs)[0]
+            β_block = {d: model.φ[d].β[idxs] for d in model.φ}
+            hyperparameters_prox = dict(
+                model=model,
+                fusionreg=fusionreg,
+                scale=scale,
+                beta_clip_range=beta_clip_range,
+            )
+            β_block, state_bundle = opt_β.run(
+                β_block,
+                hyperparameters_prox,
+                idxs,
+                model,
+                data_sets,
+                l2reg=l2reg,
+                scale=scale,
+            )
+            for d in β_block:
+                model = eqx.tree_at(
+                    lambda model_: model_.φ[d].β,
+                    model,
+                    model.φ[d].β.at[idxs].set(β_block[d]),
+                )
+            print(
+                f"  β_bundle: error={state_bundle.error:.2e}, stepsize={state_bundle.stepsize:.1e}, iter={state_bundle.iter_num}"
+            )
+
+            # diagnostics
             for d in model.φ:
                 if d != model.reference_condition:
                     sparsity = (
