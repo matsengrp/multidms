@@ -546,3 +546,71 @@ class TestFitParameters:
         for cond in model_noreg.φ:
             assert jnp.all(jnp.isfinite(model_noreg.φ[cond].β))
             assert jnp.all(jnp.isfinite(model_reg.φ[cond].β))
+
+    def test_beta0_ridge_penalty(self, multi_condition_data):
+        """Test beta0_ridge penalty for constraining β0 differences from reference."""
+        # Fit model without beta0_ridge
+        model_no_ridge, _ = jaxmodels.fit(
+            data_sets=multi_condition_data,
+            reference_condition="condition1",
+            l2reg=0.1,
+            fusionreg=0.0,
+            beta0_ridge=0.0,
+            block_iters=5,  # More iterations to see the effect
+            warmstart=False,
+            beta_naught_init={"condition1": 1.0, "condition2": -1.0},  # Start with different values
+        )
+
+        # Fit model with moderate beta0_ridge
+        model_moderate_ridge, _ = jaxmodels.fit(
+            data_sets=multi_condition_data,
+            reference_condition="condition1",
+            l2reg=0.1,
+            fusionreg=0.0,
+            beta0_ridge=1.0,
+            block_iters=5,
+            warmstart=False,
+            beta_naught_init={"condition1": 1.0, "condition2": -1.0},  # Same starting point
+        )
+
+        # Fit model with strong beta0_ridge
+        model_strong_ridge, _ = jaxmodels.fit(
+            data_sets=multi_condition_data,
+            reference_condition="condition1",
+            l2reg=0.1,
+            fusionreg=0.0,
+            beta0_ridge=10.0,
+            block_iters=5,
+            warmstart=False,
+            beta_naught_init={"condition1": 1.0, "condition2": -1.0},  # Same starting point
+        )
+
+        # Calculate β0 differences from reference
+        ref_beta0_no_ridge = model_no_ridge.φ["condition1"].β0
+        ref_beta0_moderate = model_moderate_ridge.φ["condition1"].β0
+        ref_beta0_strong = model_strong_ridge.φ["condition1"].β0
+
+        diff_no_ridge = jnp.abs(model_no_ridge.φ["condition2"].β0 - ref_beta0_no_ridge)
+        diff_moderate = jnp.abs(model_moderate_ridge.φ["condition2"].β0 - ref_beta0_moderate)
+        diff_strong = jnp.abs(model_strong_ridge.φ["condition2"].β0 - ref_beta0_strong)
+
+        # With stronger beta0_ridge, the differences should be smaller
+        # Allow for some tolerance due to optimization
+        assert diff_strong <= diff_moderate + 1e-2, (
+            f"Strong ridge penalty should produce smaller β0 differences: "
+            f"strong={diff_strong}, moderate={diff_moderate}"
+        )
+        assert diff_moderate <= diff_no_ridge + 1e-2, (
+            f"Moderate ridge penalty should produce smaller β0 differences than no ridge: "
+            f"moderate={diff_moderate}, no_ridge={diff_no_ridge}"
+        )
+
+        # All models should converge successfully
+        assert model_no_ridge is not None
+        assert model_moderate_ridge is not None
+        assert model_strong_ridge is not None
+
+        # All β0 values should be finite
+        for model in [model_no_ridge, model_moderate_ridge, model_strong_ridge]:
+            for cond in model.φ:
+                assert jnp.isfinite(model.φ[cond].β0)

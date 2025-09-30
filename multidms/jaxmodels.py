@@ -355,6 +355,7 @@ def fit(
     reference_condition: str,
     l2reg: Float = 0.0,
     fusionreg: Float = 0.0,
+    beta0_ridge: Float = 0.0,
     block_iters: int = 10,
     block_tol: Float = 1e-6,
     ge_kwargs: dict[str, Any] = dict(),
@@ -378,6 +379,7 @@ def fit(
         reference_condition: The condition to use as a reference.
         l2reg: L2 regularization strength for mutation effects.
         fusionreg: Fusion (shift lasso) regularization strength.
+        beta0_ridge: Ridge penalty for β0 differences from reference condition.
         block_iters: Number iterations for block coordinate descent.
         block_tol: Tolerance on objective function for block coordinate descent.
         ge_kwargs: Keyword arguments for the global epistasis model optimizer.
@@ -413,10 +415,16 @@ def fit(
         )
 
     @jax.jit
-    def objective_part(model_part, model_rest, data_sets, scale=1.0):
+    def objective_part(model_part, model_rest, data_sets, scale=1.0, beta0_ridge=0.0):
         model = eqx.combine(model_part, model_rest)
         loss = sum(loss_fn(model, data_sets, **loss_kwargs).values())
-        return loss / scale
+        # Add β0 ridge penalty for non-reference conditions
+        beta0_penalty = 0.0
+        ref_beta0 = model.φ[model.reference_condition].β0
+        for d in model.φ:
+            if d != model.reference_condition:
+                beta0_penalty += (model.φ[d].β0 - ref_beta0) ** 2
+        return (loss + beta0_ridge * beta0_penalty) / scale
 
     @jax.jit
     def objective_block(β_block, idxs, model, data_sets, l2reg=0.0, scale=1.0):
@@ -547,29 +555,33 @@ def fit(
                 model, data_sets, l2reg=l2reg, fusionreg=fusionreg, scale=scale
             )
 
-            # # calibration block
-            # model_calibration, model_rest = eqx.partition(
-            #     model, filter_spec=filter_spec_calibration
-            # )
-            # model_calibration, state_calibration = opt_calibration.run(
-            #     model_calibration, model_rest, data_sets, scale=scale
-            # )
-            # model = eqx.combine(model_calibration, model_rest)
-            # print(
-            #     f"  calibration block: error={state_calibration.error:.2e}, stepsize={state_calibration.stepsize:.1e}, iter={state_calibration.iter_num}"
-            # )
+            # calibration block
+            model_calibration, model_rest = eqx.partition(
+                model, filter_spec=filter_spec_calibration
+            )
+            model_calibration, state_calibration = opt_calibration.run(
+                model_calibration, model_rest, data_sets, scale=scale
+            )
+            model = eqx.combine(model_calibration, model_rest)
+            print(
+                f"  calibration block: error={state_calibration.error:.2e}, stepsize={state_calibration.stepsize:.1e}, iter={state_calibration.iter_num}"
+            )
             for d in model.φ:
                 print(f"    {d}: α={model.α[d]:.2f}, θ={jnp.exp(model.logθ[d]):.2f}")
 
-            # # β0 block
-            # model_β0, model_rest = eqx.partition(model, filter_spec=filter_spec_β0)
-            # model_β0, state_β0 = opt_β0.run(
-            #     model_β0, model_rest, data_sets, scale=scale
-            # )
-            # model = eqx.combine(model_β0, model_rest)
-            # print(
-            #     f"  β0 block: error={state_β0.error:.2e}, stepsize={state_β0.stepsize:.1e}, iter={state_β0.iter_num}"
-            # )
+            # β0 block
+            model_β0, model_rest = eqx.partition(model, filter_spec=filter_spec_β0)
+            model_β0, state_β0 = opt_β0.run(
+                model_β0,
+                model_rest,
+                data_sets,
+                scale=scale,
+                beta0_ridge=beta0_ridge,
+            )
+            model = eqx.combine(model_β0, model_rest)
+            print(
+                f"  β0 block: error={state_β0.error:.2e}, stepsize={state_β0.stepsize:.1e}, iter={state_β0.iter_num}"
+            )
             for d in model.φ:
                 print(f"    {d}: β0={model.φ[d].β0:.2f}")
 
@@ -653,14 +665,14 @@ def fit(
             # store loss for trajectory
             loss_trajectory.append(float(obj))
 
-            # if (
-            #     state_calibration.error < opt_calibration.tol
-            #     and state_β0.error < opt_β0.tol
-            #     and state_bundle.error < opt_β.tol
-            #     and state_nonbundle.error < opt_β.tol
-            #     and objective_error < block_tol
-            # ):
-            #     break
+            if (
+                state_calibration.error < opt_calibration.tol
+                and state_β0.error < opt_β0.tol
+                and state_bundle.error < opt_β.tol
+                and state_nonbundle.error < opt_β.tol
+                and objective_error < block_tol
+            ):
+                break
 
     except KeyboardInterrupt:
         pass
