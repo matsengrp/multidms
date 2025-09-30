@@ -366,7 +366,7 @@ def fit(
     ] = functional_score_loss,
     loss_kwargs: dict[str, Any] = dict(δ=1.0),
     warmstart: bool = True,
-    beta_naught_init: dict[str, Float] | None = None,
+    beta0_init: dict[str, Float] | None = None,
     beta_init: dict[str, Float[Array, " n_mutations"]] | None = None,
     alpha_init: dict[str, Float] | None = None,
     beta_clip_range: tuple[Float, Float] | None = None,
@@ -391,8 +391,8 @@ def fit(
         warmstart: Whether to use Ridge regression warmstart (default: True).
                    If True, performs Ridge regression to initialize parameters.
                    The warmstart values will be overridden by any explicit values
-                   provided in beta_naught_init or beta_init.
-        beta_naught_init: Initial β0 (intercept) values for each condition.
+                   provided in beta0_init or beta_init.
+        beta0_init: Initial β0 (intercept) values for each condition.
                          If None, uses zeros (or warmstart values if warmstart=True).
                          If dict provided, uses those values for specified conditions.
         beta_init: Initial β (mutation effects) values for each condition.
@@ -512,8 +512,8 @@ def fit(
             β_val = warmstart_latent.β
 
         # Step 3: Override with explicit values if provided
-        if beta_naught_init is not None and d in beta_naught_init:
-            β0_val = jnp.array(beta_naught_init[d])
+        if beta0_init is not None and d in beta0_init:
+            β0_val = jnp.array(beta0_init[d])
 
         if beta_init is not None and d in beta_init:
             β_val = beta_init[d]

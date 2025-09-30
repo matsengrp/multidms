@@ -79,7 +79,7 @@ class Model:
         assigned to Betas and any other randomly
         initialized parameters.
         for more.
-    init_beta_naught : float
+    init_beta0 : float
         Initialize the latent offset parameter
         applied to all conditions.
         See the biophysical docs section for more.

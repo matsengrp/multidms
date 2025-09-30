@@ -472,9 +472,9 @@ class TestFitParameters:
         assert jnp.allclose(model.φ["condition1"].β, beta_init["condition1"])
         assert jnp.allclose(model.φ["condition2"].β, beta_init["condition2"])
 
-    def test_beta_naught_init(self, multi_condition_data):
+    def test_beta0_init(self, multi_condition_data):
         """Test custom beta0 initialization."""
-        beta_naught_init = {
+        beta0_init = {
             "condition1": 1.0,
             "condition2": -0.5,
         }
@@ -484,12 +484,12 @@ class TestFitParameters:
             reference_condition="condition1",
             block_iters=0,  # No iterations to check initial values
             warmstart=False,
-            beta_naught_init=beta_naught_init,
+            beta0_init=beta0_init,
         )
 
         # Check that initial values were used
-        assert jnp.allclose(model.φ["condition1"].β0, beta_naught_init["condition1"])
-        assert jnp.allclose(model.φ["condition2"].β0, beta_naught_init["condition2"])
+        assert jnp.allclose(model.φ["condition1"].β0, beta0_init["condition1"])
+        assert jnp.allclose(model.φ["condition2"].β0, beta0_init["condition2"])
 
     def test_different_global_epistasis(self, multi_condition_data):
         """Test fitting with different global epistasis functions."""
@@ -558,7 +558,7 @@ class TestFitParameters:
             beta0_ridge=0.0,
             block_iters=5,  # More iterations to see the effect
             warmstart=False,
-            beta_naught_init={"condition1": 1.0, "condition2": -1.0},  # Start with different values
+            beta0_init={"condition1": 1.0, "condition2": -1.0},  # Start with different values
         )
 
         # Fit model with moderate beta0_ridge
@@ -570,7 +570,7 @@ class TestFitParameters:
             beta0_ridge=1.0,
             block_iters=5,
             warmstart=False,
-            beta_naught_init={"condition1": 1.0, "condition2": -1.0},  # Same starting point
+            beta0_init={"condition1": 1.0, "condition2": -1.0},  # Same starting point
         )
 
         # Fit model with strong beta0_ridge
@@ -582,7 +582,7 @@ class TestFitParameters:
             beta0_ridge=10.0,
             block_iters=5,
             warmstart=False,
-            beta_naught_init={"condition1": 1.0, "condition2": -1.0},  # Same starting point
+            beta0_init={"condition1": 1.0, "condition2": -1.0},  # Same starting point
         )
 
         # Calculate β0 differences from reference
