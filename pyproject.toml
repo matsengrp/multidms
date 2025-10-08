@@ -2,7 +2,7 @@
 
 # Metadata
 [build-system]
-requires      = ["setuptools>=61.0.0", "wheel"]
+requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -11,8 +11,8 @@ version = "1.1.0"
 description = "Joint modeling of multiple deep mutational scanning experiments."
 readme = "README.md"
 authors = [
-    { name = "Jared Galloway", email= "jgallowa@fredhutch.org" },
-    { name = "Hugh Haddox", email = "hkhaddox@gmail.com" }
+    { name = "Jared Galloway", email = "jgallowa@fredhutch.org" },
+    { name = "Hugh Haddox", email = "hkhaddox@gmail.com" },
 ]
 license = { file = "LICENSE" }
 classifiers = [
@@ -24,12 +24,12 @@ classifiers = [
 keywords = [
     "multidms",
     "generalized lasso",
-    "deep", 
-    "mutational", 
-    "scanning", 
-    "dms", 
-    "bloom", 
-    "matsen"
+    "deep",
+    "mutational",
+    "scanning",
+    "dms",
+    "bloom",
+    "matsen",
 ]
 
 
@@ -43,7 +43,7 @@ dependencies = [
     "numpy",
     "pandas>=2.2.0",
     "binarymap>=0.7",
-    "altair==5.1.2", # pandas convert_dtypes bug
+    "altair==5.1.2",     # pandas convert_dtypes bug
     "matplotlib",
     "seaborn",
     "scipy",
@@ -58,7 +58,7 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-pep8",
-    "ruff~=0.0.289",
+    "ruff",
     "black~=23.3.0",
     "notebook",
     # "sphinx",
@@ -69,16 +69,16 @@ dev = [
     "bumpver",
     "sphinxcontrib-bibtex",
     "dms_variants",
-    "ipywidgets"
+    "ipywidgets",
 ]
 
 [tool.ruff]
 pydocstyle.convention = "google"
 select = [
-  "E",   # pycodestyle
-  "F",   # pyflakes
-  "UP",  # pyupgrade
-  "D",   # pydocstyle
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "UP", # pyupgrade
+    "D",  # pydocstyle
 ]
 line-length = 89
 extend-exclude = [
@@ -122,9 +122,6 @@ tag = true
 push = false
 
 [tool.bumpver.file_patterns]
-"pyproject.toml" = [
-    'current_version = "{version}"', 'version = "{version}"'
-]
+"pyproject.toml" = ['current_version = "{version}"', 'version = "{version}"']
 "multidms/__init__.py" = ["{version}"]
 "docs/conf.py" = ['release = "{version}"']
-

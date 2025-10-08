@@ -30,11 +30,11 @@ jax.config.update("jax_enable_x64", True)
 class Data(eqx.Module):
     r"""Data for a DMS experiment."""
 
-    x_wt: Int[Array, "  n_mutations"]
+    x_wt: Int[Array, "n_mutations"]  # noqa: F821, UP037
     """Binary encoding of the wildtype sequence."""
     X: Int[Array, "n_variants n_mutations"]
     """Variant encoding matrix (sparse format)."""
-    functional_scores: Float[Array, " n_variants"]
+    functional_scores: Float[Array, "n_variants"]  # noqa: F821, UP037
     """Functional scores for each variant."""
     pre_count_wt: Int[Array, ""] | None = None
     """Wildtype pre-selection count (optional)."""
@@ -398,8 +398,8 @@ def fit(
         beta_init: Initial β (mutation effects) values for each condition.
                   If None, uses zeros (or warmstart values if warmstart=True).
                   If dict provided, uses those values for specified conditions.
-        alpha_init: Initial α (fitness-functional score scaling) values for each condition.
-                   If None, uses 1.0 for all conditions.
+        alpha_init: Initial α (fitness-functional score scaling) values
+                   for each condition. If None, uses 1.0 for all conditions.
                    If dict provided, uses those values for specified conditions.
         beta_clip_range: Optional tuple of (min, max) values for clipping β parameters.
                         If None, no clipping is applied. Example: (-10.0, 10.0).
@@ -414,17 +414,26 @@ def fit(
             "WT sequence of the reference condition should have no mutations."
         )
 
+    def _beta_ridge_penalty(model: Model, beta0_ridge=0.0) -> Float:
+        r"""Calculate ridge penalty for β0 differences from reference condition."""
+        penalty = 0.0
+        ref_beta0 = model.φ[model.reference_condition].β0
+        for d in model.φ:
+            if d != model.reference_condition:
+                penalty += (model.φ[d].β0 - ref_beta0) ** 2
+        return penalty * beta0_ridge
+
     @jax.jit
     def objective_part(model_part, model_rest, data_sets, scale=1.0, beta0_ridge=0.0):
         model = eqx.combine(model_part, model_rest)
         loss = sum(loss_fn(model, data_sets, **loss_kwargs).values())
         # Add β0 ridge penalty for non-reference conditions
-        beta0_penalty = 0.0
-        ref_beta0 = model.φ[model.reference_condition].β0
-        for d in model.φ:
-            if d != model.reference_condition:
-                beta0_penalty += (model.φ[d].β0 - ref_beta0) ** 2
-        return (loss + beta0_ridge * beta0_penalty) / scale
+        # beta0_penalty = 0.0
+        # ref_beta0 = model.φ[model.reference_condition].β0
+        # for d in model.φ:
+        #     if d != model.reference_condition:
+        #         beta0_penalty += (model.φ[d].β0 - ref_beta0) ** 2
+        return (loss + _beta_ridge_penalty(model, beta0_ridge)) / scale
 
     @jax.jit
     def objective_block(β_block, idxs, model, data_sets, l2reg=0.0, scale=1.0):
@@ -442,7 +451,9 @@ def fit(
         return (loss + l2reg * l2_penalty) / scale
 
     @jax.jit
-    def objective_total(model, data_sets, l2reg=0.0, fusionreg=0.0, scale=1.0):
+    def objective_total(
+        model, data_sets, l2reg=0.0, fusionreg=0.0, scale=1.0, beta0_ridge=0.0
+    ):
         loss = sum(loss_fn(model, data_sets, **loss_kwargs).values())
         l2_penalty = 0.0
         fusion_penalty = 0.0
@@ -453,7 +464,12 @@ def fit(
                 fusion_penalty += jnp.abs(
                     model.φ[d].β - model.φ[model.reference_condition].β
                 ).sum()
-        return (loss + l2reg * l2_penalty + fusionreg * fusion_penalty) / scale
+        return (
+            loss
+            + l2reg * l2_penalty
+            + fusionreg * fusion_penalty
+            + _beta_ridge_penalty(model, beta0_ridge)
+        ) / scale
 
     @jax.jit
     def prox_block(β_block, hyperparameters, scaling=1.0):
@@ -543,7 +559,11 @@ def fit(
     )
 
     # numerical rescaling
-    scale = abs(objective_total(model, data_sets, l2reg=l2reg, fusionreg=fusionreg))
+    scale = abs(
+        objective_total(
+            model, data_sets, l2reg=l2reg, fusionreg=fusionreg, beta0_ridge=beta0_ridge
+        )
+    )
 
     # track loss trajectory
     loss_trajectory = []
@@ -552,7 +572,12 @@ def fit(
         for k in range(block_iters):
             print(f"iter {k + 1}:")
             obj_old = objective_total(
-                model, data_sets, l2reg=l2reg, fusionreg=fusionreg, scale=scale
+                model,
+                data_sets,
+                l2reg=l2reg,
+                fusionreg=fusionreg,
+                scale=scale,
+                beta0_ridge=beta0_ridge,
             )
 
             # calibration block
@@ -564,7 +589,9 @@ def fit(
             )
             model = eqx.combine(model_calibration, model_rest)
             print(
-                f"  calibration block: error={state_calibration.error:.2e}, stepsize={state_calibration.stepsize:.1e}, iter={state_calibration.iter_num}"
+                f"  calibration block: error={state_calibration.error:.2e}, "
+                f"stepsize={state_calibration.stepsize:.1e}, "
+                f"iter={state_calibration.iter_num}"
             )
             for d in model.φ:
                 print(f"    {d}: α={model.α[d]:.2f}, θ={jnp.exp(model.logθ[d]):.2f}")
@@ -580,7 +607,8 @@ def fit(
             )
             model = eqx.combine(model_β0, model_rest)
             print(
-                f"  β0 block: error={state_β0.error:.2e}, stepsize={state_β0.stepsize:.1e}, iter={state_β0.iter_num}"
+                f"  β0 block: error={state_β0.error:.2e}, "
+                f"stepsize={state_β0.stepsize:.1e}, iter={state_β0.iter_num}"
             )
             for d in model.φ:
                 print(f"    {d}: β0={model.φ[d].β0:.2f}")
@@ -616,7 +644,9 @@ def fit(
                     model.φ[d].β.at[idxs].set(β_block[d]),
                 )
             print(
-                f"  β_nonbundle: error={state_nonbundle.error:.2e}, stepsize={state_nonbundle.stepsize:.1e}, iter={state_nonbundle.iter_num}"
+                f"  β_nonbundle: error={state_nonbundle.error:.2e}, "
+                f"stepsize={state_nonbundle.stepsize:.1e}, "
+                f"iter={state_nonbundle.iter_num}"
             )
 
             # β bundle block
@@ -644,7 +674,9 @@ def fit(
                     model.φ[d].β.at[idxs].set(β_block[d]),
                 )
             print(
-                f"  β_bundle: error={state_bundle.error:.2e}, stepsize={state_bundle.stepsize:.1e}, iter={state_bundle.iter_num}"
+                f"  β_bundle: error={state_bundle.error:.2e}, "
+                f"stepsize={state_bundle.stepsize:.1e}, "
+                f"iter={state_bundle.iter_num}"
             )
 
             # diagnostics
@@ -656,7 +688,12 @@ def fit(
                     print(f"  {d} sparsity={sparsity:.1%}")
 
             obj = objective_total(
-                model, data_sets, l2reg=l2reg, fusionreg=fusionreg, scale=scale
+                model,
+                data_sets,
+                l2reg=l2reg,
+                fusionreg=fusionreg,
+                scale=scale,
+                beta0_ridge=beta0_ridge,
             )
             print(f"  {obj=:.2e}")
             objective_error = abs(obj_old - obj) / max(abs(obj_old), abs(obj), 1)
