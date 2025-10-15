@@ -354,7 +354,7 @@ def proximal_box_constraints(params, hyperparameters, *args, **kwargs):
 def proximal_objective(Dop, params, hyperparameters, scaling=1.0):
     """ADMM generalized lasso optimization."""
     (
-        coef_lasso_shift,
+        scale_coeff_lasso_shift,
         admm_niter,
         admm_tau,
         admm_mu,
@@ -368,7 +368,7 @@ def proximal_objective(Dop, params, hyperparameters, scaling=1.0):
     # see https://pyproximal.readthedocs.io/en/stable/index.html
     beta_ravel, shift_ravel = pyproximal.optimization.primal.LinearizedADMM(
         pyproximal.L2(b=beta_ravel),
-        pyproximal.L1(sigma=scaling * coef_lasso_shift),
+        pyproximal.L1(sigma=scaling * scale_coeff_lasso_shift),
         Dop,
         niter=admm_niter,
         tau=admm_tau,
