@@ -70,13 +70,13 @@ alphabets.</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>sub_string</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – A string containing a single mutation</p>
+<dd class="field-odd"><p><strong>sub_string</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – A string containing a single mutation</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>A tuple containing the wildtype amino acid, site, and mutant amino acid</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)">tuple</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -90,7 +90,7 @@ mutant amino acids.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>subs_string</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – A string containing multiple mutations</p></li>
+<li><p><strong>subs_string</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – A string containing multiple mutations</p></li>
 <li><p><strong>parser</strong> (<em>function</em>) – A function that can parse a single mutation string and returns a tuple
 containing the wildtype amino acid, site, and mutant amino acid</p></li>
 </ul>
@@ -100,7 +100,7 @@ containing the wildtype amino acid, site, and mutant amino acid</p></li>
 as lists</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)">tuple</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -113,8 +113,8 @@ for computing shifts between adjacent conditional beta parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>n</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – The number of conditions</p></li>
-<li><p><strong>ref_index</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – The index of the reference condition</p></li>
+<li><p><strong>n</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – The number of conditions</p></li>
+<li><p><strong>ref_index</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – The index of the reference condition</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -138,9 +138,9 @@ on scaling parameters for training.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – A dictionary containing the model parameters
+<li><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – A dictionary containing the model parameters
 “beta”, and “beta0”.</p></li>
-<li><p><strong>bundle_idxs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – A dictionary, keyed by condition
+<li><p><strong>bundle_idxs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – A dictionary, keyed by condition
 containing the bundle indices in the binarymap matrix.</p></li>
 </ul>
 </dd>
@@ -149,7 +149,7 @@ containing the bundle indices in the binarymap matrix.</p></li>
 “beta”, and “beta0”.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)">dict</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -165,7 +165,7 @@ on scaling parameters for training.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>X</strong> (<a class="reference external" href="https://jax.readthedocs.io/en/latest/_autosummary/jax.experimental.sparse.BCOO.html#jax.experimental.sparse.BCOO" title="(in JAX)"><em>jax.experimental.sparse.BCOO</em></a>) – A binary matrix</p></li>
+<li><p><strong>X</strong> (<a class="reference external" href="https://docs.jax.dev/en/latest/_autosummary/jax.experimental.sparse.BCOO.html#jax.experimental.sparse.BCOO" title="(in JAX)"><em>jax.experimental.sparse.BCOO</em></a>) – A binary matrix</p></li>
 <li><p><strong>bundle_idxs</strong> (<em>jnp.ndarray</em>) – An boolean array indicating the bundle indices in the binarymap matrix.</p></li>
 </ul>
 </dd>
@@ -173,7 +173,7 @@ on scaling parameters for training.</p>
 <dd class="field-even"><p>A re-referenced binary matrix</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://jax.readthedocs.io/en/latest/_autosummary/jax.experimental.sparse.BCOO.html#jax.experimental.sparse.BCOO" title="(in JAX)">jax.experimental.sparse.BCOO</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.jax.dev/en/latest/_autosummary/jax.experimental.sparse.BCOO.html#jax.experimental.sparse.BCOO" title="(in JAX)">jax.experimental.sparse.BCOO</a></p>
 </dd>
 </dl>
 </dd></dl>

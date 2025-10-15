@@ -1,0 +1,4 @@
+.. automodule:: multidms.jaxmodels
+   :members:
+   :undoc-members:
+   :show-inheritance:

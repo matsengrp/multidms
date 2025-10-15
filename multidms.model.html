@@ -18,7 +18,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="model_collection" href="multidms.model_collection.html" />
-    <link rel="prev" title="data" href="multidms.data.html" />
+    <link rel="prev" title="jaxmodels" href="multidms.jaxmodels.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -43,7 +43,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="multidms.model.Model">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.model.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data:</span> <span class="pre">~multidms.data.Data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epistatic_model=&lt;function</span> <span class="pre">sigmoidal_global_epistasis&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_activation=&lt;function</span> <span class="pre">identity_activation&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PRNGKey=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_bound=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_hidden_units=5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_theta_scale=5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_theta_bias=-5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_beta_variance=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model.Model" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Represent one or more DMS experiments
 to obtain tuned parameters that provide insight into
 individual mutational effects and conditional shifts
@@ -61,15 +61,15 @@ for more.</p></li>
 <li><p><strong>output_activation</strong> (<em>&lt;class 'function'&gt;</em>) – A function which will transform the output of the
 global epistasis function. Defaults to the identity function
 (no activation). See the biophysical model documentation</p></li>
-<li><p><strong>conditional_shifts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If true (default) initialize and fit the shift
+<li><p><strong>conditional_shifts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If true (default) initialize and fit the shift
 parameters for each non-reference condition.
 See Model Description section for more.
 Defaults to True.</p></li>
-<li><p><strong>alpha_d</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True introduce a latent offset parameter
+<li><p><strong>alpha_d</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True introduce a latent offset parameter
 for each condition.
 See the biophysical docs section for more.
 Defaults to True.</p></li>
-<li><p><strong>gamma_corrected</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If true (default), introduce the ‘gamma’ parameter
+<li><p><strong>gamma_corrected</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If true (default), introduce the ‘gamma’ parameter
 for each non-reference parameter to
 account for differences between wild type
 behavior relative to its variants. This
@@ -77,27 +77,27 @@ is essentially a bias added to the functional
 scores during fitting.
 See Model Description section for more.
 Defaults to False.</p></li>
-<li><p><strong>PRNGKey</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – The initial seed key for random parameters
+<li><p><strong>PRNGKey</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – The initial seed key for random parameters
 assigned to Betas and any other randomly
 initialized parameters.
 for more.</p></li>
-<li><p><strong>init_beta_naught</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Initialize the latent offset parameter
+<li><p><strong>init_beta0</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Initialize the latent offset parameter
 applied to all conditions.
 See the biophysical docs section for more.</p></li>
-<li><p><strong>init_theta_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Initialize the scaling parameter <span class="math notranslate nohighlight">\(\theta_{\text{scale}}\)</span> of
+<li><p><strong>init_theta_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Initialize the scaling parameter <span class="math notranslate nohighlight">\(\theta_{\text{scale}}\)</span> of
 a two-parameter epistatic model (Sigmoid or Softplus).</p></li>
-<li><p><strong>init_theta_bias</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Initialize the bias parameter <span class="math notranslate nohighlight">\(\theta_{\text{bias}}\)</span> of
+<li><p><strong>init_theta_bias</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Initialize the bias parameter <span class="math notranslate nohighlight">\(\theta_{\text{bias}}\)</span> of
 a two parameter epistatic model (Sigmoid or Softplus).</p></li>
-<li><p><strong>init_beta_variance</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Beta parameters are initialized by sampling from
+<li><p><strong>init_beta_variance</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Beta parameters are initialized by sampling from
 a normal distribution. This parameter specifies the
 variance of the distribution being sampled.</p></li>
-<li><p><strong>n_hidden_units</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em> or </em><em>None</em>) – If using <a class="reference internal" href="multidms.biophysical.html#multidms.biophysical.nn_global_epistasis" title="multidms.biophysical.nn_global_epistasis"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.biophysical.nn_global_epistasis()</span></code></a>
+<li><p><strong>n_hidden_units</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em> or </em><em>None</em>) – If using <a class="reference internal" href="multidms.biophysical.html#multidms.biophysical.nn_global_epistasis" title="multidms.biophysical.nn_global_epistasis"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.biophysical.nn_global_epistasis()</span></code></a>
 as the epistatic model, this is the number of hidden units
 used in the transform.</p></li>
-<li><p><strong>lower_bound</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em> or </em><em>None</em>) – If using <a class="reference internal" href="multidms.biophysical.html#multidms.biophysical.softplus_activation" title="multidms.biophysical.softplus_activation"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.biophysical.softplus_activation()</span></code></a>
+<li><p><strong>lower_bound</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>None</em>) – If using <a class="reference internal" href="multidms.biophysical.html#multidms.biophysical.softplus_activation" title="multidms.biophysical.softplus_activation"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.biophysical.softplus_activation()</span></code></a>
 as the output activation, this is the lower bound of the
 softplus function.</p></li>
-<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><em>None</em>) – Name of the Model object. If None, will be assigned
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em>) – Name of the Model object. If None, will be assigned
 a unique name based upon the number of data objects
 instantiated.</p></li>
 </ul>
@@ -106,8 +106,8 @@ instantiated.</p></li>
 <p class="rubric">Example</p>
 <p>To create a <a class="reference internal" href="#multidms.model.Model" title="multidms.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">Model</span></code></a> object, all you need is
 the respective <code class="xref py py-class docutils literal notranslate"><span class="pre">Data</span></code> object for parameter fitting.</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">multidms</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">tests.test_data</span> <span class="kn">import</span> <span class="n">data</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">multidms</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tests.test_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">data</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">multidms</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -125,7 +125,7 @@ and parameters.</p>
 </div>
 <p>The mutations_df and variants_df may of course also be accessed.
 First, we set pandas to display all rows and columns.</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s1">&#39;display.max_rows&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s1">&#39;display.max_columns&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 </pre></div>
@@ -204,19 +204,19 @@ given our initialized parameters</p>
 the loss reflects our models loss given its updated parameters.</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.model.Model.name">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></em><a class="headerlink" href="#multidms.model.Model.name" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></em><a class="headerlink" href="#multidms.model.Model.name" title="Permalink to this definition">¶</a></dt>
 <dd><p>The name of the data object.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.model.Model.state">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">state</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.model.Model.state" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">state</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.model.Model.state" title="Permalink to this definition">¶</a></dt>
 <dd><p>The current state of the model.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.model.Model.converged">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">converged</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></em><a class="headerlink" href="#multidms.model.Model.converged" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">converged</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></em><a class="headerlink" href="#multidms.model.Model.converged" title="Permalink to this definition">¶</a></dt>
 <dd><p>Whether the model tolerance threshold was passed on last fit.</p>
 </dd></dl>
 
@@ -243,20 +243,20 @@ Currentlty, this is reset each time the fit() method is called</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.model.Model.params">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">params</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.model.Model.params" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">params</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.model.Model.params" title="Permalink to this definition">¶</a></dt>
 <dd><p>A copy of all current model parameters</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.model.Model.loss">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">loss</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></em><a class="headerlink" href="#multidms.model.Model.loss" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">loss</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></em><a class="headerlink" href="#multidms.model.Model.loss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute un-penalized model loss on all experimental training data
 without ridge or lasso penalties included.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.model.Model.conditional_loss">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">conditional_loss</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></em><a class="headerlink" href="#multidms.model.Model.conditional_loss" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">conditional_loss</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></em><a class="headerlink" href="#multidms.model.Model.conditional_loss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute un-penalized loss individually for each condition.</p>
 </dd></dl>
 
@@ -274,7 +274,7 @@ containing the prediction features for each.</p>
 and functional score phenotypes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>phenotype_as_effect</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – if True, phenotypes (both latent, and func_score)
+<dd class="field-odd"><p><strong>phenotype_as_effect</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – if True, phenotypes (both latent, and func_score)
 are calculated as the _difference_ between predicted
 phenotype of a given variant and the respective experimental
 wildtype prediction. Otherwise, report the unmodified
@@ -286,7 +286,7 @@ with the phenotypes added. Phenotypes are predicted
 based on the current state of the model.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)">pandas.DataFrame</a></p>
+<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)">pandas.DataFrame</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -299,12 +299,12 @@ based on the current state of the model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>times_seen_threshold</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – Only report mutations that have been seen at least
+<li><p><strong>times_seen_threshold</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Only report mutations that have been seen at least
 this many times in each condition. Defaults to 0.</p></li>
-<li><p><strong>phenotype_as_effect</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – if True, phenotypes are reported as the difference
+<li><p><strong>phenotype_as_effect</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – if True, phenotypes are reported as the difference
 from the conditional wildtype prediction. Otherwise,
 report the unmodified model prediction.</p></li>
-<li><p><strong>return_split</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, return the split mutations as separate columns:
+<li><p><strong>return_split</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, return the split mutations as separate columns:
 ‘wts’, ‘sites’, and ‘muts’.
 Defaults to True.</p></li>
 </ul>
@@ -324,7 +324,7 @@ conditional functional score effect (e.g. ) added.</p>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)">pandas.DataFrame</a></p>
+<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)">pandas.DataFrame</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -336,15 +336,15 @@ conditional functional score effect (e.g. ) added.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><em>pandas.DataFrame</em></a>) – Data frame containing variants. Requirements are the same as
+<li><p><strong>df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><em>pandas.DataFrame</em></a>) – Data frame containing variants. Requirements are the same as
 those used to initialize the <cite>multidms.Data</cite> object - except
 the indices must be unique.</p></li>
-<li><p><strong>error_if_unknown</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If some of the substitutions in a variant are not present in
+<li><p><strong>error_if_unknown</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If some of the substitutions in a variant are not present in
 the model (not in <code class="xref py py-attr docutils literal notranslate"><span class="pre">AbstractEpistasis.binarymap</span></code>)
 then by default we do not include those variants
 in the loss calculation. If <cite>True</cite>, raise an error.</p></li>
-<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, print the number of valid and invalid variants.</p></li>
-<li><p><strong>conditional</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, return the loss for each condition as a dictionary.
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, print the number of valid and invalid variants.</p></li>
+<li><p><strong>conditional</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, return the loss for each condition as a dictionary.
 If False, return the total loss.</p></li>
 </ul>
 </dd>
@@ -352,7 +352,7 @@ If False, return the total loss.</p></li>
 <dd class="field-even"><p>The loss of the model on the given data frame.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)">float</a> or <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)">dict</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a> or <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -364,26 +364,26 @@ If False, return the total loss.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><em>pandas.DataFrame</em></a>) – Data frame containing variants. Requirements are the same as
+<li><p><strong>df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><em>pandas.DataFrame</em></a>) – Data frame containing variants. Requirements are the same as
 those used to initialize the <cite>multidms.Data</cite> object - except
 the indices must be unique.</p></li>
-<li><p><strong>substitutions_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Column in <cite>df</cite> giving variants as substitution strings
+<li><p><strong>substitutions_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column in <cite>df</cite> giving variants as substitution strings
 with respect to a given variants condition.
 These will be converted to be with respect to the reference sequence
 prior to prediction. Defaults to ‘aa_substitutions’.</p></li>
-<li><p><strong>condition_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Column in <cite>df</cite> giving the condition from which a variant was
+<li><p><strong>condition_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column in <cite>df</cite> giving the condition from which a variant was
 observed. Values must exist in the self.data.conditions and
 and error will be raised otherwise. Defaults to ‘condition’.</p></li>
-<li><p><strong>latent_phenotype_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Column added to <cite>df</cite> containing predicted latent phenotypes.</p></li>
-<li><p><strong>observed_phenotype_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Column added to <cite>df</cite> containing predicted observed phenotypes.</p></li>
-<li><p><strong>converted_substitutions_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><em>None</em>) – Columns added to <cite>df</cite> containing converted substitution strings
+<li><p><strong>latent_phenotype_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column added to <cite>df</cite> containing predicted latent phenotypes.</p></li>
+<li><p><strong>observed_phenotype_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column added to <cite>df</cite> containing predicted observed phenotypes.</p></li>
+<li><p><strong>converted_substitutions_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em>) – Columns added to <cite>df</cite> containing converted substitution strings
 for non-reference conditions if they do not share a wildtype seq.</p></li>
-<li><p><strong>overwrite_cols</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If the specified latent or observed phenotype column already
+<li><p><strong>overwrite_cols</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If the specified latent or observed phenotype column already
 exist in <cite>df</cite>, overwrite it? If <cite>False</cite>, raise an error.</p></li>
-<li><p><strong>unknown_as_nan</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If some of the substitutions in a variant are not present in
+<li><p><strong>unknown_as_nan</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If some of the substitutions in a variant are not present in
 the model (not in <code class="xref py py-attr docutils literal notranslate"><span class="pre">AbstractEpistasis.binarymap</span></code>) set the
 phenotypes to <cite>nan</cite> (not a number)? If <cite>False</cite>, raise an error.</p></li>
-<li><p><strong>phenotype_as_effect</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – if True, phenotypes (both latent, and func_score)
+<li><p><strong>phenotype_as_effect</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – if True, phenotypes (both latent, and func_score)
 are calculated as the _difference_ between predicted
 phenotype of a given variant and the respective experimental
 wildtype prediction. Otherwise, report the unmodified
@@ -395,7 +395,7 @@ model prediction.</p></li>
 based on the current state of the model.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)">pandas.DataFrame</a></p>
+<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)">pandas.DataFrame</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -409,7 +409,7 @@ all numerical columns by “sites”</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>agg_func</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Aggregation function to use on the numerical columns.
+<li><p><strong>agg_func</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Aggregation function to use on the numerical columns.
 Defaults to “mean”.</p></li>
 <li><p><strong>**kwargs</strong> – Additional keyword arguments to pass to get_mutations_df.</p></li>
 </ul>
@@ -418,7 +418,7 @@ Defaults to “mean”.</p></li>
 <dd class="field-even"><p>A summary of the mutation attributes aggregated by site.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)">pandas.DataFrame</a></p>
+<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)">pandas.DataFrame</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -432,7 +432,7 @@ Defaults to “mean”.</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.model.Model.phenotype_fromsubs">
 <span class="sig-name descname"><span class="pre">phenotype_fromsubs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aa_subs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model.Model.phenotype_fromsubs" title="Permalink to this definition">¶</a></dt>
-<dd><p>take a single string of subs which are
+<dd><p>Take a single string of subs which are
 not already converted wrt reference, convert them and
 then make a functional score prediction and return the result.</p>
 </dd></dl>
@@ -440,7 +440,7 @@ then make a functional score prediction and return the result.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.model.Model.latent_fromsubs">
 <span class="sig-name descname"><span class="pre">latent_fromsubs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aa_subs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model.Model.latent_fromsubs" title="Permalink to this definition">¶</a></dt>
-<dd><p>take a single string of subs which are
+<dd><p>Take a single string of subs which are
 not already converted wrt reference, convert them and
 them make a latent prediction and return the result.</p>
 </dd></dl>
@@ -455,7 +455,7 @@ given current model parameters.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>X</strong> (<em>jnp.array</em>) – Binary encoded variants to make predictions on.</p></li>
-<li><p><strong>condition</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Condition to make predictions for. If None, use the reference</p></li>
+<li><p><strong>condition</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Condition to make predictions for. If None, use the reference</p></li>
 </ul>
 </dd>
 </dl>
@@ -471,7 +471,7 @@ given current model parameters.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>X</strong> (<em>jnp.array</em>) – Binary encoded variants to make predictions on.</p></li>
-<li><p><strong>condition</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Condition to make predictions for. If None, use the reference</p></li>
+<li><p><strong>condition</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Condition to make predictions for. If None, use the reference</p></li>
 </ul>
 </dd>
 </dl>
@@ -484,33 +484,33 @@ given current model parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>scale_coeff_lasso_shift</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – L1 penalty coefficient applied “shift” in beta_d parameters.
+<li><p><strong>scale_coeff_lasso_shift</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – L1 penalty coefficient applied “shift” in beta_d parameters.
 Defaults to 1e-4. This parameter is used to regularize the
 shift parameters in the model if there’s more than one condition.</p></li>
-<li><p><strong>tol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Tolerance for the optimization convergence criteria. Defaults to 1e-4.</p></li>
-<li><p><strong>maxiter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Maximum number of iterations for the optimization. Defaults to 1000.</p></li>
-<li><p><strong>maxls</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Maximum number of iterations to perform during line search.</p></li>
-<li><p><strong>acceleration</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, use FISTA acceleration. Defaults to True.</p></li>
-<li><p><strong>lock_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Dictionary of parameters, and desired value to constrain
+<li><p><strong>tol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Tolerance for the optimization convergence criteria. Defaults to 1e-4.</p></li>
+<li><p><strong>maxiter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Maximum number of iterations for the optimization. Defaults to 1000.</p></li>
+<li><p><strong>maxls</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Maximum number of iterations to perform during line search.</p></li>
+<li><p><strong>acceleration</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, use FISTA acceleration. Defaults to True.</p></li>
+<li><p><strong>lock_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Dictionary of parameters, and desired value to constrain
 them at during optimization. By default, no parameters are locked.</p></li>
-<li><p><strong>admm_niter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Number of iterations to perform during the ADMM optimization.
+<li><p><strong>admm_niter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of iterations to perform during the ADMM optimization.
 Defaults to 50. Note that in the case of single-condition models,
 This is set to zero as the generalized
 lasso ADMM optimization is not used.</p></li>
-<li><p><strong>admm_tau</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – ADMM step size. Defaults to 1.0.</p></li>
-<li><p><strong>warn_unconverged</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, raise a warning if the optimization does not converge.
+<li><p><strong>admm_tau</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – ADMM step size. Defaults to 1.0.</p></li>
+<li><p><strong>warn_unconverged</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, raise a warning if the optimization does not converge.
 convergence is defined by whether the model tolerance (‘’tol’’) threshold
 was passed during the optimization process.
 Defaults to True.</p></li>
-<li><p><strong>upper_bound_ge_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>None</em><em>, or </em><em>'infer'</em>) – The positive upper bound of the theta scale parameter -
+<li><p><strong>upper_bound_ge_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>None</em><em>, or </em><em>'infer'</em>) – The positive upper bound of the theta scale parameter -
 negative values are not allowed.
 Passing <code class="docutils literal notranslate"><span class="pre">None</span></code> allows the scale of the sigmoid to be unconstrained.
 Passing the string literal ‘infer’ results in the
 scale being set to double the range of the training data.
 Defaults to ‘infer’.</p></li>
-<li><p><strong>convergence_trajectory_resolution</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – The resolution of the loss and error trajectory recorded
+<li><p><strong>convergence_trajectory_resolution</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – The resolution of the loss and error trajectory recorded
 during optimization. Defaults to 100.</p></li>
-<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Additional keyword arguments passed to the objective function.
+<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Additional keyword arguments passed to the objective function.
 See the multidms.biophysical.smooth_objective docstring for
 details on the other hyperparameters that may be supplied to
 regularize and otherwise modify the objective function
@@ -616,7 +616,7 @@ see <cite>multidms.plot.mut_shift_plot()</cite> for more</p>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
   <li><a href="multidms.html">multidms package</a><ul>
-      <li>Previous: <a href="multidms.data.html" title="previous chapter">data</a></li>
+      <li>Previous: <a href="multidms.jaxmodels.html" title="previous chapter">jaxmodels</a></li>
       <li>Next: <a href="multidms.model_collection.html" title="next chapter">model_collection</a></li>
   </ul></li>
   </ul></li>

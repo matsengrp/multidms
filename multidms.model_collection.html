@@ -42,13 +42,13 @@ and merges the results for comparison and visualization.</p>
 <dl class="py exception">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollectionFitError">
 <em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.model_collection.</span></span><span class="sig-name descname"><span class="pre">ModelCollectionFitError</span></span><a class="headerlink" href="#multidms.model_collection.ModelCollectionFitError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
 <p>Error fitting models.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="multidms.model_collection.fit_one_model">
-<span class="sig-prename descclassname"><span class="pre">multidms.model_collection.</span></span><span class="sig-name descname"><span class="pre">fit_one_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epistatic_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Sigmoid'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_activation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Identity'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_theta_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_theta_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-3.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_beta_variance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_hidden_units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PRNGKey</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.fit_one_model" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">multidms.model_collection.</span></span><span class="sig-name descname"><span class="pre">fit_one_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epistatic_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Sigmoid'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_theta_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_theta_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-3.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_beta_variance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_hidden_units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PRNGKey</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.fit_one_model" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fit a multidms model to a dataset. This is a wrapper around the multidms
 fit method that allows for easy specification of the fit parameters.
 This method is helpful for comparing and organizing multiple fits.</p>
@@ -58,18 +58,17 @@ This method is helpful for comparing and organizing multiple fits.</p>
 <li><p><strong>dataset</strong> (<a class="reference internal" href="multidms.html#multidms.Data" title="multidms.Data"><code class="xref py py-class docutils literal notranslate"><span class="pre">multidms.Data</span></code></a>) – The dataset to fit to. For bookkeeping and downstream analysis,
 the name of the dataset (Data.name) is saved in the fit attributes
 that are returned.</p></li>
-<li><p><strong>epistatic_model</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – The epistatic model to use. The default is “Identity”.</p></li>
-<li><p><strong>output_activation</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – The output activation function to use. The default is “Identity”.</p></li>
-<li><p><strong>init_theta_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>optional</em>) – The scale to use for initializing the model parameters. The default is 6.5.</p></li>
-<li><p><strong>init_theta_bias</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>optional</em>) – The bias to use for initializing the model parameters. The default is -3.5.</p></li>
-<li><p><strong>init_beta_variance</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>optional</em>) – The variance to use for initializing the model’s beta parameters from a normal
+<li><p><strong>epistatic_model</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – The epistatic model to use. The default is “Identity”.</p></li>
+<li><p><strong>init_theta_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – The scale to use for initializing the model parameters. The default is 6.5.</p></li>
+<li><p><strong>init_theta_bias</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – The bias to use for initializing the model parameters. The default is -3.5.</p></li>
+<li><p><strong>init_beta_variance</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – The variance to use for initializing the model’s beta parameters from a normal
 distribution. The default is 1.0.</p></li>
-<li><p><strong>n_hidden_units</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – The number of hidden units to use in the neural network model. The default is 5.</p></li>
-<li><p><strong>lower_bound</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>, </em><em>optional</em>) – The lower bound for use with the softplus activation function.
+<li><p><strong>n_hidden_units</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – The number of hidden units to use in the neural network model. The default is 5.</p></li>
+<li><p><strong>lower_bound</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – The lower bound for use with the softplus activation function.
 The default is None, but must be specified if using the softplus activation.</p></li>
-<li><p><strong>PRNGKey</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – The PRNGKey to use to initialize model parameters. The default is 0.</p></li>
-<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to print out information about the fit to stdout. The default is False.</p></li>
-<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Additional keyword arguments to pass to the multidms.Model.fit method.</p></li>
+<li><p><strong>PRNGKey</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – The PRNGKey to use to initialize model parameters. The default is 0.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to print out information about the fit to stdout. The default is False.</p></li>
+<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Additional keyword arguments to pass to the multidms.Model.fit method.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -86,7 +85,7 @@ accessible via the <cite>Model.data</cite> attribute).
 epoch.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v2.2.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.Series</span></code></a></p>
+<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v2.3.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.Series</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -94,7 +93,7 @@ epoch.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="multidms.model_collection.stack_fit_models">
 <span class="sig-prename descclassname"><span class="pre">multidms.model_collection.</span></span><span class="sig-name descname"><span class="pre">stack_fit_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fit_models_list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.stack_fit_models" title="Permalink to this definition">¶</a></dt>
-<dd><p>given a list of pd.Series objects returned by fit_one_model,
+<dd><p>Given a list of pd.Series objects returned by fit_one_model,
 stack them into a single pd.DataFrame</p>
 </dd></dl>
 
@@ -111,7 +110,7 @@ and visualization.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Dictionary which defines the parameter space of all models you
+<li><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Dictionary which defines the parameter space of all models you
 wish to run. Each value in the dictionary must be a list of
 values, even in the case of singletons.
 This function will compute all combinations of the parameter
@@ -120,7 +119,7 @@ to be run in parallel, thus only key-value pairs which
 match the kwargs are allowed.
 See the docstring of <a class="reference internal" href="#multidms.model_collection.fit_one_model" title="multidms.model_collection.fit_one_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.model_collection.fit_one_model()</span></code></a> for
 a description of the allowed parameters.</p></li>
-<li><p><strong>n_threads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Number of threads (CPUs, cores) to use for fitting. Set to -1 to use
+<li><p><strong>n_threads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of threads (CPUs, cores) to use for fitting. Set to -1 to use
 all CPUs available.</p></li>
 <li><p><strong>failures</strong> (<em>{&quot;error&quot;</em><em>, </em><em>&quot;tolerate&quot;}</em>) – What if fitting fails for a model? If “error” then raise an error,
 if “ignore” then just return <cite>None</cite> for models that failed optimization.</p></li>
@@ -142,7 +141,7 @@ for comparison and visualization.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.model_collection.</span></span><span class="sig-name descname"><span class="pre">ModelCollection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fit_models</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A class for the comparison and visualization of multiple
 <cite>multidms.Model</cite> fits. The respective collection of
 training datasets for each fit must
@@ -154,44 +153,44 @@ the collection of models, and the resulting dataframe is passed to the
 constructor of this class.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>fit_models</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – A dataframe containing the fit attributes and pickled model objects
+<dd class="field-odd"><p><strong>fit_models</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – A dataframe containing the fit attributes and pickled model objects
 as returned by <cite>multidms.model_collection.fit_models</cite>.</p>
 </dd>
 </dl>
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.site_map_union">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">site_map_union</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.model_collection.ModelCollection.site_map_union" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">site_map_union</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.model_collection.ModelCollection.site_map_union" title="Permalink to this definition">¶</a></dt>
 <dd><p>The union of all site maps of all datasets used for fitting.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.conditions">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">conditions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a></em><a class="headerlink" href="#multidms.model_collection.ModelCollection.conditions" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">conditions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a></em><a class="headerlink" href="#multidms.model_collection.ModelCollection.conditions" title="Permalink to this definition">¶</a></dt>
 <dd><p>The conditions (shared by each fitting dataset) used for fitting.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.reference">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reference</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></em><a class="headerlink" href="#multidms.model_collection.ModelCollection.reference" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reference</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></em><a class="headerlink" href="#multidms.model_collection.ModelCollection.reference" title="Permalink to this definition">¶</a></dt>
 <dd><p>The reference conditions (shared by each fitting dataset) used for fitting.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.shared_mutations">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shared_mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.model_collection.ModelCollection.shared_mutations" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shared_mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.model_collection.ModelCollection.shared_mutations" title="Permalink to this definition">¶</a></dt>
 <dd><p>The mutations shared by each fitting dataset.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.all_mutations">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">all_mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.model_collection.ModelCollection.all_mutations" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">all_mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.model_collection.ModelCollection.all_mutations" title="Permalink to this definition">¶</a></dt>
 <dd><p>The mutations shared by each fitting dataset.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.split_apply_combine_muts">
-<span class="sig-name descname"><span class="pre">split_apply_combine_muts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groupby</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('dataset_name',</span> <span class="pre">'scale_coeff_lasso_shift')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_merge_dataset_muts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.split_apply_combine_muts" title="Permalink to this definition">¶</a></dt>
-<dd><p>wrapper to split-apply-combine the set of mutational dataframes
+<span class="sig-name descname"><span class="pre">split_apply_combine_muts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groupby</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('dataset_name',</span> <span class="pre">'coef_lasso_shift')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_merge_dataset_muts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.split_apply_combine_muts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper to split-apply-combine the set of mutational dataframes
 harbored by each of the fits in the collection.</p>
 <p>Here, we group the collection of fits using attributes
 (columns in <code class="xref py py-attr docutils literal notranslate"><span class="pre">ModelCollection.fit_models</span></code>) specified using the
@@ -204,17 +203,17 @@ with the mutation and the groupby attributes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>groupby</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><em>tuple</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>optional</em>) – The attributes to group the fits by. If None, then group by all
+<li><p><strong>groupby</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><em>tuple</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>optional</em>) – The attributes to group the fits by. If None, then group by all
 attributes except for the model, data, and step_loss attributes.
-The default is (“dataset_name”, “scale_coeff_lasso_shift”).</p></li>
-<li><p><strong>aggregate_func</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><em>callable</em><em>, </em><em>optional</em>) – The function to aggregate the mutational dataframes within each group.
+The default is (“dataset_name”, “coef_lasso_shift”).</p></li>
+<li><p><strong>aggregate_func</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>callable</em><em>, </em><em>optional</em>) – The function to aggregate the mutational dataframes within each group.
 The default is “mean”.</p></li>
-<li><p><strong>inner_merge_dataset_muts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to toss mutations which are _not_ shared across all datasets
+<li><p><strong>inner_merge_dataset_muts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to toss mutations which are _not_ shared across all datasets
 before aggregation of group mutation parameter values.
 The default is True.</p></li>
-<li><p><strong>query</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – The pandas query to apply to the <cite>ModelCollection.fit_models</cite>
+<li><p><strong>query</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – The pandas query to apply to the <cite>ModelCollection.fit_models</cite>
 dataframe before splitting. The default is None.</p></li>
-<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Keyword arguments to pass to the <a class="reference internal" href="multidms.html#multidms.Model.get_mutations_df" title="multidms.Model.get_mutations_df"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.Model.get_mutations_df()</span></code></a>
+<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Keyword arguments to pass to the <a class="reference internal" href="multidms.html#multidms.Model.get_mutations_df" title="multidms.Model.get_mutations_df"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.Model.get_mutations_df()</span></code></a>
 method (“phenotype_as_effect”, and “times_seen_threshold”) see the
 method docstring for details.</p></li>
 </ul>
@@ -223,7 +222,7 @@ method docstring for details.</p></li>
 <dd class="field-even"><p>A dataframe containing the aggregated mutational parameter values</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
+<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -235,12 +234,12 @@ method docstring for details.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>test_data</strong> (<em>pd.DataFrame</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>pd.DataFrame</em><em>)</em>) – The testing dataframe to compute validation loss with respect to,
+<li><p><strong>test_data</strong> (<em>pd.DataFrame</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>pd.DataFrame</em><em>)</em>) – The testing dataframe to compute validation loss with respect to,
 must have columns “aa_substitutitions”, “condition”, and “func_score”.
 If a dictionary is passed, there should be a key for
 each unique dataset_name factor in the self.fit_models dataframe
 - with the value being the respective testing dataframe.</p></li>
-<li><p><strong>overwrite</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to overwrite the validation_loss column if it already exists.
+<li><p><strong>overwrite</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to overwrite the validation_loss column if it already exists.
 The default is False.</p></li>
 </ul>
 </dd>
@@ -256,13 +255,13 @@ The default is False.</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.get_conditional_loss_df">
 <span class="sig-name descname"><span class="pre">get_conditional_loss_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.get_conditional_loss_df" title="Permalink to this definition">¶</a></dt>
-<dd><p>return a long form dataframe with columns
-“dataset_name”, “scale_coeff_lasso_shift”,
+<dd><p>Return a long form dataframe with columns
+“dataset_name”, “coef_lasso_shift”,
 “split” (“training” or “validation”),
 “loss” (actual value), and “condition”.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>query</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – The query to apply to the fit_models dataframe
+<dd class="field-odd"><p><strong>query</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – The query to apply to the fit_models dataframe
 before formatting the loss dataframe. The default is None.</p>
 </dd>
 </dl>
@@ -270,7 +269,7 @@ before formatting the loss dataframe. The default is None.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.convergence_trajectory_df">
-<span class="sig-name descname"><span class="pre">convergence_trajectory_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id_vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('dataset_name',</span> <span class="pre">'scale_coeff_lasso_shift')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.convergence_trajectory_df" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">convergence_trajectory_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id_vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('dataset_name',</span> <span class="pre">'coef_lasso_shift')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.convergence_trajectory_df" title="Permalink to this definition">¶</a></dt>
 <dd><p>Combine the converence trajectory dataframes of
 all fits in the queried collection.</p>
 </dd></dl>
@@ -292,7 +291,7 @@ than one unique hyper-parameter besides “dataset_name”.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>query</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – The query to apply to the fit_models dataframe. This should be
+<li><p><strong>query</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The query to apply to the fit_models dataframe. This should be
 used to subset the fits to only those which make sense to aggregate
 mutational data across, e.g. replicate datasets.
 For example, if you have a collection of
@@ -302,19 +301,19 @@ for only those fits with the same epistatic model. e.g.
 syntax, see the
 <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.query.html">pandas.query</a>
 documentation.</p></li>
-<li><p><strong>mut_param</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – The mutational parameter to plot. The default is “shift”.
+<li><p><strong>mut_param</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – The mutational parameter to plot. The default is “shift”.
 Must be one of “shift”, “predicted_func_score”, or “beta”.</p></li>
-<li><p><strong>aggregate_func</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – The function to aggregate the mutational parameter values
+<li><p><strong>aggregate_func</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – The function to aggregate the mutational parameter values
 between dataset fits. The default is “mean”.</p></li>
-<li><p><strong>inner_merge_dataset_muts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to toss mutations which are _not_ shared across all datasets
+<li><p><strong>inner_merge_dataset_muts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to toss mutations which are _not_ shared across all datasets
 before aggregation of group mutation parameter values.
 The default is True.</p></li>
-<li><p><strong>times_seen_threshold</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – The minimum number of times a mutation must be seen across
+<li><p><strong>times_seen_threshold</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – The minimum number of times a mutation must be seen across
 all conditions within a single fit to be included in the
 aggregation. The default is 0.</p></li>
-<li><p><strong>phenotype_as_effect</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Passed to <cite>Model.get_mutations_df()</cite>,
+<li><p><strong>phenotype_as_effect</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Passed to <cite>Model.get_mutations_df()</cite>,
 Only applies if <cite>mut_param=”predicted_func_score”</cite>.</p></li>
-<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Keyword arguments to pass to
+<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Keyword arguments to pass to
 <code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.plot._lineplot_and_heatmap()</span></code>.</p></li>
 </ul>
 </dd>
@@ -330,8 +329,8 @@ or saved to a file.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.mut_param_traceplot">
-<span class="sig-name descname"><span class="pre">mut_param_traceplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mutations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mut_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.mut_param_traceplot" title="Permalink to this definition">¶</a></dt>
-<dd><p>visualize mutation parameter values across the lasso penalty weights
+<span class="sig-name descname"><span class="pre">mut_param_traceplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mutations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mut_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'coef_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.mut_param_traceplot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Visualize mutation parameter values across the lasso penalty weights
 (by default) of a given subset of the mutations in the form of an
 <cite>altair.FacetChart</cite>. This is useful when you would like to confirm
 that a reported mutational parameter value carries through across the
@@ -349,7 +348,7 @@ or saved to a file.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.shift_sparsity">
-<span class="sig-name descname"><span class="pre">shift_sparsity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.shift_sparsity" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">shift_sparsity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'coef_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.shift_sparsity" title="Permalink to this definition">¶</a></dt>
 <dd><p>Visualize shift parameter set sparsity across the lasso penalty weights
 (by default) in the form of an <cite>altair.FacetChart</cite>.
 We will group the mutations according to their status as either a
@@ -371,7 +370,7 @@ containing the chart and the underlying data will be returned.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.mut_param_dataset_correlation">
-<span class="sig-name descname"><span class="pre">mut_param_dataset_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scale_coeff_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.mut_param_dataset_correlation" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">mut_param_dataset_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'coef_lasso_shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.mut_param_dataset_correlation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Visualize the correlation between replicate datasets across the lasso penalty
 weights (by default) in the form of an <cite>altair.FacetChart</cite>.
 We compute correlation of mutation parameters accross each pair of datasets
@@ -379,16 +378,16 @@ in the collection.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>optional</em>) – The parameter to plot on the x-axis.
-The default is “scale_coeff_lasso_shift”.</p></li>
-<li><p><strong>width_scalar</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – The width of the chart. The default is 150.</p></li>
-<li><p><strong>height</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – The height of the chart. The default is 200.</p></li>
-<li><p><strong>return_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to return the underlying data. The default is False.</p></li>
-<li><p><strong>r</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><em>optional</em>) – The exponential of the correlation coefficient reported.
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – The parameter to plot on the x-axis.
+The default is “coef_lasso_shift”.</p></li>
+<li><p><strong>width_scalar</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – The width of the chart. The default is 150.</p></li>
+<li><p><strong>height</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – The height of the chart. The default is 200.</p></li>
+<li><p><strong>return_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to return the underlying data. The default is False.</p></li>
+<li><p><strong>r</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – The exponential of the correlation coefficient reported.
 May be either 1 for pearson,
 2 for coefficient of determination (r-squared),
 The default is 2.</p></li>
-<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – The keyword arguments to pass to the
+<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – The keyword arguments to pass to the
 <a class="reference internal" href="#multidms.model_collection.ModelCollection.split_apply_combine_muts" title="multidms.model_collection.ModelCollection.split_apply_combine_muts"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.model_collection.ModelCollection.split_apply_combine_muts()</span></code></a>
 method. See the method docstring for details.</p></li>
 </ul>

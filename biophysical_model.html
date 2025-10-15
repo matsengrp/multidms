@@ -42,13 +42,21 @@
 <p>The goal of <code class="docutils literal notranslate"><span class="pre">multidms</span></code> is to jointly infer mutational effects across multiple deep mutational scanning (DMS) experiments, including how much each mutation’s effect differs between experiments. We refer to these differences as <em>shifts</em>. If the experiments were performed with different homologs of the same protein, a shift would indicate epistasis between the shifted mutation and the amino-acid mutations that separate the homologs. Or, if they were performed with the same wildtype protein under
 different selective conditions (e.g., selection for viral entry using different but related host receptors), shifts would indicate condition-specific effects. Ultimately, this model was designed to identify those shifts relative to user’s chosen <em>reference condition</em> with feature selection via a lasso (<span class="math notranslate nohighlight">\(L_1\)</span>) regularization <a class="footnote-reference brackets" href="#footcite-hastie2015lasso" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a> of the shift parameters described in the additive <em>latent phenotype</em> section below.</p>
 <p><code class="docutils literal notranslate"><span class="pre">multidms</span></code> is compatible with DMS data that have the following characteristics. First, the data must report a functional score (e.g., log enrichment ratio) for each variant from each DMS experiment, where a variant constitutes a unique gene sequence covering the entire mutagenized region. Thus, the deep-sequencing data must resolve complete haplotypes. Second, most mutations must be seen in multiple unique variants per experiment, as this number is the basis by which shifts are regularized
-(see below). This second requirement is often met in DMS libraries with multiple mutations per variant, as long as each mutation occurs in multiple genetic backgrounds, or in libraries with one mutation per variant, as long as each variant is uniquely barcoded and individual mutations are found in the background of multiple barcodes. Given input data from one or more experiments, <code class="docutils literal notranslate"><span class="pre">multidms</span></code> fits to all the data and provides: (1) mutational effects <span class="math notranslate nohighlight">\(\beta\)</span> across all experiments, (2)
-<span class="math notranslate nohighlight">\(\Delta\)</span>, how effects are shifted between experiments, and (3) a model to predict the functional score of any given variant.</p>
+(see below). This second requirement is often met in DMS libraries with multiple mutations per variant, as long as each mutation occurs in multiple genetic backgrounds, or in libraries with one mutation per variant, as long as each variant is uniquely barcoded and individual mutations are found in the background of multiple barcodes. Given input data from one or more experiments, <code class="docutils literal notranslate"><span class="pre">multidms</span></code> fits to all the data and provides:</p>
+<ol class="arabic simple">
+<li><p>mutational effects <span class="math notranslate nohighlight">\(\beta\)</span> across all experiments,</p></li>
+<li><p><span class="math notranslate nohighlight">\(\Delta\)</span>, how effects are shifted between experiments, and</p></li>
+<li><p>a model to predict the functional score of any given variant.</p></li>
+</ol>
 <p><strong>Note</strong>: We suggest reading the <a class="reference external" href="https://www.pnas.org/doi/10.1073/pnas.1804015115">Otwinowski et al. 2018</a> <a class="footnote-reference brackets" href="#footcite-otwinowski2018globalepistasis" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a> paper to understand the approach for modeling global epistasis before reading the rest of the documentation.</p>
 <section id="Joint-model-composition">
 <h2>Joint model composition<a class="headerlink" href="#Joint-model-composition" title="Permalink to this heading">¶</a></h2>
-<p>At a high level, the model is a composition of three functions which describe the expected biophysical interactions underlying a given phenotype; (1) <span class="math notranslate nohighlight">\(\phi\)</span>, an additive model describing a variant’s latent phenotype under a given condition, (2) <span class="math notranslate nohighlight">\(g\)</span>, a global epistasis model shared by all conditions to disentangle the effects of multiple mutations on the same variant, and (3) <span class="math notranslate nohighlight">\(t\)</span>, an <em>optional</em> final output activation function which can account for variant functional scores
-which have been clipped at some lower bound <em>prior</em> to using <code class="docutils literal notranslate"><span class="pre">multidms</span></code>.</p>
+<p>At a high level, the model is a composition of three functions which describe the expected biophysical interactions underlying a given phenotype;</p>
+<ol class="arabic simple">
+<li><p><span class="math notranslate nohighlight">\(\phi\)</span>, an additive model describing a variant’s latent phenotype under a given condition,</p></li>
+<li><p><span class="math notranslate nohighlight">\(g\)</span>, a global epistasis model shared by all conditions to disentangle the effects of multiple mutations on the same variant, and</p></li>
+<li><p><span class="math notranslate nohighlight">\(t\)</span>, an <em>optional</em> final output activation function which can account for variant functional scores which have been clipped at some lower bound <em>prior</em> to using <code class="docutils literal notranslate"><span class="pre">multidms</span></code>.</p></li>
+</ol>
 <p>Concretely, the predicted phenotype for a given variant <span class="math notranslate nohighlight">\(v\)</span> under condition <span class="math notranslate nohighlight">\(d\)</span> is given by</p>
 <div class="math notranslate nohighlight">
 \[\hat{y}_{v, d} = t_{\gamma_{d}}(g_{\theta}(\phi_{d, \beta, \Delta}(v))\]</div>
@@ -95,11 +103,11 @@ not sampled in the DMS libraries (e.g., Y30A is missing from the non-reference e
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">altair</span> <span class="k">as</span> <span class="nn">alt</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">altair</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">alt</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
 
 <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;latent&quot;</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">50</span><span class="p">)})</span>
@@ -201,11 +209,11 @@ recommended to use this model with a user defined lower bound which is described
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">altair</span> <span class="k">as</span> <span class="nn">alt</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">altair</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">alt</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
 
 <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;latent&quot;</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">50</span><span class="p">)})</span>
@@ -366,11 +374,11 @@ for the reference condition could be truncated at <span class="math notranslate 
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Below is an interactive plot showing the effect of the modified</span>
 <span class="c1"># softplus activation as a function of an adjustable $\lambda_{sp}$ scaling parameter, and lower bound, $l$:</span>
 
-<span class="kn">import</span> <span class="nn">altair</span> <span class="k">as</span> <span class="nn">alt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">altair</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">alt</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
 
 <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;latent&quot;</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">100</span><span class="p">)})</span>

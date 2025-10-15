@@ -71,7 +71,7 @@ See the <cite>jax</cite> documentation for more details.</p>
 </section>
 <dl class="py function">
 <dt class="sig sig-object py" id="multidms.biophysical.additive_model">
-<span class="sig-prename descclassname"><span class="pre">multidms.biophysical.</span></span><span class="sig-name descname"><span class="pre">additive_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.biophysical.additive_model" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">multidms.biophysical.</span></span><span class="sig-name descname"><span class="pre">additive_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.biophysical.additive_model" title="Permalink to this definition">¶</a></dt>
 <dd><p>Model for predicting latent phenotype of a set
 of binary encoded variants <span class="math notranslate nohighlight">\(v\)</span> for a given condition, <span class="math notranslate nohighlight">\(d\)</span>
 and the corresponding
@@ -84,7 +84,7 @@ parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Dictionary of model defining parameters as jax arrays.
+<li><p><strong>d_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Dictionary of model defining parameters as jax arrays.
 note that shape of the parameters must be compatible with the
 input data.</p></li>
 <li><p><strong>X_d</strong> (<em>array-like</em>) – Binary encoded mutations for a given set of variants
@@ -102,7 +102,7 @@ from condition, <span class="math notranslate nohighlight">\(d\)</span>.</p></li
 
 <dl class="py function">
 <dt class="sig sig-object py" id="multidms.biophysical.sigmoidal_global_epistasis">
-<span class="sig-prename descclassname"><span class="pre">multidms.biophysical.</span></span><span class="sig-name descname"><span class="pre">sigmoidal_global_epistasis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.biophysical.sigmoidal_global_epistasis" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">multidms.biophysical.</span></span><span class="sig-name descname"><span class="pre">sigmoidal_global_epistasis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.biophysical.sigmoidal_global_epistasis" title="Permalink to this definition">¶</a></dt>
 <dd><p>A flexible sigmoid function for modeling global epistasis.
 This function takes a set of latent phenotype values, <span class="math notranslate nohighlight">\(z_d\)</span>
 and computes the predicted functional scores using the scaling parameters
@@ -118,7 +118,7 @@ experimental condition from which a variant is observed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Dictionary of model defining parameters as jax arrays.</p></li>
+<li><p><strong>theta</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Dictionary of model defining parameters as jax arrays.</p></li>
 <li><p><strong>z_d</strong> (<em>jnp.array</em>) – Latent phenotype values for a given set of variants</p></li>
 </ul>
 </dd>
@@ -133,7 +133,7 @@ experimental condition from which a variant is observed.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="multidms.biophysical.softplus_global_epistasis">
-<span class="sig-prename descclassname"><span class="pre">multidms.biophysical.</span></span><span class="sig-name descname"><span class="pre">softplus_global_epistasis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.biophysical.softplus_global_epistasis" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">multidms.biophysical.</span></span><span class="sig-name descname"><span class="pre">softplus_global_epistasis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.biophysical.softplus_global_epistasis" title="Permalink to this definition">¶</a></dt>
 <dd><p>A flexible softplus function for
 modeling global epistasis.
 This function takes a set of latent phenotype values, <span class="math notranslate nohighlight">\(z_d\)</span>
@@ -148,7 +148,7 @@ model in conjuction with an output activation such as <a class="reference intern
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Dictionary of model defining parameters as jax arrays.</p></li>
+<li><p><strong>theta</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Dictionary of model defining parameters as jax arrays.</p></li>
 <li><p><strong>z_d</strong> (<em>jnp.array</em>) – Latent phenotype values for a given set of variants</p></li>
 </ul>
 </dd>
@@ -163,7 +163,7 @@ model in conjuction with an output activation such as <a class="reference intern
 
 <dl class="py function">
 <dt class="sig sig-object py" id="multidms.biophysical.nn_global_epistasis">
-<span class="sig-prename descclassname"><span class="pre">multidms.biophysical.</span></span><span class="sig-name descname"><span class="pre">nn_global_epistasis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.biophysical.nn_global_epistasis" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">multidms.biophysical.</span></span><span class="sig-name descname"><span class="pre">nn_global_epistasis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.biophysical.nn_global_epistasis" title="Permalink to this definition">¶</a></dt>
 <dd><p>A single-layer neural network for modeling global epistasis.
 This function takes a set of latent phenotype values, <span class="math notranslate nohighlight">\(z_d\)</span>
 and computes the predicted functional scores.</p>
@@ -196,7 +196,7 @@ complex experimental conditions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Dictionary of model defining parameters as jax arrays.</p></li>
+<li><p><strong>theta</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Dictionary of model defining parameters as jax arrays.</p></li>
 <li><p><strong>z_d</strong> (<em>jnp.array</em>) – Latent phenotype values for a given set of variants</p></li>
 </ul>
 </dd>
@@ -244,11 +244,11 @@ and a linear regime (where data is not truncated).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>d_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Dictionary of model defining parameters as jax arrays.</p></li>
+<li><p><strong>d_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Dictionary of model defining parameters as jax arrays.</p></li>
 <li><p><strong>act</strong> (<em>jnp.array</em>) – Activations to apply the softplus function to.</p></li>
-<li><p><strong>lower_bound</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Lower bound to hinge the softplus function at.</p></li>
-<li><p><strong>hinge_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Rate of change at the hinge point.</p></li>
-<li><p><strong>kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Additional keyword arguments to pass to the biophysical model function</p></li>
+<li><p><strong>lower_bound</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Lower bound to hinge the softplus function at.</p></li>
+<li><p><strong>hinge_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Rate of change at the hinge point.</p></li>
+<li><p><strong>kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Additional keyword arguments to pass to the biophysical model function</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -276,27 +276,27 @@ that may be passed to this function by the optimizer.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="multidms.biophysical.smooth_objective">
-<span class="sig-prename descclassname"><span class="pre">multidms.biophysical.</span></span><span class="sig-name descname"><span class="pre">smooth_objective</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_coeff_ridge_beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_coeff_ridge_ge_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_coeff_ridge_ge_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">huber_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.biophysical.smooth_objective" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">multidms.biophysical.</span></span><span class="sig-name descname"><span class="pre">smooth_objective</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coef_ridge_beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coef_ridge_ge_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coef_ridge_ge_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">huber_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.biophysical.smooth_objective" title="Permalink to this definition">¶</a></dt>
 <dd><p>Cost (Objective) function summed across all conditions</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>f</strong> (<em>function</em>) – Biophysical model function</p></li>
-<li><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Dictionary of parameters to optimize</p></li>
-<li><p><strong>data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><em>tuple</em></a>) – Tuple of (X, y) data where each are dictionaries keyed by condition,
+<li><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Dictionary of parameters to optimize</p></li>
+<li><p><strong>data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><em>tuple</em></a>) – Tuple of (X, y) data where each are dictionaries keyed by condition,
 return the respective binarymap and the row associated target functional scores</p></li>
-<li><p><strong>huber_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Scale parameter for Huber loss function</p></li>
-<li><p><strong>scale_coeff_ridge_beta</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Ridge penalty coefficient for shift parameters</p></li>
-<li><p><strong>scale_coeff_ridge_ge_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Ridge penalty coefficient for global epistasis scale parameter</p></li>
-<li><p><strong>scale_coeff_ridge_ge_bias</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Ridge penalty coefficient for global epistasis bias parameter</p></li>
-<li><p><strong>kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Additional keyword arguments to pass to the biophysical model function</p></li>
+<li><p><strong>huber_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Scale parameter for Huber loss function</p></li>
+<li><p><strong>coef_ridge_beta</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Ridge penalty coefficient for shift parameters</p></li>
+<li><p><strong>coef_ridge_ge_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Ridge penalty coefficient for global epistasis scale parameter</p></li>
+<li><p><strong>coef_ridge_ge_bias</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Ridge penalty coefficient for global epistasis bias parameter</p></li>
+<li><p><strong>kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Additional keyword arguments to pass to the biophysical model function</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>loss</strong> – Summed loss across all conditions.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)">float</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
 </dd>
 </dl>
 </dd></dl>

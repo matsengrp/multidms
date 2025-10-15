@@ -17,7 +17,7 @@
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="model" href="multidms.model.html" />
+    <link rel="next" title="jaxmodels" href="multidms.jaxmodels.html" />
     <link rel="prev" title="biophysical" href="multidms.biophysical.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
@@ -43,8 +43,8 @@ dms experiments under various conditions.</p>
 </section>
 <dl class="py class">
 <dt class="sig sig-object py" id="multidms.data.Data">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.data.</span></span><span class="sig-name descname"><span class="pre">Data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variants_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">alphabet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('A',</span> <span class="pre">'C',</span> <span class="pre">'D',</span> <span class="pre">'E',</span> <span class="pre">'F',</span> <span class="pre">'G',</span> <span class="pre">'H',</span> <span class="pre">'I',</span> <span class="pre">'K',</span> <span class="pre">'L',</span> <span class="pre">'M',</span> <span class="pre">'N',</span> <span class="pre">'P',</span> <span class="pre">'Q',</span> <span class="pre">'R',</span> <span class="pre">'S',</span> <span class="pre">'T',</span> <span class="pre">'V',</span> <span class="pre">'W',</span> <span class="pre">'Y')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collapse_identical_variants</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('#0072B2',</span> <span class="pre">'#CC79A7',</span> <span class="pre">'#009E73',</span> <span class="pre">'#17BECF',</span> <span class="pre">'#BCDB22')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">letter_suffixed_sites</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assert_site_integrity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nb_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.data.Data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.data.</span></span><span class="sig-name descname"><span class="pre">Data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variants_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><span class="pre">DataFrame</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">alphabet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('A',</span> <span class="pre">'C',</span> <span class="pre">'D',</span> <span class="pre">'E',</span> <span class="pre">'F',</span> <span class="pre">'G',</span> <span class="pre">'H',</span> <span class="pre">'I',</span> <span class="pre">'K',</span> <span class="pre">'L',</span> <span class="pre">'M',</span> <span class="pre">'N',</span> <span class="pre">'P',</span> <span class="pre">'Q',</span> <span class="pre">'R',</span> <span class="pre">'S',</span> <span class="pre">'T',</span> <span class="pre">'V',</span> <span class="pre">'W',</span> <span class="pre">'Y')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collapse_identical_variants</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('#0072B2',</span> <span class="pre">'#CC79A7',</span> <span class="pre">'#009E73',</span> <span class="pre">'#17BECF',</span> <span class="pre">'#BCDB22')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">letter_suffixed_sites</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assert_site_integrity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_counts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.data.Data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Prep and store one-hot encoding of
 variant substitutions data.
 Individual objects of this type can be shared
@@ -52,7 +52,7 @@ by multiple <a class="reference internal" href="multidms.html#multidms.Model" ti
 for efficiently fitting various models to the same data.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>You can initialize a <a class="reference internal" href="#multidms.data.Data" title="multidms.data.Data"><code class="xref py py-class docutils literal notranslate"><span class="pre">Data</span></code></a> object with a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>
+<p>You can initialize a <a class="reference internal" href="#multidms.data.Data" title="multidms.data.Data"><code class="xref py py-class docutils literal notranslate"><span class="pre">Data</span></code></a> object with a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>
 with a row for each variant sampled and annotations
 provided in the required columns:</p>
 <ol class="arabic simple">
@@ -80,11 +80,11 @@ condition wild types.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>variants_df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> or None) – The variant level information from all experiments you
+<li><p><strong>variants_df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> or None) – The variant level information from all experiments you
 wish to analyze. Should have columns named <code class="docutils literal notranslate"><span class="pre">'condition'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'aa_substitutions'</span></code>, and <code class="docutils literal notranslate"><span class="pre">'func_score'</span></code>.
 See the class note for descriptions of each of the features.</p></li>
-<li><p><strong>reference</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Name of the condition which annotates the reference.
+<li><p><strong>reference</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Name of the condition which annotates the reference.
 variants. Note that for model fitting this class will convert all
 amino acid substitutions for non-reference condition groups
 to relative to the reference condition.
@@ -104,25 +104,26 @@ exist within individual condition groups,
 collapse them by taking mean or median of ‘func_score’, or
 (if <cite>False</cite>) do not collapse at all. Collapsing will make fitting faster,
 but <em>not</em> a good idea if you are doing bootstrapping.</p></li>
-<li><p><strong>condition_colors</strong> (<em>array-like</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><em>dict</em></a>) – Maps each condition to the color used for plotting. Either a dict keyed
+<li><p><strong>condition_colors</strong> (<em>array-like</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Maps each condition to the color used for plotting. Either a dict keyed
 by each condition, or an array of colors that are sequentially assigned
 to the conditions.</p></li>
-<li><p><strong>letter_suffixed_sites</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – True if sites are sequential and integer, False otherwise.</p></li>
-<li><p><strong>assert_site_integrity</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, will assert that all sites in the data frame
+<li><p><strong>letter_suffixed_sites</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – True if sites are sequential and integer, False otherwise.</p></li>
+<li><p><strong>assert_site_integrity</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, will assert that all sites in the data frame
 have the same wild type amino acid, grouped by condition.</p></li>
-<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, will print progress bars.</p></li>
-<li><p><strong>nb_workers</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Number of workers to use for parallel operations.
-If None, will use all available CPUs.</p></li>
-<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><em>None</em>) – Name of the data object. If None, will be assigned
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, will print progress bars.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em>) – Name of the data object. If None, will be assigned
 a unique name based upon the number of data objects
 instantiated.</p></li>
+<li><p><strong>include_counts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True (default), expects ‘pre_count’ and ‘post_count’ columns in the
+input DataFrame and includes them in the data arrays. If False, these
+columns are not required and count data will not be available.</p></li>
 </ul>
 </dd>
 </dl>
 <p class="rubric">Example</p>
 <p>Simple example with two conditions (<code class="docutils literal notranslate"><span class="pre">'a'</span></code> and <code class="docutils literal notranslate"><span class="pre">'b'</span></code>)</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">multidms</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">multidms</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">func_score_data</span> <span class="o">=</span> <span class="p">{</span>
 <span class="gp">... </span>    <span class="s1">&#39;condition&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">,</span><span class="s2">&quot;a&quot;</span><span class="p">,</span><span class="s2">&quot;a&quot;</span><span class="p">,</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span><span class="s2">&quot;b&quot;</span><span class="p">,</span><span class="s2">&quot;b&quot;</span><span class="p">,</span><span class="s2">&quot;b&quot;</span><span class="p">,</span><span class="s2">&quot;b&quot;</span><span class="p">,</span><span class="s2">&quot;b&quot;</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="s1">&#39;aa_substitutions&#39;</span> <span class="p">:</span> <span class="p">[</span>
@@ -205,50 +206,50 @@ for more information.</p>
 </div>
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.data.Data.name">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></em><a class="headerlink" href="#multidms.data.Data.name" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></em><a class="headerlink" href="#multidms.data.Data.name" title="Permalink to this definition">¶</a></dt>
 <dd><p>The name of the data object.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.data.Data.conditions">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">conditions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.data.Data.conditions" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">conditions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.data.Data.conditions" title="Permalink to this definition">¶</a></dt>
 <dd><p>A tuple of all conditions.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.data.Data.reference">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reference</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></em><a class="headerlink" href="#multidms.data.Data.reference" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reference</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></em><a class="headerlink" href="#multidms.data.Data.reference" title="Permalink to this definition">¶</a></dt>
 <dd><p>The name of the reference condition.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.data.Data.reference_index">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reference_index</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#multidms.data.Data.reference_index" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reference_index</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><a class="headerlink" href="#multidms.data.Data.reference_index" title="Permalink to this definition">¶</a></dt>
 <dd><p>The index of the reference condition.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.data.Data.mutations">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.data.Data.mutations" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a></em><a class="headerlink" href="#multidms.data.Data.mutations" title="Permalink to this definition">¶</a></dt>
 <dd><p>A tuple of all mutations in the order relative to their index into
 the binarymap.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.data.Data.mutations_df">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mutations_df</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.data.Data.mutations_df" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mutations_df</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.data.Data.mutations_df" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dataframe summarizing all single mutations</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.data.Data.variants_df">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">variants_df</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.data.Data.variants_df" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">variants_df</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.data.Data.variants_df" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dataframe summarizing all variants in the training data.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.data.Data.site_map">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">site_map</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.data.Data.site_map" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">site_map</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.data.Data.site_map" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dataframe indexed by site, with columns
 for all conditions giving the wild type amino acid
 at each site.</p>
@@ -256,7 +257,7 @@ at each site.</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.data.Data.non_identical_mutations">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">non_identical_mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.data.Data.non_identical_mutations" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">non_identical_mutations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.data.Data.non_identical_mutations" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dictionary keyed by condition names with values
 being a string of all mutations that differ from the
 reference sequence.</p>
@@ -264,16 +265,16 @@ reference sequence.</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.data.Data.non_identical_sites">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">non_identical_sites</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.data.Data.non_identical_sites" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">non_identical_sites</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.data.Data.non_identical_sites" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dictionary keyed by condition names with values
-being a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> indexed by site,
+being a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> indexed by site,
 with columns for the reference
 and non-reference amino acid at each site that differs.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.data.Data.bundle_idxs">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">bundle_idxs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.data.Data.bundle_idxs" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">bundle_idxs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.data.Data.bundle_idxs" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dictionary keyed by condition names with values
 being the indices into the binarymap representing
 bundle (non_identical) mutations</p>
@@ -281,33 +282,45 @@ bundle (non_identical) mutations</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.data.Data.reference_sequence_conditions">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reference_sequence_conditions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a></em><a class="headerlink" href="#multidms.data.Data.reference_sequence_conditions" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reference_sequence_conditions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a></em><a class="headerlink" href="#multidms.data.Data.reference_sequence_conditions" title="Permalink to this definition">¶</a></dt>
 <dd><p>A list of conditions that have the same wild type
 sequence as the reference condition.</p>
 </dd></dl>
 
 <dl class="py property">
-<dt class="sig sig-object py" id="multidms.data.Data.training_data">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">training_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.data.Data.training_data" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="multidms.data.Data.arrays">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">arrays</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.data.Data.arrays" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dictionary with keys ‘X’ and ‘y’ for the training data.</p>
 </dd></dl>
 
 <dl class="py property">
-<dt class="sig sig-object py" id="multidms.data.Data.scaled_training_data">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scaled_training_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.data.Data.scaled_training_data" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="multidms.data.Data.training_data">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">training_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.data.Data.training_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for arrays - provides training data with keys ‘X’ and ‘y’.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="multidms.data.Data.scaled_arrays">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scaled_arrays</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.data.Data.scaled_arrays" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dictionary with keys ‘X’ and ‘y’ for the scaled training data.</p>
 </dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="multidms.data.Data.scaled_training_data">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scaled_training_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.data.Data.scaled_training_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for scaled_arrays - provides scaled training data.</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="multidms.data.Data.binarymaps">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">binarymaps</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.data.Data.binarymaps" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">binarymaps</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.data.Data.binarymaps" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dictionary keyed by condition names with values
 being a <code class="docutils literal notranslate"><span class="pre">BinaryMap</span></code> object for each condition.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.data.Data.targets">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">targets</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.data.Data.targets" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">targets</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.data.Data.targets" title="Permalink to this definition">¶</a></dt>
 <dd><p>The functional scores for each variant in the training data.</p>
 </dd></dl>
 
@@ -321,7 +334,7 @@ to parse mutations.</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.data.Data.parse_mut">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">parse_mut</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">MutationParser</span></em><a class="headerlink" href="#multidms.data.Data.parse_mut" title="Permalink to this definition">¶</a></dt>
-<dd><p>returns a function that splits a single amino acid substitutions
+<dd><p>Returns a function that splits a single amino acid substitutions
 into wildtype, site, and mutation
 using the mutation parser.</p>
 </dd></dl>
@@ -348,8 +361,8 @@ being the one-hot encoding of all single mutations</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>condition</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – The condition from which aa substitutions are relative to.</p></li>
-<li><p><strong>aa_subs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – A string of amino acid substitutions, relative to the condition sequence,
+<li><p><strong>condition</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The condition from which aa substitutions are relative to.</p></li>
+<li><p><strong>aa_subs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – A string of amino acid substitutions, relative to the condition sequence,
 to converted</p></li>
 </ul>
 </dd>
@@ -357,7 +370,7 @@ to converted</p></li>
 <dd class="field-even"><p>A string of amino acid substitutions relative to the reference sequence.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -429,7 +442,7 @@ to converted</p></li>
   <li><a href="index.html">Documentation overview</a><ul>
   <li><a href="multidms.html">multidms package</a><ul>
       <li>Previous: <a href="multidms.biophysical.html" title="previous chapter">biophysical</a></li>
-      <li>Next: <a href="multidms.model.html" title="next chapter">model</a></li>
+      <li>Next: <a href="multidms.jaxmodels.html" title="next chapter">jaxmodels</a></li>
   </ul></li>
   </ul></li>
 </ul>
