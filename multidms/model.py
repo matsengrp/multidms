@@ -149,10 +149,10 @@ class Model:
     >>> model.get_mutations_df()  # doctest: +NORMALIZE_WHITESPACE
              wts  sites muts  times_seen_a  times_seen_b  beta_a  beta_b  shift_b  \
     mutation
-    M1E        M      1    E             1             3     0.0     0.0      0.0
-    M1W        M      1    W             1             0     0.0    -0.0      0.0
-    G3P        G      3    P             1             4    -0.0    -0.0     -0.0
-    G3R        G      3    R             1             2    -0.0     0.0     -0.0
+    M1E        M      1    E             1             3     0.0    -0.0      0.0
+    M1W        M      1    W             1             0    -0.0     0.0     -0.0
+    G3P        G      3    P             1             4     0.0    -0.0      0.0
+    G3R        G      3    R             1             2     0.0     0.0      0.0
     <BLANKLINE>
               predicted_func_score_a  predicted_func_score_b
     mutation
