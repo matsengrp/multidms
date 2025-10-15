@@ -109,7 +109,7 @@ def test_non_identical_mutations():
 
 def test_invalid_non_identical_sites():
     """
-    test that data throws non-identical sites,
+    Test that data throws non-identical sites,
     and related variants, when we don't have
     'forward' and 'reverse' mutational information
     as discussed in https://github.com/matsengrp/multidms/issues/84.
@@ -403,7 +403,7 @@ def test_scaled_predictions():
 
 def test_wildtype_mutant_predictions():
     """
-    test that the wildtype predictions are correct
+    Test that the wildtype predictions are correct
     by comparing them to a "by-hand" calculation on the parameters.
     """
     data = multidms.Data(
@@ -453,7 +453,7 @@ def test_wildtype_mutant_predictions():
 
 def test_mutations_df():
     """
-    make sure that the functional score predictions
+    Make sure that the functional score predictions
     for individual mutations is correct by comparing them to by-hand
     calculations.
     """

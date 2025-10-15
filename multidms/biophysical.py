@@ -483,9 +483,7 @@ def smooth_objective(
     ge_scale_ridge_penalty = (
         coef_ridge_ge_scale * (params["theta"]["ge_scale"] ** 2).sum()
     )
-    ge_bias_ridge_penalty = (
-        coef_ridge_ge_bias * (params["theta"]["ge_bias"] ** 2).sum()
-    )
+    ge_bias_ridge_penalty = coef_ridge_ge_bias * (params["theta"]["ge_bias"] ** 2).sum()
 
     return (
         huber_cost + beta_ridge_penalty + ge_scale_ridge_penalty + ge_bias_ridge_penalty

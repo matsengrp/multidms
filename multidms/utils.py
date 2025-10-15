@@ -10,7 +10,6 @@ import scipy as sp
 import pandas as pd
 import jax
 import jax.numpy as jnp
-import numpy as np
 import re
 import itertools as it
 

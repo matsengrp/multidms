@@ -166,7 +166,7 @@ def _fit_fun(params):
 
 def stack_fit_models(fit_models_list):
     """
-    given a list of pd.Series objects returned by fit_one_model,
+    Given a list of pd.Series objects returned by fit_one_model,
     stack them into a single pd.DataFrame
     """
     return pd.concat([f.to_frame().T for f in fit_models_list], ignore_index=True)
@@ -357,7 +357,7 @@ class ModelCollection:
         **kwargs,
     ):
         """
-        wrapper to split-apply-combine the set of mutational dataframes
+        Wrapper to split-apply-combine the set of mutational dataframes
         harbored by each of the fits in the collection.
 
         Here, we group the collection of fits using attributes
@@ -523,7 +523,7 @@ class ModelCollection:
 
     def get_conditional_loss_df(self, query=None):
         """
-        return a long form dataframe with columns
+        Return a long form dataframe with columns
         "dataset_name", "coef_lasso_shift",
         "split" ("training" or "validation"),
         "loss" (actual value), and "condition".
@@ -782,7 +782,7 @@ class ModelCollection:
         **kwargs,
     ):
         """
-        visualize mutation parameter values across the lasso penalty weights
+        Visualize mutation parameter values across the lasso penalty weights
         (by default) of a given subset of the mutations in the form of an
         `altair.FacetChart`. This is useful when you would like to confirm
         that a reported mutational parameter value carries through across the

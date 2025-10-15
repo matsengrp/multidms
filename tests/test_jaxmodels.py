@@ -1,7 +1,6 @@
 """Tests for the jaxmodels module."""
 
 import pytest
-import numpy as np
 import jax
 import jax.numpy as jnp
 from jax.experimental.sparse import BCOO
@@ -9,6 +8,7 @@ import multidms.jaxmodels as jaxmodels
 
 
 # ==================== Fixtures ====================
+
 
 @pytest.fixture
 def n_mutations():
@@ -149,6 +149,7 @@ def global_epistasis_functions():
 
 # ==================== Tests for Data class ====================
 
+
 class TestData:
     """Tests for the Data class."""
 
@@ -171,6 +172,7 @@ class TestData:
 
 
 # ==================== Tests for Latent class ====================
+
 
 class TestLatent:
     """Tests for the Latent class."""
@@ -209,6 +211,7 @@ class TestLatent:
 
 # ==================== Tests for Global Epistasis ====================
 
+
 class TestGlobalEpistasis:
     """Tests for global epistasis functions."""
 
@@ -233,6 +236,7 @@ class TestGlobalEpistasis:
 
 
 # ==================== Tests for Model fitting with beta clipping ====================
+
 
 class TestBetaClipping:
     """Tests for beta parameter clipping functionality."""
@@ -362,6 +366,7 @@ class TestBetaClipping:
 
 # ==================== Tests for Model class ====================
 
+
 class TestModel:
     """Tests for the Model class."""
 
@@ -392,7 +397,9 @@ class TestModel:
         scores = model.predict_score(multi_condition_data)
         assert len(scores) == len(multi_condition_data)
         for cond in scores:
-            assert scores[cond].shape == multi_condition_data[cond].functional_scores.shape
+            assert (
+                scores[cond].shape == multi_condition_data[cond].functional_scores.shape
+            )
 
     def test_predict_post_count(self, multi_condition_data):
         """Test post-count prediction."""
@@ -406,11 +413,14 @@ class TestModel:
         post_counts = model.predict_post_count(multi_condition_data)
         assert len(post_counts) == len(multi_condition_data)
         for cond in post_counts:
-            assert post_counts[cond].shape == multi_condition_data[cond].post_counts.shape
+            assert (
+                post_counts[cond].shape == multi_condition_data[cond].post_counts.shape
+            )
             assert jnp.all(post_counts[cond] >= 0)  # Counts should be non-negative
 
 
 # ==================== Tests for loss functions ====================
+
 
 class TestLossFunctions:
     """Tests for loss functions."""
@@ -448,6 +458,7 @@ class TestLossFunctions:
 
 
 # ==================== Tests for fit function parameters ====================
+
 
 class TestFitParameters:
     """Tests for various parameters of the fit function."""
@@ -516,7 +527,8 @@ class TestFitParameters:
     def test_regularization_parameters(self, multi_condition_data):
         """Test different regularization settings."""
         # Test that models can be fit with different regularization values
-        # without crashing (don't test magnitude relationships due to optimization sensitivity)
+        # without crashing (don't test magnitude relationships due to
+        # optimization sensitivity)
 
         # Test with no regularization
         model_noreg, _ = jaxmodels.fit(
@@ -558,7 +570,10 @@ class TestFitParameters:
             beta0_ridge=0.0,
             block_iters=5,  # More iterations to see the effect
             warmstart=False,
-            beta0_init={"condition1": 1.0, "condition2": -1.0},  # Start with different values
+            beta0_init={
+                "condition1": 1.0,
+                "condition2": -1.0,
+            },  # Start with different values
         )
 
         # Fit model with moderate beta0_ridge
@@ -591,7 +606,9 @@ class TestFitParameters:
         ref_beta0_strong = model_strong_ridge.φ["condition1"].β0
 
         diff_no_ridge = jnp.abs(model_no_ridge.φ["condition2"].β0 - ref_beta0_no_ridge)
-        diff_moderate = jnp.abs(model_moderate_ridge.φ["condition2"].β0 - ref_beta0_moderate)
+        diff_moderate = jnp.abs(
+            model_moderate_ridge.φ["condition2"].β0 - ref_beta0_moderate
+        )
         diff_strong = jnp.abs(model_strong_ridge.φ["condition2"].β0 - ref_beta0_strong)
 
         # With stronger beta0_ridge, the differences should be smaller
@@ -601,8 +618,9 @@ class TestFitParameters:
             f"strong={diff_strong}, moderate={diff_moderate}"
         )
         assert diff_moderate <= diff_no_ridge + 1e-2, (
-            f"Moderate ridge penalty should produce smaller β0 differences than no ridge: "
-            f"moderate={diff_moderate}, no_ridge={diff_no_ridge}"
+            f"Moderate ridge penalty should produce smaller β0 differences "
+            f"than no ridge: moderate={diff_moderate}, "
+            f"no_ridge={diff_no_ridge}"
         )
 
         # All models should converge successfully

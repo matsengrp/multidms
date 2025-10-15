@@ -374,7 +374,7 @@ class Model:
 
     def _clear_cache(self):
         """
-        identify and clear cached properties. This is useful
+        Identify and clear cached properties. This is useful
         after a model has been fit and the parameters have been
         updated.
         """
@@ -408,7 +408,7 @@ class Model:
         return self._converged
 
     @property
-    def data(self) -> "Data":
+    def data(self) -> Data:
         """
         multidms.Data Object this model references for fitting
         its parameters.
@@ -926,7 +926,7 @@ class Model:
 
     def phenotype_fromsubs(self, aa_subs, condition=None):
         """
-        take a single string of subs which are
+        Take a single string of subs which are
         not already converted wrt reference, convert them and
         then make a functional score prediction and return the result.
         """
@@ -942,7 +942,7 @@ class Model:
 
     def latent_fromsubs(self, aa_subs, condition=None):
         """
-        take a single string of subs which are
+        Take a single string of subs which are
         not already converted wrt reference, convert them and
         them make a latent prediction and return the result.
         """
