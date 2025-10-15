@@ -15,7 +15,8 @@ from jax.experimental.sparse import BCOO
 
 import equinox as eqx
 from jaxtyping import Array, Float, Int
-from typing import Any, Self, Callable
+from typing import Any, Callable
+from typing_extensions import Self
 import abc
 
 import jaxopt
