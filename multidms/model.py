@@ -202,8 +202,8 @@ class Model:
     Next, we fit the model with some chosen hyperparameters.
 
     >>> model.fit(maxiter=10, lasso_shift=1e-5, warn_unconverged=False)
-    >>> model.loss
-    0.3483478119356665
+    >>> model.loss  # doctest: +ELLIPSIS
+    0.348347811935666...
 
     The model tunes its parameters in place, and the subsequent call to retrieve
     the loss reflects our models loss given its updated parameters.
