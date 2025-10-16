@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on `Keep a Changelog <https://keepachangelog.com>`_.
 
+1.2.0
+-----
+* Added `multidms.jaxmodels` module - new API for global epistasis modeling using JAX and Equinox. This provides an alternative implementation to the existing `multidms.biophysical` module with improved performance and a simplified interface. See `#170 <https://github.com/matsengrp/multidms/issues/170>`_.
+* Fixed Python 3.9 compatibility by using `typing_extensions.Self` instead of `typing.Self`.
+* Fixed `include_counts` parameter default to `False` in `Data.__init__()` for backward compatibility.
+* Fixed parameter naming consistency by renaming `coef_lasso_shift` to `scale_coeff_lasso_shift` throughout the codebase.
+* Fixed doctest floating point representation issues across different Python versions and platforms.
+
 1.1.0
 -----
 * No longer calling transform() on parameters for single condition fits. See `#160 <https://github.com/matsengrp/multidms/issues/160>`_.
