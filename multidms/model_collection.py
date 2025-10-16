@@ -37,7 +37,7 @@ logging.getLogger("jax._src.xla_bridge").addFilter(
 
 
 PARAMETER_NAMES_FOR_PLOTTING = {
-    "coef_lasso_shift": "Lasso Penalty",
+    "scale_coeff_lasso_shift": "Lasso Penalty",
 }
 
 
@@ -350,7 +350,7 @@ class ModelCollection:
     @lru_cache(maxsize=10)
     def split_apply_combine_muts(
         self,
-        groupby=("dataset_name", "coef_lasso_shift"),
+        groupby=("dataset_name", "scale_coeff_lasso_shift"),
         aggregate_func="mean",
         inner_merge_dataset_muts=True,
         query=None,
@@ -374,7 +374,7 @@ class ModelCollection:
         groupby : str or tuple of str or None, optional
             The attributes to group the fits by. If None, then group by all
             attributes except for the model, data, and step_loss attributes.
-            The default is ("dataset_name", "coef_lasso_shift").
+            The default is ("dataset_name", "scale_coeff_lasso_shift").
         aggregate_func : str or callable, optional
             The function to aggregate the mutational dataframes within each group.
             The default is "mean".
@@ -524,7 +524,7 @@ class ModelCollection:
     def get_conditional_loss_df(self, query=None):
         """
         Return a long form dataframe with columns
-        "dataset_name", "coef_lasso_shift",
+        "dataset_name", "scale_coeff_lasso_shift",
         "split" ("training" or "validation"),
         "loss" (actual value), and "condition".
 
@@ -541,7 +541,7 @@ class ModelCollection:
         if len(queried_fits) == 0:
             raise ValueError("invalid query, no fits returned")
 
-        id_vars = ["dataset_name", "coef_lasso_shift"]
+        id_vars = ["dataset_name", "scale_coeff_lasso_shift"]
         value_vars = [
             c for c in queried_fits.columns if "loss" in c and c != "step_loss"
         ]
@@ -559,7 +559,7 @@ class ModelCollection:
     def convergence_trajectory_df(
         self,
         query=None,
-        id_vars=("dataset_name", "coef_lasso_shift"),
+        id_vars=("dataset_name", "scale_coeff_lasso_shift"),
     ):
         """
         Combine the converence trajectory dataframes of
@@ -776,7 +776,7 @@ class ModelCollection:
         self,
         mutations,
         mut_param="shift",
-        x="coef_lasso_shift",
+        x="scale_coeff_lasso_shift",
         width_scalar=100,
         height_scalar=100,
         **kwargs,
@@ -821,7 +821,7 @@ class ModelCollection:
         muts_df = muts_df.query("mutation.isin(@mutations)")
 
         # check that we have multiple lasso penalty weights
-        if len(muts_df.coef_lasso_shift.unique()) <= 1:
+        if len(muts_df.scale_coeff_lasso_shift.unique()) <= 1:
             raise ValueError(
                 "invalid kwargs, must specify a subset of fits with "
                 "multiple lasso penalty weights"
@@ -834,7 +834,7 @@ class ModelCollection:
         muts_df = muts_df.assign(mut_type=muts_df.mutation.apply(mut_type))
 
         # melt conditions and stats cols, beta is already "tall"
-        # id_cols = ["coef_lasso_shift", "mutation", "is_stop"]
+        # id_cols = ["scale_coeff_lasso_shift", "mutation", "is_stop"]
         id_cols = ["dataset_name", x, "mut_type", "mutation"]
         stat_cols_to_keep = [c for c in muts_df.columns if c.startswith(mut_param)]
         if mut_param == "beta":
@@ -891,7 +891,7 @@ class ModelCollection:
 
     def shift_sparsity(
         self,
-        x="coef_lasso_shift",
+        x="scale_coeff_lasso_shift",
         width_scalar=100,
         height_scalar=100,
         return_data=False,
@@ -952,7 +952,7 @@ class ModelCollection:
             alt.Chart(sparsity_df)
             .encode(
                 x=alt.X(
-                    "coef_lasso_shift",
+                    "scale_coeff_lasso_shift",
                     type="nominal",
                     title=(
                         PARAMETER_NAMES_FOR_PLOTTING[x]
@@ -967,7 +967,7 @@ class ModelCollection:
                 ),
                 color=alt.Color("mut_type", type="nominal", title="Mutation type"),
                 tooltip=[
-                    "coef_lasso_shift",
+                    "scale_coeff_lasso_shift",
                     "sparsity",
                     "mut_type",
                 ],
@@ -995,7 +995,7 @@ class ModelCollection:
 
     def mut_param_dataset_correlation(
         self,
-        x="coef_lasso_shift",
+        x="scale_coeff_lasso_shift",
         width_scalar=200,
         height=200,
         return_data=False,
@@ -1012,7 +1012,7 @@ class ModelCollection:
         ----------
         x : str, optional
             The parameter to plot on the x-axis.
-            The default is "coef_lasso_shift".
+            The default is "scale_coeff_lasso_shift".
         width_scalar : int, optional
             The width of the chart. The default is 150.
         height : int, optional

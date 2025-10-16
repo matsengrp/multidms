@@ -100,9 +100,9 @@ class Data:
         a unique name based upon the number of data objects
         instantiated.
     include_counts : bool
-        If True (default), expects 'pre_count' and 'post_count' columns in the
-        input DataFrame and includes them in the data arrays. If False, these
-        columns are not required and count data will not be available.
+        If True, expects 'pre_count' and 'post_count' columns in the
+        input DataFrame and includes them in the data arrays. If False (default),
+        these columns are not required and count data will not be available.
 
     Example
     -------
@@ -197,7 +197,7 @@ class Data:
         assert_site_integrity=False,
         verbose=False,
         name=None,
-        include_counts=True,
+        include_counts=False,
     ):
         """See main class docstring."""
         # Check and initialize conditions attribute
