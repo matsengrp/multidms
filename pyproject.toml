@@ -88,8 +88,6 @@ extend-exclude = [
     "notebooks/.*",
     "notebooks",
     "optimization_benchmarks",
-    "multidms/biophysical.py",
-    "multidms/model_v1_backup.py",
     ".*",
 ]
 ignore = [
@@ -121,8 +119,6 @@ testpaths = ["tests", "multidms"]
 python_files = ["test_*.py", "*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-# Exclude deprecated and backup files
-addopts = "--ignore=multidms/biophysical.py --ignore=multidms/model_v1_backup.py"
 
 [tool.bumpver]
 current_version = "1.2.0"
