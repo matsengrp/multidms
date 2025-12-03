@@ -88,6 +88,8 @@ extend-exclude = [
     "notebooks/.*",
     "notebooks",
     "optimization_benchmarks",
+    "multidms/biophysical.py",
+    "multidms/model_v1_backup.py",
     ".*",
 ]
 ignore = [
