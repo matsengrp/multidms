@@ -113,6 +113,13 @@ repository = "https://github.com/matsengrp/multidms"
 [tool.setuptools]
 packages = ["multidms"]
 
+[tool.pytest.ini_options]
+# Exclude deprecated/backup modules from test collection
+testpaths = ["tests", "multidms"]
+python_files = ["test_*.py", "*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
 [tool.bumpver]
 current_version = "1.2.0"
 version_pattern = "MAJOR.MINOR.PATCH"

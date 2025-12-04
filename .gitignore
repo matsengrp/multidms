@@ -7,6 +7,19 @@ Attic/
 docs/multidms*rst
 .vscode
 
+
+
+# ecperimental files
+notebooks/Smaller_beta_output/
+notebooks/linear_epistasis_output/
+notebooks/separate_offset_output/
+
+# Specify kit related
+.claude/
+.specify/
+REFACTOR_PLAN.md
+specs/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

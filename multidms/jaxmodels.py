@@ -33,7 +33,7 @@ class Data(eqx.Module):
 
     x_wt: Int[Array, "n_mutations"]  # noqa: F821, UP037
     """Binary encoding of the wildtype sequence."""
-    X: Int[Array, "n_variants n_mutations"]
+    X: Int[Array, "n_variants n_mutations"]  # noqa: F821, UP037
     """Variant encoding matrix (sparse format)."""
     functional_scores: Float[Array, "n_variants"]  # noqa: F821, UP037
     """Functional scores for each variant."""
