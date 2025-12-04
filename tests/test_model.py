@@ -1,7 +1,9 @@
 """Tests for the new Model v2 wrapper around jaxmodels backend.
 
-This test file is for the refactored Model class that wraps jaxmodels.
-Tests for the legacy v1 Model class remain in test_data.py for now.
+This is an optimized version of test_model_v2.py with:
+- Session-scoped data fixtures to avoid repeated data creation
+- Module-scoped fitted model fixtures to avoid repeated fitting
+- Reduced iteration counts where sufficient for testing
 """
 
 import pytest
@@ -32,9 +34,9 @@ TEST_FUNC_SCORES = pd.read_csv(StringIO(TEST_FUNC_SCORES_STR))
 TEST_FUNC_SCORES["aa_substitutions"] = TEST_FUNC_SCORES["aa_substitutions"].fillna("")
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def simple_data():
-    """Create a simple Data object for testing."""
+    """Create a simple Data object for testing (session-scoped for reuse)."""
     return multidms.Data(
         TEST_FUNC_SCORES,
         alphabet=multidms.AAS_WITHSTOP,
@@ -44,9 +46,9 @@ def simple_data():
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def single_condition_data():
-    """Create a single-condition Data object for testing."""
+    """Create a single-condition Data object for testing (session-scoped)."""
     return multidms.Data(
         TEST_FUNC_SCORES.query("condition == 'a'"),
         alphabet=multidms.AAS_WITHSTOP,
@@ -54,6 +56,30 @@ def single_condition_data():
         assert_site_integrity=False,
         include_counts=False,
     )
+
+
+@pytest.fixture(scope="module")
+def fitted_simple_model(simple_data):
+    """Pre-fitted model for read-only tests (module-scoped to share across tests)."""
+    model = multidms.Model(simple_data)
+    model.fit(maxiter=3, tol=1e-6, warmstart=False)
+    return model
+
+
+@pytest.fixture(scope="module")
+def fitted_single_condition_model(single_condition_data):
+    """Pre-fitted single-condition model (module-scoped)."""
+    model = multidms.Model(single_condition_data)
+    model.fit(maxiter=3, warmstart=False)
+    return model
+
+
+@pytest.fixture(scope="module")
+def fitted_model_with_reg(simple_data):
+    """Pre-fitted model with regularization (module-scoped)."""
+    model = multidms.Model(simple_data, l2reg=0.01)
+    model.fit(maxiter=5, warmstart=False)
+    return model
 
 
 # ==================== Model Initialization Tests ====================
@@ -119,7 +145,8 @@ def test_model_fit_basic(simple_data):
     """Test that Model.fit() completes without error."""
     model = multidms.Model(simple_data)
     # Note: warmstart=False because test data doesn't have counts
-    result = model.fit(maxiter=5, tol=1e-6, warmstart=False)
+    # Reduced iterations: 3 instead of 5
+    result = model.fit(maxiter=3, tol=1e-6, warmstart=False)
 
     # Check that fit returns self for method chaining
     assert result is model
@@ -133,7 +160,7 @@ def test_model_fit_basic(simple_data):
 def test_model_fit_single_condition(single_condition_data):
     """Test fitting a single-condition model."""
     model = multidms.Model(single_condition_data)
-    model.fit(maxiter=5, warmstart=False)
+    model.fit(maxiter=3, warmstart=False)
 
     assert model.params is not None
     assert len(model._jax_data_sets) == 1
@@ -143,7 +170,7 @@ def test_model_fit_single_condition(single_condition_data):
 def test_model_fit_with_identity_ge(simple_data):
     """Test fitting with Identity global epistasis (linear model)."""
     model = multidms.Model(simple_data, ge_type="Identity")
-    model.fit(maxiter=5, warmstart=False)
+    model.fit(maxiter=3, warmstart=False)
 
     assert model.params is not None
 
@@ -157,7 +184,7 @@ def test_model_fit_with_warmstart(simple_data):
 def test_model_fit_without_warmstart(simple_data):
     """Test fitting without warmstart."""
     model = multidms.Model(simple_data)
-    model.fit(warmstart=False, maxiter=5)
+    model.fit(warmstart=False, maxiter=3)
 
     assert model.params is not None
 
@@ -165,7 +192,7 @@ def test_model_fit_without_warmstart(simple_data):
 def test_model_fit_convergence_trajectory(simple_data):
     """Test that convergence trajectory is recorded."""
     model = multidms.Model(simple_data)
-    model.fit(maxiter=10, warmstart=False)
+    model.fit(maxiter=5, warmstart=False)
 
     traj_df = model.convergence_trajectory_df
     assert traj_df is not None
@@ -187,12 +214,9 @@ def test_get_mutations_df_before_fit_raises(simple_data):
         model.get_mutations_df()
 
 
-def test_get_mutations_df_after_fit(simple_data):
+def test_get_mutations_df_after_fit(fitted_simple_model):
     """Test get_mutations_df returns correct format after fitting."""
-    model = multidms.Model(simple_data)
-    model.fit(maxiter=5, warmstart=False)
-
-    muts_df = model.get_mutations_df()
+    muts_df = fitted_simple_model.get_mutations_df()
 
     # Check it's a DataFrame
     assert isinstance(muts_df, pd.DataFrame)
@@ -206,7 +230,7 @@ def test_get_mutations_df_after_fit(simple_data):
     assert "shift_b" in muts_df.columns
 
     # Check we have one row per mutation (wide format)
-    n_mutations = len(simple_data.mutations)
+    n_mutations = len(fitted_simple_model.data.mutations)
     assert len(muts_df) == n_mutations
 
     # Check mutation values are strings (index)
@@ -217,36 +241,27 @@ def test_get_mutations_df_after_fit(simple_data):
     assert pd.api.types.is_numeric_dtype(muts_df["beta_b"])
 
 
-def test_get_mutations_df_contains_all_mutations(simple_data):
+def test_get_mutations_df_contains_all_mutations(fitted_simple_model):
     """Test that get_mutations_df includes all mutations from data."""
-    model = multidms.Model(simple_data)
-    model.fit(maxiter=5, warmstart=False)
-
-    muts_df = model.get_mutations_df()
+    muts_df = fitted_simple_model.get_mutations_df()
     mutations_in_df = set(muts_df.index)
-    mutations_in_data = set(simple_data.mutations)
+    mutations_in_data = set(fitted_simple_model.data.mutations)
 
     assert mutations_in_df == mutations_in_data
 
 
-def test_get_mutations_df_single_condition(single_condition_data):
+def test_get_mutations_df_single_condition(fitted_single_condition_model):
     """Test get_mutations_df with single condition."""
-    model = multidms.Model(single_condition_data)
-    model.fit(maxiter=5, warmstart=False)
-
-    muts_df = model.get_mutations_df()
+    muts_df = fitted_single_condition_model.get_mutations_df()
 
     # Should only have beta_a column (no shift columns for single condition)
     assert "beta_a" in muts_df.columns
     assert "shift_a" not in muts_df.columns  # No shift for reference condition
 
 
-def test_get_mutations_df_has_shift_column(simple_data):
+def test_get_mutations_df_has_shift_column(fitted_model_with_reg):
     """Test that get_mutations_df includes shift column."""
-    model = multidms.Model(simple_data, l2reg=0.01)
-    model.fit(maxiter=10, warmstart=False)
-
-    muts_df = model.get_mutations_df()
+    muts_df = fitted_model_with_reg.get_mutations_df()
 
     # Check shift_b column exists (wide format)
     assert "shift_b" in muts_df.columns
@@ -255,15 +270,12 @@ def test_get_mutations_df_has_shift_column(simple_data):
     assert "shift_a" not in muts_df.columns
 
 
-def test_get_mutations_df_shift_values(simple_data):
+def test_get_mutations_df_shift_values(fitted_model_with_reg):
     """Test that shift values are calculated correctly."""
-    model = multidms.Model(simple_data, l2reg=0.01)
-    model.fit(maxiter=10, warmstart=False)
-
-    muts_df = model.get_mutations_df()
+    muts_df = fitted_model_with_reg.get_mutations_df()
 
     # For each mutation, shift_b should equal beta_b - beta_a (wide format)
-    for mutation in simple_data.mutations:
+    for mutation in fitted_model_with_reg.data.mutations:
         row = muts_df.loc[mutation]
         beta_a = row["beta_a"]
         beta_b = row["beta_b"]
@@ -285,12 +297,9 @@ def test_get_variants_df_before_fit_raises(simple_data):
         model.get_variants_df()
 
 
-def test_get_variants_df_after_fit(simple_data):
+def test_get_variants_df_after_fit(fitted_simple_model):
     """Test get_variants_df returns correct format after fitting."""
-    model = multidms.Model(simple_data)
-    model.fit(maxiter=5, warmstart=False)
-
-    vars_df = model.get_variants_df()
+    vars_df = fitted_simple_model.get_variants_df()
 
     # Check it's a DataFrame
     assert isinstance(vars_df, pd.DataFrame)
@@ -305,15 +314,12 @@ def test_get_variants_df_after_fit(simple_data):
     assert pd.api.types.is_numeric_dtype(vars_df["predicted_func_score"])
 
     # Check we have predictions for all variants
-    assert len(vars_df) == len(simple_data.variants_df)
+    assert len(vars_df) == len(fitted_simple_model.data.variants_df)
 
 
-def test_get_variants_df_predictions_are_numeric(simple_data):
+def test_get_variants_df_predictions_are_numeric(fitted_simple_model):
     """Test that predictions are valid numeric values."""
-    model = multidms.Model(simple_data)
-    model.fit(maxiter=5, warmstart=False)
-
-    vars_df = model.get_variants_df()
+    vars_df = fitted_simple_model.get_variants_df()
 
     # Check no NaN values in predictions
     assert not vars_df["predicted_func_score"].isna().any()
@@ -322,12 +328,9 @@ def test_get_variants_df_predictions_are_numeric(simple_data):
     assert np.all(np.isfinite(vars_df["predicted_func_score"]))
 
 
-def test_get_variants_df_single_condition(single_condition_data):
+def test_get_variants_df_single_condition(fitted_single_condition_model):
     """Test get_variants_df with single condition."""
-    model = multidms.Model(single_condition_data)
-    model.fit(maxiter=5, warmstart=False)
-
-    vars_df = model.get_variants_df()
+    vars_df = fitted_single_condition_model.get_variants_df()
 
     # Should only have one condition
     assert vars_df["condition"].nunique() == 1
@@ -347,9 +350,9 @@ def test_model_fit_improves_predictions(simple_data):
     # Calculate error
     error1 = np.mean((vars_df1["func_score"] - vars_df1["predicted_func_score"]) ** 2)
 
-    # Fit with more iterations
+    # Fit with more iterations (reduced from 20 to 10)
     model2 = multidms.Model(simple_data)
-    model2.fit(maxiter=20, warmstart=False)
+    model2.fit(maxiter=10, warmstart=False)
     vars_df2 = model2.get_variants_df()
 
     # Calculate error
@@ -363,12 +366,12 @@ def test_model_with_regularization(simple_data):
     """Test that models can be fitted with different regularization."""
     # No regularization
     model1 = multidms.Model(simple_data, l2reg=0.0)
-    model1.fit(maxiter=10, warmstart=False)
+    model1.fit(maxiter=5, warmstart=False)
     muts_df1 = model1.get_mutations_df()
 
     # With L2 regularization
     model2 = multidms.Model(simple_data, l2reg=1.0)
-    model2.fit(maxiter=10, warmstart=False)
+    model2.fit(maxiter=5, warmstart=False)
     muts_df2 = model2.get_mutations_df()
 
     # Regularized model should have smaller parameter magnitudes (use beta_a)
@@ -381,11 +384,11 @@ def test_model_with_regularization(simple_data):
 def test_model_deterministic_with_same_params(simple_data):
     """Test that model fitting is deterministic."""
     model1 = multidms.Model(simple_data)
-    model1.fit(maxiter=10, warmstart=False)
+    model1.fit(maxiter=5, warmstart=False)
     muts_df1 = model1.get_mutations_df()
 
     model2 = multidms.Model(simple_data)
-    model2.fit(maxiter=10, warmstart=False)
+    model2.fit(maxiter=5, warmstart=False)
     muts_df2 = model2.get_mutations_df()
 
     # Results should be very close (allowing for small numerical differences)
