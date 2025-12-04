@@ -12,7 +12,6 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
-   multidms.biophysical
    multidms.data
    multidms.jaxmodels
    multidms.model

@@ -67,33 +67,33 @@
 <h2>0.4.0<a class="headerlink" href="#id8" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>new simulation validation analysis and plotting functions (at the time of re-submission)</p></li>
-<li><p>fixes bug described in <a href="#id19"><span class="problematic" id="id20">`#130 https://github.com/matsengrp/multidms/issues/130`_</span></a>, having to do with pandas groupby.apply 2.2.0 behavior change.</p></li>
+<li><p>fixes bug described in <a class="reference external" href="https://github.com/matsengrp/multidms/issues/130">#130</a>, having to do with pandas groupby.apply 2.2.0 behavior change.</p></li>
 <li><p>updates python version requirements to 3.9 or newer, as 3.8 did not work with the new pandas version, 2.2.0 bug patch described above.</p></li>
 <li><p>supresses the cpu warning from jax.</p></li>
 <li><p>adds <a class="reference external" href="https://github.com/matsengrp/multidms/blob/b0e7cbe96216e1307d070adc531fe51a960ec32a/multidms/model_collection.py#L569">ModelCollection.add_validation_loss</a>, <a class="reference external" href="https://github.com/matsengrp/multidms/blob/b0e7cbe96216e1307d070adc531fe51a960ec32a/multidms/model_collection.py#L627">ModelCollection.get_conditional_loss_df</a>, <a class="reference external" href="https://github.com/matsengrp/multidms/blob/b0e7cbe96216e1307d070adc531fe51a960ec32a/multidms/model.py#L379">Model.conditional_loss</a>, and <a class="reference external" href="https://github.com/matsengrp/multidms/blob/b0e7cbe96216e1307d070adc531fe51a960ec32a/multidms/model.py#L568">Model.get_df_loss</a> methods, which can all be used quite easily to perform cross validation analysis.</p></li>
 </ul>
 </section>
-<section id="id9">
-<h2>0.3.3<a class="headerlink" href="#id9" title="Permalink to this heading">¶</a></h2>
+<section id="id10">
+<h2>0.3.3<a class="headerlink" href="#id10" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>simply updates the ruff linting to version <cite>0.0.289</cite></p></li>
 </ul>
 </section>
-<section id="id10">
-<h2>0.3.2<a class="headerlink" href="#id10" title="Permalink to this heading">¶</a></h2>
+<section id="id11">
+<h2>0.3.2<a class="headerlink" href="#id11" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>fixes bug <a class="reference external" href="https://github.com/matsengrp/multidms/issues/128">#128</a></p></li>
 </ul>
 </section>
-<section id="id12">
-<h2>0.3.1<a class="headerlink" href="#id12" title="Permalink to this heading">¶</a></h2>
+<section id="id13">
+<h2>0.3.1<a class="headerlink" href="#id13" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>fixes bug <a class="reference external" href="https://github.com/matsengrp/multidms/issues/126">#126</a>.</p></li>
 <li><p>Adds the initial working simulation notebook.</p></li>
 </ul>
 </section>
-<section id="id14">
-<h2>0.3.0<a class="headerlink" href="#id14" title="Permalink to this heading">¶</a></h2>
+<section id="id15">
+<h2>0.3.0<a class="headerlink" href="#id15" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Adds initial <a class="reference external" href="https://github.com/matsengrp/multidms/blob/main/multidms/model_collection.py">multidms.model_collection</a> module with <code class="docutils literal notranslate"><span class="pre">multidms.fit_models</span></code> for the ability to fit multiple models across a range of parameter spaces in parallel using <cite>multiprocessing</cite>. This is inspired by the <cite>polyclonal.fit_models</cite> function.</p></li>
 <li><p>Adds the <code class="docutils literal notranslate"><span class="pre">ModelCollection</span></code> class for split-apply-combine interface to the mutational dataframes for a collection of models</p></li>
@@ -104,8 +104,8 @@
 <li><p>Changes the naming of columns produced by <code class="docutils literal notranslate"><span class="pre">Model.get_mutations_df()</span></code>, in particular, it moves the condition name for predicted func score to be a suffix (as with shift, and time_seen) rather than a prefix. e.g. “delta_predicted_func_score” -&gt; “predicted_func_score_delta”.</p></li>
 </ul>
 </section>
-<section id="id15">
-<h2>0.2.2<a class="headerlink" href="#id15" title="Permalink to this heading">¶</a></h2>
+<section id="id16">
+<h2>0.2.2<a class="headerlink" href="#id16" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><dl class="simple">
 <dt>Fixed a <a class="reference external" href="https://github.com/matsengrp/multidms/issues/116">bug</a></dt><dd><p>caused by non-unique indices in input variant functional score dataframes.</p>
@@ -114,8 +114,8 @@
 </li>
 </ul>
 </section>
-<section id="id16">
-<h2>0.2.1<a class="headerlink" href="#id16" title="Permalink to this heading">¶</a></h2>
+<section id="id17">
+<h2>0.2.1<a class="headerlink" href="#id17" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Made lineplot_and_heatmap() more private to remove from docs.</p></li>
 <li><p>Fixed bug pointed out by &#64;jbloom #110</p></li>
@@ -123,8 +123,8 @@
 <li><p>added some testing utils</p></li>
 </ul>
 </section>
-<section id="id17">
-<h2>0.2.0<a class="headerlink" href="#id17" title="Permalink to this heading">¶</a></h2>
+<section id="id18">
+<h2>0.2.0<a class="headerlink" href="#id18" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Closed a <a class="reference external" href="https://github.com/matsengrp/multidms/issues/104">docs testing issue</a>, thanks, &#64;WSDeWitt !</p></li>
 <li><p>Cleaned Actions, again thanks to &#64;WSDeWitt</p></li>
@@ -133,8 +133,8 @@
 <li><p>a few other minor cleanup tasks.</p></li>
 </ul>
 </section>
-<section id="id18">
-<h2>0.1.9<a class="headerlink" href="#id18" title="Permalink to this heading">¶</a></h2>
+<section id="id19">
+<h2>0.1.9<a class="headerlink" href="#id19" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>First Release on PYPI</p></li>
 </ul>
