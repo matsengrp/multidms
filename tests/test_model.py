@@ -399,3 +399,275 @@ def test_model_deterministic_with_same_params(simple_data):
         rtol=1e-5,
         atol=1e-8,
     )
+
+
+# ==================== add_phenotypes_to_df Tests ====================
+
+
+def test_add_phenotypes_to_df_before_fit_raises(simple_data):
+    """Test that add_phenotypes_to_df raises error before fitting."""
+    model = multidms.Model(simple_data)
+    df_new = pd.DataFrame({"condition": ["a"], "aa_substitutions": ["M1E"]})
+
+    with pytest.raises(ValueError, match="Model has not been fitted"):
+        model.add_phenotypes_to_df(df_new)
+
+
+def test_add_phenotypes_to_df_basic(fitted_simple_model):
+    """Test basic functionality of add_phenotypes_to_df."""
+    df_new = pd.DataFrame(
+        {"condition": ["a", "a", "b"], "aa_substitutions": ["M1E", "G3R", "M1E"]}
+    )
+
+    result = fitted_simple_model.add_phenotypes_to_df(df_new)
+
+    # Check it returns a DataFrame
+    assert isinstance(result, pd.DataFrame)
+
+    # Check it has the prediction column
+    assert "predicted_func_score" in result.columns
+
+    # Check it has the same number of rows
+    assert len(result) == len(df_new)
+
+    # Check predictions are numeric
+    assert pd.api.types.is_numeric_dtype(result["predicted_func_score"])
+
+    # Check no NaN predictions
+    assert not result["predicted_func_score"].isna().any()
+
+
+def test_add_phenotypes_to_df_preserves_input_columns(fitted_simple_model):
+    """Test that add_phenotypes_to_df preserves all input columns."""
+    df_new = pd.DataFrame(
+        {
+            "condition": ["a", "b"],
+            "aa_substitutions": ["M1E", "M1E"],
+            "extra_col": ["foo", "bar"],
+        }
+    )
+
+    result = fitted_simple_model.add_phenotypes_to_df(df_new)
+
+    # Check original columns are preserved
+    assert "condition" in result.columns
+    assert "aa_substitutions" in result.columns
+    assert "extra_col" in result.columns
+
+    # Check values are preserved
+    assert result["extra_col"].tolist() == ["foo", "bar"]
+
+
+def test_add_phenotypes_to_df_wildtype(fitted_simple_model):
+    """Test predictions on wildtype (empty substitutions)."""
+    df_new = pd.DataFrame({"condition": ["a", "b"], "aa_substitutions": ["", ""]})
+
+    result = fitted_simple_model.add_phenotypes_to_df(df_new)
+
+    # Wildtype should have prediction of ~0 (effect relative to WT)
+    assert abs(result.loc[0, "predicted_func_score"]) < 1e-6
+    assert abs(result.loc[1, "predicted_func_score"]) < 1e-6
+
+
+def test_add_phenotypes_to_df_unseen_mutations_raises(fitted_simple_model):
+    """Test that unseen mutations raise an informative error."""
+    df_new = pd.DataFrame(
+        {
+            "condition": ["a"],
+            "aa_substitutions": ["M1Z"],  # Z is not a valid amino acid in training
+        }
+    )
+
+    with pytest.raises(ValueError, match="mutations not seen during training"):
+        fitted_simple_model.add_phenotypes_to_df(df_new)
+
+
+def test_add_phenotypes_to_df_missing_required_columns_raises(fitted_simple_model):
+    """Test that missing required columns raise errors."""
+    # Missing aa_substitutions
+    df_no_subs = pd.DataFrame({"condition": ["a"]})
+    with pytest.raises(ValueError, match="lacks column 'aa_substitutions'"):
+        fitted_simple_model.add_phenotypes_to_df(df_no_subs)
+
+    # Missing condition
+    df_no_cond = pd.DataFrame({"aa_substitutions": ["M1E"]})
+    with pytest.raises(ValueError, match="lacks column 'condition'"):
+        fitted_simple_model.add_phenotypes_to_df(df_no_cond)
+
+
+def test_add_phenotypes_to_df_invalid_condition_raises(fitted_simple_model):
+    """Test that invalid conditions raise an error."""
+    df_new = pd.DataFrame(
+        {"condition": ["c"], "aa_substitutions": ["M1E"]}  # 'c' not in training data
+    )
+
+    with pytest.raises(ValueError, match="Invalid conditions"):
+        fitted_simple_model.add_phenotypes_to_df(df_new)
+
+
+def test_add_phenotypes_to_df_non_unique_index_raises(fitted_simple_model):
+    """Test that non-unique indices raise an error."""
+    df_new = pd.DataFrame(
+        {"condition": ["a", "a"], "aa_substitutions": ["M1E", "G3R"]}, index=[0, 0]
+    )  # Duplicate index
+
+    with pytest.raises(ValueError, match="must have unique indices"):
+        fitted_simple_model.add_phenotypes_to_df(df_new)
+
+
+def test_add_phenotypes_to_df_overwrite_cols(fitted_simple_model):
+    """Test overwrite_cols parameter."""
+    df_new = pd.DataFrame(
+        {
+            "condition": ["a"],
+            "aa_substitutions": ["M1E"],
+            "predicted_func_score": [999.0],  # Existing column
+        }
+    )
+
+    # Should raise error without overwrite_cols=True
+    with pytest.raises(ValueError, match="already contains column"):
+        fitted_simple_model.add_phenotypes_to_df(df_new)
+
+    # Should work with overwrite_cols=True
+    result = fitted_simple_model.add_phenotypes_to_df(df_new, overwrite_cols=True)
+    assert result["predicted_func_score"].iloc[0] != 999.0  # Should be overwritten
+
+
+def test_add_phenotypes_to_df_custom_column_names(fitted_simple_model):
+    """Test custom column name parameters."""
+    df_new = pd.DataFrame({"cond": ["a"], "subs": ["M1E"]})
+
+    result = fitted_simple_model.add_phenotypes_to_df(
+        df_new,
+        condition_col="cond",
+        substitutions_col="subs",
+        predicted_phenotype_col="my_prediction",
+    )
+
+    # Check custom column name was used
+    assert "my_prediction" in result.columns
+    assert "predicted_func_score" not in result.columns
+
+
+def test_add_phenotypes_to_df_multi_mutation_variants(fitted_simple_model):
+    """Test predictions on variants with multiple mutations."""
+    df_new = pd.DataFrame(
+        {
+            "condition": ["b"],
+            "aa_substitutions": ["M1E P3G"],  # Double mutant seen in training
+        }
+    )
+
+    result = fitted_simple_model.add_phenotypes_to_df(df_new)
+
+    # Should have a prediction
+    assert not result["predicted_func_score"].isna().any()
+    assert np.isfinite(result["predicted_func_score"].iloc[0])
+
+
+def test_add_phenotypes_to_df_consistency_with_get_variants_df(fitted_simple_model):
+    """Test that predictions match get_variants_df for training data."""
+    # Get predictions on training data using get_variants_df
+    training_preds = fitted_simple_model.get_variants_df()
+
+    # Get predictions using add_phenotypes_to_df on same data
+    df_test = training_preds[["condition", "aa_substitutions"]].copy()
+    test_preds = fitted_simple_model.add_phenotypes_to_df(df_test)
+
+    # Predictions should match (allowing for small numerical differences)
+    for idx in training_preds.index:
+        expected = training_preds.loc[idx, "predicted_func_score"]
+        actual = test_preds.loc[idx, "predicted_func_score"]
+        assert (
+            abs(expected - actual) < 1e-5
+        ), f"Prediction mismatch at index {idx}: {expected} vs {actual}"
+
+
+def test_add_phenotypes_to_df_with_explicit_parameters(simple_data):
+    """Test predictions with explicitly set parameters match manual calculations."""
+    # Set up explicit parameters
+    # For simple_data: conditions are 'a' (reference) and 'b'
+    # Mutations from simple_data are: M1E, M1W, G3P, G3R (in order by mutation index)
+
+    # Create explicit parameter values
+    # β0: intercepts (effect of wildtype)
+    beta0_values = {
+        "a": 0.0,  # Reference condition
+        "b": 0.5,  # Non-reference has different intercept
+    }
+
+    # β: mutation effects (same order as simple_data.mutations)
+    beta_values = {
+        "a": np.array([1.0, 2.0, -0.5, -1.5]),  # Effects for M1E, M1W, G3P, G3R
+        "b": np.array([1.2, 2.2, -0.3, -1.3]),  # Different effects in condition b
+    }
+
+    # α: scaling factors
+    alpha_values = {
+        "a": 1.0,
+        "b": 1.0,
+    }
+
+    # Create model with Identity global epistasis for simple linear predictions
+    model = multidms.Model(simple_data, ge_type="Identity", l2reg=0.0)
+
+    # Fit with maxiter=0 to keep exactly the initialized parameters
+    model.fit(
+        warmstart=False,
+        maxiter=0,
+        beta0_init=beta0_values,
+        beta_init=beta_values,
+        alpha_init=alpha_values,
+        verbose=False,
+    )
+
+    # Create test dataframe with explicit variants
+    # Test M1E in condition 'a'
+    df_test = pd.DataFrame(
+        {
+            "condition": ["a", "b", "a"],
+            "aa_substitutions": ["M1E", "M1E", "M1W G3R"],
+        }
+    )
+
+    # Get predictions
+    result = model.add_phenotypes_to_df(df_test)
+
+    # Manually calculate expected predictions
+    # For Identity global epistasis: predicted_score = α * (φ(variant) - φ(wt))
+    # where φ(x) = β0 + sum(β_i * x_i)
+
+    # Condition 'a', variant 'M1E' (mutation index 0)
+    # φ(M1E) = 0.0 + 1.0 = 1.0
+    # φ(wt) = 0.0 + 0.0 = 0.0
+    # predicted = 1.0 * (1.0 - 0.0) = 1.0
+    expected_a_M1E = 1.0
+
+    # Condition 'b', variant 'M1E'
+    # φ(M1E) = 0.5 + 1.2 = 1.7
+    # φ(wt) = 0.5 + 0.0 = 0.5
+    # predicted = 1.0 * (1.7 - 0.5) = 1.2
+    expected_b_M1E = 1.2
+
+    # Condition 'a', variant 'M1W G3R' (mutations at indices 1 and 3)
+    # φ(M1W G3R) = 0.0 + 2.0 + (-1.5) = 0.5
+    # φ(wt) = 0.0
+    # predicted = 1.0 * (0.5 - 0.0) = 0.5
+    expected_a_M1W_G3R = 0.5
+
+    # Check predictions match expected values
+    assert abs(result.loc[0, "predicted_func_score"] - expected_a_M1E) < 1e-6, (
+        f"Mismatch for 'a' M1E: expected {expected_a_M1E}, "
+        f"got {result.loc[0, 'predicted_func_score']}"
+    )
+
+    assert abs(result.loc[1, "predicted_func_score"] - expected_b_M1E) < 1e-6, (
+        f"Mismatch for 'b' M1E: expected {expected_b_M1E}, "
+        f"got {result.loc[1, 'predicted_func_score']}"
+    )
+
+    assert abs(result.loc[2, "predicted_func_score"] - expected_a_M1W_G3R) < 1e-6, (
+        f"Mismatch for 'a' M1W G3R: expected {expected_a_M1W_G3R}, "
+        f"got {result.loc[2, 'predicted_func_score']}"
+    )
