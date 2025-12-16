@@ -137,6 +137,7 @@ class Model:
         ge_kwargs: dict = None,
         cal_kwargs: dict = None,
         loss_kwargs: dict = None,
+        verbose: bool = True,
     ):
         """
         Fit the model to data.
@@ -164,6 +165,8 @@ class Model:
             Keyword arguments for calibration (α) optimizer (e.g., tol, maxiter, maxls).
         loss_kwargs : dict, optional
             Keyword arguments for the loss function (e.g., δ for Huber loss).
+        verbose : bool
+            Whether to print progress information during fitting (default: True).
 
         Returns
         -------
@@ -219,6 +222,7 @@ class Model:
             ge_kwargs=ge_kwargs,
             cal_kwargs=cal_kwargs,
             loss_kwargs=loss_kwargs,
+            verbose=verbose,
         )
 
         return self
@@ -314,7 +318,10 @@ class Model:
     def add_phenotypes_to_df(
         self,
         df: pd.DataFrame,
-        phenotype_as_effect: bool = True,
+        substitutions_col: str = "aa_substitutions",
+        condition_col: str = "condition",
+        predicted_phenotype_col: str = "predicted_func_score",
+        overwrite_cols: bool = False,
     ) -> pd.DataFrame:
         """
         Add model predictions to a DataFrame of variants.
@@ -322,21 +329,165 @@ class Model:
         Parameters
         ----------
         df : pd.DataFrame
-            DataFrame with 'condition' and 'aa_substitutions' columns.
-        phenotype_as_effect : bool
-            If True, report effects. If False, report raw latent phenotypes.
+            DataFrame with columns specified by `condition_col` and
+            `substitutions_col`. Additional columns will be preserved in output.
+        substitutions_col : str
+            Column in `df` giving variants as substitution strings.
+            Default is 'aa_substitutions'.
+        condition_col : str
+            Column in `df` giving the condition for each variant.
+            Values must exist in the model's conditions. Default is 'condition'.
+        predicted_phenotype_col : str
+            Name of column to add containing predicted functional scores.
+            Default is 'predicted_func_score'.
+        overwrite_cols : bool
+            If the specified predicted phenotype column already exists in `df`,
+            overwrite it? If False, raise an error.
 
         Returns
         -------
         pd.DataFrame
-            Input DataFrame with added prediction columns.
+            A copy of `df` with predictions added.
+
+        Raises
+        ------
+        ValueError
+            If model is not fitted, required columns are missing, indices are
+            not unique, conditions are invalid, or substitutions contain
+            mutations not seen during training.
+
+        Example
+        -------
+        >>> import pandas as pd
+        >>> from multidms import Data, Model
+        >>> df_train = pd.DataFrame({
+        ...     'condition': ['a', 'a', 'b', 'b'],
+        ...     'aa_substitutions': ['', 'M1A', '', 'M1A'],
+        ...     'func_score': [0.0, 1.2, 0.1, 1.5]
+        ... })
+        >>> data = Data(df_train, reference='a')  # doctest: +ELLIPSIS
+        >>> model = Model(data, ge_type='Identity', l2reg=0.01)
+        >>> _ = model.fit(maxiter=5, warmstart=False, verbose=False)
+        >>> df_new = pd.DataFrame({
+        ...     'condition': ['a', 'b'],
+        ...     'aa_substitutions': ['M1A', 'M1A']
+        ... })
+        >>> result = model.add_phenotypes_to_df(df_new)
+        >>> 'predicted_func_score' in result.columns
+        True
+        >>> len(result)
+        2
         """
         if self._jax_model is None:
             raise ValueError("Model has not been fitted. Call fit() first.")
 
-        # See issue #173 for implementing prediction on new variants
-        # and calling predict_score()
-        raise NotImplementedError("add_phenotypes_to_df is not yet implemented in v2.0")
+        # Validate input
+        if substitutions_col not in df.columns:
+            raise ValueError(f"`df` lacks column '{substitutions_col}'")
+        if condition_col not in df.columns:
+            raise ValueError(f"`df` lacks column '{condition_col}'")
+        if not df.index.is_unique:
+            raise ValueError("`df` must have unique indices")
+
+        # Check for invalid conditions
+        invalid_conditions = set(df[condition_col]) - set(self._data.conditions)
+        if invalid_conditions:
+            raise ValueError(
+                f"Invalid conditions in df: {invalid_conditions}. "
+                f"Valid conditions: {self._data.conditions}"
+            )
+
+        # Return copy
+        ret = df.copy()
+
+        # Check if column exists and handle overwrite
+        if predicted_phenotype_col in ret.columns and not overwrite_cols:
+            raise ValueError(
+                f"`df` already contains column '{predicted_phenotype_col}'. "
+                "Set overwrite_cols=True to overwrite."
+            )
+
+        # Initialize prediction column
+        ret[predicted_phenotype_col] = np.nan
+
+        # Get reference binarymap for encoding
+        ref_bmap = self._data.binarymaps[self._data.reference]
+
+        # Process each condition separately
+        for condition, condition_df in df.groupby(condition_col):
+            # Convert substitutions to reference frame if needed
+            variant_subs = condition_df[substitutions_col]
+            if condition not in self._data.reference_sequence_conditions:
+                variant_subs = condition_df.apply(
+                    lambda x: self._data.convert_subs_wrt_ref_seq(
+                        condition, x[substitutions_col]
+                    ),
+                    axis=1,
+                )
+
+            # Build binary variant matrix
+            row_ind = []  # row indices of elements that are one
+            col_ind = []  # column indices of elements that are one
+            unseen_mutations = set()
+
+            for ivariant, subs in enumerate(variant_subs):
+                try:
+                    for isub in ref_bmap.sub_str_to_indices(subs):
+                        row_ind.append(ivariant)
+                        col_ind.append(isub)
+                except ValueError:
+                    # Extract the individual mutations that are unseen
+                    if subs:  # non-empty string
+                        for mut in subs.split():
+                            if mut not in self._data.mutations:
+                                unseen_mutations.add(mut)
+
+            # If there are unseen mutations, raise an error
+            if unseen_mutations:
+                raise ValueError(
+                    f"Variants contain mutations not seen during training: "
+                    f"{sorted(unseen_mutations)}"
+                )
+
+            # Create sparse matrix
+            import scipy.sparse
+            from jax.experimental import sparse as jsparse
+
+            X = jsparse.BCOO.from_scipy_sparse(
+                scipy.sparse.csr_matrix(
+                    (np.ones(len(row_ind), dtype="int8"), (row_ind, col_ind)),
+                    shape=(len(condition_df), ref_bmap.binarylength),
+                    dtype="int8",
+                )
+            )
+
+            # Create jaxmodels.Data object for this condition
+            # We need x_wt from the training data
+            x_wt = self._jax_data_sets[condition].x_wt
+
+            # Create a temporary Data object with dummy functional scores
+            import multidms.jaxmodels as jaxmodels
+
+            temp_data = jaxmodels.Data(
+                x_wt=x_wt,
+                X=X,
+                functional_scores=np.zeros(len(condition_df)),  # dummy values
+            )
+
+            # Make predictions using jaxmodels
+            temp_data_sets = {condition: temp_data}
+            predictions = self._jax_model.predict_score(temp_data_sets)
+
+            # Extract predictions for this condition
+            phenotype_predictions = np.array(predictions[condition])
+            assert len(phenotype_predictions) == len(condition_df)
+
+            # Add predictions to result dataframe
+            ret.loc[
+                condition_df.index.values, predicted_phenotype_col
+            ] = phenotype_predictions
+
+        return ret
 
     def __repr__(self):
         """String representation."""

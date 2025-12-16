@@ -371,6 +371,7 @@ def fit(
     beta_init: dict[str, Float[Array, " n_mutations"]] | None = None,
     alpha_init: dict[str, Float] | None = None,
     beta_clip_range: tuple[Float, Float] | None = None,
+    verbose: bool = True,
 ) -> tuple[Model, list[float]]:
     r"""
     Fit a model to data.
@@ -406,6 +407,8 @@ def fit(
                         If None, no clipping is applied. Example: (-10.0, 10.0).
                         This constrains mutation effect parameters during optimization
                         to prevent extreme values.
+        verbose: Whether to print progress information during fitting (default: True).
+                If False, suppresses all print output.
 
     Returns:
         Tuple of (fitted model, loss trajectory).
@@ -571,7 +574,8 @@ def fit(
 
     try:
         for k in range(block_iters):
-            print(f"iter {k + 1}:")
+            if verbose:
+                print(f"iter {k + 1}:")
             obj_old = objective_total(
                 model,
                 data_sets,
@@ -589,13 +593,16 @@ def fit(
                 model_calibration, model_rest, data_sets, scale=scale
             )
             model = eqx.combine(model_calibration, model_rest)
-            print(
-                f"  calibration block: error={state_calibration.error:.2e}, "
-                f"stepsize={state_calibration.stepsize:.1e}, "
-                f"iter={state_calibration.iter_num}"
-            )
-            for d in model.φ:
-                print(f"    {d}: α={model.α[d]:.2f}, θ={jnp.exp(model.logθ[d]):.2f}")
+            if verbose:
+                print(
+                    f"  calibration block: error={state_calibration.error:.2e}, "
+                    f"stepsize={state_calibration.stepsize:.1e}, "
+                    f"iter={state_calibration.iter_num}"
+                )
+                for d in model.φ:
+                    print(
+                        f"    {d}: α={model.α[d]:.2f}, θ={jnp.exp(model.logθ[d]):.2f}"
+                    )
 
             # β0 block
             model_β0, model_rest = eqx.partition(model, filter_spec=filter_spec_β0)
@@ -607,12 +614,13 @@ def fit(
                 beta0_ridge=beta0_ridge,
             )
             model = eqx.combine(model_β0, model_rest)
-            print(
-                f"  β0 block: error={state_β0.error:.2e}, "
-                f"stepsize={state_β0.stepsize:.1e}, iter={state_β0.iter_num}"
-            )
-            for d in model.φ:
-                print(f"    {d}: β0={model.φ[d].β0:.2f}")
+            if verbose:
+                print(
+                    f"  β0 block: error={state_β0.error:.2e}, "
+                    f"stepsize={state_β0.stepsize:.1e}, iter={state_β0.iter_num}"
+                )
+                for d in model.φ:
+                    print(f"    {d}: β0={model.φ[d].β0:.2f}")
 
             # determine bundle idxs (mutations that are non-wt in any condition)
             bundle_idxs = jax.lax.associative_scan(
@@ -644,11 +652,12 @@ def fit(
                     model,
                     model.φ[d].β.at[idxs].set(β_block[d]),
                 )
-            print(
-                f"  β_nonbundle: error={state_nonbundle.error:.2e}, "
-                f"stepsize={state_nonbundle.stepsize:.1e}, "
-                f"iter={state_nonbundle.iter_num}"
-            )
+            if verbose:
+                print(
+                    f"  β_nonbundle: error={state_nonbundle.error:.2e}, "
+                    f"stepsize={state_nonbundle.stepsize:.1e}, "
+                    f"iter={state_nonbundle.iter_num}"
+                )
 
             # β bundle block
             idxs = jnp.where(bundle_idxs)[0]
@@ -674,19 +683,21 @@ def fit(
                     model,
                     model.φ[d].β.at[idxs].set(β_block[d]),
                 )
-            print(
-                f"  β_bundle: error={state_bundle.error:.2e}, "
-                f"stepsize={state_bundle.stepsize:.1e}, "
-                f"iter={state_bundle.iter_num}"
-            )
+            if verbose:
+                print(
+                    f"  β_bundle: error={state_bundle.error:.2e}, "
+                    f"stepsize={state_bundle.stepsize:.1e}, "
+                    f"iter={state_bundle.iter_num}"
+                )
 
             # diagnostics
-            for d in model.φ:
-                if d != model.reference_condition:
-                    sparsity = (
-                        model.φ[d].β - model.φ[model.reference_condition].β == 0
-                    ).mean()
-                    print(f"  {d} sparsity={sparsity:.1%}")
+            if verbose:
+                for d in model.φ:
+                    if d != model.reference_condition:
+                        sparsity = (
+                            model.φ[d].β - model.φ[model.reference_condition].β == 0
+                        ).mean()
+                        print(f"  {d} sparsity={sparsity:.1%}")
 
             obj = objective_total(
                 model,
@@ -696,9 +707,11 @@ def fit(
                 scale=scale,
                 beta0_ridge=beta0_ridge,
             )
-            print(f"  {obj=:.2e}")
+            if verbose:
+                print(f"  {obj=:.2e}")
             objective_error = abs(obj_old - obj) / max(abs(obj_old), abs(obj), 1)
-            print(f"  {objective_error=:.2e}")
+            if verbose:
+                print(f"  {objective_error=:.2e}")
 
             # store loss for trajectory
             loss_trajectory.append(float(obj))
