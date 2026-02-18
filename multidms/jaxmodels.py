@@ -65,7 +65,7 @@ class Data(eqx.Module):
 
         # X is already scipy sparse (csr format) from Data class
         X = multidms_data.arrays["X"][condition]
-        X = X[1:]  # exclude WT
+        X = X[1:, :]  # exclude WT (use 2D slicing for scipy sparse)
         X = BCOO.from_scipy_sparse(X)
 
         # Check if count data is available and extract if present
