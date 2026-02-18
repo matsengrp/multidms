@@ -484,9 +484,9 @@ class Data:
                 sites_as_str=letter_suffixed_sites,
             )
             binmaps[condition] = cond_bmap
-            # Store as scipy sparse (csr format) for efficiency
-            # jaxmodels will convert to BCOO as needed
-            X[condition] = cond_bmap.binary_variants.tocsr()
+            X[condition] = sparse.BCOO.from_scipy_sparse(
+                cond_bmap.binary_variants.tocoo()
+            )
             y[condition] = jnp.array(condition_func_score_df["func_score"].values)
             if include_counts:
                 pre_count[condition] = jnp.array(
@@ -517,9 +517,8 @@ class Data:
 
         for condition in self._conditions:
             # compute times seen in data
-            # compute the sum of each mutation (column) in the unscaled data
-            # X is now scipy sparse, so convert sum result properly
-            times_seen = pd.Series(onp.asarray(X[condition].sum(0)).flatten())
+            # compute the sum of each mutation (column) in the data
+            times_seen = pd.Series(X[condition].sum(0).todense())
             times_seen.index = cond_bmap.all_subs
 
             assert (times_seen == times_seen.astype(int)).all()

@@ -63,9 +63,12 @@ class Data(eqx.Module):
         """
         # NOTE: assumes WT is the first variant!
 
-        # X is already scipy sparse (csr format) from Data class
+        # slicing the BCOO array messes up indices, so we need to go to scipy
         X = multidms_data.arrays["X"][condition]
-        X = X[1:, :]  # exclude WT (use 2D slicing for scipy sparse)
+        X = scipy.sparse.csr_array(
+            (X.data, (X.indices[:, 0], X.indices[:, 1])), shape=X.shape
+        )
+        X = X[1:]  # exclude WT
         X = BCOO.from_scipy_sparse(X)
 
         # Check if count data is available and extract if present
@@ -81,7 +84,7 @@ class Data(eqx.Module):
             post_counts = None
 
         return Data(
-            x_wt=multidms_data.arrays["X"][condition][0, :].toarray().flatten(),
+            x_wt=multidms_data.arrays["X"][condition][0].todense(),
             X=X,
             functional_scores=multidms_data.arrays["y"][condition][1:],
             pre_count_wt=pre_count_wt,
