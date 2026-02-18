@@ -81,7 +81,7 @@ class Data(eqx.Module):
             post_counts = None
 
         return Data(
-            x_wt=multidms_data.arrays["X"][condition][0].todense(),
+            x_wt=multidms_data.arrays["X"][condition][0, :].toarray().flatten(),
             X=X,
             functional_scores=multidms_data.arrays["y"][condition][1:],
             pre_count_wt=pre_count_wt,
