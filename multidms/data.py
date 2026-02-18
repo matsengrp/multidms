@@ -18,7 +18,7 @@ from polyclonal.utils import MutationParser
 from tqdm import tqdm
 
 from binarymap.binarymap import AAS_NOSTOP as AAS
-from multidms.utils import rereference, split_subs
+from multidms.utils import split_subs
 
 import jax
 import jax.numpy as jnp
@@ -78,12 +78,6 @@ class Data:
         class notes.
     alphabet : array-like
         Allowed characters in mutation strings.
-    collapse_identical_variants : {'mean', 'median', False}
-        If identical variants in ``variants_df`` (same 'aa_substitutions'),
-        exist within individual condition groups,
-        collapse them by taking mean or median of 'func_score', or
-        (if `False`) do not collapse at all. Collapsing will make fitting faster,
-        but *not* a good idea if you are doing bootstrapping.
     condition_colors : array-like or dict
         Maps each condition to the color used for plotting. Either a dict keyed
         by each condition, or an array of colors that are sequentially assigned
@@ -111,26 +105,28 @@ class Data:
     >>> import pandas as pd
     >>> import multidms
     >>> func_score_data = {
-    ...     'condition' : ["a","a","a","a", "b","b","b","b","b","b"],
+    ...     'condition' : ["a","a","a","a","a", "b","b","b","b","b","b","b"],
     ...     'aa_substitutions' : [
-    ...         'M1E', 'G3R', 'G3P', 'M1W', 'M1E',
-    ...         'P3R', 'P3G', 'M1E P3G', 'M1E P3R', 'P2T'
+    ...         '', 'M1E', 'G3R', 'G3P', 'M1W', '',
+    ...         'M1E', 'P3R', 'P3G', 'M1E P3G', 'M1E P3R', 'P2T'
     ...     ],
-    ...     'func_score' : [2, -7, -0.5, 2.3, 1, -5, 0.4, 2.7, -2.7, 0.3],
+    ...     'func_score' : [0, 2, -7, -0.5, 2.3, 0, 1, -5, 0.4, 2.7, -2.7, 0.3],
     ... }
     >>> func_score_df = pd.DataFrame(func_score_data)
     >>> func_score_df  # doctest: +NORMALIZE_WHITESPACE
-    condition aa_substitutions  func_score
-    0         a              M1E         2.0
-    1         a              G3R        -7.0
-    2         a              G3P        -0.5
-    3         a              M1W         2.3
-    4         b              M1E         1.0
-    5         b              P3R        -5.0
-    6         b              P3G         0.4
-    7         b          M1E P3G         2.7
-    8         b          M1E P3R        -2.7
-    9         b              P2T         0.3
+       condition aa_substitutions  func_score
+    0          a                           0.0
+    1          a              M1E         2.0
+    2          a              G3R        -7.0
+    3          a              G3P        -0.5
+    4          a              M1W         2.3
+    5          b                           0.0
+    6          b              M1E         1.0
+    7          b              P3R        -5.0
+    8          b              P3G         0.4
+    9          b          M1E P3G         2.7
+    10         b          M1E P3R        -2.7
+    11         b              P2T         0.3
 
     Instantiate a ``Data`` Object allowing for stop codon variants
     and declaring condition `"a"` as the reference condition.
@@ -170,20 +166,22 @@ class Data:
       mutation wts  sites muts  times_seen_a  times_seen_b
     0      M1E   M      1    E             1             3
     1      M1W   M      1    W             1             0
-    2      G3P   G      3    P             1             4
+    2      G3P   G      3    P             1             2
     3      G3R   G      3    R             1             2
 
     >>> data.variants_df  # doctest: +NORMALIZE_WHITESPACE
-      condition aa_substitutions  func_score var_wrt_ref
-    0         a              M1E         2.0         M1E
-    1         a              G3R        -7.0         G3R
-    2         a              G3P        -0.5         G3P
-    3         a              M1W         2.3         M1W
-    4         b              M1E         1.0     G3P M1E
-    5         b              P3R        -5.0         G3R
-    6         b              P3G         0.4
-    7         b          M1E P3G         2.7         M1E
-    8         b          M1E P3R        -2.7     G3R M1E
+       condition aa_substitutions  func_score var_wrt_ref
+    0          a                          0.0
+    1          a              M1E         2.0         M1E
+    2          a              G3R        -7.0         G3R
+    3          a              G3P        -0.5         G3P
+    4          a              M1W         2.3         M1W
+    5          b                          0.0         G3P
+    6          b              M1E         1.0     G3P M1E
+    7          b              P3R        -5.0         G3R
+    8          b              P3G         0.4
+    9          b          M1E P3G         2.7         M1E
+    10         b          M1E P3R        -2.7     G3R M1E
     """
 
     def __init__(
@@ -191,7 +189,6 @@ class Data:
         variants_df: pd.DataFrame,
         reference: str,
         alphabet=AAS,
-        collapse_identical_variants=False,
         condition_colors=DEFAULT_POSITIVE_COLORS,
         letter_suffixed_sites=False,
         assert_site_integrity=False,
@@ -200,6 +197,16 @@ class Data:
         include_counts=False,
     ):
         """See main class docstring."""
+        # Validate required columns FIRST (before any DataFrame access)
+        required_cols = ["condition", "aa_substitutions", "func_score"]
+        missing_cols = [col for col in required_cols if col not in variants_df.columns]
+        if missing_cols:
+            raise ValueError(
+                f"DataFrame missing required columns: {missing_cols}. "
+                f"Expected: {required_cols}. "
+                f"Found: {list(variants_df.columns)}."
+            )
+
         # Check and initialize conditions attribute
         if pd.isnull(variants_df["condition"]).any():
             raise ValueError("condition name cannot be null")
@@ -230,8 +237,6 @@ class Data:
         self._reference_index = sorted_conditions.index(self._reference)
         self._conditions = tuple(sorted_conditions)
 
-        self._collapse_identical_variants = collapse_identical_variants
-
         # Check and initialize condition colors
         if isinstance(condition_colors, dict):
             self.condition_colors = {e: condition_colors[e] for e in self._conditions}
@@ -259,29 +264,20 @@ class Data:
         if include_counts:
             cols.extend(["pre_count", "post_count"])
         if "weight" in variants_df.columns:
-            cols.append(
-                "weight"
-            )  # will be overwritten if `self._collapse_identical_variants`
+            cols.append("weight")
+
+        # Check for nulls, but allow empty strings in aa_substitutions (wildtype)
+        # Fill NaN in aa_substitutions with empty string first (for wildtype variants)
+        variants_df = variants_df.copy()
+        variants_df["aa_substitutions"] = variants_df["aa_substitutions"].fillna("")
+
         if not variants_df[cols].notnull().all().all():
             raise ValueError(
                 f"null entries in data frame of variants:\n{variants_df[cols]}"
             )
 
         # Create variants df attribute
-        if self._collapse_identical_variants:
-            agg_dict = {
-                "weight": "sum",
-                "func_score": self._collapse_identical_variants,
-            }
-            df = (
-                variants_df[cols]
-                .assign(weight=1)
-                .groupby(["condition", "aa_substitutions"], as_index=False)
-                .aggregate(agg_dict)
-            )
-
-        else:
-            df = variants_df[cols].reset_index(drop=True)
+        df = variants_df[cols].reset_index(drop=True)
 
         self._parse_muts = partial(split_subs, parser=self._mutparser.parse_mut)
         df["wts"], df["sites"], df["muts"] = zip(
@@ -428,6 +424,27 @@ class Data:
             non_identical_mutations[condition] = muts_string
         self._non_identical_mutations = non_identical_mutations
 
+        # Validate wildtype exists and sort to first position for each condition
+        # This MUST happen before var_wrt_ref conversion because we check
+        # aa_substitutions, not the converted var_wrt_ref (which bundles
+        # mutations for non-ref conditions)
+        sorted_dfs = []
+        for condition in self._conditions:
+            cond_df = df[df["condition"] == condition]
+            wt_mask = cond_df["aa_substitutions"].str.strip() == ""
+
+            if not wt_mask.any():
+                raise ValueError(
+                    f"No wildtype variant found for condition '{condition}'. "
+                    f"Please include a row with empty 'aa_substitutions' "
+                    f"for this condition."
+                )
+
+            # Sort so wildtype is first
+            sorted_dfs.append(pd.concat([cond_df[wt_mask], cond_df[~wt_mask]]))
+
+        df = pd.concat(sorted_dfs, ignore_index=True)
+
         # compute all substitution conversions for all conditions which
         # do not share the reference sequence
         df = df.assign(var_wrt_ref=df["aa_substitutions"])
@@ -458,7 +475,6 @@ class Data:
         else:
             pre_count, post_count = None, None
         self._bundle_idxs = {}
-        self._scaled_arrays = {"X": {}, "y": y, "w": w}
         for condition, condition_func_score_df in df.groupby("condition"):
             cond_bmap = bmap.BinaryMap(
                 condition_func_score_df,
@@ -471,7 +487,6 @@ class Data:
             X[condition] = sparse.BCOO.from_scipy_sparse(
                 cond_bmap.binary_variants.tocoo()
             )
-            assert (X[condition].indices.max(0) < onp.array(X[condition].shape)).all()
             y[condition] = jnp.array(condition_func_score_df["func_score"].values)
             if include_counts:
                 pre_count[condition] = jnp.array(
@@ -483,19 +498,14 @@ class Data:
             if "weight" in condition_func_score_df.columns:
                 w[condition] = jnp.array(condition_func_score_df["weight"].values)
 
-            # next, we need to create a "scaled" dataset
-            # where the bits are flipped in the one-hot encoding
-            # for all non identical mutations
-            # see https://github.com/matsengrp/multidms/issues/156 for more
+            # Store bundle indices for non-identical mutations
+            # see https://github.com/matsengrp/multidms/issues/156 for background
             self._bundle_idxs[condition] = jnp.array(
                 [
                     idx
                     in cond_bmap.sub_str_to_indices(non_identical_mutations[condition])
                     for idx in range(len(cond_bmap.all_subs))
                 ]
-            )
-            self._scaled_arrays["X"][condition] = rereference(
-                X[condition], self._bundle_idxs[condition]
             )
 
         self._mutations = tuple(cond_bmap.all_subs)
@@ -507,8 +517,8 @@ class Data:
 
         for condition in self._conditions:
             # compute times seen in data
-            # compute the sum of each mutation (column) in the scaled data
-            times_seen = pd.Series(self._scaled_arrays["X"][condition].sum(0).todense())
+            # compute the sum of each mutation (column) in the data
+            times_seen = pd.Series(X[condition].sum(0).todense())
             times_seen.index = cond_bmap.all_subs
 
             assert (times_seen == times_seen.astype(int)).all()
@@ -638,21 +648,6 @@ class Data:
         return self._arrays
 
     @property
-    def training_data(self) -> dict:
-        """Alias for arrays - provides training data with keys 'X' and 'y'."""
-        return self._arrays
-
-    @property
-    def scaled_arrays(self) -> dict:
-        """A dictionary with keys 'X' and 'y' for the scaled training data."""
-        return self._scaled_arrays
-
-    @property
-    def scaled_training_data(self) -> dict:
-        """Alias for scaled_arrays - provides scaled training data."""
-        return self._scaled_arrays
-
-    @property
     def binarymaps(self) -> dict:
         """
         A dictionary keyed by condition names with values
@@ -779,6 +774,12 @@ class Data:
                 else:
                     ret.drop(site, inplace=True)
 
+        # Handle empty case (wildtype) or ensure string dtypes for concatenation
+        if len(ret) == 0:
+            return ""
+
+        # Ensure columns are string dtype (not pyarrow) to avoid concatenation issues
+        ret = ret.astype(str)
         converted_muts = ret[self.reference] + ret.index.astype(str) + ret[condition]
         return " ".join(converted_muts)
 
