@@ -775,6 +775,12 @@ class Data:
                 else:
                     ret.drop(site, inplace=True)
 
+        # Handle empty case (wildtype) or ensure string dtypes for concatenation
+        if len(ret) == 0:
+            return ""
+
+        # Ensure columns are string dtype (not pyarrow) to avoid concatenation issues
+        ret = ret.astype(str)
         converted_muts = ret[self.reference] + ret.index.astype(str) + ret[condition]
         return " ".join(converted_muts)
 
