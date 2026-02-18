@@ -79,7 +79,7 @@ at the moment.</p>
 </section>
 <dl class="py class">
 <dt class="sig sig-object py" id="multidms.Data">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.</span></span><span class="sig-name descname"><span class="pre">Data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variants_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">alphabet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('A',</span> <span class="pre">'C',</span> <span class="pre">'D',</span> <span class="pre">'E',</span> <span class="pre">'F',</span> <span class="pre">'G',</span> <span class="pre">'H',</span> <span class="pre">'I',</span> <span class="pre">'K',</span> <span class="pre">'L',</span> <span class="pre">'M',</span> <span class="pre">'N',</span> <span class="pre">'P',</span> <span class="pre">'Q',</span> <span class="pre">'R',</span> <span class="pre">'S',</span> <span class="pre">'T',</span> <span class="pre">'V',</span> <span class="pre">'W',</span> <span class="pre">'Y')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collapse_identical_variants</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('#0072B2',</span> <span class="pre">'#CC79A7',</span> <span class="pre">'#009E73',</span> <span class="pre">'#17BECF',</span> <span class="pre">'#BCDB22')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">letter_suffixed_sites</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assert_site_integrity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_counts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Data" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.</span></span><span class="sig-name descname"><span class="pre">Data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variants_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">alphabet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('A',</span> <span class="pre">'C',</span> <span class="pre">'D',</span> <span class="pre">'E',</span> <span class="pre">'F',</span> <span class="pre">'G',</span> <span class="pre">'H',</span> <span class="pre">'I',</span> <span class="pre">'K',</span> <span class="pre">'L',</span> <span class="pre">'M',</span> <span class="pre">'N',</span> <span class="pre">'P',</span> <span class="pre">'Q',</span> <span class="pre">'R',</span> <span class="pre">'S',</span> <span class="pre">'T',</span> <span class="pre">'V',</span> <span class="pre">'W',</span> <span class="pre">'Y')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condition_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('#0072B2',</span> <span class="pre">'#CC79A7',</span> <span class="pre">'#009E73',</span> <span class="pre">'#17BECF',</span> <span class="pre">'#BCDB22')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">letter_suffixed_sites</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assert_site_integrity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_counts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Data" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Prep and store one-hot encoding of
 variant substitutions data.
@@ -88,7 +88,7 @@ by multiple <a class="reference internal" href="#multidms.Model" title="multidms
 for efficiently fitting various models to the same data.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>You can initialize a <a class="reference internal" href="#multidms.Data" title="multidms.Data"><code class="xref py py-class docutils literal notranslate"><span class="pre">Data</span></code></a> object with a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>
+<p>You can initialize a <a class="reference internal" href="#multidms.Data" title="multidms.Data"><code class="xref py py-class docutils literal notranslate"><span class="pre">Data</span></code></a> object with a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>
 with a row for each variant sampled and annotations
 provided in the required columns:</p>
 <ol class="arabic simple">
@@ -116,7 +116,7 @@ condition wild types.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>variants_df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> or None) – The variant level information from all experiments you
+<li><p><strong>variants_df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> or None) – The variant level information from all experiments you
 wish to analyze. Should have columns named <code class="docutils literal notranslate"><span class="pre">'condition'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'aa_substitutions'</span></code>, and <code class="docutils literal notranslate"><span class="pre">'func_score'</span></code>.
 See the class note for descriptions of each of the features.</p></li>
@@ -135,11 +135,6 @@ where all sites that are non-identical to the reference are 1’s.
 For motivation, see the <cite>Model overview</cite> section in <a class="reference internal" href="#multidms.Model" title="multidms.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">multidms.Model</span></code></a>
 class notes.</p></li>
 <li><p><strong>alphabet</strong> (<em>array-like</em>) – Allowed characters in mutation strings.</p></li>
-<li><p><strong>collapse_identical_variants</strong> (<em>{'mean'</em><em>, </em><em>'median'</em><em>, </em><em>False}</em>) – If identical variants in <code class="docutils literal notranslate"><span class="pre">variants_df</span></code> (same ‘aa_substitutions’),
-exist within individual condition groups,
-collapse them by taking mean or median of ‘func_score’, or
-(if <cite>False</cite>) do not collapse at all. Collapsing will make fitting faster,
-but <em>not</em> a good idea if you are doing bootstrapping.</p></li>
 <li><p><strong>condition_colors</strong> (<em>array-like</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Maps each condition to the color used for plotting. Either a dict keyed
 by each condition, or an array of colors that are sequentially assigned
 to the conditions.</p></li>
@@ -161,26 +156,28 @@ these columns are not required and count data will not be available.</p></li>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">multidms</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">func_score_data</span> <span class="o">=</span> <span class="p">{</span>
-<span class="gp">... </span>    <span class="s1">&#39;condition&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">,</span><span class="s2">&quot;a&quot;</span><span class="p">,</span><span class="s2">&quot;a&quot;</span><span class="p">,</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span><span class="s2">&quot;b&quot;</span><span class="p">,</span><span class="s2">&quot;b&quot;</span><span class="p">,</span><span class="s2">&quot;b&quot;</span><span class="p">,</span><span class="s2">&quot;b&quot;</span><span class="p">,</span><span class="s2">&quot;b&quot;</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="s1">&#39;condition&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">,</span><span class="s2">&quot;a&quot;</span><span class="p">,</span><span class="s2">&quot;a&quot;</span><span class="p">,</span><span class="s2">&quot;a&quot;</span><span class="p">,</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span><span class="s2">&quot;b&quot;</span><span class="p">,</span><span class="s2">&quot;b&quot;</span><span class="p">,</span><span class="s2">&quot;b&quot;</span><span class="p">,</span><span class="s2">&quot;b&quot;</span><span class="p">,</span><span class="s2">&quot;b&quot;</span><span class="p">,</span><span class="s2">&quot;b&quot;</span><span class="p">],</span>
 <span class="gp">... </span>    <span class="s1">&#39;aa_substitutions&#39;</span> <span class="p">:</span> <span class="p">[</span>
-<span class="gp">... </span>        <span class="s1">&#39;M1E&#39;</span><span class="p">,</span> <span class="s1">&#39;G3R&#39;</span><span class="p">,</span> <span class="s1">&#39;G3P&#39;</span><span class="p">,</span> <span class="s1">&#39;M1W&#39;</span><span class="p">,</span> <span class="s1">&#39;M1E&#39;</span><span class="p">,</span>
-<span class="gp">... </span>        <span class="s1">&#39;P3R&#39;</span><span class="p">,</span> <span class="s1">&#39;P3G&#39;</span><span class="p">,</span> <span class="s1">&#39;M1E P3G&#39;</span><span class="p">,</span> <span class="s1">&#39;M1E P3R&#39;</span><span class="p">,</span> <span class="s1">&#39;P2T&#39;</span>
+<span class="gp">... </span>        <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;M1E&#39;</span><span class="p">,</span> <span class="s1">&#39;G3R&#39;</span><span class="p">,</span> <span class="s1">&#39;G3P&#39;</span><span class="p">,</span> <span class="s1">&#39;M1W&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="s1">&#39;M1E&#39;</span><span class="p">,</span> <span class="s1">&#39;P3R&#39;</span><span class="p">,</span> <span class="s1">&#39;P3G&#39;</span><span class="p">,</span> <span class="s1">&#39;M1E P3G&#39;</span><span class="p">,</span> <span class="s1">&#39;M1E P3R&#39;</span><span class="p">,</span> <span class="s1">&#39;P2T&#39;</span>
 <span class="gp">... </span>    <span class="p">],</span>
-<span class="gp">... </span>    <span class="s1">&#39;func_score&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">7</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">2.3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">2.7</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.7</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="s1">&#39;func_score&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">7</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">2.3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">2.7</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.7</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">],</span>
 <span class="gp">... </span><span class="p">}</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">func_score_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">func_score_data</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">func_score_df</span>  
-<span class="go">condition aa_substitutions  func_score</span>
-<span class="go">0         a              M1E         2.0</span>
-<span class="go">1         a              G3R        -7.0</span>
-<span class="go">2         a              G3P        -0.5</span>
-<span class="go">3         a              M1W         2.3</span>
-<span class="go">4         b              M1E         1.0</span>
-<span class="go">5         b              P3R        -5.0</span>
-<span class="go">6         b              P3G         0.4</span>
-<span class="go">7         b          M1E P3G         2.7</span>
-<span class="go">8         b          M1E P3R        -2.7</span>
-<span class="go">9         b              P2T         0.3</span>
+<span class="go">   condition aa_substitutions  func_score</span>
+<span class="go">0          a                           0.0</span>
+<span class="go">1          a              M1E         2.0</span>
+<span class="go">2          a              G3R        -7.0</span>
+<span class="go">3          a              G3P        -0.5</span>
+<span class="go">4          a              M1W         2.3</span>
+<span class="go">5          b                           0.0</span>
+<span class="go">6          b              M1E         1.0</span>
+<span class="go">7          b              P3R        -5.0</span>
+<span class="go">8          b              P3G         0.4</span>
+<span class="go">9          b          M1E P3G         2.7</span>
+<span class="go">10         b          M1E P3R        -2.7</span>
+<span class="go">11         b              P2T         0.3</span>
 </pre></div>
 </div>
 <p>Instantiate a <code class="docutils literal notranslate"><span class="pre">Data</span></code> Object allowing for stop codon variants
@@ -223,21 +220,23 @@ for more information.</p>
 <span class="go">  mutation wts  sites muts  times_seen_a  times_seen_b</span>
 <span class="go">0      M1E   M      1    E             1             3</span>
 <span class="go">1      M1W   M      1    W             1             0</span>
-<span class="go">2      G3P   G      3    P             1             4</span>
+<span class="go">2      G3P   G      3    P             1             2</span>
 <span class="go">3      G3R   G      3    R             1             2</span>
 </pre></div>
 </div>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">variants_df</span>  
-<span class="go">  condition aa_substitutions  func_score var_wrt_ref</span>
-<span class="go">0         a              M1E         2.0         M1E</span>
-<span class="go">1         a              G3R        -7.0         G3R</span>
-<span class="go">2         a              G3P        -0.5         G3P</span>
-<span class="go">3         a              M1W         2.3         M1W</span>
-<span class="go">4         b              M1E         1.0     G3P M1E</span>
-<span class="go">5         b              P3R        -5.0         G3R</span>
-<span class="go">6         b              P3G         0.4</span>
-<span class="go">7         b          M1E P3G         2.7         M1E</span>
-<span class="go">8         b          M1E P3R        -2.7     G3R M1E</span>
+<span class="go">   condition aa_substitutions  func_score var_wrt_ref</span>
+<span class="go">0          a                          0.0</span>
+<span class="go">1          a              M1E         2.0         M1E</span>
+<span class="go">2          a              G3R        -7.0         G3R</span>
+<span class="go">3          a              G3P        -0.5         G3P</span>
+<span class="go">4          a              M1W         2.3         M1W</span>
+<span class="go">5          b                          0.0         G3P</span>
+<span class="go">6          b              M1E         1.0     G3P M1E</span>
+<span class="go">7          b              P3R        -5.0         G3R</span>
+<span class="go">8          b              P3G         0.4</span>
+<span class="go">9          b          M1E P3G         2.7         M1E</span>
+<span class="go">10         b          M1E P3R        -2.7     G3R M1E</span>
 </pre></div>
 </div>
 <dl class="py property">
@@ -303,7 +302,7 @@ reference sequence.</p>
 <dt class="sig sig-object py" id="multidms.Data.non_identical_sites">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">non_identical_sites</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.non_identical_sites" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dictionary keyed by condition names with values
-being a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> indexed by site,
+being a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> indexed by site,
 with columns for the reference
 and non-reference amino acid at each site that differs.</p>
 </dd></dl>
@@ -327,24 +326,6 @@ sequence as the reference condition.</p>
 <dt class="sig sig-object py" id="multidms.Data.arrays">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">arrays</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.arrays" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dictionary with keys ‘X’ and ‘y’ for the training data.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="multidms.Data.training_data">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">training_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.training_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Alias for arrays - provides training data with keys ‘X’ and ‘y’.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="multidms.Data.scaled_arrays">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scaled_arrays</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.scaled_arrays" title="Permalink to this definition">¶</a></dt>
-<dd><p>A dictionary with keys ‘X’ and ‘y’ for the scaled training data.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="multidms.Data.scaled_training_data">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scaled_training_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.scaled_training_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Alias for scaled_arrays - provides scaled training data.</p>
 </dd></dl>
 
 <dl class="py property">
@@ -631,7 +612,7 @@ the collection of models, and the resulting dataframe is passed to the
 constructor of this class.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>fit_models</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – A dataframe containing the fit attributes and pickled model objects
+<dd class="field-odd"><p><strong>fit_models</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – A dataframe containing the fit attributes and pickled model objects
 as returned by <cite>multidms.model_collection.fit_models</cite>.</p>
 </dd>
 </dl>
@@ -700,7 +681,7 @@ method docstring for details.</p></li>
 <dd class="field-even"><p>A dataframe containing the aggregated mutational parameter values</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
+<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -943,9 +924,6 @@ for comparison and visualization.</p>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.bundle_idxs"><code class="docutils literal notranslate"><span class="pre">Data.bundle_idxs</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.reference_sequence_conditions"><code class="docutils literal notranslate"><span class="pre">Data.reference_sequence_conditions</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.arrays"><code class="docutils literal notranslate"><span class="pre">Data.arrays</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.training_data"><code class="docutils literal notranslate"><span class="pre">Data.training_data</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.scaled_arrays"><code class="docutils literal notranslate"><span class="pre">Data.scaled_arrays</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.scaled_training_data"><code class="docutils literal notranslate"><span class="pre">Data.scaled_training_data</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.binarymaps"><code class="docutils literal notranslate"><span class="pre">Data.binarymaps</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.targets"><code class="docutils literal notranslate"><span class="pre">Data.targets</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.data.html#multidms.data.Data.mutparser"><code class="docutils literal notranslate"><span class="pre">Data.mutparser</span></code></a></li>
@@ -1034,7 +1012,6 @@ for comparison and visualization.</p>
 <li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.split_subs"><code class="docutils literal notranslate"><span class="pre">split_subs()</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.difference_matrix"><code class="docutils literal notranslate"><span class="pre">difference_matrix()</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.transform"><code class="docutils literal notranslate"><span class="pre">transform()</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.rereference"><code class="docutils literal notranslate"><span class="pre">rereference()</span></code></a></li>
 </ul>
 </div>
 </section>

@@ -154,30 +154,6 @@ containing the bundle indices in the binarymap matrix.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="py function">
-<dt class="sig sig-object py" id="multidms.utils.rereference">
-<span class="sig-prename descclassname"><span class="pre">multidms.utils.</span></span><span class="sig-name descname"><span class="pre">rereference</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bundle_idxs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.utils.rereference" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given a binary matrix X and bundle indices, re-reference the matrix
-to flip the bit signs for the bundles specified in <cite>bundle_idxs</cite>.
-This function is used to scale the data matrix for training a model.
-See <a class="reference external" href="https://github.com/matsengrp/multidms/issues/156">issue #156</a> for more
-on scaling parameters for training.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>X</strong> (<a class="reference external" href="https://docs.jax.dev/en/latest/_autosummary/jax.experimental.sparse.BCOO.html#jax.experimental.sparse.BCOO" title="(in JAX)"><em>jax.experimental.sparse.BCOO</em></a>) – A binary matrix</p></li>
-<li><p><strong>bundle_idxs</strong> (<em>jnp.ndarray</em>) – An boolean array indicating the bundle indices in the binarymap matrix.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A re-referenced binary matrix</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.jax.dev/en/latest/_autosummary/jax.experimental.sparse.BCOO.html#jax.experimental.sparse.BCOO" title="(in JAX)">jax.experimental.sparse.BCOO</a></p>
-</dd>
-</dl>
-</dd></dl>
-
 
 
           </div>
