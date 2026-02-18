@@ -6,9 +6,7 @@ Utils
 Helpful utility functions for the `multidms` package
 """
 
-import scipy as sp
 import pandas as pd
-import jax
 import jax.numpy as jnp
 import re
 import itertools as it
@@ -152,44 +150,3 @@ def transform(params, bundle_idxs):
             params["beta0"][d] + params["beta"][d][bundle_idxs[d]].sum()
         )
     return params_transformed
-
-
-def rereference(X, bundle_idxs):
-    """
-    Given a binary matrix X and bundle indices, re-reference the matrix
-    to flip the bit signs for the bundles specified in `bundle_idxs`.
-    This function is used to scale the data matrix for training a model.
-    See `issue #156 <https://github.com/matsengrp/multidms/issues/156>`_ for more
-    on scaling parameters for training.
-
-    Parameters
-    ----------
-    X : jax.experimental.sparse.BCOO
-        A binary matrix
-    bundle_idxs : jnp.ndarray
-        An boolean array indicating the bundle indices in the binarymap matrix.
-
-    Returns
-    -------
-    jax.experimental.sparse.BCOO
-        A re-referenced binary matrix
-    """
-    if bundle_idxs.sum():
-        X_scipy = sp.sparse.csr_array(
-            (X.data, (X.indices[:, 0], X.indices[:, 1])), shape=X.shape
-        )
-        tmp = X_scipy[:, bundle_idxs].copy()
-        X_scipy[:, bundle_idxs] = 1
-        X_scipy[:, bundle_idxs] -= tmp
-        X_scaled = jax.experimental.sparse.BCOO.from_scipy_sparse(X_scipy)
-
-        assert (
-            X[:, bundle_idxs].sum(0).todense()
-            + X_scaled[:, bundle_idxs].sum(0).todense()
-            == X.shape[0]
-        ).all()
-
-    else:
-        X_scaled = X
-
-    return X_scaled

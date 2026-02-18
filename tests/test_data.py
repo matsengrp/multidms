@@ -13,10 +13,12 @@ TEST_FUNC_SCORES = pd.read_csv(
     StringIO(
         """
 condition,aa_substitutions,func_score
+a,,0.0
 a,M1E,2.0
 a,G3R,-7.0
 a,G3P,-0.5
 a,M1W,2.3
+b,,0.0
 b,M1E,1.0
 b,P3R,-5.0
 b,P3G,0.4
@@ -115,20 +117,38 @@ def test_invalid_non_identical_sites():
     'forward' and 'reverse' mutational information
     as discussed in https://github.com/matsengrp/multidms/issues/84.
     """
+
     # same data but dropped the reversion mut for condition b
-    data_no_forward = "not aa_substitutions.str.contains('P3G')"
-    data_no_reversion = "aa_substitutions != 'G3P'"
-    data_neither = f"{data_no_forward} & {data_no_reversion}"
+    # Filter using boolean indexing to handle empty strings properly
+    def filter_no_forward(df):
+        """Remove rows where aa_substitutions contains P3G (but keep wildtype)"""
+        return df[
+            (df["aa_substitutions"] == "")
+            | (~df["aa_substitutions"].str.contains("P3G", na=False))
+        ]
+
+    def filter_no_reversion(df):
+        """Remove G3P rows (but keep wildtype)"""
+        return df[(df["aa_substitutions"] == "") | (df["aa_substitutions"] != "G3P")]
+
+    def filter_neither(df):
+        """Remove both P3G and G3P rows (but keep wildtype)"""
+        df = filter_no_forward(df)
+        return filter_no_reversion(df)
+
     # we expect now, that the only variants kept should be those
-    # that only contain exactly a mutation at site 1, there's three of those
-    for query in [data_no_forward, data_no_reversion, data_neither]:
+    # that only contain exactly a mutation at site 1, plus wildtype
+    # (4 variants total for the two conditions)
+    for filter_fn in [filter_no_forward, filter_no_reversion, filter_neither]:
         data = multidms.Data(
-            TEST_FUNC_SCORES.query(query),
+            filter_fn(TEST_FUNC_SCORES),
             alphabet=multidms.AAS_WITHSTOP,
             reference="a",
             assert_site_integrity=True,
         )
-        assert len(data.variants_df) == 3
+        # After filtering: wildtype for 'a', M1E/M1W for 'a',
+        # wildtype for 'b', M1E for 'b' = 5 total
+        assert len(data.variants_df) == 5
         assert len(data.non_identical_mutations["a"]) == 0
         assert len(data.non_identical_mutations["b"]) == 0
         assert len(data.non_identical_sites["a"]) == 0
@@ -167,22 +187,42 @@ def test_non_identical_conversion():
     3. Non identical site reversions don't exist
     in the non reference variants reference genotype
     """
+    # Pre-aggregate data (replaces collapse_identical_variants='mean')
+    # Note: TEST_FUNC_SCORES already has wildtype rows
+    # (empty aa_substitutions which are NaN in pandas)
+    # Use dropna=False to keep wildtype rows in groupby
+    df_collapsed = (
+        TEST_FUNC_SCORES.groupby(["condition", "aa_substitutions"], dropna=False)
+        .agg({"func_score": "mean"})
+        .reset_index()
+    )
+
     data = multidms.Data(
-        TEST_FUNC_SCORES,
+        df_collapsed,
         alphabet=multidms.AAS_WITHSTOP,
-        collapse_identical_variants="mean",
         reference="a",
         assert_site_integrity=True,
     )
 
+    # Expected arrays include wildtype (empty aa_substitutions) as first row
+    # For condition 'a' (reference): wildtype is [0,0,0,0]
     assert np.all(
         data.binarymaps["a"].binary_variants.todense()
-        == [[0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0]]
+        == [[0, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0]]
     )
 
+    # For condition 'b': wildtype becomes G3P (bundle mutation) = [0,0,1,0]
+    # because 'b' has P at site 3 while reference 'a' has G at site 3
     assert np.all(
         data.binarymaps["b"].binary_variants.todense()
-        == [[1, 0, 1, 0], [1, 0, 0, 0], [1, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 1]]
+        == [
+            [0, 0, 1, 0],
+            [1, 0, 1, 0],
+            [1, 0, 0, 0],
+            [1, 0, 0, 1],
+            [0, 0, 0, 0],
+            [0, 0, 0, 1],
+        ]
     )
 
 
@@ -220,6 +260,60 @@ def test_plotting_fxns():
 
     Data.plot_times_seen_hist(show=False)
     Data.plot_func_score_boxplot(show=False)
+
+
+def test_missing_wildtype_error():
+    """Test that error is raised when wildtype missing for a condition."""
+    # Remove all wildtype rows (empty aa_substitutions,
+    # which are NaN in pandas CSV reading)
+    # Filter out NaN rows
+    df = TEST_FUNC_SCORES[TEST_FUNC_SCORES["aa_substitutions"].notna()].copy()
+    with pytest.raises(ValueError, match="No wildtype variant found"):
+        multidms.Data(df, reference="a", alphabet=multidms.AAS_WITHSTOP)
+
+
+def test_wildtype_first_in_conditions():
+    """Test that wildtype is the first variant for each condition."""
+    # Create data where wildtype is NOT first in input
+    df = TEST_FUNC_SCORES.copy()
+    df = df.iloc[::-1].reset_index(drop=True)  # Reverse order
+
+    data = multidms.Data(df, reference="a", alphabet=multidms.AAS_WITHSTOP)
+
+    # Verify wildtype (empty aa_substitutions) is first for each condition
+    for condition in data.conditions:
+        cond_df = data.variants_df[data.variants_df["condition"] == condition]
+        first_aa_subs = cond_df.iloc[0]["aa_substitutions"]
+        assert first_aa_subs.strip() == "", (
+            f"Wildtype should be first for condition {condition}, "
+            f"but got '{first_aa_subs}'"
+        )
+
+
+def test_missing_columns_error_message():
+    """Test that missing columns produce properly formatted error."""
+    df = pd.DataFrame(
+        {"condition": ["a"], "func_score": [1.0]}
+    )  # missing aa_substitutions
+    with pytest.raises(ValueError, match="DataFrame missing required columns"):
+        multidms.Data(df, reference="a")
+
+
+def test_backward_compatibility():
+    """Ensure non-breaking changes remain compatible with v1.x usage."""
+    data = multidms.Data(
+        TEST_FUNC_SCORES,
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="a",
+    )
+
+    # Verify all v1.x properties still work
+    assert data.reference == "a"
+    assert len(data.conditions) == 2
+    assert len(data.mutations) > 0
+    assert "condition" in data.variants_df.columns
+    assert "mutation" in data.mutations_df.columns
+    assert data.arrays is not None
 
 
 r"""
