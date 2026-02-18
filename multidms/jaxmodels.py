@@ -63,11 +63,8 @@ class Data(eqx.Module):
         """
         # NOTE: assumes WT is the first variant!
 
-        # slicing the BCOO array messes up indices, so we need to go to scipy
+        # X is already scipy sparse (csr format) from Data class
         X = multidms_data.arrays["X"][condition]
-        X = scipy.sparse.csr_array(
-            (X.data, (X.indices[:, 0], X.indices[:, 1])), shape=X.shape
-        )
         X = X[1:]  # exclude WT
         X = BCOO.from_scipy_sparse(X)
 
