@@ -415,6 +415,7 @@ class ModelCollection:
                     if inner_merge_dataset_muts
                     else "mutation.notna()"
                 )
+                .select_dtypes(include="number")
                 .groupby("mutation")
                 .aggregate(aggregate_func)
             )
@@ -448,6 +449,7 @@ class ModelCollection:
                     if inner_merge_dataset_muts
                     else "mutation.notna()"
                 )
+                .select_dtypes(include="number")
                 .groupby("mutation")
                 .aggregate(aggregate_func)
                 .assign(**dict(zip(list(groupby), group)))
@@ -544,7 +546,11 @@ class ModelCollection:
             raise ValueError("invalid query, no fits returned")
 
         id_vars = ["dataset_name", "fusionreg"]
-        value_vars = [c for c in queried_fits.columns if "loss" in c]
+        value_vars = [
+            c
+            for c in queried_fits.columns
+            if c.endswith("_loss_training") or c.endswith("_loss_validation")
+        ]
         loss_df = queried_fits.melt(
             id_vars=id_vars,
             value_vars=value_vars,
