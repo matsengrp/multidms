@@ -619,6 +619,101 @@ def _lineplot_and_heatmap(
     return chart
 
 
+def ge_landscape(
+    model,
+    fitness_col="measured_fitness",
+    color_by="condition",
+    point_size=5,
+    point_opacity=0.3,
+    curve_color="grey",
+    curve_width=3,
+    width=500,
+    height=400,
+    n_curve_points=200,
+):
+    """Plot the global epistasis landscape.
+
+    Overlays per-variant fitness scores on the global epistasis curve
+    ``g(φ)``, showing how the nonlinear transformation maps latent
+    phenotype to observed fitness. Wildtype latent phenotypes for each
+    condition are shown as dashed vertical reference lines.
+
+    Parameters
+    ----------
+    model : multidms.Model
+        A fitted Model object.
+    fitness_col : str
+        Which fitness column to plot on the y-axis: ``'measured_fitness'``
+        or ``'predicted_fitness'``. Default is ``'measured_fitness'``.
+    color_by : str
+        Column to color scatter points by. Default is ``'condition'``.
+    point_size : float
+        Size of scatter points. Default is 5.
+    point_opacity : float
+        Opacity of scatter points. Default is 0.3.
+    curve_color : str
+        Color of the ``g(φ)`` curve. Default is ``'grey'``.
+    curve_width : float
+        Stroke width of the ``g(φ)`` curve. Default is 3.
+    width : int
+        Chart width in pixels. Default is 500.
+    height : int
+        Chart height in pixels. Default is 400.
+    n_curve_points : int
+        Number of points for the ``g(φ)`` curve grid. Default is 200.
+
+    Returns
+    -------
+    alt.LayerChart
+        Altair layered chart with scatter, curve, and wildtype reference
+        lines.
+    """
+    variants_df, ge_curve = model.get_ge_landscape_df(
+        n_curve_points=n_curve_points,
+    )
+
+    # Scatter layer: variant fitness vs latent phenotype
+    scatter = (
+        alt.Chart(variants_df)
+        .mark_circle(size=point_size, opacity=point_opacity)
+        .encode(
+            x=alt.X(
+                "predicted_latent:Q",
+                title="Predicted latent phenotype (φ)",
+            ),
+            y=alt.Y(f"{fitness_col}:Q", title="Fitness"),
+            color=alt.Color(f"{color_by}:N"),
+        )
+    )
+
+    # Curve layer: g(φ)
+    curve = (
+        alt.Chart(ge_curve)
+        .mark_line(color=curve_color, strokeWidth=curve_width)
+        .encode(
+            x="predicted_latent:Q",
+            y=alt.Y("ge_curve_value:Q"),
+        )
+    )
+
+    # WT reference lines
+    wt_data = (
+        variants_df[["condition", "wildtype_latent"]]
+        .drop_duplicates()
+        .reset_index(drop=True)
+    )
+    wt_rules = (
+        alt.Chart(wt_data)
+        .mark_rule(strokeDash=[4, 4], opacity=0.6)
+        .encode(
+            x="wildtype_latent:Q",
+            color=alt.Color("condition:N"),
+        )
+    )
+
+    return (scatter + curve + wt_rules).properties(width=width, height=height)
+
+
 if __name__ == "__main__":
     import doctest
 
