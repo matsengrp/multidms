@@ -272,6 +272,38 @@ class Model:
 
         return self
 
+    def _get_single_mutation_data(self, condition: str) -> jaxmodels.Data:
+        """Build jaxmodels.Data encoding each single mutation as a variant.
+
+        For reference-sequence conditions, X is the identity matrix (each row
+        encodes one mutation). For non-reference conditions with different WT
+        sequences, each row also includes 1s at bundle mutation indices
+        (non-identical sites), matching the encoding used by
+        ``_encode_variants`` and ``add_phenotypes_to_df``.
+
+        Uses ``Data.single_mut_encodings`` which handles this distinction.
+
+        Parameters
+        ----------
+        condition : str
+            Condition name.
+
+        Returns
+        -------
+        jaxmodels.Data
+            Data object with X of shape (n_mutations, binarylength).
+        """
+        X = self._data.single_mut_encodings[condition]
+        x_wt = self._jax_data_sets[condition].x_wt
+        n_mutations = len(self._data.mutations)
+        functional_scores = np.zeros(n_mutations)
+
+        return jaxmodels.Data(
+            x_wt=x_wt,
+            X=X,
+            functional_scores=functional_scores,
+        )
+
     # See issue #179 for removal of deprecated phenotype_as_effect parameter
     def get_mutations_df(
         self,
@@ -279,7 +311,7 @@ class Model:
         times_seen_threshold: int = 0,
     ) -> pd.DataFrame:
         """
-        Extract mutation-level parameters in wide format.
+        Extract mutation-level parameters and predicted functional scores.
 
         Parameters
         ----------
@@ -295,13 +327,17 @@ class Model:
             DataFrame with mutations as rows (index) and columns:
             - beta_{condition} for each condition
             - shift_{condition} for each non-reference condition
+            - predicted_func_score_{condition} for each condition
             Shift parameters represent the difference in beta values between each
-            condition and the reference condition.
+            condition and the reference condition. Predicted functional scores
+            are the model's predictions for each single mutation on its
+            condition-specific wild-type background.
 
         Example
         -------
         For a model with conditions ['a', 'b'] where 'a' is reference:
-        - Columns: beta_a, beta_b, shift_b
+        - Columns: beta_a, beta_b, shift_b,
+          predicted_func_score_a, predicted_func_score_b
         - One row per mutation
         """
         if self._jax_model is None:
@@ -324,6 +360,14 @@ class Model:
             if condition != self._data.reference:
                 latent = self._jax_model.φ[condition]
                 mutations_df[f"shift_{condition}"] = latent.β - reference_betas
+
+        # Add predicted functional score columns
+        for condition in self._data.conditions:
+            single_mut_data = self._get_single_mutation_data(condition)
+            predictions = self._jax_model.predict_score({condition: single_mut_data})
+            mutations_df[f"predicted_func_score_{condition}"] = np.array(
+                predictions[condition]
+            )
 
         # Filter by times_seen_threshold
         if times_seen_threshold > 0:
