@@ -671,3 +671,209 @@ def test_add_phenotypes_to_df_with_explicit_parameters(simple_data):
         f"Mismatch for 'a' M1W G3R: expected {expected_a_M1W_G3R}, "
         f"got {result.loc[2, 'predicted_func_score']}"
     )
+
+
+# ==================== Latent Phenotype & Fitness Column Tests ====================
+
+
+def test_get_variants_df_has_latent_and_fitness_columns(fitted_simple_model):
+    """Test that get_variants_df includes latent and fitness columns."""
+    vars_df = fitted_simple_model.get_variants_df()
+
+    assert "predicted_latent" in vars_df.columns
+    assert "predicted_fitness" in vars_df.columns
+    assert "measured_fitness" in vars_df.columns
+
+    # All values should be numeric and finite
+    for col in ["predicted_latent", "predicted_fitness", "measured_fitness"]:
+        assert pd.api.types.is_numeric_dtype(vars_df[col])
+        assert not vars_df[col].isna().any()
+        assert np.all(np.isfinite(vars_df[col]))
+
+
+def test_predicted_fitness_equals_ge_of_latent(fitted_simple_model):
+    """Test that predicted_fitness == g(predicted_latent) for predicted data.
+
+    Since predicted_func_score = α * (g(φ(X)) - g(φ(x_wt))),
+    then predicted_fitness = predicted_func_score / α + g(φ(x_wt)) = g(φ(X)).
+    """
+    vars_df = fitted_simple_model.get_variants_df()
+    import jax.numpy as jnp
+
+    for condition in fitted_simple_model.data.conditions:
+        cond_df = vars_df[vars_df["condition"] == condition]
+        latent_values = jnp.array(cond_df["predicted_latent"].values)
+        ge_values = np.array(
+            fitted_simple_model._jax_model.global_epistasis(latent_values)
+        )
+        assert np.allclose(
+            cond_df["predicted_fitness"].values, ge_values, atol=1e-5
+        ), f"predicted_fitness != g(predicted_latent) for condition {condition}"
+
+
+def test_wildtype_latent_matches_predicted_latent(fitted_simple_model):
+    """Test that WT rows have predicted_latent == wildtype_latent."""
+    vars_df = fitted_simple_model.get_variants_df()
+    wt_latent = fitted_simple_model.wildtype_latent
+
+    for condition in fitted_simple_model.data.conditions:
+        cond_df = vars_df[vars_df["condition"] == condition]
+        # WT is the first row (empty aa_substitutions)
+        wt_row = cond_df.iloc[0]
+        assert wt_row["aa_substitutions"].strip() == ""
+        assert abs(wt_row["predicted_latent"] - wt_latent[condition]) < 1e-5, (
+            f"WT latent mismatch for condition {condition}: "
+            f"{wt_row['predicted_latent']} != {wt_latent[condition]}"
+        )
+
+
+def test_identity_ge_fitness_formula(simple_data):
+    """Test fitness formula with Identity global epistasis.
+
+    With g = identity: fitness = func_score / α + φ(x_wt).
+    """
+    model = multidms.Model(simple_data, ge_type="Identity")
+    model.fit(maxiter=3, warmstart=False, verbose=False)
+
+    vars_df = model.get_variants_df()
+    wt_latent = model.wildtype_latent
+
+    for condition in model.data.conditions:
+        cond_df = vars_df[vars_df["condition"] == condition]
+        α = float(model._jax_model.α[condition])
+        φ_wt = wt_latent[condition]
+        expected_measured = cond_df["func_score"].values / α + φ_wt
+        assert np.allclose(
+            cond_df["measured_fitness"].values, expected_measured, atol=1e-5
+        )
+
+
+def test_get_variants_df_single_condition_latent(fitted_single_condition_model):
+    """Test latent and fitness columns with a single-condition model."""
+    vars_df = fitted_single_condition_model.get_variants_df()
+
+    assert "predicted_latent" in vars_df.columns
+    assert "predicted_fitness" in vars_df.columns
+    assert "measured_fitness" in vars_df.columns
+    assert vars_df["condition"].nunique() == 1
+
+
+def test_add_phenotypes_has_latent_and_fitness(fitted_simple_model):
+    """Test that add_phenotypes_to_df includes latent and fitness columns."""
+    df_new = pd.DataFrame(
+        {
+            "condition": ["a", "b"],
+            "aa_substitutions": ["M1E", "M1E"],
+        }
+    )
+
+    result = fitted_simple_model.add_phenotypes_to_df(df_new)
+
+    assert "predicted_latent" in result.columns
+    assert "predicted_fitness" in result.columns
+    # No func_score column, so measured_fitness should NOT be present
+    assert "measured_fitness" not in result.columns
+
+    # Values should be numeric and finite
+    for col in ["predicted_latent", "predicted_fitness"]:
+        assert not result[col].isna().any()
+        assert np.all(np.isfinite(result[col]))
+
+
+def test_add_phenotypes_with_func_score_has_measured_fitness(fitted_simple_model):
+    """Test that measured_fitness is added when func_score is present."""
+    df_new = pd.DataFrame(
+        {
+            "condition": ["a", "b"],
+            "aa_substitutions": ["M1E", "M1E"],
+            "func_score": [1.5, 2.0],
+        }
+    )
+
+    result = fitted_simple_model.add_phenotypes_to_df(df_new)
+
+    assert "measured_fitness" in result.columns
+    assert not result["measured_fitness"].isna().any()
+
+
+def test_add_phenotypes_latent_consistency_with_get_variants_df(
+    fitted_simple_model,
+):
+    """Test that predicted_latent matches between the two methods."""
+    training_preds = fitted_simple_model.get_variants_df()
+    df_test = training_preds[["condition", "aa_substitutions"]].copy()
+    test_preds = fitted_simple_model.add_phenotypes_to_df(df_test)
+
+    for idx in training_preds.index:
+        expected = training_preds.loc[idx, "predicted_latent"]
+        actual = test_preds.loc[idx, "predicted_latent"]
+        assert (
+            abs(expected - actual) < 1e-5
+        ), f"Latent mismatch at index {idx}: {expected} vs {actual}"
+
+
+# ==================== get_ge_landscape_df Tests ====================
+
+
+def test_get_ge_landscape_df_returns_tuple(fitted_simple_model):
+    """Test that get_ge_landscape_df returns a (variants_df, ge_curve) tuple."""
+    result = fitted_simple_model.get_ge_landscape_df()
+
+    assert isinstance(result, tuple)
+    assert len(result) == 2
+
+    variants_df, ge_curve = result
+    assert isinstance(variants_df, pd.DataFrame)
+    assert isinstance(ge_curve, pd.DataFrame)
+
+
+def test_get_ge_landscape_df_variants_has_wildtype_latent(fitted_simple_model):
+    """Test variants_df from get_ge_landscape_df has wildtype_latent column."""
+    variants_df, _ = fitted_simple_model.get_ge_landscape_df()
+
+    assert "wildtype_latent" in variants_df.columns
+    assert not variants_df["wildtype_latent"].isna().any()
+
+    # Check wildtype_latent values match the property
+    wt_latent = fitted_simple_model.wildtype_latent
+    for condition in fitted_simple_model.data.conditions:
+        cond_vals = variants_df[variants_df["condition"] == condition][
+            "wildtype_latent"
+        ]
+        assert np.allclose(cond_vals, wt_latent[condition], atol=1e-5)
+
+
+def test_get_ge_landscape_df_curve_columns(fitted_simple_model):
+    """Test ge_curve DataFrame has correct columns."""
+    _, ge_curve = fitted_simple_model.get_ge_landscape_df()
+
+    assert "predicted_latent" in ge_curve.columns
+    assert "ge_curve_value" in ge_curve.columns
+    assert len(ge_curve) == 200  # default n_curve_points
+
+
+def test_get_ge_landscape_df_custom_curve_points(fitted_simple_model):
+    """Test custom n_curve_points parameter."""
+    _, ge_curve = fitted_simple_model.get_ge_landscape_df(n_curve_points=50)
+    assert len(ge_curve) == 50
+
+
+# ==================== ge_landscape Plot Tests ====================
+
+
+def test_ge_landscape_plot_returns_chart(fitted_simple_model):
+    """Test that ge_landscape returns an Altair chart."""
+    import altair as alt
+    import multidms.plot as mplt
+
+    chart = mplt.ge_landscape(fitted_simple_model)
+    assert isinstance(chart, alt.LayerChart)
+
+
+def test_ge_landscape_plot_with_predicted_fitness(fitted_simple_model):
+    """Test ge_landscape with predicted_fitness column."""
+    import altair as alt
+    import multidms.plot as mplt
+
+    chart = mplt.ge_landscape(fitted_simple_model, fitness_col="predicted_fitness")
+    assert isinstance(chart, alt.LayerChart)

@@ -349,6 +349,15 @@ class Model:
         -------
         pd.DataFrame
             Variant-level predictions merged with original data.
+            Includes columns:
+
+            - ``predicted_func_score``: model-predicted functional score,
+              i.e. ``α * (g(φ(X)) - g(φ(x_wt)))``
+            - ``predicted_latent``: latent phenotype ``φ(X)``
+            - ``predicted_fitness``: predicted fitness in ``g(φ)`` space,
+              i.e. ``predicted_func_score / α + g(φ(x_wt))``
+            - ``measured_fitness``: measured fitness in ``g(φ)`` space,
+              i.e. ``func_score / α + g(φ(x_wt))``
         """
         if self._jax_model is None:
             raise ValueError("Model has not been fitted. Call fit() first.")
@@ -371,6 +380,25 @@ class Model:
 
             # Add predictions to condition data
             cond_data["predicted_func_score"] = full_predictions[: len(cond_data)]
+
+            # Latent phenotype: φ(X) for each variant
+            φ = self._jax_model.φ[condition]
+            X = self._jax_data_sets[condition].X
+            x_wt = self._jax_data_sets[condition].x_wt
+            φ_X = np.array(φ(X))
+            φ_wt = float(φ(x_wt))
+            # WT is index 0, its latent phenotype is φ(x_wt)
+            full_latent = np.concatenate([[φ_wt], φ_X])
+            cond_data["predicted_latent"] = full_latent[: len(cond_data)]
+
+            # Fitness: back-transform into g(φ) space
+            α = float(self._jax_model.α[condition])
+            g_φ_wt = float(self._jax_model.global_epistasis(φ(x_wt)))
+
+            cond_data["predicted_fitness"] = (
+                cond_data["predicted_func_score"] / α + g_φ_wt
+            )
+            cond_data["measured_fitness"] = cond_data["func_score"] / α + g_φ_wt
 
             result_rows.append(cond_data)
 
@@ -534,7 +562,15 @@ class Model:
         Returns
         -------
         pd.DataFrame
-            A copy of `df` with predictions added.
+            A copy of `df` with predictions added. Always includes:
+
+            - ``predicted_func_score`` (or custom name): predicted functional score
+            - ``predicted_latent``: latent phenotype ``φ(X)``
+            - ``predicted_fitness``: predicted fitness in ``g(φ)`` space
+
+            If ``func_score`` column is present in `df`, also includes:
+
+            - ``measured_fitness``: measured fitness in ``g(φ)`` space
 
         Raises
         ------
@@ -561,6 +597,10 @@ class Model:
         ... })
         >>> result = model.add_phenotypes_to_df(df_new)
         >>> 'predicted_func_score' in result.columns
+        True
+        >>> 'predicted_latent' in result.columns
+        True
+        >>> 'predicted_fitness' in result.columns
         True
         >>> len(result)
         2
@@ -594,8 +634,10 @@ class Model:
                 "Set overwrite_cols=True to overwrite."
             )
 
-        # Initialize prediction column
+        # Initialize prediction columns
         ret[predicted_phenotype_col] = np.nan
+        ret["predicted_latent"] = np.nan
+        ret["predicted_fitness"] = np.nan
 
         # Encode variants and predict
         encoded = self._encode_variants(
@@ -614,7 +656,82 @@ class Model:
                 condition_df.index.values, predicted_phenotype_col
             ] = phenotype_predictions
 
+            # Latent phenotype
+            φ = self._jax_model.φ[condition]
+            φ_X = np.array(φ(temp_data.X))
+            ret.loc[condition_df.index.values, "predicted_latent"] = φ_X
+
+            # Fitness in g(φ) space
+            α = float(self._jax_model.α[condition])
+            g_φ_wt = float(self._jax_model.global_epistasis(φ(temp_data.x_wt)))
+            ret.loc[condition_df.index.values, "predicted_fitness"] = (
+                phenotype_predictions / α + g_φ_wt
+            )
+
+            # Measured fitness (only if func_score column exists)
+            func_score_col = "func_score"
+            if func_score_col in ret.columns:
+                if "measured_fitness" not in ret.columns:
+                    ret["measured_fitness"] = np.nan
+                measured_scores = ret.loc[
+                    condition_df.index.values, func_score_col
+                ].values
+                ret.loc[condition_df.index.values, "measured_fitness"] = (
+                    measured_scores / α + g_φ_wt
+                )
+
         return ret
+
+    def get_ge_landscape_df(
+        self,
+        n_curve_points: int = 200,
+    ) -> tuple:
+        """Get data for plotting the global epistasis landscape.
+
+        Returns a tuple of (variants_df, ge_curve_df). The variants DataFrame
+        contains per-variant latent phenotype and fitness columns from
+        :meth:`get_variants_df`, plus a ``wildtype_latent`` column for
+        reference-line plotting. The curve DataFrame contains the global
+        epistasis function evaluated over the observed latent phenotype range.
+
+        Parameters
+        ----------
+        n_curve_points : int
+            Number of points for the ``g(φ)`` curve grid.
+
+        Returns
+        -------
+        tuple[pd.DataFrame, pd.DataFrame]
+            ``(variants_df, ge_curve_df)`` where:
+
+            - ``variants_df`` has all columns from :meth:`get_variants_df`
+              plus ``wildtype_latent``.
+            - ``ge_curve_df`` has columns ``predicted_latent`` and
+              ``ge_curve_value``.
+        """
+        variants_df = self.get_variants_df()
+
+        # Compute ge curve spanning the observed latent range
+        φ_min = variants_df["predicted_latent"].min()
+        φ_max = variants_df["predicted_latent"].max()
+        margin = (φ_max - φ_min) * 0.05
+        ge_curve = self.get_ge_curve(
+            grid_min=float(φ_min - margin),
+            grid_max=float(φ_max + margin),
+            n_points=n_curve_points,
+        )
+        ge_curve = ge_curve.rename(
+            columns={
+                "latent": "predicted_latent",
+                "observed": "ge_curve_value",
+            }
+        )
+
+        # Add wildtype latent to variants_df for reference lines
+        wt_latent = self.wildtype_latent
+        variants_df["wildtype_latent"] = variants_df["condition"].map(wt_latent)
+
+        return variants_df, ge_curve
 
     def get_ge_curve(
         self,
