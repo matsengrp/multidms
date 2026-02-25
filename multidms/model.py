@@ -88,6 +88,9 @@ class Model:
         self._jax_model = None
         self._jax_data_sets = None
         self._loss_trajectory = None
+        self._fit_tol = None
+        self._loss_fn = None
+        self._loss_kwargs = None
 
     @property
     def data(self) -> Data:
@@ -100,6 +103,43 @@ class Model:
         if self._jax_model is None:
             return None
         return self._jax_model
+
+    @property
+    def converged(self) -> bool:
+        """Whether the model fitting converged.
+
+        Convergence is determined by whether the relative change in the
+        objective function between the last two block coordinate descent
+        iterations was below the tolerance used during fitting.
+        """
+        if self._loss_trajectory is None or len(self._loss_trajectory) < 2:
+            return False
+        last_two = self._loss_trajectory[-2:]
+        error = abs(last_two[-1] - last_two[-2]) / max(
+            abs(last_two[-1]), abs(last_two[-2]), 1
+        )
+        return error < self._fit_tol
+
+    @property
+    def conditional_loss(self) -> dict:
+        """Per-condition loss on training data.
+
+        Returns
+        -------
+        dict[str, float]
+            Dictionary mapping condition names to their training loss values.
+
+        Raises
+        ------
+        ValueError
+            If model has not been fitted.
+        """
+        if self._jax_model is None:
+            raise ValueError("Model has not been fitted. Call fit() first.")
+        loss_dict = self._loss_fn(
+            self._jax_model, self._jax_data_sets, **self._loss_kwargs
+        )
+        return {k: float(v) for k, v in loss_dict.items()}
 
     @property
     def convergence_trajectory_df(self) -> pd.DataFrame:
@@ -203,6 +243,11 @@ class Model:
         else:
             raise ValueError(f"Unknown loss_type: {self._loss_type}")
 
+        # Store fit metadata for post-fit properties/methods
+        self._fit_tol = tol
+        self._loss_fn = loss_fn
+        self._loss_kwargs = loss_kwargs
+
         # Fit model using jaxmodels
         self._jax_model, self._loss_trajectory = jaxmodels.fit(
             data_sets=self._jax_data_sets,
@@ -228,7 +273,11 @@ class Model:
         return self
 
     # See issue #179 for removal of deprecated phenotype_as_effect parameter
-    def get_mutations_df(self, phenotype_as_effect: bool = True) -> pd.DataFrame:
+    def get_mutations_df(
+        self,
+        phenotype_as_effect: bool = True,
+        times_seen_threshold: int = 0,
+    ) -> pd.DataFrame:
         """
         Extract mutation-level parameters in wide format.
 
@@ -236,6 +285,9 @@ class Model:
         ----------
         phenotype_as_effect : bool
             If True, report mutation effects. If False, report raw latent phenotypes.
+        times_seen_threshold : int
+            Minimum number of times a mutation must be seen in ALL conditions
+            to be included. Default is 0 (no filtering).
 
         Returns
         -------
@@ -272,6 +324,15 @@ class Model:
             if condition != self._data.reference:
                 latent = self._jax_model.φ[condition]
                 mutations_df[f"shift_{condition}"] = latent.β - reference_betas
+
+        # Filter by times_seen_threshold
+        if times_seen_threshold > 0:
+            times_seen_cols = [
+                c for c in mutations_df.columns if c.startswith("times_seen_")
+            ]
+            if times_seen_cols:
+                mask = mutations_df[times_seen_cols].min(axis=1) >= times_seen_threshold
+                mutations_df = mutations_df[mask]
 
         return mutations_df
 
@@ -314,6 +375,132 @@ class Model:
             result_rows.append(cond_data)
 
         return pd.concat(result_rows, ignore_index=True)
+
+    def _encode_variants(
+        self, df, condition_col="condition", substitutions_col="aa_substitutions"
+    ):
+        """Encode a DataFrame of variants into jaxmodels.Data objects.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            DataFrame with condition and substitution columns.
+        condition_col : str
+            Column with condition names.
+        substitutions_col : str
+            Column with substitution strings.
+
+        Returns
+        -------
+        dict[str, tuple]
+            Mapping of condition -> (jaxmodels.Data, condition_df) for each
+            condition present in df.
+        """
+        import scipy.sparse
+        from jax.experimental import sparse as jsparse
+
+        ref_bmap = self._data.binarymaps[self._data.reference]
+        result = {}
+
+        for condition, condition_df in df.groupby(condition_col):
+            variant_subs = condition_df[substitutions_col]
+            if condition not in self._data.reference_sequence_conditions:
+                variant_subs = condition_df.apply(
+                    lambda x: self._data.convert_subs_wrt_ref_seq(
+                        condition, x[substitutions_col]
+                    ),
+                    axis=1,
+                )
+
+            row_ind = []
+            col_ind = []
+            unseen_mutations = set()
+
+            for ivariant, subs in enumerate(variant_subs):
+                try:
+                    for isub in ref_bmap.sub_str_to_indices(subs):
+                        row_ind.append(ivariant)
+                        col_ind.append(isub)
+                except ValueError:
+                    if subs:
+                        for mut in subs.split():
+                            if mut not in self._data.mutations:
+                                unseen_mutations.add(mut)
+
+            if unseen_mutations:
+                raise ValueError(
+                    f"Variants contain mutations not seen during training: "
+                    f"{sorted(unseen_mutations)}"
+                )
+
+            X = jsparse.BCOO.from_scipy_sparse(
+                scipy.sparse.csr_matrix(
+                    (np.ones(len(row_ind), dtype="int8"), (row_ind, col_ind)),
+                    shape=(len(condition_df), ref_bmap.binarylength),
+                    dtype="int8",
+                )
+            )
+
+            x_wt = self._jax_data_sets[condition].x_wt
+            func_scores = np.zeros(len(condition_df))
+            if "func_score" in condition_df.columns:
+                func_scores = condition_df["func_score"].values
+
+            temp_data = jaxmodels.Data(
+                x_wt=x_wt,
+                X=X,
+                functional_scores=func_scores,
+            )
+            result[condition] = (temp_data, condition_df)
+
+        return result
+
+    def get_df_loss(self, df, conditional=False):
+        """Evaluate the model's loss on an arbitrary DataFrame.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            DataFrame with columns 'condition', 'aa_substitutions',
+            'func_score'.
+        conditional : bool
+            If True, return per-condition loss as a dict.
+            If False, return the total (summed) loss as a float.
+
+        Returns
+        -------
+        dict[str, float] or float
+            Per-condition losses if conditional=True, else total loss.
+
+        Raises
+        ------
+        ValueError
+            If model is not fitted, required columns are missing,
+            conditions are invalid, or substitutions contain unseen mutations.
+        """
+        if self._jax_model is None:
+            raise ValueError("Model has not been fitted. Call fit() first.")
+
+        for col in ["condition", "aa_substitutions", "func_score"]:
+            if col not in df.columns:
+                raise ValueError(f"`df` lacks column '{col}'")
+
+        invalid_conditions = set(df["condition"]) - set(self._data.conditions)
+        if invalid_conditions:
+            raise ValueError(
+                f"Invalid conditions in df: {invalid_conditions}. "
+                f"Valid conditions: {self._data.conditions}"
+            )
+
+        encoded = self._encode_variants(df)
+        temp_data_sets = {condition: data for condition, (data, _) in encoded.items()}
+
+        loss_dict = self._loss_fn(self._jax_model, temp_data_sets, **self._loss_kwargs)
+
+        if conditional:
+            return {k: float(v) for k, v in loss_dict.items()}
+        else:
+            return float(sum(loss_dict.values()))
 
     def add_phenotypes_to_df(
         self,
@@ -410,84 +597,78 @@ class Model:
         # Initialize prediction column
         ret[predicted_phenotype_col] = np.nan
 
-        # Get reference binarymap for encoding
-        ref_bmap = self._data.binarymaps[self._data.reference]
-
-        # Process each condition separately
-        for condition, condition_df in df.groupby(condition_col):
-            # Convert substitutions to reference frame if needed
-            variant_subs = condition_df[substitutions_col]
-            if condition not in self._data.reference_sequence_conditions:
-                variant_subs = condition_df.apply(
-                    lambda x: self._data.convert_subs_wrt_ref_seq(
-                        condition, x[substitutions_col]
-                    ),
-                    axis=1,
-                )
-
-            # Build binary variant matrix
-            row_ind = []  # row indices of elements that are one
-            col_ind = []  # column indices of elements that are one
-            unseen_mutations = set()
-
-            for ivariant, subs in enumerate(variant_subs):
-                try:
-                    for isub in ref_bmap.sub_str_to_indices(subs):
-                        row_ind.append(ivariant)
-                        col_ind.append(isub)
-                except ValueError:
-                    # Extract the individual mutations that are unseen
-                    if subs:  # non-empty string
-                        for mut in subs.split():
-                            if mut not in self._data.mutations:
-                                unseen_mutations.add(mut)
-
-            # If there are unseen mutations, raise an error
-            if unseen_mutations:
-                raise ValueError(
-                    f"Variants contain mutations not seen during training: "
-                    f"{sorted(unseen_mutations)}"
-                )
-
-            # Create sparse matrix
-            import scipy.sparse
-            from jax.experimental import sparse as jsparse
-
-            X = jsparse.BCOO.from_scipy_sparse(
-                scipy.sparse.csr_matrix(
-                    (np.ones(len(row_ind), dtype="int8"), (row_ind, col_ind)),
-                    shape=(len(condition_df), ref_bmap.binarylength),
-                    dtype="int8",
-                )
-            )
-
-            # Create jaxmodels.Data object for this condition
-            # We need x_wt from the training data
-            x_wt = self._jax_data_sets[condition].x_wt
-
-            # Create a temporary Data object with dummy functional scores
-            import multidms.jaxmodels as jaxmodels
-
-            temp_data = jaxmodels.Data(
-                x_wt=x_wt,
-                X=X,
-                functional_scores=np.zeros(len(condition_df)),  # dummy values
-            )
-
-            # Make predictions using jaxmodels
+        # Encode variants and predict
+        encoded = self._encode_variants(
+            df,
+            condition_col=condition_col,
+            substitutions_col=substitutions_col,
+        )
+        for condition, (temp_data, condition_df) in encoded.items():
             temp_data_sets = {condition: temp_data}
             predictions = self._jax_model.predict_score(temp_data_sets)
 
-            # Extract predictions for this condition
             phenotype_predictions = np.array(predictions[condition])
             assert len(phenotype_predictions) == len(condition_df)
 
-            # Add predictions to result dataframe
             ret.loc[
                 condition_df.index.values, predicted_phenotype_col
             ] = phenotype_predictions
 
         return ret
+
+    def get_ge_curve(
+        self,
+        grid_min: float = -5.0,
+        grid_max: float = 5.0,
+        n_points: int = 200,
+    ) -> pd.DataFrame:
+        """Evaluate the global epistasis function over a latent phenotype grid.
+
+        Parameters
+        ----------
+        grid_min : float
+            Minimum latent phenotype value for the grid.
+        grid_max : float
+            Maximum latent phenotype value for the grid.
+        n_points : int
+            Number of points in the grid.
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame with columns 'latent' and 'observed'.
+        """
+        if self._jax_model is None:
+            raise ValueError("Model has not been fitted. Call fit() first.")
+        import jax.numpy as jnp
+
+        grid = jnp.linspace(grid_min, grid_max, n_points)
+        observed = self._jax_model.global_epistasis(grid)
+        return pd.DataFrame(
+            {
+                "latent": np.array(grid),
+                "observed": np.array(observed),
+            }
+        )
+
+    @property
+    def wildtype_latent(self) -> dict:
+        """Wildtype latent phenotype for each condition.
+
+        Returns
+        -------
+        dict[str, float]
+            Dictionary mapping condition names to the wildtype's latent
+            phenotype value in that condition.
+        """
+        if self._jax_model is None:
+            raise ValueError("Model has not been fitted. Call fit() first.")
+        result = {}
+        for condition in self._data.conditions:
+            latent = self._jax_model.φ[condition]
+            x_wt = self._jax_data_sets[condition].x_wt
+            result[condition] = float(latent.β0 + x_wt @ latent.β)
+        return result
 
     def __repr__(self):
         """String representation."""

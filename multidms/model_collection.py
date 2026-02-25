@@ -37,7 +37,7 @@ logging.getLogger("jax._src.xla_bridge").addFilter(
 
 
 PARAMETER_NAMES_FOR_PLOTTING = {
-    "scale_coeff_lasso_shift": "Lasso Penalty",
+    "fusionreg": "Fusion Regularization",
 }
 
 
@@ -49,108 +49,107 @@ class ModelCollectionFitError(Exception):
 
 def fit_one_model(
     dataset,
-    epistatic_model="Sigmoid",
-    # gamma_corrected=False,  # GAMMA
-    init_theta_scale=6.5,
-    init_theta_bias=-3.5,
-    init_beta_variance=1.0,
-    n_hidden_units=5,
-    lower_bound=None,
-    PRNGKey=0,
+    ge_type="Sigmoid",
+    l2reg=0.0,
+    fusionreg=0.0,
+    beta0_ridge=0.0,
+    loss_type="functional_score_loss",
+    maxiter=10,
+    tol=1e-6,
+    warmstart=True,
+    beta0_init=None,
+    beta_init=None,
+    alpha_init=None,
+    beta_clip_range=None,
+    ge_kwargs=None,
+    cal_kwargs=None,
+    loss_kwargs=None,
     verbose=False,
     **kwargs,
 ):
     """
-    Fit a multidms model to a dataset. This is a wrapper around the multidms
-    fit method that allows for easy specification of the fit parameters.
-    This method is helpful for comparing and organizing multiple fits.
+    Fit a single multidms model to a dataset.
+
+    This is a wrapper around Model construction and fitting that saves
+    all hyperparameters for bookkeeping. Used by :func:`fit_models` for
+    parallel fitting across parameter sweeps.
 
     Parameters
     ----------
     dataset : :class:`multidms.Data`
-        The dataset to fit to. For bookkeeping and downstream analysis,
-        the name of the dataset (Data.name) is saved in the fit attributes
-        that are returned.
-    epistatic_model : str, optional
-        The epistatic model to use. The default is "Identity".
-    init_theta_scale : float, optional
-        The scale to use for initializing the model parameters. The default is 6.5.
-    init_theta_bias : float, optional
-        The bias to use for initializing the model parameters. The default is -3.5.
-    init_beta_variance : float, optional
-        The variance to use for initializing the model's beta parameters from a normal
-        distribution. The default is 1.0.
-    n_hidden_units : int, optional
-        The number of hidden units to use in the neural network model. The default is 5.
-    lower_bound : float, optional
-        The lower bound for use with the softplus activation function.
-        The default is None, but must be specified if using the softplus activation.
-    PRNGKey : int, optional
-        The PRNGKey to use to initialize model parameters. The default is 0.
-    verbose : bool, optional
-        Whether to print out information about the fit to stdout. The default is False.
+        The dataset to fit to. ``dataset.name`` is saved for bookkeeping.
+    ge_type : str
+        Global epistasis type: ``'Identity'`` or ``'Sigmoid'``.
+    l2reg : float
+        L2 regularization strength for mutation effects.
+    fusionreg : float
+        Fusion (shift lasso) regularization strength.
+    beta0_ridge : float
+        Ridge penalty for beta0 differences from reference condition.
+    loss_type : str
+        Loss function: ``'functional_score_loss'`` or ``'count_loss'``.
+    maxiter : int
+        Maximum block coordinate descent iterations.
+    tol : float
+        Convergence tolerance.
+    warmstart : bool
+        Whether to use Ridge regression for initialization.
+    beta0_init, beta_init, alpha_init : dict, optional
+        Initial parameter values per condition.
+    beta_clip_range : tuple, optional
+        ``(min, max)`` clipping for beta parameters.
+    ge_kwargs, cal_kwargs, loss_kwargs : dict, optional
+        Kwargs for sub-optimizers and loss function.
+    verbose : bool
+        Print progress during fitting.
     **kwargs : dict
-        Additional keyword arguments to pass to the multidms.Model.fit method.
+        Additional keyword arguments saved for bookkeeping.
 
     Returns
     -------
     fit_series : :class:`pandas.Series`
-        A series containing reference to the fit `multidms.Model` object
-        and the associated parameters used for the fit.
-        These consist mostly of the keyword arguments passed to this function,
-        less "verbose", and with the addition of:
-        1. "model" - the fit `multidms.Model` object reference,
-        2. "dataset_name" which will simply be the name associated with the `Data`
-        object
-        used for training (note that the `multidms.Data` object itself is always
-        accessible via the `Model.data` attribute).
-        3. "step_loss" which is a numpy array of the loss at the end of each training
-        epoch.
+        A series containing reference to the fit :class:`multidms.Model` object
+        and the associated parameters used for the fit, including
+        ``'dataset_name'`` and ``'fit_time'``.
     """
-    # save the passed parameters for bookkeeping
     fit_attributes = locals().copy()
     del fit_attributes["kwargs"]
     for key, value in kwargs.items():
         fit_attributes[key] = value
 
-    biophysical_model = {
-        "Identity": multidms.biophysical.identity_activation,
-        "Sigmoid": multidms.biophysical.sigmoidal_global_epistasis,
-        "NN": multidms.biophysical.nn_global_epistasis,
-        "Softplus": multidms.biophysical.softplus_activation,
-    }
-
-    imodel = multidms.Model(
+    model = multidms.Model(
         dataset,
-        epistatic_model=biophysical_model[epistatic_model],
-        init_theta_scale=init_theta_scale,
-        init_theta_bias=init_theta_bias,
-        init_beta_variance=init_beta_variance,
-        # gamma_corrected=gamma_corrected, GAMMA
-        n_hidden_units=n_hidden_units,
-        lower_bound=lower_bound,
-        PRNGKey=PRNGKey,
+        ge_type=ge_type,
+        l2reg=l2reg,
+        fusionreg=fusionreg,
+        beta0_ridge=beta0_ridge,
+        loss_type=loss_type,
     )
 
     del fit_attributes["dataset"]
     del fit_attributes["verbose"]
-
     fit_attributes["dataset_name"] = dataset.name
-    fit_attributes["model"] = imodel
+    fit_attributes["model"] = model
 
     if verbose:
         print("running:")
         pprint.pprint(fit_attributes)
 
-    # for training_step in range(num_training_steps):
     start = time.time()
-    imodel.fit(
-        warn_unconverged=verbose,
-        **kwargs,
+    model.fit(
+        warmstart=warmstart,
+        maxiter=maxiter,
+        tol=tol,
+        beta0_init=beta0_init,
+        beta_init=beta_init,
+        alpha_init=alpha_init,
+        beta_clip_range=beta_clip_range,
+        ge_kwargs=ge_kwargs,
+        cal_kwargs=cal_kwargs,
+        loss_kwargs=loss_kwargs,
+        verbose=verbose,
     )
-    end = time.time()
-
-    fit_attributes["fit_time"] = round(end - start)
+    fit_attributes["fit_time"] = round(time.time() - start)
 
     return pd.Series(fit_attributes)
 
@@ -350,7 +349,7 @@ class ModelCollection:
     @lru_cache(maxsize=10)
     def split_apply_combine_muts(
         self,
-        groupby=("dataset_name", "scale_coeff_lasso_shift"),
+        groupby=("dataset_name", "fusionreg"),
         aggregate_func="mean",
         inner_merge_dataset_muts=True,
         query=None,
@@ -374,7 +373,7 @@ class ModelCollection:
         groupby : str or tuple of str or None, optional
             The attributes to group the fits by. If None, then group by all
             attributes except for the model, data, and step_loss attributes.
-            The default is ("dataset_name", "scale_coeff_lasso_shift").
+            The default is ("dataset_name", "fusionreg").
         aggregate_func : str or callable, optional
             The function to aggregate the mutational dataframes within each group.
             The default is "mean".
@@ -387,7 +386,7 @@ class ModelCollection:
             dataframe before splitting. The default is None.
         **kwargs : dict
             Keyword arguments to pass to the :func:`multidms.Model.get_mutations_df`
-            method ("phenotype_as_effect", and "times_seen_threshold") see the
+            method (``phenotype_as_effect`` and ``times_seen_threshold``). See the
             method docstring for details.
 
         Returns
@@ -406,7 +405,7 @@ class ModelCollection:
             ret = (
                 pd.concat(
                     [
-                        fit["model"].get_mutations_df(return_split=False, **kwargs)
+                        fit["model"].get_mutations_df(**kwargs)
                         for _, fit in queried_fits.iterrows()
                     ],
                     join="inner",  # the columns will always match based on class req.
@@ -416,6 +415,7 @@ class ModelCollection:
                     if inner_merge_dataset_muts
                     else "mutation.notna()"
                 )
+                .select_dtypes(include="number")
                 .groupby("mutation")
                 .aggregate(aggregate_func)
             )
@@ -439,7 +439,7 @@ class ModelCollection:
             [
                 pd.concat(
                     [
-                        fit["model"].get_mutations_df(return_split=False, **kwargs)
+                        fit["model"].get_mutations_df(**kwargs)
                         for _, fit in fit_group.iterrows()
                     ],
                     join="inner",  # the columns will always match based on class req.
@@ -449,6 +449,7 @@ class ModelCollection:
                     if inner_merge_dataset_muts
                     else "mutation.notna()"
                 )
+                .select_dtypes(include="number")
                 .groupby("mutation")
                 .aggregate(aggregate_func)
                 .assign(**dict(zip(list(groupby), group)))
@@ -518,13 +519,16 @@ class ModelCollection:
             )
             for condition, loss in condional_df_loss.items():
                 self.fit_models.loc[idx, f"{condition}_loss_validation"] = loss
+            self.fit_models.loc[idx, "total_loss_validation"] = sum(
+                condional_df_loss.values()
+            )
 
         return None
 
     def get_conditional_loss_df(self, query=None):
         """
         Return a long form dataframe with columns
-        "dataset_name", "scale_coeff_lasso_shift",
+        "dataset_name", "fusionreg",
         "split" ("training" or "validation"),
         "loss" (actual value), and "condition".
 
@@ -541,9 +545,11 @@ class ModelCollection:
         if len(queried_fits) == 0:
             raise ValueError("invalid query, no fits returned")
 
-        id_vars = ["dataset_name", "scale_coeff_lasso_shift"]
+        id_vars = ["dataset_name", "fusionreg"]
         value_vars = [
-            c for c in queried_fits.columns if "loss" in c and c != "step_loss"
+            c
+            for c in queried_fits.columns
+            if c.endswith("_loss_training") or c.endswith("_loss_validation")
         ]
         loss_df = queried_fits.melt(
             id_vars=id_vars,
@@ -559,7 +565,7 @@ class ModelCollection:
     def convergence_trajectory_df(
         self,
         query=None,
-        id_vars=("dataset_name", "scale_coeff_lasso_shift"),
+        id_vars=("dataset_name", "fusionreg"),
     ):
         """
         Combine the converence trajectory dataframes of
@@ -622,7 +628,7 @@ class ModelCollection:
             For example, if you have a collection of
             fits with different epistatic models, you may want to query
             for only those fits with the same epistatic model. e.g.
-            `query="epistatic_model == 'Sigmoid'"`. For more on the query
+            `query="ge_type == 'Sigmoid'"`. For more on the query
             syntax, see the
             `pandas.query <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.query.html>`_
             documentation.
@@ -730,23 +736,20 @@ class ModelCollection:
                 lambda site: self.site_map_union.loc[site, condition]
             )
 
-        # melt conditions and stats cols, beta is already "tall"
+        # melt conditions and stats cols
         # note that we must rename conditions with "." in the
         # name to "_" to avoid altair errors
-        if mut_param == "beta":
-            muts_df_tall = muts_df.assign(condition=self.reference.replace(".", "_"))
-        else:
-            muts_df_tall = muts_df.melt(
-                id_vars=["wildtype", "site", "mutant"] + addtl_tooltip_stats,
-                value_vars=[c for c in muts_df.columns if c.startswith(mut_param)],
-                var_name="condition",
-                value_name=mut_param,
-            ).replace(
-                {
-                    f"{mut_param}_{condition}": condition.replace(".", "_")
-                    for condition in self.conditions
-                },
-            )
+        muts_df_tall = muts_df.melt(
+            id_vars=["wildtype", "site", "mutant"] + addtl_tooltip_stats,
+            value_vars=[c for c in muts_df.columns if c.startswith(mut_param)],
+            var_name="condition",
+            value_name=mut_param,
+        ).replace(
+            {
+                f"{mut_param}_{condition}": condition.replace(".", "_")
+                for condition in self.conditions
+            },
+        )
 
         # add in condition colors, rename for altair
         condition_colors = {
@@ -776,7 +779,7 @@ class ModelCollection:
         self,
         mutations,
         mut_param="shift",
-        x="scale_coeff_lasso_shift",
+        x="fusionreg",
         width_scalar=100,
         height_scalar=100,
         **kwargs,
@@ -820,8 +823,8 @@ class ModelCollection:
         # subset to mutations of interest
         muts_df = muts_df.query("mutation.isin(@mutations)")
 
-        # check that we have multiple lasso penalty weights
-        if len(muts_df.scale_coeff_lasso_shift.unique()) <= 1:
+        # check that we have multiple regularization weights
+        if len(muts_df[x].unique()) <= 1:
             raise ValueError(
                 "invalid kwargs, must specify a subset of fits with "
                 "multiple lasso penalty weights"
@@ -833,20 +836,18 @@ class ModelCollection:
 
         muts_df = muts_df.assign(mut_type=muts_df.mutation.apply(mut_type))
 
-        # melt conditions and stats cols, beta is already "tall"
-        # id_cols = ["scale_coeff_lasso_shift", "mutation", "is_stop"]
+        # melt conditions and stats cols
         id_cols = ["dataset_name", x, "mut_type", "mutation"]
         stat_cols_to_keep = [c for c in muts_df.columns if c.startswith(mut_param)]
-        if mut_param == "beta":
-            muts_df_tall = muts_df.assign(condition=self.reference)
-        else:
-            muts_df_tall = muts_df.melt(
-                id_vars=id_cols,
-                value_vars=stat_cols_to_keep,
-                var_name="condition",
-                value_name=mut_param,
-            )
-            muts_df_tall.condition = muts_df_tall.condition.str.lstrip(f"{mut_param}_")
+        muts_df_tall = muts_df.melt(
+            id_vars=id_cols,
+            value_vars=stat_cols_to_keep,
+            var_name="condition",
+            value_name=mut_param,
+        )
+        muts_df_tall.condition = muts_df_tall.condition.str.replace(
+            f"^{mut_param}_", "", regex=True
+        )
 
         # create altair chart
         highlight = alt.selection_point(
@@ -891,7 +892,7 @@ class ModelCollection:
 
     def shift_sparsity(
         self,
-        x="scale_coeff_lasso_shift",
+        x="fusionreg",
         width_scalar=100,
         height_scalar=100,
         return_data=False,
@@ -952,7 +953,7 @@ class ModelCollection:
             alt.Chart(sparsity_df)
             .encode(
                 x=alt.X(
-                    "scale_coeff_lasso_shift",
+                    x,
                     type="nominal",
                     title=(
                         PARAMETER_NAMES_FOR_PLOTTING[x]
@@ -967,7 +968,7 @@ class ModelCollection:
                 ),
                 color=alt.Color("mut_type", type="nominal", title="Mutation type"),
                 tooltip=[
-                    "scale_coeff_lasso_shift",
+                    x,
                     "sparsity",
                     "mut_type",
                 ],
@@ -995,7 +996,7 @@ class ModelCollection:
 
     def mut_param_dataset_correlation(
         self,
-        x="scale_coeff_lasso_shift",
+        x="fusionreg",
         width_scalar=200,
         height=200,
         return_data=False,
@@ -1012,7 +1013,7 @@ class ModelCollection:
         ----------
         x : str, optional
             The parameter to plot on the x-axis.
-            The default is "scale_coeff_lasso_shift".
+            The default is "fusionreg".
         width_scalar : int, optional
             The width of the chart. The default is 150.
         height : int, optional
