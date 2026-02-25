@@ -159,7 +159,7 @@ Example: (-10.0, 10.0). If None, no clipping is applied.</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.model.Model.get_mutations_df">
 <span class="sig-name descname"><span class="pre">get_mutations_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phenotype_as_effect</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times_seen_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#multidms.model.Model.get_mutations_df" title="Permalink to this definition">¶</a></dt>
-<dd><p>Extract mutation-level parameters in wide format.</p>
+<dd><p>Extract mutation-level parameters and predicted functional scores.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -172,8 +172,11 @@ to be included. Default is 0 (no filtering).</p></li>
 <dd class="field-even"><p>DataFrame with mutations as rows (index) and columns:
 - beta_{condition} for each condition
 - shift_{condition} for each non-reference condition
+- predicted_func_score_{condition} for each condition
 Shift parameters represent the difference in beta values between each
-condition and the reference condition.</p>
+condition and the reference condition. Predicted functional scores
+are the model’s predictions for each single mutation on its
+condition-specific wild-type background.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pd.DataFrame</p>
@@ -181,8 +184,13 @@ condition and the reference condition.</p>
 </dl>
 <p class="rubric">Example</p>
 <p>For a model with conditions [‘a’, ‘b’] where ‘a’ is reference:
-- Columns: beta_a, beta_b, shift_b
-- One row per mutation</p>
+- Columns: beta_a, beta_b, shift_b,</p>
+<blockquote>
+<div><p>predicted_func_score_a, predicted_func_score_b</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>One row per mutation</p></li>
+</ul>
 </dd></dl>
 
 <dl class="py method">
