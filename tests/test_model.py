@@ -259,6 +259,82 @@ def test_get_mutations_df_single_condition(fitted_single_condition_model):
     assert "shift_a" not in muts_df.columns  # No shift for reference condition
 
 
+def test_get_mutations_df_has_predicted_func_score_columns(fitted_simple_model):
+    """Test that get_mutations_df includes predicted_func_score columns."""
+    muts_df = fitted_simple_model.get_mutations_df()
+
+    assert "predicted_func_score_a" in muts_df.columns
+    assert "predicted_func_score_b" in muts_df.columns
+
+    # Values should be numeric and finite
+    for col in ["predicted_func_score_a", "predicted_func_score_b"]:
+        assert pd.api.types.is_numeric_dtype(muts_df[col])
+        assert not muts_df[col].isna().any()
+        assert np.all(np.isfinite(muts_df[col]))
+
+
+def test_get_mutations_df_predicted_func_score_matches_add_phenotypes(
+    fitted_simple_model,
+):
+    """Test predicted_func_score columns match add_phenotypes_to_df on single mutants."""
+    muts_df = fitted_simple_model.get_mutations_df()
+
+    # Build a single-mutant DataFrame for all mutations in all conditions
+    rows = []
+    for condition in fitted_simple_model.data.conditions:
+        for mutation in fitted_simple_model.data.mutations:
+            rows.append({"condition": condition, "aa_substitutions": mutation})
+    df_single_muts = pd.DataFrame(rows)
+
+    result = fitted_simple_model.add_phenotypes_to_df(df_single_muts)
+
+    for condition in fitted_simple_model.data.conditions:
+        cond_result = result[result["condition"] == condition]
+        for _, row in cond_result.iterrows():
+            mutation = row["aa_substitutions"]
+            expected = row["predicted_func_score"]
+            actual = muts_df.loc[mutation, f"predicted_func_score_{condition}"]
+            assert abs(expected - actual) < 1e-5, (
+                f"Mismatch for {mutation} in {condition}: "
+                f"add_phenotypes={expected}, get_mutations_df={actual}"
+            )
+
+
+def test_identity_ge_predicted_func_score_equals_alpha_times_beta(simple_data):
+    """Test that for Identity GE, predicted_func_score ≈ alpha * beta for reference.
+
+    With g = identity and x_wt = 0 for the reference condition:
+    predicted_func_score = alpha * (phi(X_i) - phi(x_wt))
+                         = alpha * ((beta0 + beta_i) - beta0)
+                         = alpha * beta_i
+    """
+    model = multidms.Model(simple_data, ge_type="Identity")
+    model.fit(maxiter=5, warmstart=False, verbose=False)
+
+    muts_df = model.get_mutations_df()
+    ref = model.data.reference
+
+    alpha = float(model._jax_model.α[ref])
+    expected = muts_df[f"beta_{ref}"].values * alpha
+    actual = muts_df[f"predicted_func_score_{ref}"].values
+
+    assert np.allclose(actual, expected, atol=1e-5), (
+        f"For Identity GE on reference condition, "
+        f"predicted_func_score should equal alpha * beta.\n"
+        f"alpha={alpha}, max diff={np.max(np.abs(actual - expected))}"
+    )
+
+
+def test_get_mutations_df_predicted_func_score_single_condition(
+    fitted_single_condition_model,
+):
+    """Test predicted_func_score with a single condition model."""
+    muts_df = fitted_single_condition_model.get_mutations_df()
+
+    assert "predicted_func_score_a" in muts_df.columns
+    assert not muts_df["predicted_func_score_a"].isna().any()
+
+
 def test_get_mutations_df_has_shift_column(fitted_model_with_reg):
     """Test that get_mutations_df includes shift column."""
     muts_df = fitted_model_with_reg.get_mutations_df()
