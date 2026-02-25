@@ -65,6 +65,40 @@
 </div>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="multidms.plot.ge_landscape">
+<span class="sig-prename descclassname"><span class="pre">multidms.plot.</span></span><span class="sig-name descname"><span class="pre">ge_landscape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fitness_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'measured_fitness'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'condition'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point_opacity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">curve_color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'grey'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">curve_width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_curve_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.plot.ge_landscape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the global epistasis landscape.</p>
+<p>Overlays per-variant fitness scores on the global epistasis curve
+<code class="docutils literal notranslate"><span class="pre">g(φ)</span></code>, showing how the nonlinear transformation maps latent
+phenotype to observed fitness. Wildtype latent phenotypes for each
+condition are shown as dashed vertical reference lines.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<a class="reference internal" href="multidms.html#multidms.Model" title="multidms.Model"><em>multidms.Model</em></a>) – A fitted Model object.</p></li>
+<li><p><strong>fitness_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Which fitness column to plot on the y-axis: <code class="docutils literal notranslate"><span class="pre">'measured_fitness'</span></code>
+or <code class="docutils literal notranslate"><span class="pre">'predicted_fitness'</span></code>. Default is <code class="docutils literal notranslate"><span class="pre">'measured_fitness'</span></code>.</p></li>
+<li><p><strong>color_by</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column to color scatter points by. Default is <code class="docutils literal notranslate"><span class="pre">'condition'</span></code>.</p></li>
+<li><p><strong>point_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Size of scatter points. Default is 5.</p></li>
+<li><p><strong>point_opacity</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Opacity of scatter points. Default is 0.3.</p></li>
+<li><p><strong>curve_color</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Color of the <code class="docutils literal notranslate"><span class="pre">g(φ)</span></code> curve. Default is <code class="docutils literal notranslate"><span class="pre">'grey'</span></code>.</p></li>
+<li><p><strong>curve_width</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Stroke width of the <code class="docutils literal notranslate"><span class="pre">g(φ)</span></code> curve. Default is 3.</p></li>
+<li><p><strong>width</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Chart width in pixels. Default is 500.</p></li>
+<li><p><strong>height</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Chart height in pixels. Default is 400.</p></li>
+<li><p><strong>n_curve_points</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of points for the <code class="docutils literal notranslate"><span class="pre">g(φ)</span></code> curve grid. Default is 200.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Altair layered chart with scatter, curve, and wildtype reference
+lines.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>alt.LayerChart</p>
+</dd>
+</dl>
+</dd></dl>
+
 
 
           </div>

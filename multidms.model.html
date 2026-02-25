@@ -194,7 +194,18 @@ condition and the reference condition.</p>
 <dd class="field-odd"><p><strong>phenotype_as_effect</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, report effects. If False, report raw latent phenotypes.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Variant-level predictions merged with original data.</p>
+<dd class="field-even"><p><p>Variant-level predictions merged with original data.
+Includes columns:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">predicted_func_score</span></code>: model-predicted functional score,
+i.e. <code class="docutils literal notranslate"><span class="pre">α</span> <span class="pre">*</span> <span class="pre">(g(φ(X))</span> <span class="pre">-</span> <span class="pre">g(φ(x_wt)))</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">predicted_latent</span></code>: latent phenotype <code class="docutils literal notranslate"><span class="pre">φ(X)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">predicted_fitness</span></code>: predicted fitness in <code class="docutils literal notranslate"><span class="pre">g(φ)</span></code> space,
+i.e. <code class="docutils literal notranslate"><span class="pre">predicted_func_score</span> <span class="pre">/</span> <span class="pre">α</span> <span class="pre">+</span> <span class="pre">g(φ(x_wt))</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">measured_fitness</span></code>: measured fitness in <code class="docutils literal notranslate"><span class="pre">g(φ)</span></code> space,
+i.e. <code class="docutils literal notranslate"><span class="pre">func_score</span> <span class="pre">/</span> <span class="pre">α</span> <span class="pre">+</span> <span class="pre">g(φ(x_wt))</span></code></p></li>
+</ul>
+</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pd.DataFrame</p>
@@ -248,7 +259,17 @@ overwrite it? If False, raise an error.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A copy of <cite>df</cite> with predictions added.</p>
+<dd class="field-even"><p><p>A copy of <cite>df</cite> with predictions added. Always includes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">predicted_func_score</span></code> (or custom name): predicted functional score</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">predicted_latent</span></code>: latent phenotype <code class="docutils literal notranslate"><span class="pre">φ(X)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">predicted_fitness</span></code>: predicted fitness in <code class="docutils literal notranslate"><span class="pre">g(φ)</span></code> space</p></li>
+</ul>
+<p>If <code class="docutils literal notranslate"><span class="pre">func_score</span></code> column is present in <cite>df</cite>, also includes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">measured_fitness</span></code>: measured fitness in <code class="docutils literal notranslate"><span class="pre">g(φ)</span></code> space</p></li>
+</ul>
+</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pd.DataFrame</p>
@@ -277,10 +298,43 @@ overwrite it? If False, raise an error.</p></li>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">add_phenotypes_to_df</span><span class="p">(</span><span class="n">df_new</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="s1">&#39;predicted_func_score&#39;</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">columns</span>
 <span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="s1">&#39;predicted_latent&#39;</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">columns</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="s1">&#39;predicted_fitness&#39;</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">columns</span>
+<span class="go">True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 <span class="go">2</span>
 </pre></div>
 </div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="multidms.model.Model.get_ge_landscape_df">
+<span class="sig-name descname"><span class="pre">get_ge_landscape_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_curve_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a></span></span><a class="headerlink" href="#multidms.model.Model.get_ge_landscape_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get data for plotting the global epistasis landscape.</p>
+<p>Returns a tuple of (variants_df, ge_curve_df). The variants DataFrame
+contains per-variant latent phenotype and fitness columns from
+<a class="reference internal" href="#multidms.model.Model.get_variants_df" title="multidms.model.Model.get_variants_df"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_variants_df()</span></code></a>, plus a <code class="docutils literal notranslate"><span class="pre">wildtype_latent</span></code> column for
+reference-line plotting. The curve DataFrame contains the global
+epistasis function evaluated over the observed latent phenotype range.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>n_curve_points</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of points for the <code class="docutils literal notranslate"><span class="pre">g(φ)</span></code> curve grid.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p><code class="docutils literal notranslate"><span class="pre">(variants_df,</span> <span class="pre">ge_curve_df)</span></code> where:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">variants_df</span></code> has all columns from <a class="reference internal" href="#multidms.model.Model.get_variants_df" title="multidms.model.Model.get_variants_df"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_variants_df()</span></code></a>
+plus <code class="docutils literal notranslate"><span class="pre">wildtype_latent</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ge_curve_df</span></code> has columns <code class="docutils literal notranslate"><span class="pre">predicted_latent</span></code> and
+<code class="docutils literal notranslate"><span class="pre">ge_curve_value</span></code>.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a>[pd.DataFrame, pd.DataFrame]</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
