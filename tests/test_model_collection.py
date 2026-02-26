@@ -276,7 +276,7 @@ class TestStackFitModels:
 
 
 class TestFitModels:
-    """Tests for fit_models() (uses multiprocessing)."""
+    """Tests for fit_models()."""
 
     def test_basic_fitting(self, simple_data):
         params = {
@@ -285,7 +285,7 @@ class TestFitModels:
             "warmstart": [False],
             "fusionreg": [0.0],
         }
-        n_fit, n_failed, df = fit_models(params, n_threads=1)
+        n_fit, n_failed, df = fit_models(params)
         assert n_fit == 1
         assert n_failed == 0
         assert isinstance(df, pd.DataFrame)
@@ -298,9 +298,20 @@ class TestFitModels:
             "warmstart": [False],
             "fusionreg": [0.0, 1e-5],
         }
-        n_fit, n_failed, df = fit_models(params, n_threads=1)
+        n_fit, n_failed, df = fit_models(params)
         assert n_fit == 2
         assert len(df) == 2
+
+    def test_n_processes_explicit(self, simple_data):
+        params = {
+            "dataset": [simple_data],
+            "maxiter": [1],
+            "warmstart": [False],
+            "fusionreg": [0.0],
+        }
+        n_fit, n_failed, df = fit_models(params, n_processes=1)
+        assert n_fit == 1
+        assert isinstance(df, pd.DataFrame)
 
     def test_failures_tolerate(self, simple_data):
         params = {
@@ -309,7 +320,7 @@ class TestFitModels:
             "warmstart": [False],
             "fusionreg": [0.0],
         }
-        n_fit, n_failed, df = fit_models(params, n_threads=1, failures="tolerate")
+        n_fit, n_failed, df = fit_models(params, failures="tolerate")
         assert n_fit >= 1
 
     def test_invalid_failures_raises(self, simple_data):
@@ -320,7 +331,48 @@ class TestFitModels:
             "fusionreg": [0.0],
         }
         with pytest.raises(ValueError):
-            fit_models(params, n_threads=1, failures="bad_value")
+            fit_models(params, failures="bad_value")
+
+    def test_gpu_ids_and_n_processes_mutually_exclusive(self, simple_data):
+        params = {
+            "dataset": [simple_data],
+            "maxiter": [1],
+            "warmstart": [False],
+            "fusionreg": [0.0],
+        }
+        with pytest.raises(ValueError, match="Cannot specify both"):
+            fit_models(params, gpu_ids=[0], n_processes=2)
+
+    def test_empty_gpu_ids_raises(self, simple_data):
+        params = {
+            "dataset": [simple_data],
+            "maxiter": [1],
+            "warmstart": [False],
+            "fusionreg": [0.0],
+        }
+        with pytest.raises(ValueError, match="non-empty"):
+            fit_models(params, gpu_ids=[])
+
+    def test_invalid_n_processes_raises(self, simple_data):
+        params = {
+            "dataset": [simple_data],
+            "maxiter": [1],
+            "warmstart": [False],
+            "fusionreg": [0.0],
+        }
+        with pytest.raises(ValueError, match="n_processes must be >= 1"):
+            fit_models(params, n_processes=0)
+
+    def test_n_threads_deprecation_warning(self, simple_data):
+        params = {
+            "dataset": [simple_data],
+            "maxiter": [1],
+            "warmstart": [False],
+            "fusionreg": [0.0],
+        }
+        with pytest.warns(DeprecationWarning, match="n_threads is deprecated"):
+            n_fit, n_failed, df = fit_models(params, n_threads=1)
+        assert n_fit == 1
 
 
 # ========== ModelCollection.__init__ tests ==========
