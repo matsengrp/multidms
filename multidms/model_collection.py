@@ -9,7 +9,9 @@ and merges the results for comparison and visualization.
 
 import itertools as it
 import time
+import threading
 import warnings
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import lru_cache
 from multiprocessing import get_context
 import multiprocessing
@@ -27,6 +29,7 @@ import altair as alt
 
 jax.config.update("jax_enable_x64", True)
 
+logger = logging.getLogger(__name__)
 
 logging.getLogger("jax._src.xla_bridge").addFilter(
     logging.Filter(
@@ -171,15 +174,108 @@ def stack_fit_models(fit_models_list):
     return pd.concat([f.to_frame().T for f in fit_models_list], ignore_index=True)
 
 
-def fit_models(params, n_threads=-1, failures="error"):
+def _fit_models_gpu(exploded_params, gpu_ids):
+    """Round-robin model fitting across GPUs using jax.default_device.
+
+    Uses ThreadPoolExecutor with one thread per GPU. Each thread
+    wraps its model fits in a ``jax.default_device`` context manager,
+    ensuring all computation targets the assigned GPU. A semaphore
+    per GPU ensures only one model runs per GPU at any time.
+
+    Parameters
+    ----------
+    exploded_params : list of dict
+        Each dict is a set of kwargs for :func:`fit_one_model`.
+    gpu_ids : list of int
+        GPU device IDs to distribute work across.
+
+    Returns
+    -------
+    list
+        List of :class:`pandas.Series` (or None for failures), one per model.
+    """
+    import os
+
+    available_gpus = {d.id: d for d in jax.devices("gpu")}
+    for gid in gpu_ids:
+        if gid not in available_gpus:
+            cuda_env = os.environ.get("CUDA_VISIBLE_DEVICES", None)
+            hint = ""
+            if cuda_env is not None:
+                hint = (
+                    f" Note: CUDA_VISIBLE_DEVICES={cuda_env!r} is set "
+                    f"in your environment, which restricts which GPUs "
+                    f"JAX can see. To use multiple GPUs, set "
+                    f"CUDA_VISIBLE_DEVICES to a comma-separated list "
+                    f"of physical GPU IDs (e.g., '0,1,2,3') before "
+                    f"starting Python/Jupyter."
+                )
+            raise ValueError(
+                f"GPU {gid} not found. "
+                f"JAX can see {len(available_gpus)} GPU(s): "
+                f"{list(available_gpus.keys())}.{hint}"
+            )
+
+    devices = [available_gpus[gid] for gid in gpu_ids]
+    n_gpus = len(devices)
+    gpu_semaphores = [threading.Semaphore(1) for _ in range(n_gpus)]
+
+    logger.info(
+        f"Distributing {len(exploded_params)} models "
+        f"across {n_gpus} GPUs: {gpu_ids}"
+    )
+
+    def fit_on_gpu(task):
+        idx, gpu_idx, kwargs = task
+        device = devices[gpu_idx]
+        semaphore = gpu_semaphores[gpu_idx]
+
+        with semaphore:
+            logger.info(f"Model {idx} starting on GPU {gpu_ids[gpu_idx]}")
+            with jax.default_device(device):
+                try:
+                    result = fit_one_model(**kwargs)
+                except Exception:
+                    result = None
+            logger.info(f"Model {idx} finished on GPU {gpu_ids[gpu_idx]}")
+        return idx, result
+
+    tasks = [(i, i % n_gpus, kw) for i, kw in enumerate(exploded_params)]
+
+    results = [None] * len(exploded_params)
+    with ThreadPoolExecutor(max_workers=n_gpus) as executor:
+        futures = {executor.submit(fit_on_gpu, task): task for task in tasks}
+        for future in as_completed(futures):
+            idx, result = future.result()
+            results[idx] = result
+
+    return results
+
+
+def fit_models(
+    params,
+    gpu_ids=None,
+    n_processes=1,
+    n_threads=None,
+    failures="error",
+):
     """Fit collection of :class:`multidms.model.Model` models.
 
-    Enables fitting of multiple models simultaneously using multiple threads.
-    Most commonly, this function is used to fit a set of models across combinations
-    of replicate training datasets, and lasso coefficients for model selection and
-    evaluation. The returned dataframe is meant to be passed into the
-    :class:`multidms.model_collection.ModelCollection` class for comparison
+    Enables fitting of multiple models simultaneously. Most commonly,
+    this function is used to fit a set of models across combinations
+    of replicate training datasets and regularization coefficients for
+    model selection and evaluation. The returned dataframe is meant to
+    be passed into the :class:`ModelCollection` class for comparison
     and visualization.
+
+    There are two parallelism modes, controlled by mutually exclusive
+    parameters:
+
+    - **GPU mode** (``gpu_ids``): Round-robin models across the
+      specified GPUs using ``jax.default_device`` and a
+      ``ThreadPoolExecutor``, one model per GPU at a time.
+    - **CPU mode** (``n_processes``): Spawn independent processes
+      via ``multiprocessing.Pool`` with the ``spawn`` context.
 
     Parameters
     ----------
@@ -188,57 +284,106 @@ def fit_models(params, n_threads=-1, failures="error"):
         wish to run. Each value in the dictionary must be a list of
         values, even in the case of singletons.
         This function will compute all combinations of the parameter
-        space and pass each combination to :func:`multidms.utils.fit_one_model`
+        space and pass each combination to :func:`fit_one_model`
         to be run in parallel, thus only key-value pairs which
         match the kwargs are allowed.
-        See the docstring of :func:`multidms.model_collection.fit_one_model` for
+        See the docstring of :func:`fit_one_model` for
         a description of the allowed parameters.
-    n_threads : int
-        Number of threads (CPUs, cores) to use for fitting. Set to -1 to use
-        all CPUs available.
+    gpu_ids : list of int, optional
+        GPU device IDs to use for fitting. Models are round-robin
+        assigned across GPUs, one model per GPU at a time. Uses
+        ``jax.default_device`` to pin each fit to a specific GPU.
+        Mutually exclusive with ``n_processes``.
+
+        .. note::
+            The IDs correspond to JAX device IDs from
+            ``jax.devices("gpu")``, which are determined by the
+            ``CUDA_VISIBLE_DEVICES`` environment variable at the
+            time JAX is first imported. To use multiple GPUs, ensure
+            ``CUDA_VISIBLE_DEVICES`` includes all desired GPU IDs
+            (e.g., ``export CUDA_VISIBLE_DEVICES=0,1,2,3``) before
+            starting Python or Jupyter.
+    n_processes : int
+        Number of parallel CPU processes for fitting. Default is 1
+        (sequential, no multiprocessing overhead). Uses
+        ``multiprocessing.Pool`` with the ``spawn`` context when > 1.
+        Mutually exclusive with ``gpu_ids``.
+    n_threads : int, optional
+        .. deprecated::
+            Use ``gpu_ids`` for GPU fitting or ``n_processes`` for
+            CPU fitting.
     failures : {"error", "tolerate"}
-        What if fitting fails for a model? If "error" then raise an error,
-        if "ignore" then just return `None` for models that failed optimization.
+        What if fitting fails for a model? If ``"error"`` then raise
+        an error, if ``"tolerate"`` then just return ``None`` for
+        models that failed optimization.
 
     Returns
     -------
     (n_fit, n_failed, fit_models)
-        Number of models that fit successfully, number of models that failed,
-        and a dataframe which contains a row for each of the `multidms.Model`
-        object references along with the parameters each was fit with for convenience.
-        The dataframe is ultimately meant to be passed into the ModelCollection class.
-        for comparison and visualization.
+        Number of models that fit successfully, number of models that
+        failed, and a dataframe which contains a row for each of the
+        ``multidms.Model`` object references along with the parameters
+        each was fit with for convenience. The dataframe is ultimately
+        meant to be passed into the :class:`ModelCollection` class for
+        comparison and visualization.
     """
-    if n_threads == -1:
-        n_threads = multiprocessing.cpu_count()
+    # Handle deprecated n_threads parameter
+    if n_threads is not None:
+        warnings.warn(
+            "n_threads is deprecated. Use gpu_ids for GPU fitting or "
+            "n_processes for CPU fitting. n_threads will be removed in "
+            "a future version.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if gpu_ids is None and n_processes == 1:
+            n_processes = n_threads if n_threads != -1 else multiprocessing.cpu_count()
+
+    if gpu_ids is not None and n_processes != 1:
+        raise ValueError(
+            "Cannot specify both gpu_ids and n_processes. "
+            "Use gpu_ids for GPU fitting or n_processes for CPU fitting."
+        )
+
+    if gpu_ids is not None and len(gpu_ids) == 0:
+        raise ValueError("gpu_ids must be a non-empty list of GPU device IDs.")
+
+    if n_processes < 1:
+        raise ValueError("n_processes must be >= 1.")
 
     exploded_params = explode_params_dict(params)
-    # if __name__ == "__main__":
-    # see https://pythonspeed.com/articles/python-multiprocessing/ for why we spawn
-    with get_context("spawn").Pool(n_threads) as p:
-        fit_models = p.map(_fit_fun, [(None, params) for params in exploded_params])
-        # fit_models = p.map(
-        #     _fit_fun, [(params.pop("dataset"), params) for params in exploded_params]
-        # )
-        # p.close()
-    assert len(fit_models) == len(exploded_params)
+
+    if gpu_ids is not None:
+        fit_results = _fit_models_gpu(exploded_params, gpu_ids)
+    elif n_processes == 1:
+        fit_results = [_fit_fun((None, kw)) for kw in exploded_params]
+    else:
+        # see https://pythonspeed.com/articles/python-multiprocessing/
+        # for why we use spawn context (JAX is multithreaded internally)
+        with get_context("spawn").Pool(n_processes) as p:
+            fit_results = p.map(
+                _fit_fun,
+                [(None, kw) for kw in exploded_params],
+            )
+
+    assert len(fit_results) == len(exploded_params)
 
     # Check to see if any models failed optimization
-    n_failed = sum(model is None for model in fit_models)
+    n_failed = sum(model is None for model in fit_results)
     if failures == "error":
         if n_failed:
             raise ModelCollectionFitError(
-                f"Failed fitting {n_failed} of {len(exploded_params)} parameter sets"
+                f"Failed fitting {n_failed} of {len(exploded_params)} " "parameter sets"
             )
     elif failures != "tolerate":
         raise ValueError(f"invalid {failures=}")
-    n_fit = len(fit_models) - n_failed
+    n_fit = len(fit_results) - n_failed
     if n_fit == 0:
         raise ModelCollectionFitError(
             f"Failed fitting all {len(exploded_params)} parameter sets"
         )
 
-    return (n_fit, n_failed, stack_fit_models(fit_models))
+    return (n_fit, n_failed, stack_fit_models(fit_results))
 
 
 class ModelCollection:
