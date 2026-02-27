@@ -96,14 +96,23 @@ stack them into a single pd.DataFrame</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="multidms.model_collection.fit_models">
-<span class="sig-prename descclassname"><span class="pre">multidms.model_collection.</span></span><span class="sig-name descname"><span class="pre">fit_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failures</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'error'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.fit_models" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">multidms.model_collection.</span></span><span class="sig-name descname"><span class="pre">fit_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_processes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failures</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'error'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.fit_models" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fit collection of <a class="reference internal" href="multidms.model.html#multidms.model.Model" title="multidms.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">multidms.model.Model</span></code></a> models.</p>
-<p>Enables fitting of multiple models simultaneously using multiple threads.
-Most commonly, this function is used to fit a set of models across combinations
-of replicate training datasets, and lasso coefficients for model selection and
-evaluation. The returned dataframe is meant to be passed into the
-<a class="reference internal" href="#multidms.model_collection.ModelCollection" title="multidms.model_collection.ModelCollection"><code class="xref py py-class docutils literal notranslate"><span class="pre">multidms.model_collection.ModelCollection</span></code></a> class for comparison
+<p>Enables fitting of multiple models simultaneously. Most commonly,
+this function is used to fit a set of models across combinations
+of replicate training datasets and regularization coefficients for
+model selection and evaluation. The returned dataframe is meant to
+be passed into the <a class="reference internal" href="#multidms.model_collection.ModelCollection" title="multidms.model_collection.ModelCollection"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelCollection</span></code></a> class for comparison
 and visualization.</p>
+<p>There are two parallelism modes, controlled by mutually exclusive
+parameters:</p>
+<ul class="simple">
+<li><p><strong>GPU mode</strong> (<code class="docutils literal notranslate"><span class="pre">gpu_ids</span></code>): Round-robin models across the
+specified GPUs using <code class="docutils literal notranslate"><span class="pre">jax.default_device</span></code> and a
+<code class="docutils literal notranslate"><span class="pre">ThreadPoolExecutor</span></code>, one model per GPU at a time.</p></li>
+<li><p><strong>CPU mode</strong> (<code class="docutils literal notranslate"><span class="pre">n_processes</span></code>): Spawn independent processes
+via <code class="docutils literal notranslate"><span class="pre">multiprocessing.Pool</span></code> with the <code class="docutils literal notranslate"><span class="pre">spawn</span></code> context.</p></li>
+</ul>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -111,23 +120,47 @@ and visualization.</p>
 wish to run. Each value in the dictionary must be a list of
 values, even in the case of singletons.
 This function will compute all combinations of the parameter
-space and pass each combination to <code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.utils.fit_one_model()</span></code>
+space and pass each combination to <a class="reference internal" href="#multidms.model_collection.fit_one_model" title="multidms.model_collection.fit_one_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_one_model()</span></code></a>
 to be run in parallel, thus only key-value pairs which
 match the kwargs are allowed.
-See the docstring of <a class="reference internal" href="#multidms.model_collection.fit_one_model" title="multidms.model_collection.fit_one_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.model_collection.fit_one_model()</span></code></a> for
+See the docstring of <a class="reference internal" href="#multidms.model_collection.fit_one_model" title="multidms.model_collection.fit_one_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_one_model()</span></code></a> for
 a description of the allowed parameters.</p></li>
-<li><p><strong>n_threads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of threads (CPUs, cores) to use for fitting. Set to -1 to use
-all CPUs available.</p></li>
-<li><p><strong>failures</strong> (<em>{&quot;error&quot;</em><em>, </em><em>&quot;tolerate&quot;}</em>) – What if fitting fails for a model? If “error” then raise an error,
-if “ignore” then just return <cite>None</cite> for models that failed optimization.</p></li>
+<li><p><strong>gpu_ids</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – <p>GPU device IDs to use for fitting. Models are round-robin
+assigned across GPUs, one model per GPU at a time. Uses
+<code class="docutils literal notranslate"><span class="pre">jax.default_device</span></code> to pin each fit to a specific GPU.
+Mutually exclusive with <code class="docutils literal notranslate"><span class="pre">n_processes</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The IDs correspond to JAX device IDs from
+<code class="docutils literal notranslate"><span class="pre">jax.devices(&quot;gpu&quot;)</span></code>, which are determined by the
+<code class="docutils literal notranslate"><span class="pre">CUDA_VISIBLE_DEVICES</span></code> environment variable at the
+time JAX is first imported. To use multiple GPUs, ensure
+<code class="docutils literal notranslate"><span class="pre">CUDA_VISIBLE_DEVICES</span></code> includes all desired GPU IDs
+(e.g., <code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">CUDA_VISIBLE_DEVICES=0,1,2,3</span></code>) before
+starting Python or Jupyter.</p>
+</div>
+</p></li>
+<li><p><strong>n_processes</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of parallel CPU processes for fitting. Default is 1
+(sequential, no multiprocessing overhead). Uses
+<code class="docutils literal notranslate"><span class="pre">multiprocessing.Pool</span></code> with the <code class="docutils literal notranslate"><span class="pre">spawn</span></code> context when &gt; 1.
+Mutually exclusive with <code class="docutils literal notranslate"><span class="pre">gpu_ids</span></code>.</p></li>
+<li><p><strong>n_threads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – <div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version Use: </span><code class="docutils literal notranslate"><span class="pre">gpu_ids</span></code> for GPU fitting or <code class="docutils literal notranslate"><span class="pre">n_processes</span></code> for
+CPU fitting.</p>
+</div>
+</p></li>
+<li><p><strong>failures</strong> (<em>{&quot;error&quot;</em><em>, </em><em>&quot;tolerate&quot;}</em>) – What if fitting fails for a model? If <code class="docutils literal notranslate"><span class="pre">&quot;error&quot;</span></code> then raise
+an error, if <code class="docutils literal notranslate"><span class="pre">&quot;tolerate&quot;</span></code> then just return <code class="docutils literal notranslate"><span class="pre">None</span></code> for
+models that failed optimization.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Number of models that fit successfully, number of models that failed,
-and a dataframe which contains a row for each of the <cite>multidms.Model</cite>
-object references along with the parameters each was fit with for convenience.
-The dataframe is ultimately meant to be passed into the ModelCollection class.
-for comparison and visualization.</p>
+<dd class="field-even"><p>Number of models that fit successfully, number of models that
+failed, and a dataframe which contains a row for each of the
+<code class="docutils literal notranslate"><span class="pre">multidms.Model</span></code> object references along with the parameters
+each was fit with for convenience. The dataframe is ultimately
+meant to be passed into the <a class="reference internal" href="#multidms.model_collection.ModelCollection" title="multidms.model_collection.ModelCollection"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelCollection</span></code></a> class for
+comparison and visualization.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>(n_fit, n_failed, fit_models)</p>
