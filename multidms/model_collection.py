@@ -194,12 +194,26 @@ def _fit_models_gpu(exploded_params, gpu_ids):
     list
         List of :class:`pandas.Series` (or None for failures), one per model.
     """
+    import os
+
     available_gpus = {d.id: d for d in jax.devices("gpu")}
     for gid in gpu_ids:
         if gid not in available_gpus:
+            cuda_env = os.environ.get("CUDA_VISIBLE_DEVICES", None)
+            hint = ""
+            if cuda_env is not None:
+                hint = (
+                    f" Note: CUDA_VISIBLE_DEVICES={cuda_env!r} is set "
+                    f"in your environment, which restricts which GPUs "
+                    f"JAX can see. To use multiple GPUs, set "
+                    f"CUDA_VISIBLE_DEVICES to a comma-separated list "
+                    f"of physical GPU IDs (e.g., '0,1,2,3') before "
+                    f"starting Python/Jupyter."
+                )
             raise ValueError(
                 f"GPU {gid} not found. "
-                f"Available GPUs: {list(available_gpus.keys())}"
+                f"JAX can see {len(available_gpus)} GPU(s): "
+                f"{list(available_gpus.keys())}.{hint}"
             )
 
     devices = [available_gpus[gid] for gid in gpu_ids]
@@ -280,6 +294,15 @@ def fit_models(
         assigned across GPUs, one model per GPU at a time. Uses
         ``jax.default_device`` to pin each fit to a specific GPU.
         Mutually exclusive with ``n_processes``.
+
+        .. note::
+            The IDs correspond to JAX device IDs from
+            ``jax.devices("gpu")``, which are determined by the
+            ``CUDA_VISIBLE_DEVICES`` environment variable at the
+            time JAX is first imported. To use multiple GPUs, ensure
+            ``CUDA_VISIBLE_DEVICES`` includes all desired GPU IDs
+            (e.g., ``export CUDA_VISIBLE_DEVICES=0,1,2,3``) before
+            starting Python or Jupyter.
     n_processes : int
         Number of parallel CPU processes for fitting. Default is 1
         (sequential, no multiprocessing overhead). Uses
