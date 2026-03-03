@@ -155,18 +155,17 @@ class Latent(eqx.Module):
         Returns:
             Latent model initialized with warmstart parameters.
         """
-        if data.pre_counts is None:
-            raise ValueError(
-                "Warmstart requires pre_counts data. Either provide count data "
-                "or disable warmstart by setting warmstart=False."
-            )
         X = scipy.sparse.csr_array(
             (data.X.data, (data.X.indices[:, 0], data.X.indices[:, 1])),
             shape=(data.X.shape[0], len(data.x_wt)),
         )
         y = data.functional_scores
         ridge_solver = linear_model.Ridge(alpha=l2reg)
-        ridge_solver.fit(X, y, sample_weight=jnp.log(data.pre_counts))
+
+        if data.pre_counts is not None:
+            ridge_solver.fit(X, y, sample_weight=jnp.log(data.pre_counts))
+        else:
+            ridge_solver.fit(X, y)
         return Latent(
             β0=ridge_solver.intercept_,
             β=ridge_solver.coef_,

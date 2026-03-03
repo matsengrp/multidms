@@ -176,9 +176,10 @@ def test_model_fit_with_identity_ge(simple_data):
 
 
 def test_model_fit_with_warmstart(simple_data):
-    """Test fitting with warmstart enabled (requires count data)."""
-    # Skip this test for now - warmstart requires count data
-    pytest.skip("Warmstart requires count data which test data doesn't have")
+    """Test fitting with warmstart enabled (no count data needed)."""
+    model = multidms.Model(simple_data)
+    model.fit(warmstart=True, maxiter=3)
+    assert model.params is not None
 
 
 def test_model_fit_without_warmstart(simple_data):

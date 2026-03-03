@@ -92,6 +92,18 @@ def single_condition_data(
 
 
 @pytest.fixture
+def single_condition_data_no_counts(
+    wildtype_sequence, sparse_variant_matrix, functional_scores
+):
+    """Create a Data object without count data (functional scores only)."""
+    return jaxmodels.Data(
+        x_wt=wildtype_sequence,
+        X=sparse_variant_matrix,
+        functional_scores=functional_scores,
+    )
+
+
+@pytest.fixture
 def multi_condition_data(n_conditions, n_mutations, n_variants, rng_key):
     """Create Data objects for multiple conditions."""
     data_sets = {}
@@ -206,6 +218,12 @@ class TestLatent:
         """Test warmstart initialization."""
         latent = jaxmodels.Latent.warmstart(single_condition_data, l2reg=0.1)
         assert latent.β.shape == single_condition_data.x_wt.shape
+        assert latent.β0.shape == ()
+
+    def test_latent_warmstart_without_counts(self, single_condition_data_no_counts):
+        """Test warmstart works with functional scores only (no counts)."""
+        latent = jaxmodels.Latent.warmstart(single_condition_data_no_counts, l2reg=0.1)
+        assert latent.β.shape == single_condition_data_no_counts.x_wt.shape
         assert latent.β0.shape == ()
 
 
