@@ -258,14 +258,14 @@ method docstring for details.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.add_validation_loss">
-<span class="sig-name descname"><span class="pre">add_validation_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.add_validation_loss" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add validation loss to the fit collection dataframe.</p>
+<dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.add_eval_loss">
+<span class="sig-name descname"><span class="pre">add_eval_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.add_eval_loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add evaluation (validation) loss to the fit collection dataframe.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>test_data</strong> (<em>pd.DataFrame</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>pd.DataFrame</em><em>)</em>) – The testing dataframe to compute validation loss with respect to,
-must have columns “aa_substitutitions”, “condition”, and “func_score”.
+must have columns “aa_substitutions”, “condition”, and “func_score”.
 If a dictionary is passed, there should be a key for
 each unique dataset_name factor in the self.fit_models dataframe
 - with the value being the respective testing dataframe.</p></li>
@@ -273,22 +273,20 @@ each unique dataset_name factor in the self.fit_models dataframe
 The default is False.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The self.fit_models dataframe with the validation loss added.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pd.DataFrame</p>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.get_conditional_loss_df">
-<span class="sig-name descname"><span class="pre">get_conditional_loss_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.get_conditional_loss_df" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.loss_df">
+<span class="sig-name descname"><span class="pre">loss_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.loss_df" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a long form dataframe with columns
 “dataset_name”, “fusionreg”,
 “split” (“training” or “validation”),
 “loss” (actual value), and “condition”.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">condition</span></code> column includes <code class="docutils literal notranslate"><span class="pre">&quot;total&quot;</span></code> for the summed loss.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>query</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – The query to apply to the fit_models dataframe

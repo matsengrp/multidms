@@ -458,35 +458,20 @@ functional score fitting, ‘count_loss’ for count-based enrichment models.</p
 <dt class="sig sig-object py" id="multidms.Model.converged">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">converged</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></em><a class="headerlink" href="#multidms.Model.converged" title="Permalink to this definition">¶</a></dt>
 <dd><p>Whether the model fitting converged.</p>
-<p>Convergence is determined by whether the relative change in the
-objective function between the last two block coordinate descent
-iterations was below the tolerance used during fitting.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="multidms.Model.conditional_loss">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">conditional_loss</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Model.conditional_loss" title="Permalink to this definition">¶</a></dt>
-<dd><p>Per-condition loss on training data.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Dictionary mapping condition names to their training loss values.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a>]</p>
-</dd>
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If model has not been fitted.</p>
-</dd>
-</dl>
+<p>Convergence is determined by whether the objective error
+(relative change in the objective function) at the last iteration
+was below the tolerance used during fitting.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Model.convergence_trajectory_df">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">convergence_trajectory_df</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">DataFrame</span></em><a class="headerlink" href="#multidms.Model.convergence_trajectory_df" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convergence trajectory showing loss over iterations.</p>
+<dd><p>Convergence trajectory showing objective and loss over iterations.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>DataFrame with columns ‘iteration’, ‘loss’, ‘error’</p>
+<dd class="field-odd"><p>DataFrame with columns <code class="docutils literal notranslate"><span class="pre">iteration</span></code>,
+<code class="docutils literal notranslate"><span class="pre">objective_total_trajectory</span></code>, <code class="docutils literal notranslate"><span class="pre">objective_error_trajectory</span></code>,
+<code class="docutils literal notranslate"><span class="pre">loss_trajectory</span></code>.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>pd.DataFrame</p>
@@ -589,24 +574,38 @@ i.e. <code class="docutils literal notranslate"><span class="pre">func_score</sp
 </dl>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="multidms.Model.training_loss">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">training_loss</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Model.training_loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Per-condition and total loss on training data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary mapping condition names and <code class="docutils literal notranslate"><span class="pre">&quot;total&quot;</span></code> to their
+training loss values.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a>]</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If model has not been fitted.</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
-<dt class="sig sig-object py" id="multidms.Model.get_df_loss">
-<span class="sig-name descname"><span class="pre">get_df_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditional</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.get_df_loss" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="multidms.Model.eval_loss">
+<span class="sig-name descname"><span class="pre">eval_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.eval_loss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Evaluate the model’s loss on an arbitrary DataFrame.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – DataFrame with columns ‘condition’, ‘aa_substitutions’,
-‘func_score’.</p></li>
-<li><p><strong>conditional</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, return per-condition loss as a dict.
-If False, return the total (summed) loss as a float.</p></li>
-</ul>
+<dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – DataFrame with columns ‘condition’, ‘aa_substitutions’,
+‘func_score’.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Per-condition losses if conditional=True, else total loss.</p>
+<dd class="field-even"><p>Per-condition losses and <code class="docutils literal notranslate"><span class="pre">&quot;total&quot;</span></code> loss.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a>] or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a>]</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If model is not fitted, required columns are missing,
@@ -841,14 +840,14 @@ method docstring for details.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="multidms.ModelCollection.add_validation_loss">
-<span class="sig-name descname"><span class="pre">add_validation_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.add_validation_loss" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add validation loss to the fit collection dataframe.</p>
+<dt class="sig sig-object py" id="multidms.ModelCollection.add_eval_loss">
+<span class="sig-name descname"><span class="pre">add_eval_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.add_eval_loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add evaluation (validation) loss to the fit collection dataframe.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>test_data</strong> (<em>pd.DataFrame</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>pd.DataFrame</em><em>)</em>) – The testing dataframe to compute validation loss with respect to,
-must have columns “aa_substitutitions”, “condition”, and “func_score”.
+must have columns “aa_substitutions”, “condition”, and “func_score”.
 If a dictionary is passed, there should be a key for
 each unique dataset_name factor in the self.fit_models dataframe
 - with the value being the respective testing dataframe.</p></li>
@@ -856,22 +855,20 @@ each unique dataset_name factor in the self.fit_models dataframe
 The default is False.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The self.fit_models dataframe with the validation loss added.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pd.DataFrame</p>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="multidms.ModelCollection.get_conditional_loss_df">
-<span class="sig-name descname"><span class="pre">get_conditional_loss_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.get_conditional_loss_df" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="multidms.ModelCollection.loss_df">
+<span class="sig-name descname"><span class="pre">loss_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.loss_df" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a long form dataframe with columns
 “dataset_name”, “fusionreg”,
 “split” (“training” or “validation”),
 “loss” (actual value), and “condition”.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">condition</span></code> column includes <code class="docutils literal notranslate"><span class="pre">&quot;total&quot;</span></code> for the summed loss.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>query</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – The query to apply to the fit_models dataframe
@@ -1163,12 +1160,12 @@ comparison and visualization.</p>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.data"><code class="docutils literal notranslate"><span class="pre">Model.data</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.params"><code class="docutils literal notranslate"><span class="pre">Model.params</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.converged"><code class="docutils literal notranslate"><span class="pre">Model.converged</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.conditional_loss"><code class="docutils literal notranslate"><span class="pre">Model.conditional_loss</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.convergence_trajectory_df"><code class="docutils literal notranslate"><span class="pre">Model.convergence_trajectory_df</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.fit"><code class="docutils literal notranslate"><span class="pre">Model.fit()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_mutations_df"><code class="docutils literal notranslate"><span class="pre">Model.get_mutations_df()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_variants_df"><code class="docutils literal notranslate"><span class="pre">Model.get_variants_df()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_df_loss"><code class="docutils literal notranslate"><span class="pre">Model.get_df_loss()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.training_loss"><code class="docutils literal notranslate"><span class="pre">Model.training_loss</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.eval_loss"><code class="docutils literal notranslate"><span class="pre">Model.eval_loss()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.add_phenotypes_to_df"><code class="docutils literal notranslate"><span class="pre">Model.add_phenotypes_to_df()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_ge_landscape_df"><code class="docutils literal notranslate"><span class="pre">Model.get_ge_landscape_df()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_ge_curve"><code class="docutils literal notranslate"><span class="pre">Model.get_ge_curve()</span></code></a></li>
@@ -1187,8 +1184,8 @@ comparison and visualization.</p>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.shared_mutations"><code class="docutils literal notranslate"><span class="pre">ModelCollection.shared_mutations</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.all_mutations"><code class="docutils literal notranslate"><span class="pre">ModelCollection.all_mutations</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.split_apply_combine_muts"><code class="docutils literal notranslate"><span class="pre">ModelCollection.split_apply_combine_muts()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.add_validation_loss"><code class="docutils literal notranslate"><span class="pre">ModelCollection.add_validation_loss()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.get_conditional_loss_df"><code class="docutils literal notranslate"><span class="pre">ModelCollection.get_conditional_loss_df()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.add_eval_loss"><code class="docutils literal notranslate"><span class="pre">ModelCollection.add_eval_loss()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.loss_df"><code class="docutils literal notranslate"><span class="pre">ModelCollection.loss_df()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.convergence_trajectory_df"><code class="docutils literal notranslate"><span class="pre">ModelCollection.convergence_trajectory_df()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.mut_param_heatmap"><code class="docutils literal notranslate"><span class="pre">ModelCollection.mut_param_heatmap()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.mut_param_traceplot"><code class="docutils literal notranslate"><span class="pre">ModelCollection.mut_param_traceplot()</span></code></a></li>
