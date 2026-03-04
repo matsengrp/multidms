@@ -454,8 +454,7 @@ class ModelCollection:
             bool
         )
         for idx, fit in fit_models.iterrows():
-            conditional_loss = fit.model.conditional_loss
-            for condition, loss in conditional_loss.items():
+            for condition, loss in fit.model.training_loss.items():
                 fit_models.loc[idx, f"{condition}_loss_training"] = loss
 
         self._site_map_union = site_map_union
@@ -609,15 +608,15 @@ class ModelCollection:
 
         return ret
 
-    def add_validation_loss(self, test_data, overwrite=False):
+    def add_eval_loss(self, test_data, overwrite=False):
         """
-        Add validation loss to the fit collection dataframe.
+        Add evaluation (validation) loss to the fit collection dataframe.
 
         Parameters
         ----------
         test_data : pd.DataFrame or dict(str, pd.DataFrame)
             The testing dataframe to compute validation loss with respect to,
-            must have columns "aa_substitutitions", "condition", and "func_score".
+            must have columns "aa_substitutions", "condition", and "func_score".
             If a dictionary is passed, there should be a key for
             each unique dataset_name factor in the self.fit_models dataframe
             - with the value being the respective testing dataframe.
@@ -627,8 +626,7 @@ class ModelCollection:
 
         Returns
         -------
-        pd.DataFrame
-            The self.fit_models dataframe with the validation loss added.
+        None
         """
         if isinstance(test_data, pd.DataFrame):
             temp_test_data = test_data.copy()
@@ -639,10 +637,11 @@ class ModelCollection:
         # check there's a testing dataframe for each unique dataset_name
         assert set(test_data.keys()) == set(self.fit_models["dataset_name"].unique())
 
+        all_loss_keys = list(self.conditions) + ["total"]
         validation_cols_exist = onp.any(
             [
-                f"{condition}_loss_validation" in self.fit_models.columns
-                for condition in self.conditions
+                f"{key}_loss_validation" in self.fit_models.columns
+                for key in all_loss_keys
             ]
         )
         if validation_cols_exist and not overwrite:
@@ -652,30 +651,24 @@ class ModelCollection:
             )
 
         self.fit_models = self.fit_models.assign(
-            **{
-                f"{condition}_loss_validation": onp.nan for condition in self.conditions
-            },
-            total_loss_validation=onp.nan,
+            **{f"{key}_loss_validation": onp.nan for key in all_loss_keys},
         )
 
         for idx, fit in self.fit_models.iterrows():
-            condional_df_loss = fit.model.get_df_loss(
-                test_data[fit["dataset_name"]], conditional=True
-            )
-            for condition, loss in condional_df_loss.items():
-                self.fit_models.loc[idx, f"{condition}_loss_validation"] = loss
-            self.fit_models.loc[idx, "total_loss_validation"] = sum(
-                condional_df_loss.values()
-            )
+            eval_loss = fit.model.eval_loss(test_data[fit["dataset_name"]])
+            for key, loss in eval_loss.items():
+                self.fit_models.loc[idx, f"{key}_loss_validation"] = loss
 
         return None
 
-    def get_conditional_loss_df(self, query=None):
+    def loss_df(self, query=None):
         """
         Return a long form dataframe with columns
         "dataset_name", "fusionreg",
         "split" ("training" or "validation"),
         "loss" (actual value), and "condition".
+
+        The ``condition`` column includes ``"total"`` for the summed loss.
 
         Parameters
         ----------

@@ -403,6 +403,7 @@ class TestModelCollectionInit:
     def test_training_loss_columns(self, collection):
         for condition in collection.conditions:
             assert f"{condition}_loss_training" in collection.fit_models.columns
+        assert "total_loss_training" in collection.fit_models.columns
 
     def test_condition_colors(self, collection):
         assert isinstance(collection.condition_colors, dict)
@@ -530,48 +531,48 @@ class TestSplitApplyCombineMuts:
 # ========== add_validation_loss tests ==========
 
 
-class TestAddValidationLoss:
-    """Tests for ModelCollection.add_validation_loss()."""
+class TestAddEvalLoss:
+    """Tests for ModelCollection.add_eval_loss()."""
 
     def test_adds_validation_columns(self, fit_models_df):
         mc = ModelCollection(fit_models_df.copy())
-        mc.add_validation_loss(TEST_VALIDATION_SCORES)
+        mc.add_eval_loss(TEST_VALIDATION_SCORES)
         for condition in mc.conditions:
             assert f"{condition}_loss_validation" in mc.fit_models.columns
 
     def test_total_loss_validation(self, fit_models_df):
         mc = ModelCollection(fit_models_df.copy())
-        mc.add_validation_loss(TEST_VALIDATION_SCORES)
+        mc.add_eval_loss(TEST_VALIDATION_SCORES)
         assert "total_loss_validation" in mc.fit_models.columns
         assert mc.fit_models["total_loss_validation"].notna().all()
 
     def test_dict_input(self, fit_models_df):
         mc = ModelCollection(fit_models_df.copy())
         test_dict = {"test_data": TEST_VALIDATION_SCORES}
-        mc.add_validation_loss(test_dict)
+        mc.add_eval_loss(test_dict)
         assert "total_loss_validation" in mc.fit_models.columns
 
     def test_overwrite_false_raises(self, fit_models_df):
         mc = ModelCollection(fit_models_df.copy())
-        mc.add_validation_loss(TEST_VALIDATION_SCORES)
+        mc.add_eval_loss(TEST_VALIDATION_SCORES)
         with pytest.raises(ValueError, match="overwrite"):
-            mc.add_validation_loss(TEST_VALIDATION_SCORES, overwrite=False)
+            mc.add_eval_loss(TEST_VALIDATION_SCORES, overwrite=False)
 
     def test_overwrite_true_works(self, fit_models_df):
         mc = ModelCollection(fit_models_df.copy())
-        mc.add_validation_loss(TEST_VALIDATION_SCORES)
-        mc.add_validation_loss(TEST_VALIDATION_SCORES, overwrite=True)
+        mc.add_eval_loss(TEST_VALIDATION_SCORES)
+        mc.add_eval_loss(TEST_VALIDATION_SCORES, overwrite=True)
         assert mc.fit_models["total_loss_validation"].notna().all()
 
 
 # ========== get_conditional_loss_df tests ==========
 
 
-class TestGetConditionalLossDf:
-    """Tests for ModelCollection.get_conditional_loss_df()."""
+class TestLossDf:
+    """Tests for ModelCollection.loss_df()."""
 
     def test_returns_correct_columns(self, collection):
-        df = collection.get_conditional_loss_df()
+        df = collection.loss_df()
         assert "dataset_name" in df.columns
         assert "fusionreg" in df.columns
         assert "condition" in df.columns
@@ -579,17 +580,17 @@ class TestGetConditionalLossDf:
         assert "split" in df.columns
 
     def test_training_only_rows(self, collection):
-        df = collection.get_conditional_loss_df()
+        df = collection.loss_df()
         assert set(df["split"].unique()) == {"training"}
 
     def test_with_validation_loss(self, fit_models_df):
         mc = ModelCollection(fit_models_df.copy())
-        mc.add_validation_loss(TEST_VALIDATION_SCORES)
-        df = mc.get_conditional_loss_df()
+        mc.add_eval_loss(TEST_VALIDATION_SCORES)
+        df = mc.loss_df()
         assert "validation" in df["split"].values
 
     def test_query_filtering(self, collection):
-        df = collection.get_conditional_loss_df(query="fusionreg == 0.0")
+        df = collection.loss_df(query="fusionreg == 0.0")
         assert all(df["fusionreg"] == 0.0)
 
 

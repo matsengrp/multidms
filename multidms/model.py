@@ -87,7 +87,7 @@ class Model:
         # Will be populated by fit()
         self._jax_model = None
         self._jax_data_sets = None
-        self._loss_trajectory = None
+        self._convergence_trajectory_df = None
         self._fit_tol = None
         self._loss_fn = None
         self._loss_kwargs = None
@@ -108,61 +108,35 @@ class Model:
     def converged(self) -> bool:
         """Whether the model fitting converged.
 
-        Convergence is determined by whether the relative change in the
-        objective function between the last two block coordinate descent
-        iterations was below the tolerance used during fitting.
+        Convergence is determined by whether the objective error
+        (relative change in the objective function) at the last iteration
+        was below the tolerance used during fitting.
         """
-        if self._loss_trajectory is None or len(self._loss_trajectory) < 2:
+        if (
+            self._convergence_trajectory_df is None
+            or len(self._convergence_trajectory_df) == 0
+        ):
             return False
-        last_two = self._loss_trajectory[-2:]
-        error = abs(last_two[-1] - last_two[-2]) / max(
-            abs(last_two[-1]), abs(last_two[-2]), 1
+        return (
+            float(
+                self._convergence_trajectory_df["objective_error_trajectory"].iloc[-1]
+            )
+            < self._fit_tol
         )
-        return error < self._fit_tol
-
-    @property
-    def conditional_loss(self) -> dict:
-        """Per-condition loss on training data.
-
-        Returns
-        -------
-        dict[str, float]
-            Dictionary mapping condition names to their training loss values.
-
-        Raises
-        ------
-        ValueError
-            If model has not been fitted.
-        """
-        if self._jax_model is None:
-            raise ValueError("Model has not been fitted. Call fit() first.")
-        loss_dict = self._loss_fn(
-            self._jax_model, self._jax_data_sets, **self._loss_kwargs
-        )
-        return {k: float(v) for k, v in loss_dict.items()}
 
     @property
     def convergence_trajectory_df(self) -> pd.DataFrame:
         """
-        Convergence trajectory showing loss over iterations.
+        Convergence trajectory showing objective and loss over iterations.
 
         Returns
         -------
         pd.DataFrame
-            DataFrame with columns 'iteration', 'loss', 'error'
+            DataFrame with columns ``iteration``,
+            ``objective_total_trajectory``, ``objective_error_trajectory``,
+            ``loss_trajectory``.
         """
-        if self._loss_trajectory is None:
-            return None
-
-        df = pd.DataFrame(
-            {
-                "iteration": range(len(self._loss_trajectory)),
-                "loss": self._loss_trajectory,
-            }
-        )
-        # Calculate error as change in loss
-        df["error"] = df["loss"].diff().abs().fillna(0.0)
-        return df
+        return self._convergence_trajectory_df
 
     # See issue #178 for optimization of re-fitting already fitted models
     def fit(
@@ -249,7 +223,7 @@ class Model:
         self._loss_kwargs = loss_kwargs
 
         # Fit model using jaxmodels
-        self._jax_model, self._loss_trajectory = jaxmodels.fit(
+        self._jax_model, self._convergence_trajectory_df = jaxmodels.fit(
             data_sets=self._jax_data_sets,
             reference_condition=self._data.reference,
             l2reg=self._l2reg,
@@ -527,7 +501,31 @@ class Model:
 
         return result
 
-    def get_df_loss(self, df, conditional=False):
+    @property
+    def training_loss(self) -> dict:
+        """Per-condition and total loss on training data.
+
+        Returns
+        -------
+        dict[str, float]
+            Dictionary mapping condition names and ``"total"`` to their
+            training loss values.
+
+        Raises
+        ------
+        ValueError
+            If model has not been fitted.
+        """
+        if self._jax_model is None:
+            raise ValueError("Model has not been fitted. Call fit() first.")
+        loss_dict = self._loss_fn(
+            self._jax_model, self._jax_data_sets, **self._loss_kwargs
+        )
+        result = {k: float(v) for k, v in loss_dict.items()}
+        result["total"] = sum(result.values())
+        return result
+
+    def eval_loss(self, df):
         """Evaluate the model's loss on an arbitrary DataFrame.
 
         Parameters
@@ -535,14 +533,11 @@ class Model:
         df : pd.DataFrame
             DataFrame with columns 'condition', 'aa_substitutions',
             'func_score'.
-        conditional : bool
-            If True, return per-condition loss as a dict.
-            If False, return the total (summed) loss as a float.
 
         Returns
         -------
-        dict[str, float] or float
-            Per-condition losses if conditional=True, else total loss.
+        dict[str, float]
+            Per-condition losses and ``"total"`` loss.
 
         Raises
         ------
@@ -569,10 +564,9 @@ class Model:
 
         loss_dict = self._loss_fn(self._jax_model, temp_data_sets, **self._loss_kwargs)
 
-        if conditional:
-            return {k: float(v) for k, v in loss_dict.items()}
-        else:
-            return float(sum(loss_dict.values()))
+        result = {k: float(v) for k, v in loss_dict.items()}
+        result["total"] = sum(result.values())
+        return result
 
     def add_phenotypes_to_df(
         self,

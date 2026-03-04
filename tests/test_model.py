@@ -199,8 +199,9 @@ def test_model_fit_convergence_trajectory(simple_data):
     assert traj_df is not None
     assert isinstance(traj_df, pd.DataFrame)
     assert "iteration" in traj_df.columns
-    assert "loss" in traj_df.columns
-    assert "error" in traj_df.columns
+    assert "objective_total_trajectory" in traj_df.columns
+    assert "objective_error_trajectory" in traj_df.columns
+    assert "loss_trajectory" in traj_df.columns
     assert len(traj_df) > 0
 
 

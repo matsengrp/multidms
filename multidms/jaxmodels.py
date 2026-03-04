@@ -21,6 +21,7 @@ import abc
 
 import jaxopt
 
+import pandas as pd
 import scipy
 from sklearn import linear_model
 
@@ -371,7 +372,7 @@ def fit(
     alpha_init: dict[str, Float] | None = None,
     beta_clip_range: tuple[Float, Float] | None = None,
     verbose: bool = True,
-) -> tuple[Model, list[float]]:
+) -> tuple[Model, pd.DataFrame]:
     r"""
     Fit a model to data.
 
@@ -410,7 +411,9 @@ def fit(
                 If False, suppresses all print output.
 
     Returns:
-        Tuple of (fitted model, loss trajectory).
+        Tuple of (fitted model, convergence trajectory DataFrame) with columns:
+        ``iteration``, ``objective_total_trajectory``,
+        ``objective_error_trajectory``, ``loss_trajectory``.
     """
     if data_sets[reference_condition].x_wt.sum() != 0:
         raise ValueError(
@@ -568,8 +571,8 @@ def fit(
         )
     )
 
-    # track loss trajectory
-    loss_trajectory = []
+    # track convergence trajectory
+    trajectory_rows = []
 
     try:
         for k in range(block_iters):
@@ -712,8 +715,17 @@ def fit(
             if verbose:
                 print(f"  {objective_error=:.2e}")
 
-            # store loss for trajectory
-            loss_trajectory.append(float(obj))
+            # store trajectory data
+            trajectory_rows.append(
+                {
+                    "iteration": k,
+                    "objective_total_trajectory": float(obj * scale),
+                    "objective_error_trajectory": float(objective_error),
+                    "loss_trajectory": float(
+                        sum(loss_fn(model, data_sets, **loss_kwargs).values())
+                    ),
+                }
+            )
 
             if (
                 state_calibration.error < opt_calibration.tol
@@ -727,4 +739,15 @@ def fit(
     except KeyboardInterrupt:
         pass
 
-    return model, loss_trajectory
+    if len(trajectory_rows) == 0:
+        convergence_trajectory_df = pd.DataFrame(
+            columns=[
+                "iteration",
+                "objective_total_trajectory",
+                "objective_error_trajectory",
+                "loss_trajectory",
+            ]
+        )
+    else:
+        convergence_trajectory_df = pd.DataFrame(trajectory_rows)
+    return model, convergence_trajectory_df
