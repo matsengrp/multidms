@@ -15,10 +15,6 @@ docs/multidms*rst
 
 
 
-# ecperimental files
-notebooks/Smaller_beta_output/
-notebooks/linear_epistasis_output/
-notebooks/separate_offset_output/
 
 # Specify kit related
 .claude/
@@ -189,7 +185,3 @@ cython_debug/
 #.idea/
 
 
-notebooks/test_dump.pkl
-notebooks/jaxmodels/papermill_results
-notebooks/jaxmodels/output
-notebooks/initial_empirical_analysis/
