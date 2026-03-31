@@ -61,27 +61,12 @@ These can include:
 
   - unit tests in the `./tests/ <tests>`_ subdirectory
 
-Using pixi for development
-+++++++++++++++++++++++++++
-You can optionally use `pixi <https://pixi.sh>`_ for declarative environment management::
-
-    pixi install          # creates env, installs all deps + editable package
-    pixi run test         # pytest with doctests
-    pixi run lint         # ruff
-    pixi run fmt          # black
-
-To test against a specific Python version::
-
-    pixi run -e py39 test
-
-This is equivalent to the manual ``pip install -e ".[dev]"`` workflow
-described below — both approaches are fully supported.
-
 Running the tests locally
 ++++++++++++++++++++++++++
 After you make changes, you should run two sets of tests.
-To run the tests, go to the top-level packag directory -
-making sure to install and activate a `development environment <https://matsengrp.github.io/multidms/installation.html>`_.
+To run the tests, go to the top-level package directory —
+making sure to install a
+`development environment <https://matsengrp.github.io/multidms/installation.html#developer-install>`_.
 
 Then use ruff_ to `lint the code <https://en.wikipedia.org/wiki/Lint_%28software%29>`_ by running::
 
