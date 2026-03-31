@@ -132,3 +132,42 @@ push = false
 "pyproject.toml" = ['current_version = "{version}"', 'version = "{version}"']
 "multidms/__init__.py" = ["{version}"]
 "docs/conf.py" = ['release = "{version}"']
+
+# ---------------------------------------------------------------------------
+# pixi – local development environment manager (https://pixi.sh)
+# ---------------------------------------------------------------------------
+# pixi reads [project.dependencies] and [project.optional-dependencies]
+# from above; no need to duplicate them.
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]       # only used for Python itself
+platforms = ["osx-arm64", "osx-64", "linux-64"]
+
+[tool.pixi.pypi-dependencies]
+multidms = { path = ".", editable = true, extras = ["dev"] }
+
+[tool.pixi.environments]
+default = { features = ["py311", "dev"], solve-group = "py311" }
+py39  = { features = ["py39", "dev"],  solve-group = "py39" }
+py310 = { features = ["py310", "dev"], solve-group = "py310" }
+py311 = { features = ["py311", "dev"], solve-group = "py311" }
+py312 = { features = ["py312", "dev"], solve-group = "py312" }
+
+[tool.pixi.feature.py39.dependencies]
+python = "3.9.*"
+
+[tool.pixi.feature.py310.dependencies]
+python = "3.10.*"
+
+[tool.pixi.feature.py311.dependencies]
+python = "3.11.*"
+
+[tool.pixi.feature.py312.dependencies]
+python = "3.12.*"
+
+[tool.pixi.tasks]
+test      = "pytest --doctest-modules multidms tests"
+lint      = "ruff check ."
+fmt       = "black ."
+fmt-check = "black --check ."
+docs      = "make -C docs clean && make -C docs html"

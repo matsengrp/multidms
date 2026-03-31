@@ -37,6 +37,18 @@ make -C docs clean && make -C docs html
 bumpver update --patch  # or --minor or --major
 ```
 
+### pixi (alternative)
+
+```bash
+pixi install              # one-command env setup
+pixi run test             # pytest --doctest-modules multidms tests
+pixi run lint             # ruff check .
+pixi run fmt              # black .
+pixi run fmt-check        # black --check .
+pixi run docs             # build Sphinx docs
+pixi run -e py39 test     # test against Python 3.9
+```
+
 ## Architecture
 
 ### Dual API: Legacy wrapper vs JAX-native
