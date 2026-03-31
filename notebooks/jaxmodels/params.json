@@ -1,6 +1,0 @@
-{
-    "replicate" : [1, 2],
-    "l2reg" : [1e-4],
-    "fusionreg" : [0.0, 1.0, 2.0, 3.0],
-    "global_epistasis" : ["Sigmoid"]
-}

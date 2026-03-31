@@ -65,7 +65,6 @@ dev = [
     "sphinx==6.2.1",
     "sphinx-autoapi==3.0.0",
     "nbsphinx",
-    "nbsphinx_link",
     "bumpver",
     "sphinxcontrib-bibtex",
     "dms_variants",
@@ -171,3 +170,6 @@ lint      = "ruff check ."
 fmt       = "black ."
 fmt-check = "black --check ."
 docs      = "make -C docs clean && make -C docs html"
+
+[tool.pixi.dependencies]
+pandoc = ">=3.9.0.2,<4"
