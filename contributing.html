@@ -94,6 +94,22 @@ These can include:</p>
 </ul>
 </div></blockquote>
 </section>
+<section id="using-pixi-for-development">
+<h3>Using pixi for development<a class="headerlink" href="#using-pixi-for-development" title="Permalink to this heading">¶</a></h3>
+<p>You can optionally use <a class="reference external" href="https://pixi.sh">pixi</a> for declarative environment management:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pixi</span> <span class="n">install</span>          <span class="c1"># creates env, installs all deps + editable package</span>
+<span class="n">pixi</span> <span class="n">run</span> <span class="n">test</span>         <span class="c1"># pytest with doctests</span>
+<span class="n">pixi</span> <span class="n">run</span> <span class="n">lint</span>         <span class="c1"># ruff</span>
+<span class="n">pixi</span> <span class="n">run</span> <span class="n">fmt</span>          <span class="c1"># black</span>
+</pre></div>
+</div>
+<p>To test against a specific Python version:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pixi</span> <span class="n">run</span> <span class="o">-</span><span class="n">e</span> <span class="n">py39</span> <span class="n">test</span>
+</pre></div>
+</div>
+<p>This is equivalent to the manual <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">&quot;.[dev]&quot;</span></code> workflow
+described below — both approaches are fully supported.</p>
+</section>
 <section id="running-the-tests-locally">
 <h3>Running the tests locally<a class="headerlink" href="#running-the-tests-locally" title="Permalink to this heading">¶</a></h3>
 <p>After you make changes, you should run two sets of tests.
