@@ -4,156 +4,76 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`multidms` is a Python package for joint modeling of multiple deep mutational scanning (DMS) experiments. It uses JAX for high-performance computing and automatic differentiation to fit global-epistasis models that estimate individual mutation effects and how they differ between experimental conditions.
+`multidms` is a Python package for jointly modeling deep mutational scanning (DMS) experiments. It estimates individual mutation effects and condition-specific shifts across experiments that may have different wildtype sequences, using global epistasis models implemented in JAX.
 
 ## Development Commands
 
-### Core Development Workflow
 ```bash
-# Install development dependencies
+# Install in development mode
 pip install -e ".[dev]"
 
-# Code quality checks
-ruff check .              # Lint code
-black .                   # Format code
+# Run full test suite (unit tests + doctests)
+pytest --doctest-modules -vv
 
-# Testing
-pytest --doctest-modules -vv    # Run all tests including doctests
-pytest tests/                   # Run unit tests only
-pytest --doctest-modules multidms tests  # Full test suite (as used in CI)
+# Run only unit tests
+pytest tests/
 
-# Documentation
-make -C docs clean        # Clean docs build
-make -C docs html         # Build documentation
+# Run a single test file
+pytest tests/test_model.py -vv
 
-# Version management
-bumpver update --patch    # Bump patch version
-bumpver update --minor    # Bump minor version
-bumpver update --major    # Bump major version
+# Run a single test function
+pytest tests/test_model.py::test_function_name -vv
+
+# Lint
+ruff check .
+
+# Format
+black .
+
+# Build docs
+make -C docs clean && make -C docs html
+
+# Version bump (commits + tags, does NOT push)
+bumpver update --patch  # or --minor or --major
 ```
 
-### Testing Notes
-- The test suite is minimal with only basic Data class tests in `tests/test_data.py`
-- Doctests are integrated throughout the codebase and run with pytest
-- CI runs tests on Python 3.9, 3.10, 3.11 on Ubuntu and macOS
+## Architecture
 
-## Package Architecture
+### Dual API: Legacy wrapper vs JAX-native
 
-### Core Classes and Entry Points
-- **`multidms.Data`** - Handles data preprocessing and one-hot encoding of variant substitutions
-- **`multidms.Model`** - Main model class for fitting DMS experiments using JAX-based optimization
-- **`multidms.ModelCollection`** - Interface for fitting multiple models in parallel
-- **`multidms.fit_models`** - Function for parallel model fitting across collections
+The package has two layers:
 
-### Key Modules
-- **`multidms.biophysical`** - Core biophysical model equations, transformations, and mathematical foundations
-- **`multidms.model_collection`** - Parallel model fitting and analysis workflows
-- **`multidms.plot`** - Interactive plotting functionality using matplotlib/seaborn/altair
-- **`multidms.utils`** - Data transformation utilities and helper functions
+1. **`jaxmodels`** — The core JAX-native API. Uses equinox modules, BCOO sparse arrays, and jaxopt for optimization. Key classes:
+   - `jaxmodels.Data` (equinox Module) — holds JAX arrays for one condition
+   - `jaxmodels.Latent` — models latent phenotypes
+   - `jaxmodels.Model` — global epistasis model with fitting/loss functions
 
-### Dependencies and Architecture Patterns
-- **JAX ecosystem**: Core computational framework with jaxopt for optimization
-- **Data handling**: pandas for DataFrames, numpy for arrays (version pinned ≤1.26.0)
-- **Optimization**: Uses generalized lasso with bit-flipping algorithms via pylops/pyproximal
-- **Visualization**: Multi-library approach (matplotlib, seaborn, altair) for different plot types
-- **Scientific computing**: scipy for statistical functions, polyclonal for related modeling
+2. **`data.py` / `model.py`** — The user-facing wrapper API. `Data` handles pandas DataFrames, one-hot encoding via `binarymap`, and multi-condition bookkeeping. `Model` wraps `jaxmodels` with a friendlier interface. Conversion between layers: `jaxmodels.Data.from_multidms()`.
 
-### Code Style and Conventions
-- **Formatting**: Black with line length 89 (matches ruff configuration)
-- **Linting**: Ruff with specific rule selections (E, F, UP, D) and custom ignores for docstring styles
-- **Documentation**: NumPy-style docstrings throughout
-- **Type hints**: Used where appropriate, with typing_extensions for compatibility
+### Key module roles
 
-### Development Patterns
-- Models compose biophysical equations from `multidms.biophysical` module
-- Heavy use of JAX transformations (jit, grad, vmap) for performance
-- Parameter initialization and transformation handled through dedicated methods
-- Cross-validation and simulation validation workflows built into model classes
+- **`model_collection.py`** — `ModelCollection` and `fit_models()` for parallel fitting across parameter grids using `ThreadPoolExecutor`. Includes cross-validation, mutation DataFrames, and Altair visualization methods.
+- **`plot.py`** — Interactive Altair-based visualizations (heatmaps, lineplots) for mutation effects.
+- **`utils.py`** — Mutation string parsing (`split_sub`, `split_subs`), parameter transforms, difference matrices.
 
-### File Organization
-- Main package code in `multidms/` with flat module structure
-- Jupyter notebooks in `notebooks/` demonstrate usage and validation
-- Sphinx documentation in `docs/` with linked notebook examples
-- Minimal test suite in `tests/` (expansion needed)
+### Data flow
 
-### CI/CD and Release Process
-- GitHub Actions handle testing, linting, documentation builds
-- Automated PyPI publishing on tagged releases
-- Version management via bumpver tool with coordinated updates across files
-- Multi-platform testing ensures compatibility across development environments
+User provides a pandas DataFrame with columns for condition, substitutions, and functional scores → `Data` class creates `BinaryMap` one-hot encodings per condition → `jaxmodels.Data.from_multidms()` converts to JAX sparse arrays → `jaxmodels.Model` fits via gradient-based optimization → results extracted back through `Model` wrapper.
 
-## Active Technologies
-- Python 3.9, 3.10, 3.11 (multi-version CI support) + JAX ≥0.4.29, jaxopt, equinox, pandas ≥2.2.0, numpy ≤1.26.0 (001-jaxmodels-refactor)
-- N/A (library operates on in-memory pandas DataFrames) (001-jaxmodels-refactor)
-- Python 3.9, 3.10, 3.11 (CI tested on all three versions) + JAX ≥0.4.29, equinox, jaxopt, pandas ≥2.2.0, numpy ≤1.26.0 (001-jaxmodels-refactor)
-- N/A (in-memory DataFrame processing) (001-jaxmodels-refactor)
+### Key design patterns
 
-## Recent Changes
-- 001-jaxmodels-refactor: Added Python 3.9, 3.10, 3.11 (multi-version CI support) + JAX ≥0.4.29, jaxopt, equinox, pandas ≥2.2.0, numpy ≤1.26.0
+- **Sparse computation**: Variant-mutation matrices use JAX BCOO sparse format for memory efficiency.
+- **Multi-condition modeling**: Conditions share a reference beta vector; non-reference conditions get shift parameters capturing condition-specific effects.
+- **Loss types**: `functional_score_loss` (regression on scores) and `count_loss` (likelihood on pre/post selection counts).
+- **GE nonlinearity**: `Identity` (linear) or `Sigmoid` (nonlinear global epistasis).
 
-<!-- br-agent-instructions-v1 -->
+## Code Style
 
----
+- **Formatter**: Black (line length default 88)
+- **Linter**: Ruff with E, F, UP, D rules; line length 89; Google-style docstrings
+- **Docstrings**: Google convention (via ruff pydocstyle)
+- **Type hints**: Uses `jaxtyping` for JAX array shape/dtype annotations (e.g., `Float[Array, "n_variants"]`)
 
-## Beads Workflow Integration
+## CI
 
-This project uses [beads_rust](https://github.com/Dicklesworthstone/beads_rust) (`br`/`bd`) for issue tracking. Issues are stored in `.beads/` and tracked in git.
-
-### Essential Commands
-
-```bash
-# View ready issues (unblocked, not deferred)
-br ready              # or: bd ready
-
-# List and search
-br list --status=open # All open issues
-br show <id>          # Full issue details with dependencies
-br search "keyword"   # Full-text search
-
-# Create and update
-br create --title="..." --description="..." --type=task --priority=2
-br update <id> --status=in_progress
-br close <id> --reason="Completed"
-br close <id1> <id2>  # Close multiple issues at once
-
-# Sync with git
-br sync --flush-only  # Export DB to JSONL
-br sync --status      # Check sync status
-```
-
-### Workflow Pattern
-
-1. **Start**: Run `br ready` to find actionable work
-2. **Claim**: Use `br update <id> --status=in_progress`
-3. **Work**: Implement the task
-4. **Complete**: Use `br close <id>`
-5. **Sync**: Always run `br sync --flush-only` at session end
-
-### Key Concepts
-
-- **Dependencies**: Issues can block other issues. `br ready` shows only unblocked work.
-- **Priority**: P0=critical, P1=high, P2=medium, P3=low, P4=backlog (use numbers 0-4, not words)
-- **Types**: task, bug, feature, epic, chore, docs, question
-- **Blocking**: `br dep add <issue> <depends-on>` to add dependencies
-
-### Session Protocol
-
-**Before ending any session, run this checklist:**
-
-```bash
-git status              # Check what changed
-git add <files>         # Stage code changes
-br sync --flush-only    # Export beads changes to JSONL
-git commit -m "..."     # Commit everything
-git push                # Push to remote
-```
-
-### Best Practices
-
-- Check `br ready` at session start to find available work
-- Update status as you work (in_progress → closed)
-- Create new issues with `br create` when you discover tasks
-- Use descriptive titles and set appropriate priority/type
-- Always sync before ending session
-
-<!-- end-br-agent-instructions -->
+GitHub Actions runs on push to main and PRs: ruff lint → black format check → pytest with doctests → docs build. Tested on Python 3.9/3.10/3.11 across ubuntu and macos.
