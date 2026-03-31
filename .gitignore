@@ -2,6 +2,10 @@
 
 archive/
 
+# pixi
+.pixi/
+pixi.lock
+
 *.swp
 .DS_Store
 /_build
