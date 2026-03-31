@@ -88,7 +88,7 @@ by multiple <a class="reference internal" href="#multidms.Model" title="multidms
 for efficiently fitting various models to the same data.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>You can initialize a <a class="reference internal" href="#multidms.Data" title="multidms.Data"><code class="xref py py-class docutils literal notranslate"><span class="pre">Data</span></code></a> object with a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>
+<p>You can initialize a <a class="reference internal" href="#multidms.Data" title="multidms.Data"><code class="xref py py-class docutils literal notranslate"><span class="pre">Data</span></code></a> object with a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>
 with a row for each variant sampled and annotations
 provided in the required columns:</p>
 <ol class="arabic simple">
@@ -116,7 +116,7 @@ condition wild types.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>variants_df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> or None) – The variant level information from all experiments you
+<li><p><strong>variants_df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> or None) – The variant level information from all experiments you
 wish to analyze. Should have columns named <code class="docutils literal notranslate"><span class="pre">'condition'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'aa_substitutions'</span></code>, and <code class="docutils literal notranslate"><span class="pre">'func_score'</span></code>.
 See the class note for descriptions of each of the features.</p></li>
@@ -302,7 +302,7 @@ reference sequence.</p>
 <dt class="sig sig-object py" id="multidms.Data.non_identical_sites">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">non_identical_sites</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a></em><a class="headerlink" href="#multidms.Data.non_identical_sites" title="Permalink to this definition">¶</a></dt>
 <dd><p>A dictionary keyed by condition names with values
-being a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> indexed by site,
+being a <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> indexed by site,
 with columns for the reference
 and non-reference amino acid at each site that differs.</p>
 </dd></dl>
@@ -765,7 +765,7 @@ the collection of models, and the resulting dataframe is passed to the
 constructor of this class.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>fit_models</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – A dataframe containing the fit attributes and pickled model objects
+<dd class="field-odd"><p><strong>fit_models</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – A dataframe containing the fit attributes and pickled model objects
 as returned by <cite>multidms.model_collection.fit_models</cite>.</p>
 </dd>
 </dl>
@@ -834,7 +834,7 @@ method docstring for details.</p></li>
 <dd class="field-even"><p>A dataframe containing the aggregated mutational parameter values</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
+<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>
