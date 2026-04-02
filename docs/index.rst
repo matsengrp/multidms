@@ -55,6 +55,7 @@ and how much the effects differ between experiments.
     sim_simulate_data
     sim_fit_models
     sim_evaluate
+    sim_cross_validation
     sim_manuscript_figures
 
 

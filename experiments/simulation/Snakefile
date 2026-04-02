@@ -1,7 +1,10 @@
 """Snakemake workflow for the simulation validation pipeline.
 
-Four notebooks executed via papermill:
-  simulate_data → fit_models → evaluate → manuscript_figures
+Five notebooks executed via papermill:
+  simulate_data → fit_models → evaluate          ⟩→ manuscript_figures
+                             → cross_validation  ⟩
+
+evaluate and cross_validation run in parallel after fit_models.
 
 Run with:
   snakemake -s experiments/simulation/Snakefile -j4
@@ -27,6 +30,7 @@ else:
 rule all:
     input:
         os.path.join(RESULTS, "manuscript_figures.ipynb"),
+        os.path.join(RESULTS, "cross_validation.ipynb"),
         os.path.join(FIGURES, "main_figure.pdf"),
         os.path.join(FIGURES, "ground_truth_correlation.pdf"),
         os.path.join(FIGURES, "sparsity_diagnostic.pdf"),
@@ -87,8 +91,25 @@ rule evaluate:
         phenotype=os.path.join(
             RESULTS, "model_vs_truth_variant_phenotype.csv"
         ),
-        cv_loss=os.path.join(RESULTS, "cross_validation_loss.csv"),
         executed_notebook=os.path.join(RESULTS, "evaluate.ipynb"),
+    params:
+        config_path=CONFIG_PATH,
+    shell:
+        """
+        papermill {input.notebook} {output.executed_notebook} \
+            -p config_path {params.config_path} \
+            --cwd {SIM_DIR}
+        """
+
+
+rule cross_validation:
+    input:
+        config=CONFIG_PATH,
+        func_scores=os.path.join(RESULTS, "simulated_func_scores.csv"),
+        notebook=os.path.join(NOTEBOOKS, "cross_validation.ipynb"),
+    output:
+        cv_loss=os.path.join(RESULTS, "cross_validation_loss.csv"),
+        executed_notebook=os.path.join(RESULTS, "cross_validation.ipynb"),
     params:
         config_path=CONFIG_PATH,
     shell:
