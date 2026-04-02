@@ -6,6 +6,9 @@ archive/
 .pixi/
 pixi.lock
 
+# Snakemake working directory
+.snakemake/
+
 *.swp
 .DS_Store
 /_build

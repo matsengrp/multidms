@@ -48,6 +48,15 @@ and how much the effects differ between experiments.
     contributing
     changelog
 
+.. toctree::
+    :maxdepth: 1
+    :caption: Simulation Pipeline
+
+    sim_simulate_data
+    sim_fit_models
+    sim_evaluate
+    sim_manuscript_figures
+
 
 Indices and tables
 ------------------

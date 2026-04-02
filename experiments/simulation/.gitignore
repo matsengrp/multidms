@@ -1,0 +1,5 @@
+# Pipeline outputs — do not track in git
+results/
+
+# Keep the results directory itself via .gitkeep
+!results/.gitkeep

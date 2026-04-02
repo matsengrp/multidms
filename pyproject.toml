@@ -61,6 +61,8 @@ dev = [
     "ruff",
     "black~=23.3.0",
     "notebook",
+    "snakemake>=7.32.4,<10",
+    "papermill>=2.6.0,<3",
     # "sphinx",
     "sphinx==6.2.1",
     "sphinx-autoapi==3.0.0",
@@ -170,6 +172,16 @@ lint      = "ruff check ."
 fmt       = "black ."
 fmt-check = "black --check ."
 docs      = "make -C docs clean && make -C docs html"
+
+# Simulation pipeline
+sim-test  = "snakemake -s experiments/simulation/Snakefile --config profile=test -j4"
+sim-prod  = "snakemake -s experiments/simulation/Snakefile -j4"
+
+# Remote execution
+remote-sync     = "bash experiments/scripts/remote-sync.sh"
+remote-pipeline = "bash experiments/scripts/remote-pipeline.sh"
+remote-status   = "bash experiments/scripts/remote-status.sh"
+run-pull        = "bash experiments/scripts/run-pull.sh"
 
 [tool.pixi.dependencies]
 pandoc = ">=3.9.0.2,<4"
