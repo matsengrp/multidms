@@ -192,3 +192,4 @@ run-pull        = "bash experiments/scripts/run-pull.sh"
 
 [tool.pixi.dependencies]
 pandoc = ">=3.9.0.2,<4"
+vl-convert-python = ">=1.7.0,<3"

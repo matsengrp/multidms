@@ -33,7 +33,12 @@ echo "==> Active tmux sessions (smk-*):"
 ssh "$host" "tmux list-sessions 2>/dev/null | grep '^smk-' || echo '    (none)'"
 
 if [ -n "$PIPELINE" ]; then
+    # Map pipeline name to directory name
+    case "$PIPELINE" in
+        spike) PIPELINE_DIR="scv2-spike" ;;
+        *)     PIPELINE_DIR="$PIPELINE" ;;
+    esac
     echo ""
     echo "==> Results directory for $PIPELINE:"
-    ssh "$host" "ls -la $remote_dir/experiments/$PIPELINE/results/ 2>/dev/null || echo '    (not yet created)'"
+    ssh "$host" "ls -la $remote_dir/experiments/$PIPELINE_DIR/results/ 2>/dev/null || echo '    (not yet created)'"
 fi

@@ -43,11 +43,17 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # Load remote config (with overrides)
 eval "$(python3 "$SCRIPT_DIR/remote_config.py" "${OVERRIDES[@]+${OVERRIDES[@]}}")"
 
-LOCAL_DIR="$PROJECT_DIR/experiments/$PIPELINE/results/"
-REMOTE_PATH="$host:$remote_dir/experiments/$PIPELINE/results/"
+# Map pipeline name to directory name
+case "$PIPELINE" in
+    spike) PIPELINE_DIR="scv2-spike" ;;
+    *)     PIPELINE_DIR="$PIPELINE" ;;
+esac
+
+LOCAL_DIR="$PROJECT_DIR/experiments/$PIPELINE_DIR/results/"
+REMOTE_PATH="$host:$remote_dir/experiments/$PIPELINE_DIR/results/"
 
 echo "==> Pulling $PIPELINE results from $host..."
 mkdir -p "$LOCAL_DIR"
 rsync -avz --progress "$REMOTE_PATH" "$LOCAL_DIR"
 
-echo "==> Done. Results available at: experiments/$PIPELINE/results/"
+echo "==> Done. Results available at: experiments/$PIPELINE_DIR/results/"
