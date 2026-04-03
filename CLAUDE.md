@@ -64,8 +64,8 @@ The package has two layers:
 
 ### Key module roles
 
-- **`model_collection.py`** — `ModelCollection` and `fit_models()` for parallel fitting across parameter grids using `ThreadPoolExecutor`. Includes cross-validation, mutation DataFrames, and Altair visualization methods.
-- **`plot.py`** — Interactive Altair-based visualizations (heatmaps, lineplots) for mutation effects.
+- **`model_collection.py`** — `ModelCollection` and `fit_models()` for parallel fitting across parameter grids using `ThreadPoolExecutor`. Includes cross-validation, mutation DataFrames, and thin visualization wrappers that delegate to `plot.py`.
+- **`plot.py`** — All interactive Altair-based visualizations. Every public function takes a DataFrame and returns an `alt.Chart`. Class methods on `Data`, `Model`, and `ModelCollection` are thin wrappers that delegate here.
 - **`utils.py`** — Mutation string parsing (`split_sub`, `split_subs`), parameter transforms, difference matrices.
 
 ### Data flow
@@ -78,6 +78,7 @@ User provides a pandas DataFrame with columns for condition, substitutions, and 
 - **Multi-condition modeling**: Conditions share a reference beta vector; non-reference conditions get shift parameters capturing condition-specific effects.
 - **Loss types**: `functional_score_loss` (regression on scores) and `count_loss` (likelihood on pre/post selection counts).
 - **GE nonlinearity**: `Identity` (linear) or `Sigmoid` (nonlinear global epistasis).
+- **Plotting separation**: Rendering logic is fully separated from data preparation. Classes own data extraction (`get_*_df`, `_prepare_*_df`); `plot.py` owns chart construction.
 
 ## Code Style
 

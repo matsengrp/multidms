@@ -777,6 +777,31 @@ class Model:
 
         return variants_df, ge_curve
 
+    def plot_ge_landscape(self, n_curve_points=200, **kwargs):
+        """Plot the global epistasis landscape.
+
+        Convenience wrapper that calls :meth:`get_ge_landscape_df` and
+        delegates to :func:`multidms.plot.ge_landscape`.
+
+        Parameters
+        ----------
+        n_curve_points : int
+            Number of points for the ``g(φ)`` curve grid. Default 200.
+        **kwargs
+            Passed to :func:`multidms.plot.ge_landscape`.
+
+        Returns
+        -------
+        alt.LayerChart
+            Interactive Altair chart.
+        """
+        import multidms.plot
+
+        variants_df, ge_curve_df = self.get_ge_landscape_df(
+            n_curve_points=n_curve_points
+        )
+        return multidms.plot.ge_landscape(variants_df, ge_curve_df, **kwargs)
+
     def get_ge_curve(
         self,
         grid_min: float = -5.0,

@@ -25,7 +25,6 @@ import pandas as pd
 import jax
 
 import numpy as onp
-import altair as alt
 
 jax.config.update("jax_enable_x64", True)
 
@@ -37,11 +36,6 @@ logging.getLogger("jax._src.xla_bridge").addFilter(
         "but a CUDA-enabled jaxlib is not installed. Falling back to cpu."
     )
 )
-
-
-PARAMETER_NAMES_FOR_PLOTTING = {
-    "fusionreg": "Fusion Regularization",
-}
 
 
 class ModelCollectionFitError(Exception):
@@ -731,6 +725,34 @@ class ModelCollection:
 
         return convergence_trajectory_data
 
+    def plot_convergence_trajectory(
+        self,
+        query=None,
+        id_vars=("dataset_name", "fusionreg"),
+        **kwargs,
+    ):
+        """Plot convergence trajectories as an interactive Altair chart.
+
+        Delegates to :func:`multidms.plot.convergence_trajectory` after
+        extracting the convergence data from fitted models.
+
+        Parameters
+        ----------
+        query : str, optional
+            Query to filter ``fit_models`` before extracting trajectories.
+        id_vars : tuple of str
+            Columns identifying individual model runs.
+        **kwargs
+            Passed to :func:`multidms.plot.convergence_trajectory`.
+
+        Returns
+        -------
+        alt.Chart
+            Interactive Altair chart with group dropdown and legend toggle.
+        """
+        df = self.convergence_trajectory_df(query=query, id_vars=id_vars)
+        return multidms.plot.convergence_trajectory(df, id_cols=list(id_vars), **kwargs)
+
     def mut_param_heatmap(
         self,
         query=None,
@@ -789,7 +811,7 @@ class ModelCollection:
             Only applies if `mut_param="predicted_func_score"`.
         **kwargs : dict
             Keyword arguments to pass to
-            :func:`multidms.plot._lineplot_and_heatmap`.
+            :func:`multidms.plot.lineplot_and_heatmap`.
 
         Returns
         -------
@@ -900,18 +922,13 @@ class ModelCollection:
             {c: c.replace(".", "_") for c in muts_df_tall.columns}, axis=1, inplace=True
         )
 
-        args = {
-            "data_df": muts_df_tall,
-            "stat_col": mut_param,
-            "addtl_tooltip_stats": addtl_tooltip_stats,
-            "category_col": "condition",
-            "heatmap_color_scheme": "redblue",
-            "init_floor_at_zero": False,
-            "categorical_wildtype": True,
-            "category_colors": condition_colors,
-        }
-
-        return multidms.plot._lineplot_and_heatmap(**args, **kwargs)
+        return multidms.plot.mut_param_heatmap(
+            muts_df_tall,
+            mut_param=mut_param,
+            addtl_tooltip_stats=addtl_tooltip_stats,
+            category_colors=condition_colors,
+            **kwargs,
+        )
 
     def mut_param_traceplot(
         self,
@@ -987,45 +1004,12 @@ class ModelCollection:
             f"^{mut_param}_", "", regex=True
         )
 
-        # create altair chart
-        highlight = alt.selection_point(
-            on="mouseover", fields=["mutation"], nearest=True
-        )
-        num_facet_rows = len(muts_df_tall.dataset_name.unique())
-        num_facet_cols = len(muts_df_tall.condition.unique())
-
-        base = (
-            alt.Chart(muts_df_tall)
-            .encode(
-                x=alt.X(
-                    x,
-                    type="nominal",
-                    title=(
-                        PARAMETER_NAMES_FOR_PLOTTING[x]
-                        if x in PARAMETER_NAMES_FOR_PLOTTING
-                        else x
-                    ),
-                ),
-                y=alt.Y(mut_param, type="quantitative", title=mut_param),
-                color="mut_type",
-                detail="mutation",
-                tooltip=["mutation", mut_param],
-            )
-            .properties(
-                width=num_facet_cols * width_scalar,
-                height=num_facet_rows * height_scalar,
-            )
-        )
-
-        points = base.mark_circle().encode(opacity=alt.value(0)).add_params(highlight)
-
-        lines = base.mark_line().encode(
-            size=alt.condition(~highlight, alt.value(1), alt.value(3))
-        )
-
-        return alt.layer(points, lines).facet(
-            row=alt.Row("dataset_name", title="Replicate"),
-            column=alt.Column("condition", title="Experiment"),
+        return multidms.plot.mut_param_traceplot(
+            muts_df_tall,
+            x=x,
+            mut_param=mut_param,
+            width_scalar=width_scalar,
+            height_scalar=height_scalar,
         )
 
     def shift_sparsity(
@@ -1083,54 +1067,17 @@ class ModelCollection:
             .reset_index(drop=False)
             .melt(id_vars=feature_cols, var_name="mut_param", value_name="sparsity")
         )
-        num_facet_rows = len(sparsity_df.dataset_name.unique())
-        num_facet_cols = len(sparsity_df.mut_param.unique())
 
-        # create altair chart
-        base_chart = (
-            alt.Chart(sparsity_df)
-            .encode(
-                x=alt.X(
-                    x,
-                    type="nominal",
-                    title=(
-                        PARAMETER_NAMES_FOR_PLOTTING[x]
-                        if x in PARAMETER_NAMES_FOR_PLOTTING
-                        else x
-                    ),
-                ).axis(
-                    format=".1e",
-                ),
-                y=alt.Y("sparsity", type="quantitative", title="Sparsity").axis(
-                    format="%"
-                ),
-                color=alt.Color("mut_type", type="nominal", title="Mutation type"),
-                tooltip=[
-                    x,
-                    "sparsity",
-                    "mut_type",
-                ],
-            )
-            .properties(
-                width=num_facet_cols * width_scalar,
-                height=num_facet_rows * height_scalar,
-            )
-        )
-
-        # if the x axis is numeric, do line plots, otherwise do bar plots
-        if sparsity_df[x].dtype.kind in "biufc":
-            chart = base_chart.mark_point() + base_chart.mark_line()
-        else:
-            chart = base_chart.mark_bar().encode(xOffset="mut_type")
-
-        facetted_chart = chart.facet(
-            row=alt.Row("dataset_name", title="Dataset"),
-            column=alt.Column("mut_param", title="Experimental Shifts"),
+        chart = multidms.plot.shift_sparsity(
+            sparsity_df,
+            x=x,
+            width_scalar=width_scalar,
+            height_scalar=height_scalar,
         )
 
         if return_data:
-            return facetted_chart, sparsity_df
-        return facetted_chart
+            return chart, sparsity_df
+        return chart
 
     def mut_param_dataset_correlation(
         self,
@@ -1219,43 +1166,14 @@ class ModelCollection:
 
         replicate_df = my_concat(replicate_series)
 
-        title_suffix = "(R^2)" if r == 2 else "(pearson)"
-        # create altair chart
-        base_chart = (
-            alt.Chart(replicate_df)
-            .encode(
-                x=alt.X(
-                    x,
-                    type="nominal",
-                    title=(
-                        PARAMETER_NAMES_FOR_PLOTTING[x]
-                        if x in PARAMETER_NAMES_FOR_PLOTTING
-                        else x
-                    ),
-                ).axis(
-                    format=".1e",
-                ),
-                y=alt.Y(
-                    "correlation",
-                    type="quantitative",
-                    title=f"Correlation {title_suffix}",
-                ),
-                color=alt.Color("mut_param", type="nominal", title="Parameter"),
-                tooltip=["datasets", "correlation", "mut_param"],
-            )
-            .properties(width=len(comparisons) * width_scalar, height=height)
-        )
-
-        # if the x axis is numeric, do line plots, otherwise do bar plots
-        if replicate_df[x].dtype.kind in "biufc":
-            chart = base_chart.mark_point() + base_chart.mark_line()
-        else:
-            chart = base_chart.mark_bar().encode(xOffset="mut_param")
-
-        facetted_chart = chart.facet(
-            column=alt.Column("datasets", title="Experiment comparison"),
+        chart = multidms.plot.mut_param_dataset_correlation(
+            replicate_df,
+            x=x,
+            r=r,
+            width_scalar=width_scalar,
+            height=height,
         )
 
         if return_data:
-            return facetted_chart, replicate_df
-        return facetted_chart
+            return chart, replicate_df
+        return chart
