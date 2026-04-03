@@ -26,6 +26,10 @@ if profile == "test":
 else:
     CONFIG_PATH = os.path.join(SIM_DIR, "config", "config.yaml")
 
+# Relative config path for papermill parameter injection — avoids
+# leaking absolute server paths into executed notebook metadata.
+CONFIG_PATH_REL = os.path.relpath(CONFIG_PATH, SIM_DIR)
+
 
 rule all:
     input:
@@ -45,7 +49,7 @@ rule simulate_data:
         func_scores=os.path.join(RESULTS, "simulated_func_scores.csv"),
         executed_notebook=os.path.join(RESULTS, "simulate_data.ipynb"),
     params:
-        config_path=CONFIG_PATH,
+        config_path=CONFIG_PATH_REL,
     shell:
         """
         papermill {input.notebook} {output.executed_notebook} \
@@ -63,7 +67,7 @@ rule fit_models:
         fit_collection=os.path.join(RESULTS, "fit_collection.pkl"),
         executed_notebook=os.path.join(RESULTS, "fit_models.ipynb"),
     params:
-        config_path=CONFIG_PATH,
+        config_path=CONFIG_PATH_REL,
     shell:
         """
         papermill {input.notebook} {output.executed_notebook} \
@@ -93,7 +97,7 @@ rule evaluate:
         ),
         executed_notebook=os.path.join(RESULTS, "evaluate.ipynb"),
     params:
-        config_path=CONFIG_PATH,
+        config_path=CONFIG_PATH_REL,
     shell:
         """
         papermill {input.notebook} {output.executed_notebook} \
@@ -111,7 +115,7 @@ rule cross_validation:
         cv_loss=os.path.join(RESULTS, "cross_validation_loss.csv"),
         executed_notebook=os.path.join(RESULTS, "cross_validation.ipynb"),
     params:
-        config_path=CONFIG_PATH,
+        config_path=CONFIG_PATH_REL,
     shell:
         """
         papermill {input.notebook} {output.executed_notebook} \
@@ -148,7 +152,7 @@ rule manuscript_figures:
         ),
         sparsity_diag=os.path.join(FIGURES, "sparsity_diagnostic.pdf"),
     params:
-        config_path=CONFIG_PATH,
+        config_path=CONFIG_PATH_REL,
     shell:
         """
         papermill {input.notebook} {output.executed_notebook} \
