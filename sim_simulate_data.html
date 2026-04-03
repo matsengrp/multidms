@@ -1,0 +1,1289 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Simulation Data Generation &#8212; multidms 1.3.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Model Fitting" href="sim_fit_models.html" />
+    <link rel="prev" title="Changelog" href="changelog.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="Simulation-Data-Generation">
+<h1>Simulation Data Generation<a class="headerlink" href="#Simulation-Data-Generation" title="Permalink to this heading">¶</a></h1>
+<p>Generate synthetic DMS data for two homologs (h1, h2) with known mutational effects, shifts, and global epistasis. This notebook produces the ground-truth datasets used by all downstream simulation notebooks.</p>
+<p><strong>Outline</strong></p>
+<ol class="arabic simple">
+<li><p>Simulate a reference gene sequence and mutational effects</p></li>
+<li><p>Create a second homolog with non-identical sites</p></li>
+<li><p>Assign shifted mutational effects between homologs</p></li>
+<li><p>Simulate variant libraries and functional scores</p></li>
+<li><p>Save results and visualize distributions</p></li>
+</ol>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;notebooks&quot;</span><span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">Bio.Seq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dms_variants.simulate</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">seaborn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sns</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dms_variants.constants</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AA_TO_CODONS</span><span class="p">,</span>
+    <span class="n">AAS_NOSTOP</span><span class="p">,</span>
+    <span class="n">AAS_WITHSTOP</span><span class="p">,</span>
+    <span class="n">CODONS_NOSTOP</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">multidms.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">split_sub</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">_common</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_phenotype_fxn_dict</span><span class="p">,</span> <span class="n">load_config</span>
+
+<span class="o">%</span><span class="k">matplotlib</span> inline
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
+<span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;/fh/fast/matsen_e/shared/multidms/multidms/experiments/simulation/config/config.yaml&quot;</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load configuration and extract simulation parameters</span>
+<span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+<span class="n">sim</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;simulation&quot;</span><span class="p">]</span>
+
+<span class="n">seed</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;seed&quot;</span><span class="p">]</span>
+<span class="n">genelength</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;genelength&quot;</span><span class="p">]</span>
+<span class="n">wt_latent</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;wt_latent&quot;</span><span class="p">]</span>
+<span class="n">stop_effect</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;stop_effect&quot;</span><span class="p">]</span>
+<span class="n">norm_weights</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;norm_weights&quot;</span><span class="p">])</span>
+<span class="n">n_non_identical_sites</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;n_non_identical_sites&quot;</span><span class="p">]</span>
+<span class="n">min_muteffect_in_bundle</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;min_muteffect_in_bundle&quot;</span><span class="p">]</span>
+<span class="n">max_muteffect_in_bundle</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;max_muteffect_in_bundle&quot;</span><span class="p">]</span>
+<span class="n">n_shifted_non_identical_sites</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;n_shifted_non_identical_sites&quot;</span><span class="p">]</span>
+<span class="n">n_shifted_identical_sites</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;n_shifted_identical_sites&quot;</span><span class="p">]</span>
+<span class="n">shift_gauss_variance</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;shift_gauss_variance&quot;</span><span class="p">]</span>
+<span class="n">sigmoid_phenotype_scale</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;sigmoid_phenotype_scale&quot;</span><span class="p">]</span>
+<span class="n">variants_per_lib_genelength_scalar</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;variants_per_lib_genelength_scalar&quot;</span><span class="p">]</span>
+<span class="n">avgmuts</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;avgmuts&quot;</span><span class="p">]</span>
+<span class="n">bclen</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;bclen&quot;</span><span class="p">]</span>
+<span class="n">variant_error_rate</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;variant_error_rate&quot;</span><span class="p">]</span>
+<span class="n">avgdepth_per_variant</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;avgdepth_per_variant&quot;</span><span class="p">]</span>
+<span class="n">lib_uniformity</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;lib_uniformity&quot;</span><span class="p">]</span>
+<span class="n">noise</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;noise&quot;</span><span class="p">]</span>
+<span class="n">bottleneck_variants_per_lib_scalar</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;bottleneck_variants_per_lib_scalar&quot;</span><span class="p">]</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;output_dir&quot;</span><span class="p">]</span>
+<span class="n">train_frac</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;train_frac&quot;</span><span class="p">]</span>
+
+<span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output directory: </span><span class="si">{</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Output directory: results
+</pre></div></div>
+</div>
+<section id="Simulate-reference-sequence">
+<h2>Simulate reference sequence<a class="headerlink" href="#Simulate-reference-sequence" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">geneseq_h1</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">choices</span><span class="p">(</span><span class="n">CODONS_NOSTOP</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">genelength</span><span class="p">))</span>
+<span class="n">aaseq_h1</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Bio</span><span class="o">.</span><span class="n">Seq</span><span class="o">.</span><span class="n">Seq</span><span class="p">(</span><span class="n">geneseq_h1</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Wildtype gene of </span><span class="si">{</span><span class="n">genelength</span><span class="si">}</span><span class="s2"> codons:</span><span class="se">\n</span><span class="si">{</span><span class="n">geneseq_h1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Wildtype protein:</span><span class="se">\n</span><span class="si">{</span><span class="n">aaseq_h1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Wildtype gene of 50 codons:
+TTCTTAAATACCTCAGTAGGACAGGCAGCCGATAGCCGGCGAGTATTTTTAGACCGTCAAAAGAACCTACATCCTTGCGAAGAGATGAACCATAGACTTTTTGGCAGTTGCTACGTATGGGTGTACCCCTTGTTCAGCGTCGGTCTAGAA
+Wildtype protein:
+FLNTSVGQAADSRRVFLDRQKNLHPCEEMNHRLFGSCYVWVYPLFSVGLE
+</pre></div></div>
+</div>
+</section>
+<section id="Mutational-effects">
+<h2>Mutational effects<a class="headerlink" href="#Mutational-effects" title="Permalink to this heading">¶</a></h2>
+<p>Simulate latent mutational effects using a <code class="docutils literal notranslate"><span class="pre">SigmoidPhenotypeSimulator</span></code>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mut_pheno_args</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;geneseq&quot;</span><span class="p">:</span> <span class="n">geneseq_h1</span><span class="p">,</span>
+    <span class="s2">&quot;wt_latent&quot;</span><span class="p">:</span> <span class="n">wt_latent</span><span class="p">,</span>
+    <span class="s2">&quot;seed&quot;</span><span class="p">:</span> <span class="n">seed</span><span class="p">,</span>
+    <span class="s2">&quot;stop_effect&quot;</span><span class="p">:</span> <span class="n">stop_effect</span><span class="p">,</span>
+    <span class="s2">&quot;norm_weights&quot;</span><span class="p">:</span> <span class="n">norm_weights</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">SigmoidPhenotype_h1</span> <span class="o">=</span> <span class="n">dms_variants</span><span class="o">.</span><span class="n">simulate</span><span class="o">.</span><span class="n">SigmoidPhenotypeSimulator</span><span class="p">(</span>
+    <span class="o">**</span><span class="n">mut_pheno_args</span>
+<span class="p">)</span>
+<span class="n">SigmoidPhenotype_h2</span> <span class="o">=</span> <span class="n">dms_variants</span><span class="o">.</span><span class="n">simulate</span><span class="o">.</span><span class="n">SigmoidPhenotypeSimulator</span><span class="p">(</span>
+    <span class="o">**</span><span class="n">mut_pheno_args</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Non-reference-homolog-sequence">
+<h2>Non-reference homolog sequence<a class="headerlink" href="#Non-reference-homolog-sequence" title="Permalink to this heading">¶</a></h2>
+<p>Simulate a second homolog by introducing mutations at non-identical sites.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">non_identical_sites</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+    <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">aaseq_h1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">n_non_identical_sites</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">aaseq_h2</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+<span class="n">geneseq_h2</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+<span class="k">for</span> <span class="n">aa_n</span><span class="p">,</span> <span class="n">aa</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">aaseq_h1</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="n">codon</span> <span class="o">=</span> <span class="n">geneseq_h1</span><span class="p">[(</span><span class="n">aa_n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">3</span> <span class="p">:</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">aa_n</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">aa_n</span> <span class="ow">in</span> <span class="n">non_identical_sites</span><span class="p">:</span>
+        <span class="n">valid_bundle_mutations</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">mut_aa</span>
+            <span class="k">for</span> <span class="n">mut_aa</span> <span class="ow">in</span> <span class="n">AAS_NOSTOP</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">mut_aa</span> <span class="o">!=</span> <span class="n">aa</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="p">(</span>
+                    <span class="n">SigmoidPhenotype_h1</span><span class="o">.</span><span class="n">muteffects</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">aa</span><span class="si">}{</span><span class="n">aa_n</span><span class="si">}{</span><span class="n">mut_aa</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span>
+                    <span class="o">&gt;</span> <span class="n">min_muteffect_in_bundle</span>
+                <span class="p">)</span>
+                <span class="ow">and</span> <span class="p">(</span>
+                    <span class="n">SigmoidPhenotype_h1</span><span class="o">.</span><span class="n">muteffects</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">aa</span><span class="si">}{</span><span class="n">aa_n</span><span class="si">}{</span><span class="n">mut_aa</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span>
+                    <span class="o">&lt;</span> <span class="n">max_muteffect_in_bundle</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">valid_bundle_mutations</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">aa_n</span>
+        <span class="n">mut_aa</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">valid_bundle_mutations</span><span class="p">)</span>
+        <span class="n">aaseq_h2</span> <span class="o">+=</span> <span class="n">mut_aa</span>
+        <span class="n">mut_codon</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">AA_TO_CODONS</span><span class="p">[</span><span class="n">mut_aa</span><span class="p">])</span>
+        <span class="n">geneseq_h2</span> <span class="o">+=</span> <span class="n">mut_codon</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">aaseq_h2</span> <span class="o">+=</span> <span class="n">aa</span>
+        <span class="n">geneseq_h2</span> <span class="o">+=</span> <span class="n">codon</span>
+
+<span class="n">homolog_seqs_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+    <span class="p">{</span><span class="s2">&quot;wt_aa_h1&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">aaseq_h1</span><span class="p">),</span> <span class="s2">&quot;wt_aa_h2&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">aaseq_h2</span><span class="p">)},</span>
+    <span class="n">index</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">aaseq_h1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">homolog_seqs_df</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;site&quot;</span>
+
+<span class="n">n_diffs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">homolog_seqs_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;wt_aa_h1 != wt_aa_h2&quot;</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Sequence alignment of homologs h1 and h2:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;h1&quot;</span><span class="p">,</span> <span class="n">aaseq_h1</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;h2&quot;</span><span class="p">,</span> <span class="n">aaseq_h2</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of aa differences:&quot;</span><span class="p">,</span> <span class="n">n_diffs</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">aaseq_h1</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">aaseq_h2</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">aaseq_h2</span> <span class="o">==</span> <span class="nb">str</span><span class="p">(</span><span class="n">Bio</span><span class="o">.</span><span class="n">Seq</span><span class="o">.</span><span class="n">Seq</span><span class="p">(</span><span class="n">geneseq_h2</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">())</span>
+<span class="k">assert</span> <span class="n">n_diffs</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">non_identical_sites</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Sequence alignment of homologs h1 and h2:
+h1 FLNTSVGQAADSRRVFLDRQKNLHPCEEMNHRLFGSCYVWVYPLFSVGLE
+h2 FLNTMVGWDADTRRVFLDFAKNLHPVEEMNCRLFGSCYVWVVPLFSYGLE
+Number of aa differences: 10
+</pre></div></div>
+</div>
+</section>
+<section id="Shifted-mutational-effects">
+<h2>Shifted mutational effects<a class="headerlink" href="#Shifted-mutational-effects" title="Permalink to this heading">¶</a></h2>
+<p>Randomly choose sites with shifted effects between homologs.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">shifted_non_identical_sites</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+    <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">non_identical_sites</span><span class="p">,</span> <span class="n">n_shifted_non_identical_sites</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">shifted_identical_sites</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+    <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
+        <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">aaseq_h1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">non_identical_sites</span><span class="p">)),</span>
+        <span class="n">n_shifted_identical_sites</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+<span class="n">shifted_sites</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">shifted_identical_sites</span> <span class="o">+</span> <span class="n">shifted_non_identical_sites</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">shifted_sites</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">shifted_sites</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Sites with shifts that are...&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="sa">f</span><span class="s2">&quot;identical (n=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">shifted_identical_sites</span><span class="p">)</span><span class="si">}</span><span class="s2">):&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">shifted_identical_sites</span><span class="p">)),</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="sa">f</span><span class="s2">&quot;non-identical (n=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">shifted_non_identical_sites</span><span class="p">)</span><span class="si">}</span><span class="s2">):&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">shifted_non_identical_sites</span><span class="p">)),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Sites with shifts that are...
+identical (n=4): 6, 14, 25, 39
+non-identical (n=6): 8, 9, 12, 19, 31, 47
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">sim_mut_shift</span><span class="p">(</span><span class="n">shifted_site</span><span class="p">,</span> <span class="n">mutation</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draw a Gaussian shift for shifted sites, 0 otherwise.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">shifted_site</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="s2">&quot;*&quot;</span> <span class="ow">in</span> <span class="n">mutation</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">shift_gauss_variance</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+
+<span class="n">mut_effects_df</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+        <span class="n">SigmoidPhenotype_h1</span><span class="o">.</span><span class="n">muteffects</span><span class="p">,</span> <span class="n">orient</span><span class="o">=</span><span class="s2">&quot;index&quot;</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;beta_h1&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="s2">&quot;mutation&quot;</span><span class="p">})</span>
+    <span class="o">.</span><span class="n">assign</span><span class="p">(</span>
+        <span class="n">wt_aa</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;mutation&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">y</span><span class="p">:</span> <span class="n">split_sub</span><span class="p">(</span><span class="n">y</span><span class="p">)[</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="n">site</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;mutation&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">y</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">split_sub</span><span class="p">(</span><span class="n">y</span><span class="p">)[</span><span class="mi">1</span><span class="p">])),</span>
+        <span class="n">mut_aa</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;mutation&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">y</span><span class="p">:</span> <span class="n">split_sub</span><span class="p">(</span><span class="n">y</span><span class="p">)[</span><span class="mi">2</span><span class="p">]),</span>
+        <span class="n">shifted_site</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;site&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">shifted_sites</span><span class="p">),</span>
+        <span class="n">shift</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="n">sim_mut_shift</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;shifted_site&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;mutation&quot;</span><span class="p">]),</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">beta_h2</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;beta_h1&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;shift&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">homolog_seqs_df</span><span class="p">,</span> <span class="n">left_on</span><span class="o">=</span><span class="s2">&quot;site&quot;</span><span class="p">,</span> <span class="n">right_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">bundle_mut</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;mut_aa&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;wt_aa_h2&quot;</span><span class="p">])</span>
+<span class="p">)</span>
+
+<span class="n">mut_effects_df</span><span class="p">[</span><span class="n">mut_effects_df</span><span class="p">[</span><span class="s2">&quot;shifted_site&quot;</span><span class="p">]][</span>
+    <span class="p">[</span>
+        <span class="s2">&quot;site&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;wt_aa_h1&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;wt_aa_h2&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;mutation&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;beta_h1&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;shift&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;beta_h2&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;shifted_site&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>site</th>
+      <th>wt_aa_h1</th>
+      <th>wt_aa_h2</th>
+      <th>mutation</th>
+      <th>beta_h1</th>
+      <th>shift</th>
+      <th>beta_h2</th>
+      <th>shifted_site</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>100</th>
+      <td>6</td>
+      <td>V</td>
+      <td>V</td>
+      <td>V6A</td>
+      <td>-0.406196</td>
+      <td>-0.277561</td>
+      <td>-0.683757</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>101</th>
+      <td>6</td>
+      <td>V</td>
+      <td>V</td>
+      <td>V6C</td>
+      <td>-3.915089</td>
+      <td>-0.037474</td>
+      <td>-3.952563</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>102</th>
+      <td>6</td>
+      <td>V</td>
+      <td>V</td>
+      <td>V6D</td>
+      <td>-0.409342</td>
+      <td>-1.422707</td>
+      <td>-1.832049</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>103</th>
+      <td>6</td>
+      <td>V</td>
+      <td>V</td>
+      <td>V6E</td>
+      <td>-4.280136</td>
+      <td>1.092420</td>
+      <td>-3.187716</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>104</th>
+      <td>6</td>
+      <td>V</td>
+      <td>V</td>
+      <td>V6F</td>
+      <td>-0.862349</td>
+      <td>-1.194428</td>
+      <td>-2.056777</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>935</th>
+      <td>47</td>
+      <td>V</td>
+      <td>Y</td>
+      <td>V47S</td>
+      <td>-0.027698</td>
+      <td>-0.967941</td>
+      <td>-0.995638</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>936</th>
+      <td>47</td>
+      <td>V</td>
+      <td>Y</td>
+      <td>V47T</td>
+      <td>-2.240557</td>
+      <td>-0.225120</td>
+      <td>-2.465677</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>937</th>
+      <td>47</td>
+      <td>V</td>
+      <td>Y</td>
+      <td>V47W</td>
+      <td>-0.178289</td>
+      <td>0.239183</td>
+      <td>0.060894</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>938</th>
+      <td>47</td>
+      <td>V</td>
+      <td>Y</td>
+      <td>V47Y</td>
+      <td>-0.491120</td>
+      <td>0.414399</td>
+      <td>-0.076721</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>939</th>
+      <td>47</td>
+      <td>V</td>
+      <td>Y</td>
+      <td>V47*</td>
+      <td>-10.000000</td>
+      <td>0.000000</td>
+      <td>-10.000000</td>
+      <td>True</td>
+    </tr>
+  </tbody>
+</table>
+<p>200 rows × 8 columns</p>
+</div></div>
+</div>
+<section id="Mutation-effect-distribution">
+<h3>Mutation effect distribution<a class="headerlink" href="#Mutation-effect-distribution" title="Permalink to this heading">¶</a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">mut_effects_df</span><span class="p">[</span><span class="s2">&quot;beta_h1&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;steelblue&quot;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Mutation effect ($\beta_</span><span class="si">{h1}</span><span class="s2">$)&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Count&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Distribution of mutation effects (h1)&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[[</span><span class="s2">&quot;top&quot;</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/sim_simulate_data_15_0.png" src="_images/sim_simulate_data_15_0.png" />
+</div>
+</div>
+</section>
+<section id="Shift-distribution-at-shifted-sites">
+<h3>Shift distribution at shifted sites<a class="headerlink" href="#Shift-distribution-at-shifted-sites" title="Permalink to this heading">¶</a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">shifted_muts</span> <span class="o">=</span> <span class="n">mut_effects_df</span><span class="p">[</span>
+    <span class="p">(</span><span class="n">mut_effects_df</span><span class="p">[</span><span class="s2">&quot;shifted_site&quot;</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="o">~</span><span class="n">mut_effects_df</span><span class="p">[</span><span class="s2">&quot;mutation&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\*&quot;</span><span class="p">))</span>
+<span class="p">]</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">shifted_muts</span><span class="p">[</span><span class="s2">&quot;shift&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;coral&quot;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Shift&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Count&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Shift distribution at shifted sites (n=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">shifted_sites</span><span class="p">)</span><span class="si">}</span><span class="s2"> sites, excluding stops)&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[[</span><span class="s2">&quot;top&quot;</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/sim_simulate_data_17_0.png" src="_images/sim_simulate_data_17_0.png" />
+</div>
+</div>
+</section>
+<section id="Shift-heatmap-(site-x-amino-acid)">
+<h3>Shift heatmap (site x amino acid)<a class="headerlink" href="#Shift-heatmap-(site-x-amino-acid)" title="Permalink to this heading">¶</a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">string</span>
+<span class="n">aa_order</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">mut_effects_df</span><span class="p">[</span><span class="s2">&quot;mut_aa&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()))</span>
+<span class="n">pivot</span> <span class="o">=</span> <span class="n">mut_effects_df</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">&quot;mut_aa&quot;</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">&quot;site&quot;</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s2">&quot;shift&quot;</span><span class="p">)</span>
+<span class="n">pivot</span> <span class="o">=</span> <span class="n">pivot</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">aa_order</span><span class="p">)</span>
+
+<span class="n">max_abs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">pivot</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="nb">abs</span><span class="p">(</span><span class="n">pivot</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="n">genelength</span> <span class="o">*</span> <span class="mf">0.15</span><span class="p">),</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">heatmap</span><span class="p">(</span>
+    <span class="n">pivot</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;RdBu_r&quot;</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=-</span><span class="n">max_abs</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">max_abs</span><span class="p">,</span>
+    <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">cbar_kws</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Shift&quot;</span><span class="p">}</span>
+<span class="p">)</span>
+<span class="c1"># Overlay WT markers</span>
+<span class="k">for</span> <span class="n">site_idx</span><span class="p">,</span> <span class="n">site</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pivot</span><span class="o">.</span><span class="n">columns</span><span class="p">):</span>
+    <span class="n">wt_h1</span> <span class="o">=</span> <span class="n">homolog_seqs_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">site</span><span class="p">,</span> <span class="s2">&quot;wt_aa_h1&quot;</span><span class="p">]</span>
+    <span class="n">wt_h2</span> <span class="o">=</span> <span class="n">homolog_seqs_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">site</span><span class="p">,</span> <span class="s2">&quot;wt_aa_h2&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">wt_h1</span> <span class="ow">in</span> <span class="n">aa_order</span><span class="p">:</span>
+        <span class="n">y_h1</span> <span class="o">=</span> <span class="n">aa_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">wt_h1</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">site_idx</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">y_h1</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">wt_h1</span> <span class="o">!=</span> <span class="n">wt_h2</span> <span class="ow">and</span> <span class="n">wt_h2</span> <span class="ow">in</span> <span class="n">aa_order</span><span class="p">:</span>
+        <span class="n">y_h2</span> <span class="o">=</span> <span class="n">aa_order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">wt_h2</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">site_idx</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">y_h2</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">facecolors</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Site&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Amino acid&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Mutational shifts (x = h1 WT, o = h2 WT)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/sim_simulate_data_19_0.png" src="_images/sim_simulate_data_19_0.png" />
+</div>
+</div>
+</section>
+<section id="Update-h2-mutational-effects">
+<h3>Update h2 mutational effects<a class="headerlink" href="#Update-h2-mutational-effects" title="Permalink to this heading">¶</a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">assert</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mut_effects_df</span><span class="p">[</span><span class="s2">&quot;mutation&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">duplicated</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span>
+<span class="k">for</span> <span class="n">mutation</span> <span class="ow">in</span> <span class="n">SigmoidPhenotype_h2</span><span class="o">.</span><span class="n">muteffects</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+    <span class="n">SigmoidPhenotype_h2</span><span class="o">.</span><span class="n">muteffects</span><span class="p">[</span><span class="n">mutation</span><span class="p">]</span> <span class="o">=</span> <span class="n">mut_effects_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+        <span class="n">mut_effects_df</span><span class="p">[</span><span class="s2">&quot;mutation&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">mutation</span><span class="p">,</span> <span class="s2">&quot;beta_h2&quot;</span>
+    <span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="n">wt_latent_phenotype_shift</span> <span class="o">=</span> <span class="n">mut_effects_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;bundle_mut&quot;</span><span class="p">)[</span><span class="s2">&quot;beta_h2&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<span class="n">SigmoidPhenotype_h2</span><span class="o">.</span><span class="n">wt_latent</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">SigmoidPhenotype_h1</span><span class="o">.</span><span class="n">wt_latent</span> <span class="o">+</span> <span class="n">wt_latent_phenotype_shift</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Characteristics of mutations separating homologs:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;beta_h1&quot;</span><span class="p">,</span> <span class="s2">&quot;shift&quot;</span><span class="p">,</span> <span class="s2">&quot;beta_h2&quot;</span><span class="p">]:</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;  Sum of </span><span class="si">{</span><span class="n">metric</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">,</span>
+        <span class="nb">round</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">mut_effects_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;bundle_mut&quot;</span><span class="p">)[</span><span class="n">metric</span><span class="p">]),</span> <span class="mi">2</span><span class="p">),</span>
+    <span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;  Final WT latent phenotype of h2:&quot;</span><span class="p">,</span>
+    <span class="nb">round</span><span class="p">(</span><span class="n">SigmoidPhenotype_h2</span><span class="o">.</span><span class="n">wt_latent</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Characteristics of mutations separating homologs:
+
+  Sum of beta_h1: -0.76
+  Sum of shift: -0.83
+  Sum of beta_h2: -1.59
+  Final WT latent phenotype of h2: 3.41
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Fill in mutational effects for bundle sites in h2</span>
+<span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">mut_effects_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;mut_aa == wt_aa_h2&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">aa_mut</span> <span class="ow">in</span> <span class="n">AAS_WITHSTOP</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">aa_mut</span> <span class="o">==</span> <span class="n">row</span><span class="o">.</span><span class="n">wt_aa_h2</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">non_ref_mutation</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">row</span><span class="o">.</span><span class="n">wt_aa_h2</span><span class="si">}{</span><span class="n">row</span><span class="o">.</span><span class="n">site</span><span class="si">}{</span><span class="n">aa_mut</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="n">aa_mut</span> <span class="o">==</span> <span class="s2">&quot;*&quot;</span><span class="p">:</span>
+            <span class="n">SigmoidPhenotype_h2</span><span class="o">.</span><span class="n">muteffects</span><span class="p">[</span><span class="n">non_ref_mutation</span><span class="p">]</span> <span class="o">=</span> <span class="n">stop_effect</span>
+        <span class="k">elif</span> <span class="n">aa_mut</span> <span class="o">==</span> <span class="n">row</span><span class="o">.</span><span class="n">wt_aa_h1</span><span class="p">:</span>
+            <span class="n">SigmoidPhenotype_h2</span><span class="o">.</span><span class="n">muteffects</span><span class="p">[</span><span class="n">non_ref_mutation</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">row</span><span class="o">.</span><span class="n">beta_h2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ref_mut</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">row</span><span class="o">.</span><span class="n">wt_aa_h1</span><span class="si">}{</span><span class="n">row</span><span class="o">.</span><span class="n">site</span><span class="si">}{</span><span class="n">aa_mut</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">ref_mut_effect</span> <span class="o">=</span> <span class="n">mut_effects_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+                <span class="n">mut_effects_df</span><span class="p">[</span><span class="s2">&quot;mutation&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">ref_mut</span><span class="p">,</span> <span class="s2">&quot;beta_h2&quot;</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">SigmoidPhenotype_h2</span><span class="o">.</span><span class="n">muteffects</span><span class="p">[</span><span class="n">non_ref_mutation</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="o">-</span><span class="n">row</span><span class="o">.</span><span class="n">beta_h2</span> <span class="o">+</span> <span class="n">ref_mut_effect</span>
+            <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="Variant-libraries">
+<h2>Variant libraries<a class="headerlink" href="#Variant-libraries" title="Permalink to this heading">¶</a></h2>
+<p>Simulate variant libraries for each homolog.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">libs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;lib_1&quot;</span><span class="p">,</span> <span class="s2">&quot;lib_2&quot;</span><span class="p">]</span>
+<span class="n">variants_per_lib</span> <span class="o">=</span> <span class="n">variants_per_lib_genelength_scalar</span> <span class="o">*</span> <span class="n">genelength</span>
+
+<span class="n">CodonVariantTable_h1</span> <span class="o">=</span> <span class="n">dms_variants</span><span class="o">.</span><span class="n">simulate</span><span class="o">.</span><span class="n">simulate_CodonVariantTable</span><span class="p">(</span>
+    <span class="n">geneseq</span><span class="o">=</span><span class="n">geneseq_h1</span><span class="p">,</span>
+    <span class="n">bclen</span><span class="o">=</span><span class="n">bclen</span><span class="p">,</span>
+    <span class="n">library_specs</span><span class="o">=</span><span class="p">{</span>
+        <span class="n">lib</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;avgmuts&quot;</span><span class="p">:</span> <span class="n">avgmuts</span><span class="p">,</span> <span class="s2">&quot;nvariants&quot;</span><span class="p">:</span> <span class="n">variants_per_lib</span><span class="p">}</span> <span class="k">for</span> <span class="n">lib</span> <span class="ow">in</span> <span class="n">libs</span>
+    <span class="p">},</span>
+    <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">CodonVariantTable_h2</span> <span class="o">=</span> <span class="n">dms_variants</span><span class="o">.</span><span class="n">simulate</span><span class="o">.</span><span class="n">simulate_CodonVariantTable</span><span class="p">(</span>
+    <span class="n">geneseq</span><span class="o">=</span><span class="n">geneseq_h2</span><span class="p">,</span>
+    <span class="n">bclen</span><span class="o">=</span><span class="n">bclen</span><span class="p">,</span>
+    <span class="n">library_specs</span><span class="o">=</span><span class="p">{</span>
+        <span class="n">lib</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;avgmuts&quot;</span><span class="p">:</span> <span class="n">avgmuts</span><span class="p">,</span> <span class="s2">&quot;nvariants&quot;</span><span class="p">:</span> <span class="n">variants_per_lib</span><span class="p">}</span> <span class="k">for</span> <span class="n">lib</span> <span class="ow">in</span> <span class="n">libs</span>
+    <span class="p">},</span>
+    <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Variant-phenotypes-and-enrichments">
+<h2>Variant phenotypes and enrichments<a class="headerlink" href="#Variant-phenotypes-and-enrichments" title="Permalink to this heading">¶</a></h2>
+<p>Assign latent phenotypes, observed phenotypes, and enrichments to each variant.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">phenotype_fxn_dict_h1</span> <span class="o">=</span> <span class="n">build_phenotype_fxn_dict</span><span class="p">(</span>
+    <span class="n">SigmoidPhenotype_h1</span><span class="p">,</span> <span class="n">sigmoid_phenotype_scale</span><span class="p">,</span> <span class="n">wt_latent</span><span class="p">,</span> <span class="n">is_reference</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<span class="n">phenotype_fxn_dict_h2</span> <span class="o">=</span> <span class="n">build_phenotype_fxn_dict</span><span class="p">(</span>
+    <span class="n">SigmoidPhenotype_h2</span><span class="p">,</span> <span class="n">sigmoid_phenotype_scale</span><span class="p">,</span> <span class="n">wt_latent</span><span class="p">,</span> <span class="n">is_reference</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">)</span>
+
+<span class="c1"># Add latent phenotypes</span>
+<span class="n">CodonVariantTable_h1</span><span class="o">.</span><span class="n">barcode_variant_df</span><span class="p">[</span><span class="s2">&quot;latent_phenotype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">CodonVariantTable_h1</span><span class="o">.</span><span class="n">barcode_variant_df</span><span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+        <span class="n">phenotype_fxn_dict_h1</span><span class="p">[</span><span class="s2">&quot;latentPhenotype&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+<span class="n">CodonVariantTable_h2</span><span class="o">.</span><span class="n">barcode_variant_df</span><span class="p">[</span><span class="s2">&quot;latent_phenotype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">CodonVariantTable_h2</span><span class="o">.</span><span class="n">barcode_variant_df</span><span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+        <span class="n">phenotype_fxn_dict_h2</span><span class="p">[</span><span class="s2">&quot;latentPhenotype&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<section id="Global-epistasis-sigmoid">
+<h3>Global epistasis sigmoid<a class="headerlink" href="#Global-epistasis-sigmoid" title="Permalink to this heading">¶</a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+<span class="n">ge_bias</span> <span class="o">=</span> <span class="o">-</span><span class="n">sigmoid_phenotype_scale</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">wt_latent</span><span class="p">))</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">ge_bias</span> <span class="o">+</span> <span class="p">(</span><span class="n">sigmoid_phenotype_scale</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">z</span><span class="p">)))</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="s2">&quot;k-&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">SigmoidPhenotype_h1</span><span class="o">.</span><span class="n">wt_latent</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;steelblue&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;h1 WT (</span><span class="si">{</span><span class="n">SigmoidPhenotype_h1</span><span class="o">.</span><span class="n">wt_latent</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">SigmoidPhenotype_h2</span><span class="o">.</span><span class="n">wt_latent</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;coral&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;h2 WT (</span><span class="si">{</span><span class="n">SigmoidPhenotype_h2</span><span class="o">.</span><span class="n">wt_latent</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Latent phenotype&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Observed phenotype&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Global epistasis sigmoid&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[[</span><span class="s2">&quot;top&quot;</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/sim_simulate_data_28_0.png" src="_images/sim_simulate_data_28_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Add observed phenotypes and enrichments</span>
+<span class="k">for</span> <span class="n">cvt</span><span class="p">,</span> <span class="n">fxn_dict</span> <span class="ow">in</span> <span class="p">[</span>
+    <span class="p">(</span><span class="n">CodonVariantTable_h1</span><span class="p">,</span> <span class="n">phenotype_fxn_dict_h1</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">CodonVariantTable_h2</span><span class="p">,</span> <span class="n">phenotype_fxn_dict_h2</span><span class="p">),</span>
+<span class="p">]:</span>
+    <span class="n">subs</span> <span class="o">=</span> <span class="n">cvt</span><span class="o">.</span><span class="n">barcode_variant_df</span><span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">]</span>
+    <span class="n">cvt</span><span class="o">.</span><span class="n">barcode_variant_df</span><span class="p">[</span><span class="s2">&quot;observed_phenotype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+        <span class="n">fxn_dict</span><span class="p">[</span><span class="s2">&quot;observedPhenotype&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">cvt</span><span class="o">.</span><span class="n">barcode_variant_df</span><span class="p">[</span><span class="s2">&quot;observed_enrichment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+        <span class="n">fxn_dict</span><span class="p">[</span><span class="s2">&quot;observedEnrichment&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+<span class="n">variants_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="n">CodonVariantTable_h1</span><span class="o">.</span><span class="n">barcode_variant_df</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">homolog</span><span class="o">=</span><span class="s2">&quot;h1&quot;</span><span class="p">),</span>
+        <span class="n">CodonVariantTable_h2</span><span class="o">.</span><span class="n">barcode_variant_df</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">homolog</span><span class="o">=</span><span class="s2">&quot;h2&quot;</span><span class="p">),</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generated </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">variants_df</span><span class="p">)</span><span class="si">}</span><span class="s2"> variants across both homologs&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Generated 200000 variants across both homologs
+</pre></div></div>
+</div>
+</section>
+</section>
+<section id="Pre-and-post-selection-variant-read-counts">
+<h2>Pre and post-selection variant read counts<a class="headerlink" href="#Pre-and-post-selection-variant-read-counts" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">bottlenecks</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">name</span><span class="p">:</span> <span class="n">variants_per_lib</span> <span class="o">*</span> <span class="n">scalar</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">scalar</span> <span class="ow">in</span> <span class="n">bottleneck_variants_per_lib_scalar</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+<span class="p">}</span>
+
+<span class="n">counts_h1</span><span class="p">,</span> <span class="n">counts_h2</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">dms_variants</span><span class="o">.</span><span class="n">simulate</span><span class="o">.</span><span class="n">simulateSampleCounts</span><span class="p">(</span>
+        <span class="n">variants</span><span class="o">=</span><span class="n">variants</span><span class="p">,</span>
+        <span class="n">phenotype_func</span><span class="o">=</span><span class="n">pheno_fxn_dict</span><span class="p">[</span><span class="s2">&quot;observedEnrichment&quot;</span><span class="p">],</span>
+        <span class="n">variant_error_rate</span><span class="o">=</span><span class="n">variant_error_rate</span><span class="p">,</span>
+        <span class="n">pre_sample</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;total_count&quot;</span><span class="p">:</span> <span class="n">variants_per_lib</span>
+            <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">avgdepth_per_variant</span><span class="p">),</span>
+            <span class="s2">&quot;uniformity&quot;</span><span class="p">:</span> <span class="n">lib_uniformity</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">pre_sample_name</span><span class="o">=</span><span class="s2">&quot;pre-selection&quot;</span><span class="p">,</span>
+        <span class="n">post_samples</span><span class="o">=</span><span class="p">{</span>
+            <span class="n">name</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;noise&quot;</span><span class="p">:</span> <span class="n">noise</span><span class="p">,</span>
+                <span class="s2">&quot;total_count&quot;</span><span class="p">:</span> <span class="n">variants_per_lib</span>
+                <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">avgdepth_per_variant</span><span class="p">),</span>
+                <span class="s2">&quot;bottleneck&quot;</span><span class="p">:</span> <span class="n">bottleneck</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">bottleneck</span> <span class="ow">in</span> <span class="n">bottlenecks</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">},</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">variants</span><span class="p">,</span> <span class="n">pheno_fxn_dict</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">CodonVariantTable_h1</span><span class="p">,</span> <span class="n">CodonVariantTable_h2</span><span class="p">],</span>
+        <span class="p">[</span><span class="n">phenotype_fxn_dict_h1</span><span class="p">,</span> <span class="n">phenotype_fxn_dict_h2</span><span class="p">],</span>
+    <span class="p">)</span>
+<span class="p">]</span>
+<span class="n">CodonVariantTable_h1</span><span class="o">.</span><span class="n">add_sample_counts_df</span><span class="p">(</span><span class="n">counts_h1</span><span class="p">)</span>
+<span class="n">CodonVariantTable_h2</span><span class="o">.</span><span class="n">add_sample_counts_df</span><span class="p">(</span><span class="n">counts_h2</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<section id="Library-diagnostic-plots">
+<h3>Library diagnostic plots<a class="headerlink" href="#Library-diagnostic-plots" title="Permalink to this heading">¶</a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">cvt</span> <span class="ow">in</span> <span class="p">[(</span><span class="s2">&quot;h1&quot;</span><span class="p">,</span> <span class="n">CodonVariantTable_h1</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;h2&quot;</span><span class="p">,</span> <span class="n">CodonVariantTable_h2</span><span class="p">)]:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> cumulative variant counts:&quot;</span><span class="p">)</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">cvt</span><span class="o">.</span><span class="n">plotCumulVariantCounts</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+h1 cumulative variant counts:
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/sim_simulate_data_33_1.png" class="no-scaled-link" src="_images/sim_simulate_data_33_1.png" style="width: 550px; height: 509px;" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+h2 cumulative variant counts:
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/sim_simulate_data_33_3.png" class="no-scaled-link" src="_images/sim_simulate_data_33_3.png" style="width: 550px; height: 509px;" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">cvt</span> <span class="ow">in</span> <span class="p">[(</span><span class="s2">&quot;h1&quot;</span><span class="p">,</span> <span class="n">CodonVariantTable_h1</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;h2&quot;</span><span class="p">,</span> <span class="n">CodonVariantTable_h2</span><span class="p">)]:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> number of AA mutations per variant:&quot;</span><span class="p">)</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">cvt</span><span class="o">.</span><span class="n">plotNumMutsHistogram</span><span class="p">(</span><span class="n">mut_type</span><span class="o">=</span><span class="s2">&quot;aa&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+h1 number of AA mutations per variant:
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/sim_simulate_data_34_1.png" class="no-scaled-link" src="_images/sim_simulate_data_34_1.png" style="width: 550px; height: 509px;" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+h2 number of AA mutations per variant:
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/sim_simulate_data_34_3.png" class="no-scaled-link" src="_images/sim_simulate_data_34_3.png" style="width: 550px; height: 509px;" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">cvt</span> <span class="ow">in</span> <span class="p">[(</span><span class="s2">&quot;h1&quot;</span><span class="p">,</span> <span class="n">CodonVariantTable_h1</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;h2&quot;</span><span class="p">,</span> <span class="n">CodonVariantTable_h2</span><span class="p">)]:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> cumulative mutation coverage:&quot;</span><span class="p">)</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">cvt</span><span class="o">.</span><span class="n">plotCumulMutCoverage</span><span class="p">(</span><span class="n">variant_type</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">,</span> <span class="n">mut_type</span><span class="o">=</span><span class="s2">&quot;aa&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+h1 cumulative mutation coverage:
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/sim_simulate_data_35_1.png" class="no-scaled-link" src="_images/sim_simulate_data_35_1.png" style="width: 550px; height: 459px;" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+h2 cumulative mutation coverage:
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/sim_simulate_data_35_3.png" class="no-scaled-link" src="_images/sim_simulate_data_35_3.png" style="width: 550px; height: 459px;" />
+</div>
+</div>
+</section>
+<section id="Variant-support-histograms">
+<h3>Variant support histograms<a class="headerlink" href="#Variant-support-histograms" title="Permalink to this heading">¶</a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;h1 Variant Support Histogram:&quot;</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">CodonVariantTable_h1</span><span class="o">.</span><span class="n">plotVariantSupportHistogram</span><span class="p">(</span><span class="n">max_support</span><span class="o">=</span><span class="mi">10</span><span class="p">))</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">h2 Variant Support Histogram:&quot;</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">CodonVariantTable_h2</span><span class="o">.</span><span class="n">plotVariantSupportHistogram</span><span class="p">(</span><span class="n">max_support</span><span class="o">=</span><span class="mi">10</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+h1 Variant Support Histogram:
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/sim_simulate_data_37_1.png" class="no-scaled-link" src="_images/sim_simulate_data_37_1.png" style="width: 519px; height: 229px;" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+h2 Variant Support Histogram:
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/sim_simulate_data_37_3.png" class="no-scaled-link" src="_images/sim_simulate_data_37_3.png" style="width: 519px; height: 229px;" />
+</div>
+</div>
+</section>
+</section>
+<section id="Prep-training-data">
+<h2>Prep training data<a class="headerlink" href="#Prep-training-data" title="Permalink to this heading">¶</a></h2>
+<p>Combine ground-truth phenotypes and bottleneck-derived functional scores.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">req_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;library&quot;</span><span class="p">,</span> <span class="s2">&quot;homolog&quot;</span><span class="p">,</span> <span class="s2">&quot;aa_substitutions&quot;</span><span class="p">,</span> <span class="s2">&quot;func_score_type&quot;</span><span class="p">,</span> <span class="s2">&quot;func_score&quot;</span><span class="p">]</span>
+<span class="n">ground_truth_training_set</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">variants</span><span class="o">.</span><span class="n">barcode_variant_df</span><span class="p">[</span>
+                <span class="p">[</span>
+                    <span class="s2">&quot;library&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;aa_substitutions&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;observed_phenotype&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;latent_phenotype&quot;</span><span class="p">,</span>
+                <span class="p">]</span>
+            <span class="p">]</span>
+            <span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">homolog</span><span class="o">=</span><span class="n">homolog</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">variants</span><span class="p">,</span> <span class="n">homolog</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">CodonVariantTable_h1</span><span class="p">,</span> <span class="n">CodonVariantTable_h2</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;h1&quot;</span><span class="p">,</span> <span class="s2">&quot;h2&quot;</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+    <span class="o">.</span><span class="n">melt</span><span class="p">(</span>
+        <span class="n">id_vars</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;library&quot;</span><span class="p">,</span> <span class="s2">&quot;aa_substitutions&quot;</span><span class="p">,</span> <span class="s2">&quot;homolog&quot;</span><span class="p">,</span> <span class="s2">&quot;latent_phenotype&quot;</span><span class="p">],</span>
+        <span class="n">value_vars</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;observed_phenotype&quot;</span><span class="p">],</span>
+        <span class="n">var_name</span><span class="o">=</span><span class="s2">&quot;func_score_type&quot;</span><span class="p">,</span>
+        <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;func_score&quot;</span><span class="p">,</span>
+    <span class="p">)[</span><span class="n">req_cols</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Ground truth training set: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ground_truth_training_set</span><span class="p">)</span><span class="si">}</span><span class="s2"> rows&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Ground truth training set: 116622 rows
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">bottle_cbf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">(</span>
+            <span class="n">variants</span><span class="o">.</span><span class="n">func_scores</span><span class="p">(</span>
+                <span class="s2">&quot;pre-selection&quot;</span><span class="p">,</span>
+                <span class="n">by</span><span class="o">=</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">,</span>
+                <span class="n">libraries</span><span class="o">=</span><span class="n">libs</span><span class="p">,</span>
+                <span class="n">syn_as_wt</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">homolog</span><span class="o">=</span><span class="n">homolog</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">rename</span><span class="p">({</span><span class="s2">&quot;post_sample&quot;</span><span class="p">:</span> <span class="s2">&quot;func_score_type&quot;</span><span class="p">},</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">astype</span><span class="p">({</span><span class="n">c</span><span class="p">:</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">req_cols</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]})</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">variants</span><span class="p">,</span> <span class="n">homolog</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">CodonVariantTable_h1</span><span class="p">,</span> <span class="n">CodonVariantTable_h2</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;h1&quot;</span><span class="p">,</span> <span class="s2">&quot;h2&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Bottleneck functional scores: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">bottle_cbf</span><span class="p">)</span><span class="si">}</span><span class="s2"> rows&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Bottleneck functional scores: 233244 rows
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">classify_variant</span><span class="p">(</span><span class="n">aa_subs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Classify variant by mutation type.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s2">&quot;*&quot;</span> <span class="ow">in</span> <span class="n">aa_subs</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;stop&quot;</span>
+    <span class="k">elif</span> <span class="n">aa_subs</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;wildtype&quot;</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">aa_subs</span><span class="o">.</span><span class="n">split</span><span class="p">())</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;1 nonsynonymous&quot;</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">aa_subs</span><span class="o">.</span><span class="n">split</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&gt;1 nonsynonymous&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unexpected aa_subs: </span><span class="si">{</span><span class="n">aa_subs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="n">func_scores</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">ground_truth_training_set</span><span class="p">,</span> <span class="n">bottle_cbf</span><span class="p">])</span>
+    <span class="o">.</span><span class="n">assign</span><span class="p">(</span>
+        <span class="n">variant_class</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">classify_variant</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+        <span class="n">variants_df</span><span class="p">[</span>
+            <span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">,</span> <span class="s2">&quot;homolog&quot;</span><span class="p">,</span> <span class="s2">&quot;latent_phenotype&quot;</span><span class="p">,</span> <span class="s2">&quot;library&quot;</span><span class="p">]</span>
+        <span class="p">]</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(),</span>
+        <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">,</span> <span class="s2">&quot;homolog&quot;</span><span class="p">,</span> <span class="s2">&quot;library&quot;</span><span class="p">],</span>
+        <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">func_scores</span><span class="p">[</span><span class="s2">&quot;func_score_type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span>
+    <span class="n">func_scores</span><span class="p">[</span><span class="s2">&quot;func_score_type&quot;</span><span class="p">],</span>
+    <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;observed_phenotype&quot;</span><span class="p">,</span> <span class="s2">&quot;loose_bottle&quot;</span><span class="p">,</span> <span class="s2">&quot;tight_bottle&quot;</span><span class="p">],</span>
+    <span class="n">ordered</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Combined functional scores: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">func_scores</span><span class="p">)</span><span class="si">}</span><span class="s2"> rows&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="sa">f</span><span class="s2">&quot;Variant classes: </span><span class="si">{</span><span class="n">func_scores</span><span class="p">[</span><span class="s1">&#39;variant_class&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Combined functional scores: 349866 rows
+Variant classes: {&#39;&gt;1 nonsynonymous&#39;: 292527, &#39;stop&#39;: 45933, &#39;1 nonsynonymous&#39;: 11394, &#39;wildtype&#39;: 12}
+</pre></div></div>
+</div>
+</section>
+<section id="Save-outputs">
+<h2>Save outputs<a class="headerlink" href="#Save-outputs" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">muteffects_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;simulated_muteffects.csv&quot;</span><span class="p">)</span>
+<span class="n">func_scores_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;simulated_func_scores.csv&quot;</span><span class="p">)</span>
+
+<span class="n">mut_effects_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">muteffects_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">func_scores</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">func_scores_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved </span><span class="si">{</span><span class="n">muteffects_path</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">mut_effects_df</span><span class="p">)</span><span class="si">}</span><span class="s2"> mutations)&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved </span><span class="si">{</span><span class="n">func_scores_path</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">func_scores</span><span class="p">)</span><span class="si">}</span><span class="s2"> rows)&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Saved results/simulated_muteffects.csv (1000 mutations)
+Saved results/simulated_func_scores.csv (349866 rows)
+</pre></div></div>
+</div>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/2020-logo-1000px-transparent.png" alt="Logo" />
+    
+    <h1 class="logo logo-name">multidms</h1>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=matsengrp&repo=multidms&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="index.html">multidms documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulation_validation.html">Simulation Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html">Fit Delta BA.1 Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.html">multidms package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Simulation Analysis</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Simulation Data Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_fit_models.html">Model Fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_evaluate.html">Model Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_cross_validation.html">Cross-Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_manuscript_figures.html">Simulation Manuscript Figures</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="changelog.html" title="previous chapter">Changelog</a></li>
+      <li>Next: <a href="sim_fit_models.html" title="next chapter">Model Fitting</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2023, Jared Galloway, Hugh Haddox.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 6.2.1</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="_sources/sim_simulate_data.nblink.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

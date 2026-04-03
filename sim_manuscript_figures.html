@@ -1,0 +1,1136 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Simulation Manuscript Figures &#8212; multidms 1.3.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Cross-Validation" href="sim_cross_validation.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="Simulation-Manuscript-Figures">
+<h1>Simulation Manuscript Figures<a class="headerlink" href="#Simulation-Manuscript-Figures" title="Permalink to this heading">¶</a></h1>
+<p>Publication-quality figures from simulation pipeline CSV outputs.</p>
+<p><strong>Outline</strong>:</p>
+<ol class="arabic simple">
+<li><p>Composite main figure (panels A–C) — <code class="docutils literal notranslate"><span class="pre">main_figure.pdf</span></code></p></li>
+<li><p>Ground-truth correlation scatter — <code class="docutils literal notranslate"><span class="pre">ground_truth_correlation.pdf</span></code></p></li>
+<li><p>Sparsity diagnostic scatter — <code class="docutils literal notranslate"><span class="pre">sparsity_diagnostic.pdf</span></code></p></li>
+<li><p>Mutation effect heatmap with WT markers (inline only)</p></li>
+</ol>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.ticker</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mticker</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.lines</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mlines</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">seaborn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sns</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">scipy.stats</span>
+
+<span class="o">%</span><span class="k">matplotlib</span> inline
+
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
+<span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;/fh/fast/matsen_e/shared/multidms/multidms/experiments/simulation/config/config.yaml&quot;</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;notebooks&quot;</span><span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">_common</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_config</span>
+
+<span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+<span class="n">sim</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;simulation&quot;</span><span class="p">]</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;output_dir&quot;</span><span class="p">]</span>
+<span class="n">lasso_choice</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;lasso_choice&quot;</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">)</span>
+
+<span class="c1"># GE parameters for Panel B overlay</span>
+<span class="n">wt_latent</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;wt_latent&quot;</span><span class="p">]</span>
+<span class="n">sigmoid_phenotype_scale</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;sigmoid_phenotype_scale&quot;</span><span class="p">]</span>
+
+<span class="n">figures_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;figures&quot;</span><span class="p">)</span>
+<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">figures_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output dir: </span><span class="si">{</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Figures dir: </span><span class="si">{</span><span class="n">figures_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Lasso choice: </span><span class="si">{</span><span class="n">lasso_choice</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Output dir: results
+Figures dir: results/figures
+Lasso choice: 3.2
+</pre></div></div>
+</div>
+<section id="Load-CSV-intermediates">
+<h2>Load CSV intermediates<a class="headerlink" href="#Load-CSV-intermediates" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">simulated_muteffects_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;simulated_muteffects.csv&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">simulated_func_scores_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;simulated_func_scores.csv&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">model_vs_truth_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;model_vs_truth_beta_shift.csv&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">sparsity_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;fit_sparsity.csv&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">replicate_corr_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;library_replicate_correlation.csv&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">model_vs_truth_variant_phenotype_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;model_vs_truth_variant_phenotype.csv&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">cv_loss_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;cross_validation_loss.csv&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loaded 7 CSV files:&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">df</span> <span class="ow">in</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s2">&quot;simulated_muteffects&quot;</span><span class="p">,</span> <span class="n">simulated_muteffects_df</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;simulated_func_scores&quot;</span><span class="p">,</span> <span class="n">simulated_func_scores_df</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;model_vs_truth_beta_shift&quot;</span><span class="p">,</span> <span class="n">model_vs_truth_df</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;fit_sparsity&quot;</span><span class="p">,</span> <span class="n">sparsity_df</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;library_replicate_correlation&quot;</span><span class="p">,</span> <span class="n">replicate_corr_df</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;model_vs_truth_variant_phenotype&quot;</span><span class="p">,</span> <span class="n">model_vs_truth_variant_phenotype_df</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;cross_validation_loss&quot;</span><span class="p">,</span> <span class="n">cv_loss_df</span><span class="p">),</span>
+<span class="p">]:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2"> rows, columns: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Loaded 7 CSV files:
+  simulated_muteffects: 1000 rows, columns: [&#39;mutation&#39;, &#39;beta_h1&#39;, &#39;wt_aa&#39;, &#39;site&#39;, &#39;mut_aa&#39;, &#39;shifted_site&#39;, &#39;shift&#39;, &#39;beta_h2&#39;, &#39;wt_aa_h1&#39;, &#39;wt_aa_h2&#39;, &#39;bundle_mut&#39;]
+  simulated_func_scores: 349866 rows, columns: [&#39;library&#39;, &#39;homolog&#39;, &#39;aa_substitutions&#39;, &#39;func_score_type&#39;, &#39;func_score&#39;, &#39;pre_sample&#39;, &#39;func_score_var&#39;, &#39;pre_count&#39;, &#39;post_count&#39;, &#39;pre_count_wt&#39;, &#39;post_count_wt&#39;, &#39;pseudocount&#39;, &#39;n_aa_substitutions&#39;, &#39;variant_class&#39;, &#39;latent_phenotype&#39;]
+  model_vs_truth_beta_shift: 84 rows, columns: [&#39;library&#39;, &#39;measurement_type&#39;, &#39;fusionreg&#39;, &#39;measurement_library&#39;, &#39;parameter&#39;, &#39;corr&#39;, &#39;fusionreg_cat&#39;]
+  fit_sparsity: 84 rows, columns: [&#39;dataset_name&#39;, &#39;fusionreg&#39;, &#39;mut_type&#39;, &#39;mut_param&#39;, &#39;sparsity&#39;, &#39;library&#39;, &#39;library_type&#39;, &#39;measurement_type&#39;, &#39;fusionreg_cat&#39;]
+  library_replicate_correlation: 84 rows, columns: [&#39;mut_param&#39;, &#39;correlation&#39;, &#39;fusionreg&#39;, &#39;measurement_type&#39;, &#39;fusionreg_cat&#39;]
+  model_vs_truth_variant_phenotype: 42 rows, columns: [&#39;library&#39;, &#39;measurement_type&#39;, &#39;fusionreg&#39;, &#39;dataset_name&#39;, &#39;variant_phenotype_corr&#39;, &#39;variant_phenotype_mae&#39;, &#39;fusionreg_cat&#39;]
+  cross_validation_loss: 84 rows, columns: [&#39;fusionreg&#39;, &#39;library&#39;, &#39;measurement_type&#39;, &#39;dataset_name&#39;, &#39;dataset&#39;, &#39;loss&#39;, &#39;lib_dataset&#39;, &#39;n_samples&#39;, &#39;mean_loss&#39;, &#39;fusionreg_cat&#39;]
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">rc_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;legend.frameon&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s2">&quot;font.size&quot;</span><span class="p">:</span> <span class="mi">11</span><span class="p">,</span>
+    <span class="s2">&quot;font.weight&quot;</span><span class="p">:</span> <span class="s2">&quot;normal&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">rc_kwargs</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Composite-Main-Figure-(Panels-A–C)">
+<h2>Composite Main Figure (Panels A–C)<a class="headerlink" href="#Composite-Main-Figure-(Panels-A–C)" title="Permalink to this heading">¶</a></h2>
+<p>Simulation main figure combining three panels:</p>
+<ul class="simple">
+<li><p><strong>Panel A</strong>: Histograms of beta distribution, all-mutation shifts, and shifted-only shifts</p></li>
+<li><p><strong>Panel B</strong>: Latent phenotype vs functional score for 3 noise levels with GE curve overlay</p></li>
+<li><p><strong>Panel C</strong>: Diagnostic line plots (4 rows x 3 columns) across noise levels</p></li>
+</ul>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># ── Prepare data for composite figure ──</span>
+
+<span class="n">bottlenecks</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;observed_phenotype&quot;</span><span class="p">:</span> <span class="s2">&quot;Observed</span><span class="se">\n</span><span class="s2">Phenotype&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;loose_bottle&quot;</span><span class="p">:</span> <span class="s2">&quot;Loose</span><span class="se">\n</span><span class="s2">Bottleneck&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;tight_bottle&quot;</span><span class="p">:</span> <span class="s2">&quot;Tight</span><span class="se">\n</span><span class="s2">Bottleneck&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># Y-axis labels</span>
+<span class="n">observed_phenotype_ylabel</span> <span class="o">=</span> <span class="s2">&quot;functional</span><span class="se">\n</span><span class="s2">score&quot;</span>
+<span class="n">model_truth_corr_ylabel</span> <span class="o">=</span> <span class="s2">&quot;inferred vs. true</span><span class="se">\n</span><span class="s2">shifts (Pearson $r$)&quot;</span>
+<span class="n">lib_corr_ylabel</span> <span class="o">=</span> <span class="s2">&quot;rep1 vs. rep2</span><span class="se">\n</span><span class="s2">shifts (Pearson $r$)&quot;</span>
+<span class="n">loss_ylabel</span> <span class="o">=</span> <span class="s2">&quot;loss&quot;</span>
+<span class="n">sparsity_ylabel</span> <span class="o">=</span> <span class="s2">&quot;sparsity</span><span class="se">\n</span><span class="s2">$(\%\Delta_{d,m}=0)$&quot;</span>
+
+<span class="c1"># X-axis labels</span>
+<span class="n">beta_dist_label</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;mut. effect $(\beta_</span><span class="si">{m}</span><span class="s2">)$&quot;</span>
+<span class="n">shift_dist_label</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;shift $(\Delta_{d,m})$&quot;</span>
+<span class="n">latent_phenotype_label</span> <span class="o">=</span> <span class="s2">&quot;latent phenotype ($\phi$)&quot;</span>
+<span class="n">lasso_strength_label</span> <span class="o">=</span> <span class="s2">&quot;lasso weight ($\lambda$)&quot;</span>
+
+<span class="c1"># Palettes</span>
+<span class="n">mut_type_palette</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;nonsynonymous&quot;</span><span class="p">:</span> <span class="s2">&quot;grey&quot;</span><span class="p">,</span> <span class="s2">&quot;stop&quot;</span><span class="p">:</span> <span class="s2">&quot;#E377C2&quot;</span><span class="p">}</span>
+<span class="n">dataset_palette</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;training&quot;</span><span class="p">:</span> <span class="s2">&quot;slategrey&quot;</span><span class="p">,</span> <span class="s2">&quot;validation&quot;</span><span class="p">:</span> <span class="s2">&quot;#2CA02C&quot;</span><span class="p">}</span>
+
+<span class="n">groundtruth_color</span> <span class="o">=</span> <span class="s2">&quot;steelblue&quot;</span>
+<span class="n">ref_wildtype_color</span> <span class="o">=</span> <span class="s2">&quot;black&quot;</span>
+<span class="n">nonref_wildtype_color</span> <span class="o">=</span> <span class="s2">&quot;black&quot;</span>
+
+<span class="n">x_scale</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">15</span><span class="p">,</span> <span class="mi">15</span><span class="p">)</span>
+<span class="n">point_size</span> <span class="o">=</span> <span class="mi">55</span>
+
+<span class="c1"># Precompute derived quantities for Panel B</span>
+<span class="c1"># Ground truth GE curve from config parameters (no pickle needed)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">ge_function</span><span class="p">(</span><span class="n">z</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Sigmoid global epistasis: g(z) = -scale/(1+exp(-wt)) + scale/(1+exp(-z)).&quot;&quot;&quot;</span>
+    <span class="n">ge_bias</span> <span class="o">=</span> <span class="o">-</span><span class="n">sigmoid_phenotype_scale</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">wt_latent</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">ge_bias</span> <span class="o">+</span> <span class="p">(</span><span class="n">sigmoid_phenotype_scale</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">z</span><span class="p">)))</span>
+
+<span class="n">gt_points</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">simulated_func_scores_df</span>
+    <span class="o">.</span><span class="n">query</span><span class="p">(</span>
+        <span class="s2">&quot;func_score_type == &#39;observed_phenotype&#39;&quot;</span>
+        <span class="s2">&quot; and latent_phenotype &gt; @x_scale[0]&quot;</span>
+        <span class="s2">&quot; and latent_phenotype &lt; @x_scale[1]&quot;</span>
+    <span class="p">)</span>
+    <span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="mi">1500</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">simulated_func_scores_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+        <span class="s2">&quot;func_score_type == &#39;observed_phenotype&#39;&quot;</span>
+    <span class="p">))),</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+    <span class="p">[[</span><span class="s2">&quot;latent_phenotype&quot;</span><span class="p">,</span> <span class="s2">&quot;func_score&quot;</span><span class="p">]]</span>
+    <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;latent_phenotype&quot;</span><span class="p">:</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;func_score&quot;</span><span class="p">:</span> <span class="s2">&quot;y&quot;</span><span class="p">})</span>
+    <span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="c1"># WT latent phenotypes</span>
+<span class="n">wt_rows</span> <span class="o">=</span> <span class="n">simulated_func_scores_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;variant_class == &#39;wildtype&#39;&quot;</span><span class="p">)</span>
+<span class="n">reference_wt_latent</span> <span class="o">=</span> <span class="n">wt_rows</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;homolog == &#39;h1&#39;&quot;</span><span class="p">)[</span><span class="s2">&quot;latent_phenotype&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">non_reference_wt_latent</span> <span class="o">=</span> <span class="n">wt_rows</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;homolog == &#39;h2&#39;&quot;</span><span class="p">)[</span><span class="s2">&quot;latent_phenotype&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="c1"># True sparsity</span>
+<span class="n">true_sparsity</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="p">(</span><span class="n">simulated_muteffects_df</span><span class="p">[</span><span class="s2">&quot;shift&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">simulated_muteffects_df</span><span class="p">)</span>
+    <span class="o">*</span> <span class="mi">100</span>
+<span class="p">)</span>
+
+<span class="c1"># Prepare Panel C data: convert fusionreg to string labels for x-axis</span>
+<span class="c1"># Model vs truth: compute Pearson r</span>
+<span class="n">model_vs_truth_plot</span> <span class="o">=</span> <span class="n">model_vs_truth_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">model_vs_truth_plot</span><span class="p">[</span><span class="s2">&quot;fusionreg_str&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">model_vs_truth_plot</span><span class="p">[</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">]</span>
+<span class="p">]</span>
+<span class="k">if</span> <span class="s2">&quot;corr&quot;</span> <span class="ow">in</span> <span class="n">model_vs_truth_plot</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+    <span class="n">model_vs_truth_plot</span><span class="p">[</span><span class="s2">&quot;pearson_r&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">model_vs_truth_plot</span><span class="p">[</span><span class="s2">&quot;corr&quot;</span><span class="p">]</span>
+<span class="k">elif</span> <span class="s2">&quot;correlation&quot;</span> <span class="ow">in</span> <span class="n">model_vs_truth_plot</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+    <span class="n">model_vs_truth_plot</span><span class="p">[</span><span class="s2">&quot;pearson_r&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">model_vs_truth_plot</span><span class="p">[</span><span class="s2">&quot;correlation&quot;</span><span class="p">]</span>
+<span class="k">elif</span> <span class="s2">&quot;r2&quot;</span> <span class="ow">in</span> <span class="n">model_vs_truth_plot</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+    <span class="n">model_vs_truth_plot</span><span class="p">[</span><span class="s2">&quot;pearson_r&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">model_vs_truth_plot</span><span class="p">[</span><span class="s2">&quot;r2&quot;</span><span class="p">])</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">model_vs_truth_plot</span><span class="p">[</span><span class="s2">&quot;pearson_r&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+<span class="c1"># Replicate correlations: compute Pearson r</span>
+<span class="n">replicate_corr_plot</span> <span class="o">=</span> <span class="n">replicate_corr_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">replicate_corr_plot</span><span class="p">[</span><span class="s2">&quot;fusionreg_str&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">replicate_corr_plot</span><span class="p">[</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">]</span>
+<span class="p">]</span>
+<span class="k">if</span> <span class="s2">&quot;correlation&quot;</span> <span class="ow">in</span> <span class="n">replicate_corr_plot</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+    <span class="n">replicate_corr_plot</span><span class="p">[</span><span class="s2">&quot;pearson_r&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">replicate_corr_plot</span><span class="p">[</span><span class="s2">&quot;correlation&quot;</span><span class="p">]</span>
+<span class="k">elif</span> <span class="s2">&quot;corr&quot;</span> <span class="ow">in</span> <span class="n">replicate_corr_plot</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+    <span class="n">replicate_corr_plot</span><span class="p">[</span><span class="s2">&quot;pearson_r&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">replicate_corr_plot</span><span class="p">[</span><span class="s2">&quot;corr&quot;</span><span class="p">]</span>
+<span class="k">elif</span> <span class="s2">&quot;r2&quot;</span> <span class="ow">in</span> <span class="n">replicate_corr_plot</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+    <span class="n">replicate_corr_plot</span><span class="p">[</span><span class="s2">&quot;pearson_r&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">replicate_corr_plot</span><span class="p">[</span><span class="s2">&quot;r2&quot;</span><span class="p">])</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">replicate_corr_plot</span><span class="p">[</span><span class="s2">&quot;pearson_r&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+<span class="c1"># Sparsity: convert to percentage</span>
+<span class="n">sparsity_plot</span> <span class="o">=</span> <span class="n">sparsity_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">sparsity_plot</span><span class="p">[</span><span class="s2">&quot;fusionreg_str&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">sparsity_plot</span><span class="p">[</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">]]</span>
+<span class="c1"># Ensure sparsity is in percentage (0-100)</span>
+<span class="k">if</span> <span class="n">sparsity_plot</span><span class="p">[</span><span class="s2">&quot;sparsity&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">:</span>
+    <span class="n">sparsity_plot</span><span class="p">[</span><span class="s2">&quot;sparsity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sparsity_plot</span><span class="p">[</span><span class="s2">&quot;sparsity&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span>
+
+<span class="c1"># CV loss</span>
+<span class="n">cv_loss_plot</span> <span class="o">=</span> <span class="n">cv_loss_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">cv_loss_plot</span><span class="p">[</span><span class="s2">&quot;fusionreg_str&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">cv_loss_plot</span><span class="p">[</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">]]</span>
+
+<span class="c1"># Determine the fusionreg values for x-axis ordering</span>
+<span class="n">fusionreg_vals</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">model_vs_truth_plot</span><span class="p">[</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+<span class="n">fusionreg_strs</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fusionreg_vals</span><span class="p">]</span>
+
+<span class="c1"># Create fusionreg index mapping for categorical x-axis in Panel C</span>
+<span class="n">fusionreg_idx_map</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fusionreg_vals</span><span class="p">)}</span>
+
+<span class="c1"># Add fusionreg_idx to all Panel C dataframes</span>
+<span class="n">model_vs_truth_plot</span><span class="p">[</span><span class="s2">&quot;fusionreg_idx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">model_vs_truth_plot</span><span class="p">[</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">fusionreg_idx_map</span><span class="p">)</span>
+<span class="n">replicate_corr_plot</span><span class="p">[</span><span class="s2">&quot;fusionreg_idx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">replicate_corr_plot</span><span class="p">[</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">fusionreg_idx_map</span><span class="p">)</span>
+<span class="n">sparsity_plot</span><span class="p">[</span><span class="s2">&quot;fusionreg_idx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sparsity_plot</span><span class="p">[</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">fusionreg_idx_map</span><span class="p">)</span>
+<span class="n">cv_loss_plot</span><span class="p">[</span><span class="s2">&quot;fusionreg_idx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cv_loss_plot</span><span class="p">[</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">fusionreg_idx_map</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fusionreg values: </span><span class="si">{</span><span class="n">fusionreg_vals</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WT latent (h1): </span><span class="si">{</span><span class="n">reference_wt_latent</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WT latent (h2): </span><span class="si">{</span><span class="n">non_reference_wt_latent</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;True sparsity: </span><span class="si">{</span><span class="n">true_sparsity</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Fusionreg values: [np.float64(0.0), np.float64(0.4), np.float64(0.8), np.float64(1.6), np.float64(3.2), np.float64(6.4), np.float64(12.8)]
+WT latent (h1): 5.00
+WT latent (h2): 3.41
+True sparsity: 81.0%
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># ══════════════════════════════════════════════════════════════════════</span>
+<span class="c1"># Build composite main figure (panels A–C)</span>
+<span class="c1"># ══════════════════════════════════════════════════════════════════════</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">layout</span><span class="o">=</span><span class="s2">&quot;constrained&quot;</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">6.4</span><span class="p">,</span> <span class="mf">10.5</span><span class="p">))</span>
+<span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">C</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">subfigures</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="p">[</span><span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.65</span><span class="p">],</span> <span class="n">hspace</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+
+<span class="c1"># ── Panel A: Histograms ──</span>
+<span class="n">axd_a</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">subplot_mosaic</span><span class="p">(</span>
+    <span class="p">[[</span><span class="s2">&quot;beta_dist&quot;</span><span class="p">,</span> <span class="s2">&quot;empty&quot;</span><span class="p">,</span> <span class="s2">&quot;shift_dist&quot;</span><span class="p">,</span> <span class="s2">&quot;shift_dist_nonzero&quot;</span><span class="p">]],</span>
+    <span class="n">gridspec_kw</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;width_ratios&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;wspace&quot;</span><span class="p">:</span> <span class="mf">0.05</span><span class="p">,</span> <span class="s2">&quot;hspace&quot;</span><span class="p">:</span> <span class="mf">0.05</span><span class="p">},</span>
+<span class="p">)</span>
+<span class="n">axd_a</span><span class="p">[</span><span class="s2">&quot;empty&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="c1"># Panel A1: Beta distribution (all mutations)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">axd_a</span><span class="p">[</span><span class="s2">&quot;beta_dist&quot;</span><span class="p">]</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">histplot</span><span class="p">(</span>
+    <span class="n">simulated_muteffects_df</span><span class="p">,</span>
+    <span class="n">x</span><span class="o">=</span><span class="s2">&quot;beta_h1&quot;</span><span class="p">,</span>
+    <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+    <span class="n">stat</span><span class="o">=</span><span class="s2">&quot;probability&quot;</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">bins</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mf">15.5</span><span class="p">,</span> <span class="mf">5.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;mut. effect $(\beta_m)$&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;fraction&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;all mutations&quot;</span><span class="p">)</span>
+
+<span class="c1"># Panel A2: Shift distribution (all mutations)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">axd_a</span><span class="p">[</span><span class="s2">&quot;shift_dist&quot;</span><span class="p">]</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">histplot</span><span class="p">(</span>
+    <span class="n">simulated_muteffects_df</span><span class="p">,</span>
+    <span class="n">x</span><span class="o">=</span><span class="s2">&quot;shift&quot;</span><span class="p">,</span>
+    <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+    <span class="n">stat</span><span class="o">=</span><span class="s2">&quot;probability&quot;</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">bins</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mf">3.25</span><span class="p">,</span> <span class="mf">3.25</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;shift $(\Delta_{d,m})$&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;all mutations&quot;</span><span class="p">)</span>
+
+<span class="c1"># Panel A3: Shift distribution (shifted mutations only, excluding stops)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">axd_a</span><span class="p">[</span><span class="s2">&quot;shift_dist_nonzero&quot;</span><span class="p">]</span>
+<span class="n">shifted_nonstop</span> <span class="o">=</span> <span class="n">simulated_muteffects_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+    <span class="s2">&quot;shifted_site and ~mutation.str.contains(&#39;</span><span class="se">\\</span><span class="s2">*&#39;)&quot;</span>
+<span class="p">)</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">histplot</span><span class="p">(</span>
+    <span class="n">shifted_nonstop</span><span class="p">,</span>
+    <span class="n">x</span><span class="o">=</span><span class="s2">&quot;shift&quot;</span><span class="p">,</span>
+    <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+    <span class="n">stat</span><span class="o">=</span><span class="s2">&quot;probability&quot;</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">bins</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mf">3.25</span><span class="p">,</span> <span class="mf">3.25</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;shift $(\Delta_{d,m})$&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;shifted mutations&quot;</span><span class="p">)</span>
+
+<span class="c1"># ── Panel B: Latent phenotype vs functional score ──</span>
+<span class="n">axd_b</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">subplot_mosaic</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;observed_phenotype_latent_measured&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;loose_bottle_latent_measured&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;tight_bottle_latent_measured&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">],</span>
+    <span class="n">sharey</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="k">for</span> <span class="n">bottleneck</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">bottlenecks</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">axd_b</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">bottleneck</span><span class="si">}</span><span class="s2">_latent_measured&quot;</span><span class="p">]</span>
+    <span class="n">sub</span> <span class="o">=</span> <span class="n">simulated_func_scores_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+        <span class="s2">&quot;library == &#39;lib_1&#39; and func_score_type == @bottleneck&quot;</span>
+    <span class="p">)</span>
+    <span class="n">n_sample</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">8000</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sub</span><span class="p">))</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">scatterplot</span><span class="p">(</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">n_sample</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">),</span>
+        <span class="n">x</span><span class="o">=</span><span class="s2">&quot;latent_phenotype&quot;</span><span class="p">,</span>
+        <span class="n">y</span><span class="o">=</span><span class="s2">&quot;func_score&quot;</span><span class="p">,</span>
+        <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+        <span class="n">s</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+        <span class="n">c</span><span class="o">=</span><span class="s2">&quot;darkgrey&quot;</span><span class="p">,</span>
+        <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;darkgrey&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># GE curve overlay (ground truth)</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">lineplot</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">gt_points</span><span class="p">,</span>
+        <span class="n">x</span><span class="o">=</span><span class="s2">&quot;x&quot;</span><span class="p">,</span>
+        <span class="n">y</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">,</span>
+        <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="n">groundtruth_color</span><span class="p">,</span>
+        <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">,</span>
+        <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># WT latent phenotype lines</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">reference_wt_latent</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">ref_wildtype_color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span>
+        <span class="n">non_reference_wt_latent</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="n">nonref_wildtype_color</span><span class="p">,</span>
+        <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span>
+        <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">x_scale</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bottleneck</span> <span class="o">==</span> <span class="s2">&quot;observed_phenotype&quot;</span><span class="p">:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">observed_phenotype_ylabel</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bottleneck</span> <span class="o">==</span> <span class="s2">&quot;loose_bottle&quot;</span><span class="p">:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">latent_phenotype_label</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+
+<span class="c1"># ── Panel C: Diagnostic metrics (4 rows x 3 columns) ──</span>
+<span class="n">axd_c</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">subplot_mosaic</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">b</span><span class="si">}</span><span class="s2">_shift_acc&quot;</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bottlenecks</span><span class="o">.</span><span class="n">keys</span><span class="p">()],</span>
+        <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">b</span><span class="si">}</span><span class="s2">_shift_rep&quot;</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bottlenecks</span><span class="o">.</span><span class="n">keys</span><span class="p">()],</span>
+        <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">b</span><span class="si">}</span><span class="s2">_shift_cv&quot;</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bottlenecks</span><span class="o">.</span><span class="n">keys</span><span class="p">()],</span>
+        <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">b</span><span class="si">}</span><span class="s2">_shift_sparse&quot;</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bottlenecks</span><span class="o">.</span><span class="n">keys</span><span class="p">()],</span>
+    <span class="p">],</span>
+    <span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">gridspec_kw</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;hspace&quot;</span><span class="p">:</span> <span class="mf">0.05</span><span class="p">},</span>
+<span class="p">)</span>
+
+<span class="k">for</span> <span class="n">bottleneck</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">bottlenecks</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+    <span class="c1"># ── Row 1: Shift accuracy (Pearson r) ──</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">axd_c</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">bottleneck</span><span class="si">}</span><span class="s2">_shift_acc&quot;</span><span class="p">]</span>
+    <span class="n">sub</span> <span class="o">=</span> <span class="n">model_vs_truth_plot</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+        <span class="s2">&quot;measurement_type == @bottleneck and parameter == &#39;shift&#39;&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">)</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">scatterplot</span><span class="p">(</span>
+        <span class="n">sub</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">&quot;fusionreg_idx&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;pearson_r&quot;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+        <span class="n">style</span><span class="o">=</span><span class="s2">&quot;library&quot;</span><span class="p">,</span> <span class="n">legend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">point_size</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">lineplot</span><span class="p">(</span>
+        <span class="n">sub</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">&quot;fusionreg_idx&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;pearson_r&quot;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+        <span class="n">legend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">-</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">model_truth_corr_ylabel</span> <span class="k">if</span> <span class="n">bottleneck</span> <span class="o">==</span> <span class="s2">&quot;observed_phenotype&quot;</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1"># ── Row 2: Replicate shift (Pearson r) ──</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">axd_c</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">bottleneck</span><span class="si">}</span><span class="s2">_shift_rep&quot;</span><span class="p">]</span>
+    <span class="c1"># Filter for shift parameter</span>
+    <span class="n">rep_sub</span> <span class="o">=</span> <span class="n">replicate_corr_plot</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;measurement_type == @bottleneck&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">&quot;mut_param&quot;</span> <span class="ow">in</span> <span class="n">rep_sub</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">rep_sub</span> <span class="o">=</span> <span class="n">rep_sub</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;mut_param == &#39;shift&#39;&quot;</span><span class="p">)</span>
+    <span class="n">rep_sub</span> <span class="o">=</span> <span class="n">rep_sub</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">)</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">scatterplot</span><span class="p">(</span>
+        <span class="n">rep_sub</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">&quot;fusionreg_idx&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;pearson_r&quot;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+        <span class="n">c</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">legend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">point_size</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">lineplot</span><span class="p">(</span>
+        <span class="n">rep_sub</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">&quot;fusionreg_idx&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;pearson_r&quot;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+        <span class="n">c</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">legend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">-</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">lib_corr_ylabel</span> <span class="k">if</span> <span class="n">bottleneck</span> <span class="o">==</span> <span class="s2">&quot;observed_phenotype&quot;</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1"># ── Row 3: Cross-validation loss ──</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">axd_c</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">bottleneck</span><span class="si">}</span><span class="s2">_shift_cv&quot;</span><span class="p">]</span>
+    <span class="n">cv_sub</span> <span class="o">=</span> <span class="n">cv_loss_plot</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;measurement_type == @bottleneck&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">)</span>
+    <span class="c1"># Use mean_loss if available, otherwise fall back to loss</span>
+    <span class="n">loss_col</span> <span class="o">=</span> <span class="s2">&quot;mean_loss&quot;</span> <span class="k">if</span> <span class="s2">&quot;mean_loss&quot;</span> <span class="ow">in</span> <span class="n">cv_sub</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="s2">&quot;loss&quot;</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">scatterplot</span><span class="p">(</span>
+        <span class="n">cv_sub</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">&quot;fusionreg_idx&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">loss_col</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+        <span class="n">style</span><span class="o">=</span><span class="s2">&quot;library&quot;</span> <span class="k">if</span> <span class="s2">&quot;library&quot;</span> <span class="ow">in</span> <span class="n">cv_sub</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">legend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">point_size</span><span class="p">,</span>
+        <span class="n">hue</span><span class="o">=</span><span class="s2">&quot;dataset&quot;</span> <span class="k">if</span> <span class="s2">&quot;dataset&quot;</span> <span class="ow">in</span> <span class="n">cv_sub</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">palette</span><span class="o">=</span><span class="n">dataset_palette</span> <span class="k">if</span> <span class="s2">&quot;dataset&quot;</span> <span class="ow">in</span> <span class="n">cv_sub</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">lineplot</span><span class="p">(</span>
+        <span class="n">cv_sub</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">&quot;fusionreg_idx&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">loss_col</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+        <span class="n">style</span><span class="o">=</span><span class="s2">&quot;library&quot;</span> <span class="k">if</span> <span class="s2">&quot;library&quot;</span> <span class="ow">in</span> <span class="n">cv_sub</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">legend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">hue</span><span class="o">=</span><span class="s2">&quot;dataset&quot;</span> <span class="k">if</span> <span class="s2">&quot;dataset&quot;</span> <span class="ow">in</span> <span class="n">cv_sub</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">palette</span><span class="o">=</span><span class="n">dataset_palette</span> <span class="k">if</span> <span class="s2">&quot;dataset&quot;</span> <span class="ow">in</span> <span class="n">cv_sub</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">loss_ylabel</span> <span class="k">if</span> <span class="n">bottleneck</span> <span class="o">==</span> <span class="s2">&quot;observed_phenotype&quot;</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1"># ── Row 4: Sparsity ──</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">axd_c</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">bottleneck</span><span class="si">}</span><span class="s2">_shift_sparse&quot;</span><span class="p">]</span>
+    <span class="c1"># Filter for shift parameter</span>
+    <span class="n">sp_sub</span> <span class="o">=</span> <span class="n">sparsity_plot</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;measurement_type == @bottleneck&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">&quot;mut_param&quot;</span> <span class="ow">in</span> <span class="n">sp_sub</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">sp_sub</span> <span class="o">=</span> <span class="n">sp_sub</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;mut_param.str.contains(&#39;shift&#39;)&quot;</span><span class="p">)</span>
+    <span class="n">sp_sub</span> <span class="o">=</span> <span class="n">sp_sub</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">)</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">scatterplot</span><span class="p">(</span>
+        <span class="n">sp_sub</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">&quot;fusionreg_idx&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;sparsity&quot;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+        <span class="n">style</span><span class="o">=</span><span class="s2">&quot;library&quot;</span> <span class="k">if</span> <span class="s2">&quot;library&quot;</span> <span class="ow">in</span> <span class="n">sp_sub</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">legend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">point_size</span><span class="p">,</span>
+        <span class="n">hue</span><span class="o">=</span><span class="s2">&quot;mut_type&quot;</span> <span class="k">if</span> <span class="s2">&quot;mut_type&quot;</span> <span class="ow">in</span> <span class="n">sp_sub</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">palette</span><span class="o">=</span><span class="n">mut_type_palette</span> <span class="k">if</span> <span class="s2">&quot;mut_type&quot;</span> <span class="ow">in</span> <span class="n">sp_sub</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">lineplot</span><span class="p">(</span>
+        <span class="n">sp_sub</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">&quot;fusionreg_idx&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;sparsity&quot;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+        <span class="n">legend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">hue</span><span class="o">=</span><span class="s2">&quot;mut_type&quot;</span> <span class="k">if</span> <span class="s2">&quot;mut_type&quot;</span> <span class="ow">in</span> <span class="n">sp_sub</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">palette</span><span class="o">=</span><span class="n">mut_type_palette</span> <span class="k">if</span> <span class="s2">&quot;mut_type&quot;</span> <span class="ow">in</span> <span class="n">sp_sub</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="mi">105</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">sparsity_ylabel</span> <span class="k">if</span> <span class="n">bottleneck</span> <span class="o">==</span> <span class="s2">&quot;observed_phenotype&quot;</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="c1"># True sparsity dashed line</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="n">true_sparsity</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fusionreg_vals</span><span class="p">)))</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fusionreg_vals</span><span class="p">],</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bottleneck</span> <span class="o">==</span> <span class="s2">&quot;loose_bottle&quot;</span><span class="p">:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">lasso_strength_label</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+
+<span class="c1"># ── Touchup: panel labels, ticks, legends, vertical lasso bars ──</span>
+
+<span class="c1"># Panel labels</span>
+<span class="n">axd_a</span><span class="p">[</span><span class="s2">&quot;beta_dist&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+    <span class="o">-</span><span class="mf">0.25</span><span class="p">,</span> <span class="mf">1.10</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span>
+    <span class="n">size</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">axd_a</span><span class="p">[</span><span class="s2">&quot;beta_dist&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">axd_b</span><span class="p">[</span><span class="s2">&quot;observed_phenotype_latent_measured&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+    <span class="o">-</span><span class="mf">0.47</span><span class="p">,</span> <span class="mf">1.25</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span>
+    <span class="n">size</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">,</span>
+    <span class="n">transform</span><span class="o">=</span><span class="n">axd_b</span><span class="p">[</span><span class="s2">&quot;observed_phenotype_latent_measured&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">axd_c</span><span class="p">[</span><span class="s2">&quot;observed_phenotype_shift_acc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+    <span class="o">-</span><span class="mf">0.82</span><span class="p">,</span> <span class="mf">1.25</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span>
+    <span class="n">size</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">,</span>
+    <span class="n">transform</span><span class="o">=</span><span class="n">axd_c</span><span class="p">[</span><span class="s2">&quot;observed_phenotype_shift_acc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">sns</span><span class="o">.</span><span class="n">despine</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+<span class="c1"># Fix up y-axis ticks in Panel C</span>
+<span class="k">for</span> <span class="n">ax_name</span><span class="p">,</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axd_c</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">ax_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;shift_acc&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">ax_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;shift_rep&quot;</span><span class="p">):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">([</span><span class="s2">&quot;0.0&quot;</span><span class="p">,</span> <span class="s2">&quot;0.5&quot;</span><span class="p">,</span> <span class="s2">&quot;1.0&quot;</span><span class="p">])</span>
+    <span class="k">elif</span> <span class="n">ax_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;shift_sparse&quot;</span><span class="p">):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">])</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">([</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="s2">&quot;50&quot;</span><span class="p">,</span> <span class="s2">&quot;100&quot;</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_major_locator</span><span class="p">(</span><span class="n">mticker</span><span class="o">.</span><span class="n">MaxNLocator</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+        <span class="n">ticks_loc</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_yticks</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_major_locator</span><span class="p">(</span><span class="n">mticker</span><span class="o">.</span><span class="n">FixedLocator</span><span class="p">(</span><span class="n">ticks_loc</span><span class="p">))</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">x</span><span class="si">:</span><span class="s2">2.2f</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">ticks_loc</span><span class="p">])</span>
+
+    <span class="c1"># Vertical grey bar at chosen lasso</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">fusionreg_idx_map</span><span class="p">[</span><span class="n">lasso_choice</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;grey&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.35</span><span class="p">)</span>
+
+<span class="c1"># ── Legends ──</span>
+
+<span class="c1"># Panel B legend</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">axd_b</span><span class="p">[</span><span class="s2">&quot;tight_bottle_latent_measured&quot;</span><span class="p">]</span>
+<span class="n">elements</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">mlines</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="n">ref_wildtype_color</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">,</span>
+                  <span class="n">markersize</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;reference WT&quot;</span><span class="p">),</span>
+    <span class="n">mlines</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="n">nonref_wildtype_color</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span>
+                  <span class="n">markersize</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;non-reference</span><span class="se">\n</span><span class="s2"> WT&quot;</span><span class="p">),</span>
+    <span class="n">mlines</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="n">groundtruth_color</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                  <span class="n">markersize</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;global</span><span class="se">\n</span><span class="s2">epistasis</span><span class="se">\n</span><span class="s2">function&quot;</span><span class="p">),</span>
+<span class="p">]</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="o">=</span><span class="n">elements</span><span class="p">,</span> <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper left&quot;</span><span class="p">,</span>
+          <span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mf">7.5</span><span class="p">)</span>
+
+<span class="c1"># Panel C legends</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">axd_c</span><span class="p">[</span><span class="s2">&quot;tight_bottle_shift_acc&quot;</span><span class="p">]</span>
+<span class="n">elements</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">mlines</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;None&quot;</span><span class="p">,</span>
+                  <span class="n">markersize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;rep1&quot;</span><span class="p">),</span>
+    <span class="n">mlines</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;X&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;None&quot;</span><span class="p">,</span>
+                  <span class="n">markersize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;rep2&quot;</span><span class="p">),</span>
+<span class="p">]</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="o">=</span><span class="n">elements</span><span class="p">,</span> <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper left&quot;</span><span class="p">,</span>
+          <span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mf">7.5</span><span class="p">)</span>
+
+<span class="n">ax</span> <span class="o">=</span> <span class="n">axd_c</span><span class="p">[</span><span class="s2">&quot;tight_bottle_shift_sparse&quot;</span><span class="p">]</span>
+<span class="n">elements</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">mlines</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="n">mut_type_palette</span><span class="p">[</span><span class="s2">&quot;stop&quot;</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span>
+                  <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;None&quot;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;stop&quot;</span><span class="p">),</span>
+    <span class="n">mlines</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="n">mut_type_palette</span><span class="p">[</span><span class="s2">&quot;nonsynonymous&quot;</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span>
+                  <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;None&quot;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;non-</span><span class="se">\n</span><span class="s2">synonymous&quot;</span><span class="p">),</span>
+    <span class="n">mlines</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                  <span class="n">markersize</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;true</span><span class="se">\n</span><span class="s2">sparsity&quot;</span><span class="p">),</span>
+<span class="p">]</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="o">=</span><span class="n">elements</span><span class="p">,</span> <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper left&quot;</span><span class="p">,</span>
+          <span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mf">7.5</span><span class="p">)</span>
+
+<span class="n">ax</span> <span class="o">=</span> <span class="n">axd_c</span><span class="p">[</span><span class="s2">&quot;tight_bottle_shift_cv&quot;</span><span class="p">]</span>
+<span class="n">elements</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">mlines</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="n">dataset_palette</span><span class="p">[</span><span class="s2">&quot;training&quot;</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span>
+                  <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;None&quot;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;training&quot;</span><span class="p">),</span>
+    <span class="n">mlines</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="n">dataset_palette</span><span class="p">[</span><span class="s2">&quot;validation&quot;</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span>
+                  <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;None&quot;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;validation&quot;</span><span class="p">),</span>
+<span class="p">]</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="o">=</span><span class="n">elements</span><span class="p">,</span> <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper left&quot;</span><span class="p">,</span>
+          <span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mf">7.5</span><span class="p">)</span>
+
+<span class="c1"># Save</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">figures_dir</span><span class="p">,</span> <span class="s2">&quot;main_figure.pdf&quot;</span><span class="p">),</span>
+    <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">&quot;tight&quot;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">figures_dir</span><span class="p">,</span> <span class="s2">&quot;main_figure.png&quot;</span><span class="p">),</span>
+    <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">&quot;tight&quot;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">figures_dir</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;main_figure.pdf&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Saved results/figures/main_figure.pdf
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/sim_manuscript_figures_10_1.png" src="_images/sim_manuscript_figures_10_1.png" />
+</div>
+</div>
+</section>
+<section id="Ground-Truth-Correlation-Scatter">
+<h2>Ground-Truth Correlation Scatter<a class="headerlink" href="#Ground-Truth-Correlation-Scatter" title="Permalink to this heading">¶</a></h2>
+<p>Scatter of predicted vs true mutation effects (beta) at the chosen lasso value and zero noise, with R² annotation.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Ground-truth correlation scatter for beta at chosen lasso, zero noise</span>
+<span class="n">measurement_type</span> <span class="o">=</span> <span class="s2">&quot;observed_phenotype&quot;</span>
+
+<span class="n">beta_sub</span> <span class="o">=</span> <span class="n">model_vs_truth_plot</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+    <span class="s2">&quot;parameter == &#39;beta&#39;&quot;</span>
+    <span class="s2">&quot; and measurement_type == @measurement_type&quot;</span>
+    <span class="s2">&quot; and fusionreg == @lasso_choice&quot;</span>
+<span class="p">)</span>
+
+<span class="c1"># If we have per-mutation data in model_vs_truth_df, use it directly.</span>
+<span class="c1"># Otherwise fall back to the summary R^2 from the metrics CSV.</span>
+<span class="c1"># The evaluate notebook saves a summary CSV with corr per (parameter,</span>
+<span class="c1"># measurement_type, library, fusionreg). For the scatter we need the</span>
+<span class="c1"># underlying per-mutation predicted vs true values.</span>
+<span class="c1"># Since this notebook loads only CSVs and the per-mutation scatter requires</span>
+<span class="c1"># the model_df (collection_muts.csv) which may or may not exist, we check</span>
+<span class="c1"># for it and fall back to a summary annotation if not available.</span>
+
+<span class="n">collection_muts_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;collection_muts.csv&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">collection_muts_path</span><span class="p">):</span>
+    <span class="n">model_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">collection_muts_path</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">model_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+        <span class="s2">&quot;library == &#39;lib_1&#39;&quot;</span>
+        <span class="s2">&quot; and measurement_type == @measurement_type&quot;</span>
+        <span class="s2">&quot; and fusionreg == @lasso_choice&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="s2">&quot;predicted_beta&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="s2">&quot;true_beta&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">r</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">pearsonr</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;predicted_beta&quot;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;true_beta&quot;</span><span class="p">])</span>
+        <span class="n">r2</span> <span class="o">=</span> <span class="n">r</span> <span class="o">**</span> <span class="mi">2</span>
+
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">3.5</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">))</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;predicted_beta&quot;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;true_beta&quot;</span><span class="p">],</span>
+            <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;inferred $\beta_m$&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;ground-truth $\beta_m$&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">bottlenecks</span><span class="p">[</span><span class="n">measurement_type</span><span class="p">]</span><span class="si">}</span><span class="s2">, $\lambda=</span><span class="si">{</span><span class="n">lasso_choice</span><span class="si">}</span><span class="s2">$</span><span class="se">\n</span><span class="s2">$R^2=</span><span class="si">{</span><span class="n">r2</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">$&quot;</span>
+        <span class="p">)</span>
+        <span class="c1"># Line of identity</span>
+        <span class="n">lims</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">min</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">get_xlim</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_ylim</span><span class="p">()[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="nb">max</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">get_xlim</span><span class="p">()[</span><span class="mi">1</span><span class="p">],</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_ylim</span><span class="p">()[</span><span class="mi">1</span><span class="p">]),</span>
+        <span class="p">]</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lims</span><span class="p">,</span> <span class="n">lims</span><span class="p">,</span> <span class="s2">&quot;k--&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">lims</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">lims</span><span class="p">)</span>
+        <span class="n">sns</span><span class="o">.</span><span class="n">despine</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+
+        <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">figures_dir</span><span class="p">,</span> <span class="s2">&quot;ground_truth_correlation.pdf&quot;</span><span class="p">),</span>
+            <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">&quot;tight&quot;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">figures_dir</span><span class="p">,</span> <span class="s2">&quot;ground_truth_correlation.png&quot;</span><span class="p">),</span>
+            <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">&quot;tight&quot;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved ground_truth_correlation.pdf  (R^2 = </span><span class="si">{</span><span class="n">r2</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;collection_muts.csv lacks predicted_beta/true_beta columns — &quot;</span>
+              <span class="s2">&quot;skipping scatter, using summary R^2 from metrics CSV.&quot;</span><span class="p">)</span>
+        <span class="n">r2_val</span> <span class="o">=</span> <span class="n">beta_sub</span><span class="p">[</span><span class="s2">&quot;r2&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Summary R^2 values for beta at lasso=</span><span class="si">{</span><span class="n">lasso_choice</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">r2_val</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="c1"># Fallback: print summary from metrics CSV</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;collection_muts.csv not found — displaying summary R^2 only.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">beta_sub</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">r2_summary</span> <span class="o">=</span> <span class="n">beta_sub</span><span class="p">[[</span><span class="s2">&quot;library&quot;</span><span class="p">,</span> <span class="s2">&quot;r2&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Beta R^2 at lasso=</span><span class="si">{</span><span class="n">lasso_choice</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">measurement_type</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">r2_summary</span><span class="p">)</span>
+
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">3.5</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">))</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+            <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;Beta $R^2$ = </span><span class="si">{</span><span class="n">beta_sub</span><span class="p">[</span><span class="s1">&#39;r2&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;(scatter requires collection_muts.csv)&quot;</span><span class="p">,</span>
+            <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">bottlenecks</span><span class="p">[</span><span class="n">measurement_type</span><span class="p">]</span><span class="si">}</span><span class="s2">, $\lambda=</span><span class="si">{</span><span class="n">lasso_choice</span><span class="si">}</span><span class="s2">$&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;inferred $\beta_m$&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;ground-truth $\beta_m$&quot;</span><span class="p">)</span>
+        <span class="n">sns</span><span class="o">.</span><span class="n">despine</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">figures_dir</span><span class="p">,</span> <span class="s2">&quot;ground_truth_correlation.pdf&quot;</span><span class="p">),</span>
+            <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">&quot;tight&quot;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">figures_dir</span><span class="p">,</span> <span class="s2">&quot;ground_truth_correlation.png&quot;</span><span class="p">),</span>
+            <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">&quot;tight&quot;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved ground_truth_correlation.pdf (summary only)&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Saved ground_truth_correlation.pdf  (R^2 = 1.0000)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/sim_manuscript_figures_12_1.png" src="_images/sim_manuscript_figures_12_1.png" />
+</div>
+</div>
+</section>
+<section id="Sparsity-Diagnostic-Scatter">
+<h2>Sparsity Diagnostic Scatter<a class="headerlink" href="#Sparsity-Diagnostic-Scatter" title="Permalink to this heading">¶</a></h2>
+<p>For mutations with true shift = 0, scatter of inferred shift vs inferred beta at the chosen lasso value.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Sparsity diagnostic: inferred shift vs inferred beta for true-shift-zero mutations</span>
+<span class="n">measurement_type</span> <span class="o">=</span> <span class="s2">&quot;observed_phenotype&quot;</span>
+
+<span class="n">collection_muts_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;collection_muts.csv&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">collection_muts_path</span><span class="p">):</span>
+    <span class="n">model_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">collection_muts_path</span><span class="p">)</span>
+
+    <span class="c1"># Two panels: lasso=0 and lasso=lasso_choice</span>
+    <span class="n">lasso_values</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">lasso_choice</span><span class="p">]))</span>
+    <span class="c1"># Only keep values that exist in the data</span>
+    <span class="n">available_lassos</span> <span class="o">=</span> <span class="n">model_df</span><span class="p">[</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+    <span class="n">lasso_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">lasso_values</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">available_lassos</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lasso_values</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">lasso_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">available_lassos</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">lasso_choice</span><span class="p">]</span>
+        <span class="n">lasso_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">lasso_values</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">available_lassos</span><span class="p">]</span>
+
+    <span class="n">n_panels</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">lasso_values</span><span class="p">)</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_panels</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                             <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">2.5</span> <span class="o">*</span> <span class="n">n_panels</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">n_panels</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="p">[</span><span class="n">axes</span><span class="p">]</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;lasso_weight, sparsity (fraction shift=0)&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">lw</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lasso_values</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">model_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="s2">&quot;library == &#39;lib_1&#39;&quot;</span>
+            <span class="s2">&quot; and measurement_type == @measurement_type&quot;</span>
+            <span class="s2">&quot; and fusionreg == @lw&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># Identify true-shift-zero mutations</span>
+        <span class="k">if</span> <span class="s2">&quot;true_shift&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;true_shift == 0&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="s2">&quot;shift&quot;</span> <span class="ow">in</span> <span class="n">simulated_muteffects_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">zero_shift_muts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
+                <span class="n">simulated_muteffects_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;shift == 0&quot;</span><span class="p">)[</span><span class="s2">&quot;mutation&quot;</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;mutation&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">zero_shift_muts</span><span class="p">)]</span>
+
+        <span class="c1"># Determine shift and beta column names</span>
+        <span class="n">shift_col</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;predicted_shift_h2&quot;</span>
+            <span class="k">if</span> <span class="s2">&quot;predicted_shift_h2&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span>
+            <span class="k">else</span> <span class="s2">&quot;shift_h2&quot;</span> <span class="k">if</span> <span class="s2">&quot;shift_h2&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="n">beta_col</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;predicted_beta&quot;</span>
+            <span class="k">if</span> <span class="s2">&quot;predicted_beta&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span>
+            <span class="k">else</span> <span class="s2">&quot;beta&quot;</span> <span class="k">if</span> <span class="s2">&quot;beta&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">shift_col</span> <span class="ow">and</span> <span class="n">beta_col</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">frac_zero</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">shift_col</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  lambda=</span><span class="si">{</span><span class="n">lw</span><span class="si">}</span><span class="s2">, sparsity=</span><span class="si">{</span><span class="n">frac_zero</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">shift_col</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="n">beta_col</span><span class="p">],</span>
+                <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;inferred $\Delta_{d,m}$&quot;</span><span class="p">)</span>
+            <span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;$\lambda=</span><span class="si">{</span><span class="n">lw</span><span class="si">}</span><span class="s2">$&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;$\lambda=</span><span class="si">{</span><span class="n">lw</span><span class="si">}</span><span class="s2">$ (no data)&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  lambda=</span><span class="si">{</span><span class="n">lw</span><span class="si">}</span><span class="s2">, no suitable columns found&quot;</span><span class="p">)</span>
+
+    <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;inferred $\beta_m$&quot;</span><span class="p">)</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span>
+        <span class="sa">r</span><span class="s2">&quot;mutations with ground-truth $\Delta_{d,m}=0$&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">1.08</span>
+    <span class="p">)</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">despine</span><span class="p">(</span><span class="n">fig</span><span class="o">=</span><span class="n">fig</span><span class="p">)</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+
+    <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">figures_dir</span><span class="p">,</span> <span class="s2">&quot;sparsity_diagnostic.pdf&quot;</span><span class="p">),</span>
+        <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">&quot;tight&quot;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">figures_dir</span><span class="p">,</span> <span class="s2">&quot;sparsity_diagnostic.png&quot;</span><span class="p">),</span>
+        <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">&quot;tight&quot;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved sparsity_diagnostic.pdf&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;collection_muts.csv not found — cannot produce sparsity diagnostic scatter.&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;This figure requires per-mutation model predictions.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+lasso_weight, sparsity (fraction shift=0)
+  lambda=0.0, sparsity=0.00
+  lambda=3.2, sparsity=0.92
+Saved sparsity_diagnostic.pdf
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/sim_manuscript_figures_14_1.png" src="_images/sim_manuscript_figures_14_1.png" />
+</div>
+</div>
+</section>
+<section id="Mutation-Effect-Heatmap-with-WT-Markers">
+<h2>Mutation Effect Heatmap with WT Markers<a class="headerlink" href="#Mutation-Effect-Heatmap-with-WT-Markers" title="Permalink to this heading">¶</a></h2>
+<p>Pivot table of shifts by site x amino acid, with WT residue markers for h1 (x) and h2 (o). Displayed inline only, not saved to PDF.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Mutation effect heatmap with h1/h2 WT markers</span>
+<span class="n">aas</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;D&quot;</span><span class="p">,</span> <span class="s2">&quot;E&quot;</span><span class="p">,</span> <span class="s2">&quot;F&quot;</span><span class="p">,</span> <span class="s2">&quot;G&quot;</span><span class="p">,</span> <span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="s2">&quot;I&quot;</span><span class="p">,</span> <span class="s2">&quot;K&quot;</span><span class="p">,</span> <span class="s2">&quot;L&quot;</span><span class="p">,</span> <span class="s2">&quot;M&quot;</span><span class="p">,</span> <span class="s2">&quot;N&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">,</span> <span class="s2">&quot;R&quot;</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="s2">&quot;V&quot;</span><span class="p">,</span> <span class="s2">&quot;W&quot;</span><span class="p">,</span> <span class="s2">&quot;Y&quot;</span><span class="p">,</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="c1"># Pivot shift values</span>
+<span class="n">shift_pivot</span> <span class="o">=</span> <span class="n">simulated_muteffects_df</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span>
+    <span class="n">index</span><span class="o">=</span><span class="s2">&quot;mut_aa&quot;</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">&quot;site&quot;</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s2">&quot;shift&quot;</span>
+<span class="p">)</span>
+<span class="n">shift_pivot</span> <span class="o">=</span> <span class="n">shift_pivot</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">lower</span><span class="o">=-</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">aas</span><span class="p">)</span>
+
+<span class="c1"># Identify WT residues for h1 and h2</span>
+<span class="n">h1_wt</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">simulated_muteffects_df</span><span class="p">[[</span><span class="s2">&quot;site&quot;</span><span class="p">,</span> <span class="s2">&quot;wt_aa&quot;</span><span class="p">]]</span>
+    <span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span>
+    <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;wt_aa&quot;</span><span class="p">:</span> <span class="s2">&quot;wt_aa_h1&quot;</span><span class="p">})</span>
+<span class="p">)</span>
+<span class="c1"># h2 WT: if wt_aa_h2 column exists use it, otherwise infer from bundle_mut</span>
+<span class="k">if</span> <span class="s2">&quot;wt_aa_h2&quot;</span> <span class="ow">in</span> <span class="n">simulated_muteffects_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+    <span class="n">h2_wt</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">simulated_muteffects_df</span><span class="p">[[</span><span class="s2">&quot;site&quot;</span><span class="p">,</span> <span class="s2">&quot;wt_aa_h2&quot;</span><span class="p">]]</span>
+        <span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span>
+    <span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="c1"># Infer h2 WT from bundle mutations</span>
+    <span class="n">bundle</span> <span class="o">=</span> <span class="n">simulated_muteffects_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;bundle_mut == True&quot;</span><span class="p">)</span>
+    <span class="n">h2_wt</span> <span class="o">=</span> <span class="n">bundle</span><span class="p">[[</span><span class="s2">&quot;site&quot;</span><span class="p">,</span> <span class="s2">&quot;mut_aa&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+        <span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;mut_aa&quot;</span><span class="p">:</span> <span class="s2">&quot;wt_aa_h2&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
+
+<span class="c1"># Build marker coordinate arrays</span>
+<span class="n">h1_sites</span><span class="p">,</span> <span class="n">h1_aas_idx</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">h1_wt</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+    <span class="n">site</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;site&quot;</span><span class="p">]</span>
+    <span class="n">aa</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;wt_aa_h1&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">site</span> <span class="ow">in</span> <span class="n">shift_pivot</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="n">aa</span> <span class="ow">in</span> <span class="n">aas</span><span class="p">:</span>
+        <span class="n">h1_sites</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">shift_pivot</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">site</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">h1_aas_idx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aas</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">aa</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+
+<span class="n">h2_sites</span><span class="p">,</span> <span class="n">h2_aas_idx</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">h2_wt</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+    <span class="n">site</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;site&quot;</span><span class="p">]</span>
+    <span class="n">aa</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;wt_aa_h2&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">site</span> <span class="ow">in</span> <span class="n">shift_pivot</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="n">aa</span> <span class="ow">in</span> <span class="n">aas</span><span class="p">:</span>
+        <span class="n">h2_sites</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">shift_pivot</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">site</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">h2_aas_idx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aas</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">aa</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+
+<span class="c1"># Plot</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">shift_pivot</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">),</span> <span class="mi">6</span><span class="p">))</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">heatmap</span><span class="p">(</span>
+    <span class="n">shift_pivot</span><span class="p">,</span>
+    <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;bwr&quot;</span><span class="p">,</span>
+    <span class="n">center</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">vmin</span><span class="o">=-</span><span class="mf">2.75</span><span class="p">,</span>
+    <span class="n">vmax</span><span class="o">=</span><span class="mf">2.75</span><span class="p">,</span>
+    <span class="n">square</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">linewidths</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span>
+    <span class="n">linecolor</span><span class="o">=</span><span class="s2">&quot;0.5&quot;</span><span class="p">,</span>
+    <span class="n">cbar_kws</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;shrink&quot;</span><span class="p">:</span> <span class="mf">0.75</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;shift&quot;</span><span class="p">},</span>
+    <span class="n">xticklabels</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">yticklabels</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_facecolor</span><span class="p">(</span><span class="s2">&quot;0.5&quot;</span><span class="p">)</span>
+
+<span class="c1"># h1 WT markers (x)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+    <span class="n">h1_sites</span><span class="p">,</span> <span class="n">h1_aas_idx</span><span class="p">,</span>
+    <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;h1 WT&quot;</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="c1"># h2 WT markers (o)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+    <span class="n">h2_sites</span><span class="p">,</span> <span class="n">h2_aas_idx</span><span class="p">,</span>
+    <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">facecolors</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;h2 WT&quot;</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;amino acid&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Simulated shifts by site and amino acid (with WT markers)&quot;</span><span class="p">)</span>
+
+<span class="c1"># Place legend outside the plot area</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span>
+    <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">1.15</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper left&quot;</span><span class="p">,</span>
+    <span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">sns</span><span class="o">.</span><span class="n">despine</span><span class="p">(</span><span class="n">right</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">top</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Heatmap displayed inline (not saved to file).&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/sim_manuscript_figures_16_0.png" src="_images/sim_manuscript_figures_16_0.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Heatmap displayed inline (not saved to file).
+</pre></div></div>
+</div>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/2020-logo-1000px-transparent.png" alt="Logo" />
+    
+    <h1 class="logo logo-name">multidms</h1>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=matsengrp&repo=multidms&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="index.html">multidms documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulation_validation.html">Simulation Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html">Fit Delta BA.1 Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.html">multidms package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Simulation Analysis</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="sim_simulate_data.html">Simulation Data Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_fit_models.html">Model Fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_evaluate.html">Model Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_cross_validation.html">Cross-Validation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Simulation Manuscript Figures</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="sim_cross_validation.html" title="previous chapter">Cross-Validation</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2023, Jared Galloway, Hugh Haddox.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 6.2.1</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="_sources/sim_manuscript_figures.nblink.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

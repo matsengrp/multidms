@@ -48,6 +48,23 @@ and how much the effects differ between experiments.
     contributing
     changelog
 
+Simulation Analysis
+-------------------
+
+These notebooks reproduce the simulation validation from the manuscript.
+Synthetic DMS data is generated with known ground-truth mutational effects and shifts,
+then ``multidms`` models are fitted across a regularization grid and evaluated against the truth.
+The pipeline is orchestrated by Snakemake and lives in ``experiments/simulation/``.
+
+.. toctree::
+    :maxdepth: 1
+    :caption: Simulation Analysis
+
+    sim_simulate_data
+    sim_fit_models
+    sim_evaluate
+    sim_cross_validation
+    sim_manuscript_figures
 
 Indices and tables
 ------------------
