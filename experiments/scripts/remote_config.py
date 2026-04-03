@@ -82,6 +82,8 @@ if __name__ == "__main__":
             cli_overrides[k] = v
 
     cfg = load_remote_config(cli_overrides)
-    # Output as shell-friendly key=value pairs
+    # Output as shell-friendly key=value pairs (quoted to prevent injection)
+    import shlex
+
     for key, value in cfg.items():
-        print(f"{key}={value}")
+        print(f"{key}={shlex.quote(value)}")

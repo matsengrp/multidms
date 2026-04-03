@@ -11,8 +11,10 @@ config.yaml
 simulate_data ──► simulated_muteffects.csv
                ──► simulated_func_scores.csv
     │
-    ▼
-fit_models ──► fit_collection.pkl
+    ├──────────────────────────┐
+    ▼                          ▼
+fit_models                cross_validation
+──► fit_collection.pkl    ──► cross_validation_loss.csv
     │
     ▼
 evaluate ──► model_vs_truth_beta_shift.csv
@@ -20,14 +22,12 @@ evaluate ──► model_vs_truth_beta_shift.csv
           ──► fit_sparsity.csv
           ──► library_replicate_correlation.csv
           ──► model_vs_truth_variant_phenotype.csv
-          ──► cross_validation_loss.csv
     │
-    ├────────────────────┐
-    ▼                    ▼
-visualize          manuscript_figures
-(inline only)      ──► figures/main_figure.pdf
-                   ──► figures/ground_truth_correlation.pdf
-                   ──► figures/sparsity_diagnostic.pdf
+    ▼
+manuscript_figures
+──► figures/main_figure.pdf
+──► figures/ground_truth_correlation.pdf
+──► figures/sparsity_diagnostic.pdf
 ```
 
 ## Running
