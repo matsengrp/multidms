@@ -30,7 +30,7 @@ simulation:
   fitting:
     maxiter: 20
     tol: 1.0e-6
-    fusionreg_values: [0.0, 4.0]
+    fusionreg_values: [0.0, 3.2]
     l2reg: 1.0e-4
     beta0_ridge: 1.0e-5
     ge_type: "Sigmoid"
@@ -42,4 +42,4 @@ simulation:
     ge_kwargs: {tol: 1.0e-5, maxiter: 1000, maxls: 40, jit: true, verbose: false}
     cal_kwargs: {tol: 1.0e-4, maxiter: 1000, maxls: 40, jit: true, verbose: false}
     n_processes: null  # null = auto: min(cpu_count // 2, n_models)
-  lasso_choice: 4.0
+  lasso_choice: 3.2
