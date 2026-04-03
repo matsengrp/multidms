@@ -1,0 +1,129 @@
+"""Snakemake workflow for the SARS-CoV-2 spike analysis pipeline.
+
+Five notebooks executed via papermill:
+  prepare_data → fit_models      → evaluate
+               → cross_validation
+
+fit_models and cross_validation run in parallel after prepare_data.
+evaluate depends on fit_models.
+
+Run with:
+  snakemake -s experiments/scv2-spike/Snakefile -j4
+  snakemake -s experiments/scv2-spike/Snakefile --config profile=test -j4
+"""
+
+import os
+
+# Resolve paths relative to the Snakefile location
+SPIKE_DIR = os.path.dirname(workflow.snakefile)
+NOTEBOOKS = os.path.join(SPIKE_DIR, "notebooks")
+RESULTS = os.path.join(SPIKE_DIR, "results")
+COMMON = os.path.join(NOTEBOOKS, "_common.py")
+
+# Config: use test profile if --config profile=test is passed
+profile = config.get("profile", None)
+if profile not in (None, "test"):
+    raise ValueError(
+        f"Unknown profile '{profile}'. Use 'test' or leave unset for production."
+    )
+if profile == "test":
+    CONFIG_PATH = os.path.join(SPIKE_DIR, "config", "config_test.yaml")
+else:
+    CONFIG_PATH = os.path.join(SPIKE_DIR, "config", "config.yaml")
+
+# Relative config path for papermill parameter injection — avoids
+# leaking absolute server paths into executed notebook metadata.
+CONFIG_PATH_REL = os.path.relpath(CONFIG_PATH, SPIKE_DIR)
+
+
+rule all:
+    input:
+        os.path.join(RESULTS, "evaluate.ipynb"),
+        os.path.join(RESULTS, "cross_validation.ipynb"),
+        os.path.join(RESULTS, "mutations_df.csv"),
+        os.path.join(RESULTS, "cross_validation_loss.csv"),
+
+
+rule prepare_data:
+    input:
+        config=CONFIG_PATH,
+        notebook=os.path.join(NOTEBOOKS, "prepare_data.ipynb"),
+        common=COMMON,
+    output:
+        func_scores=os.path.join(RESULTS, "training_functional_scores.csv"),
+        executed_notebook=os.path.join(RESULTS, "prepare_data.ipynb"),
+    params:
+        config_path=CONFIG_PATH_REL,
+        cwd=SPIKE_DIR,
+    shell:
+        """
+        papermill "{input.notebook}" "{output.executed_notebook}" \
+            -p config_path "{params.config_path}" \
+            --cwd "{params.cwd}"
+        """
+
+
+rule fit_models:
+    input:
+        config=CONFIG_PATH,
+        func_scores=os.path.join(RESULTS, "training_functional_scores.csv"),
+        notebook=os.path.join(NOTEBOOKS, "fit_models.ipynb"),
+        common=COMMON,
+    output:
+        fit_collection=os.path.join(RESULTS, "fit_collection.pkl"),
+        executed_notebook=os.path.join(RESULTS, "fit_models.ipynb"),
+    params:
+        config_path=CONFIG_PATH_REL,
+        cwd=SPIKE_DIR,
+    shell:
+        """
+        papermill "{input.notebook}" "{output.executed_notebook}" \
+            -p config_path "{params.config_path}" \
+            --cwd "{params.cwd}"
+        """
+
+
+rule cross_validation:
+    input:
+        config=CONFIG_PATH,
+        func_scores=os.path.join(RESULTS, "training_functional_scores.csv"),
+        notebook=os.path.join(NOTEBOOKS, "cross_validation.ipynb"),
+        common=COMMON,
+    output:
+        cv_loss=os.path.join(RESULTS, "cross_validation_loss.csv"),
+        executed_notebook=os.path.join(RESULTS, "cross_validation.ipynb"),
+    params:
+        config_path=CONFIG_PATH_REL,
+        cwd=SPIKE_DIR,
+    shell:
+        """
+        papermill "{input.notebook}" "{output.executed_notebook}" \
+            -p config_path "{params.config_path}" \
+            --cwd "{params.cwd}"
+        """
+
+
+rule evaluate:
+    input:
+        config=CONFIG_PATH,
+        fit_collection=os.path.join(RESULTS, "fit_collection.pkl"),
+        func_scores=os.path.join(RESULTS, "training_functional_scores.csv"),
+        notebook=os.path.join(NOTEBOOKS, "evaluate.ipynb"),
+        common=COMMON,
+    output:
+        mutations_df=os.path.join(RESULTS, "mutations_df.csv"),
+        collection_muts=os.path.join(RESULTS, "collection_muts.csv"),
+        sparsity=os.path.join(RESULTS, "fit_sparsity.csv"),
+        replicate_corr=os.path.join(
+            RESULTS, "library_replicate_correlation.csv"
+        ),
+        executed_notebook=os.path.join(RESULTS, "evaluate.ipynb"),
+    params:
+        config_path=CONFIG_PATH_REL,
+        cwd=SPIKE_DIR,
+    shell:
+        """
+        papermill "{input.notebook}" "{output.executed_notebook}" \
+            -p config_path "{params.config_path}" \
+            --cwd "{params.cwd}"
+        """

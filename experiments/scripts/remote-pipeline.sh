@@ -46,6 +46,14 @@ if [[ "$PROFILE" != "test" && "$PROFILE" != "prod" ]]; then
     exit 1
 fi
 
+# Warn if working tree is dirty — uncommitted changes won't reach the remote
+if [ -n "$(git status --porcelain)" ]; then
+    echo "WARNING: You have uncommitted changes. The remote will not see them."
+    echo "Commit first, or press Ctrl-C to abort."
+    read -r -p "Continue anyway? [y/N] " reply
+    [ "$reply" = "y" ] || exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Sync first (pass through host overrides)

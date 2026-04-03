@@ -7,7 +7,7 @@ This directory contains reproducible analysis pipelines for the multidms manuscr
 | Pipeline | Directory | Description |
 |----------|-----------|-------------|
 | Simulation | `simulation/` | Synthetic DMS data generation, model fitting, and validation |
-| SARS-CoV-2 Spike | `scv2-spike/` | *(Phase 2 — not yet implemented)* |
+| SARS-CoV-2 Spike | `scv2-spike/` | Spike DMS data preparation, model fitting, and evaluation |
 
 ## Quick Start
 
@@ -17,6 +17,12 @@ pixi run sim-test
 
 # Run the simulation pipeline (production profile)
 pixi run sim-prod
+
+# Run the spike pipeline (test profile, <10 min)
+pixi run spike-test
+
+# Run the spike pipeline (production profile)
+pixi run spike-prod
 ```
 
 ## Remote Execution

@@ -180,6 +180,10 @@ docs-deploy = "make -C docs clean && make -C docs html && ghp-import -n -p -f do
 sim-test  = "snakemake -s experiments/simulation/Snakefile --config profile=test -j4"
 sim-prod  = "snakemake -s experiments/simulation/Snakefile -j4"
 
+# Spike pipeline
+spike-test = "snakemake -s experiments/scv2-spike/Snakefile --config profile=test -j4"
+spike-prod = "snakemake -s experiments/scv2-spike/Snakefile -j4"
+
 # Remote execution
 remote-sync     = "bash experiments/scripts/remote-sync.sh"
 remote-pipeline = "bash experiments/scripts/remote-pipeline.sh"
@@ -188,3 +192,4 @@ run-pull        = "bash experiments/scripts/run-pull.sh"
 
 [tool.pixi.dependencies]
 pandoc = ">=3.9.0.2,<4"
+vl-convert-python = ">=1.7.0,<3"
