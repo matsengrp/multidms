@@ -1,0 +1,495 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Model Fitting &#8212; multidms 1.3.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Model Evaluation" href="spike_evaluate.html" />
+    <link rel="prev" title="Spike Data Preparation" href="spike_prepare_data.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="Model-Fitting">
+<h1>Model Fitting<a class="headerlink" href="#Model-Fitting" title="Permalink to this heading">¶</a></h1>
+<p>Fit <code class="docutils literal notranslate"><span class="pre">multidms</span></code> models to spike functional-score data across a grid of fusion-regularization values, independently for each replicate.</p>
+<p><strong>Outline</strong></p>
+<ol class="arabic simple">
+<li><p>Load training functional scores</p></li>
+<li><p>Aggregate per (condition, aa_substitutions) within each replicate</p></li>
+<li><p>Create <code class="docutils literal notranslate"><span class="pre">multidms.Data</span></code> objects (one per replicate)</p></li>
+<li><p>Fit models across the regularization grid via <code class="docutils literal notranslate"><span class="pre">fit_models()</span></code></p></li>
+<li><p>Save the fit collection</p></li>
+</ol>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;notebooks&quot;</span><span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">multidms</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">multidms.model_collection</span><span class="w"> </span><span class="kn">import</span> <span class="n">fit_models</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">multidms.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">explode_params_dict</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">_common</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_config</span><span class="p">,</span> <span class="n">build_fit_params</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
+<span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+<span class="n">spike</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;spike&quot;</span><span class="p">]</span>
+<span class="n">fit_config</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;fitting&quot;</span><span class="p">]</span>
+<span class="n">reference</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;reference&quot;</span><span class="p">]</span>
+
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results&quot;</span>
+<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<section id="Load-training-functional-scores">
+<h2>Load training functional scores<a class="headerlink" href="#Load-training-functional-scores" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">func_score_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;training_functional_scores.csv&quot;</span><span class="p">)</span>
+<span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">({</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">})</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">func_score_df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> variants&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Loaded 281,158 variants
+</pre></div></div>
+</div>
+</section>
+<section id="Create-Data-objects">
+<h2>Create Data objects<a class="headerlink" href="#Create-Data-objects" title="Permalink to this heading">¶</a></h2>
+<p>Aggregate functional scores per (condition, aa_substitutions) within each replicate, then create one <code class="docutils literal notranslate"><span class="pre">multidms.Data</span></code> object per replicate.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data_objects</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">rep_num</span><span class="p">,</span> <span class="n">df_rep</span> <span class="ow">in</span> <span class="n">func_score_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;replicate&quot;</span><span class="p">):</span>
+    <span class="n">df_agg</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">df_rep</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;aa_substitutions&quot;</span><span class="p">],</span> <span class="n">dropna</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">agg</span><span class="p">({</span><span class="s2">&quot;func_score&quot;</span><span class="p">:</span> <span class="s2">&quot;mean&quot;</span><span class="p">})</span>
+        <span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">multidms</span><span class="o">.</span><span class="n">Data</span><span class="p">(</span>
+        <span class="n">df_agg</span><span class="p">,</span>
+        <span class="n">alphabet</span><span class="o">=</span><span class="n">multidms</span><span class="o">.</span><span class="n">AAS_WITHSTOP_WITHGAP</span><span class="p">,</span>
+        <span class="n">reference</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span>
+        <span class="n">assert_site_integrity</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;rep_</span><span class="si">{</span><span class="n">rep_num</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">data_objects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rep_</span><span class="si">{</span><span class="n">rep_num</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df_agg</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> variants, conditions=</span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">conditions</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+rep_1: 145,970 variants, conditions=(&#39;Delta&#39;, &#39;Omicron_BA1&#39;, &#39;Omicron_BA2&#39;)
+rep_2: 135,188 variants, conditions=(&#39;Delta&#39;, &#39;Omicron_BA1&#39;, &#39;Omicron_BA2&#39;)
+</pre></div></div>
+</div>
+</section>
+<section id="Fit-models">
+<h2>Fit models<a class="headerlink" href="#Fit-models" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fitting_params</span> <span class="o">=</span> <span class="n">build_fit_params</span><span class="p">(</span><span class="n">fit_config</span><span class="p">,</span> <span class="n">data_objects</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Fitting parameters:&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fitting_params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">&quot;dataset&quot;</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Fitting parameters:
+  maxiter: [75]
+  tol: [1e-06]
+  fusionreg: [0.0, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
+  l2reg: [0.01]
+  beta0_ridge: [0]
+  ge_type: [&#39;Sigmoid&#39;]
+  ge_kwargs: [{&#39;tol&#39;: 1e-05, &#39;maxiter&#39;: 1000, &#39;maxls&#39;: 40, &#39;jit&#39;: True, &#39;verbose&#39;: False}]
+  cal_kwargs: [{&#39;tol&#39;: 0.0001, &#39;maxiter&#39;: 1000, &#39;maxls&#39;: 40, &#39;jit&#39;: True, &#39;verbose&#39;: False}]
+  loss_kwargs: [{&#39;δ&#39;: 1.0}]
+  warmstart: [False]
+  beta0_init: [{&#39;Omicron_BA1&#39;: 0.0, &#39;Delta&#39;: 0.0, &#39;Omicron_BA2&#39;: 0.0}]
+  alpha_init: [{&#39;Omicron_BA1&#39;: 6.0, &#39;Delta&#39;: 6.0, &#39;Omicron_BA2&#39;: 6.0}]
+  beta_clip_range: [(-10, 10)]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n_models</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">explode_params_dict</span><span class="p">(</span><span class="n">fitting_params</span><span class="p">))</span>
+<span class="n">cfg_n_processes</span> <span class="o">=</span> <span class="n">fit_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;n_processes&quot;</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">cfg_n_processes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">n_processes</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">n_models</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">n_processes</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">cfg_n_processes</span><span class="p">),</span> <span class="n">n_models</span><span class="p">)</span>
+<span class="n">n_processes</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">n_processes</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fitting </span><span class="si">{</span><span class="n">n_models</span><span class="si">}</span><span class="s2"> models with n_processes=</span><span class="si">{</span><span class="n">n_processes</span><span class="si">}</span><span class="s2"> (cpus=</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+<span class="n">n_fit</span><span class="p">,</span> <span class="n">n_failed</span><span class="p">,</span> <span class="n">fit_collection_df</span> <span class="o">=</span> <span class="n">fit_models</span><span class="p">(</span>
+    <span class="n">fitting_params</span><span class="p">,</span> <span class="n">n_processes</span><span class="o">=</span><span class="n">n_processes</span>
+<span class="p">)</span>
+
+<span class="c1"># Convert dict-valued columns to strings for groupby compatibility</span>
+<span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">fit_collection_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">fit_collection_df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">dict</span><span class="p">))</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="n">fit_collection_df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">fit_collection_df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fit </span><span class="si">{</span><span class="n">n_fit</span><span class="si">}</span><span class="s2"> models successfully, </span><span class="si">{</span><span class="n">n_failed</span><span class="si">}</span><span class="s2"> failed&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Fitting 14 models with n_processes=14 (cpus=64)
+Fit 14 models successfully, 0 failed
+</pre></div></div>
+</div>
+</section>
+<section id="Save">
+<h2>Save<a class="headerlink" href="#Save" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;fit_collection.pkl&quot;</span><span class="p">)</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">fit_collection_df</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">fit_collection_df</span><span class="p">)</span><span class="si">}</span><span class="s2"> models)&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Saved results/fit_collection.pkl (14 models)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">display_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;dataset_name&quot;</span><span class="p">,</span> <span class="s2">&quot;fusionreg&quot;</span><span class="p">,</span> <span class="s2">&quot;converged&quot;</span><span class="p">,</span> <span class="s2">&quot;fit_time&quot;</span><span class="p">]</span>
+<span class="n">display_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">display_cols</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">fit_collection_df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+<span class="n">fit_collection_df</span><span class="p">[</span><span class="n">display_cols</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>dataset_name</th>
+      <th>fusionreg</th>
+      <th>fit_time</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>rep_1</td>
+      <td>0.0</td>
+      <td>979</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>rep_1</td>
+      <td>0.4</td>
+      <td>616</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>rep_1</td>
+      <td>0.8</td>
+      <td>1566</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>rep_1</td>
+      <td>1.6</td>
+      <td>627</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>rep_1</td>
+      <td>3.2</td>
+      <td>1075</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>rep_1</td>
+      <td>6.4</td>
+      <td>890</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>rep_1</td>
+      <td>12.8</td>
+      <td>1064</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>rep_2</td>
+      <td>0.0</td>
+      <td>1268</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>rep_2</td>
+      <td>0.4</td>
+      <td>652</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>rep_2</td>
+      <td>0.8</td>
+      <td>599</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>rep_2</td>
+      <td>1.6</td>
+      <td>1956</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>rep_2</td>
+      <td>3.2</td>
+      <td>1468</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>rep_2</td>
+      <td>6.4</td>
+      <td>808</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>rep_2</td>
+      <td>12.8</td>
+      <td>2079</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/2020-logo-1000px-transparent.png" alt="Logo" />
+    
+    <h1 class="logo logo-name">multidms</h1>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=matsengrp&repo=multidms&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="index.html">multidms documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulation_validation.html">Simulation Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html">Fit Delta BA.1 Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.html">multidms package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Simulation Analysis</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="sim_simulate_data.html">Simulation Data Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_fit_models.html">Model Fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_evaluate.html">Model Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_cross_validation.html">Cross-Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_manuscript_figures.html">Simulation Manuscript Figures</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Spike Analysis</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="spike_prepare_data.html">Spike Data Preparation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Model Fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_evaluate.html">Model Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_cross_validation.html">Cross-Validation</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="spike_prepare_data.html" title="previous chapter">Spike Data Preparation</a></li>
+      <li>Next: <a href="spike_evaluate.html" title="next chapter">Model Evaluation</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2023, Jared Galloway, Hugh Haddox.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 6.2.1</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="_sources/spike_fit_models.nblink.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

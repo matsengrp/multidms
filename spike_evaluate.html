@@ -1,0 +1,1110 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Model Evaluation &#8212; multidms 1.3.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Cross-Validation" href="spike_cross_validation.html" />
+    <link rel="prev" title="Model Fitting" href="spike_fit_models.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="Model-Evaluation">
+<h1>Model Evaluation<a class="headerlink" href="#Model-Evaluation" title="Permalink to this heading">¶</a></h1>
+<p>Evaluate fitted spike models: convergence diagnostics, sparsity analysis, replicate parameter correlations, global epistasis plots, and mutation parameter export.</p>
+<p><strong>Outline</strong></p>
+<ol class="arabic simple">
+<li><p>Load fitted models and training data</p></li>
+<li><p>Convergence diagnostics</p></li>
+<li><p>Shift sparsity analysis</p></li>
+<li><p>Replicate parameter correlations</p></li>
+<li><p>Global epistasis plots</p></li>
+<li><p>Export mutations DataFrame and intermediate CSVs</p></li>
+</ol>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;notebooks&quot;</span><span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">multidms.plot</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">multidms.model_collection</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelCollection</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">_common</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_config</span><span class="p">,</span> <span class="n">combine_replicate_muts</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
+<span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+<span class="n">spike</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;spike&quot;</span><span class="p">]</span>
+<span class="n">fit_config</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;fitting&quot;</span><span class="p">]</span>
+<span class="n">lasso_choice</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;lasso_choice&quot;</span><span class="p">]</span>
+<span class="n">condition_titles</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;condition_titles&quot;</span><span class="p">]</span>
+<span class="n">condition_colors</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;condition_colors&quot;</span><span class="p">]</span>
+<span class="n">experiment_conditions</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;experiment_conditions&quot;</span><span class="p">]</span>
+
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results&quot;</span>
+</pre></div>
+</div>
+</div>
+<section id="Load-data">
+<h2>Load data<a class="headerlink" href="#Load-data" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;fit_collection.pkl&quot;</span><span class="p">),</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">fit_collection_df</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+<span class="n">func_score_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;training_functional_scores.csv&quot;</span><span class="p">)</span>
+<span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">({</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">})</span>
+
+<span class="n">model_collection</span> <span class="o">=</span> <span class="n">ModelCollection</span><span class="p">(</span><span class="n">fit_collection_df</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">fit_collection_df</span><span class="p">)</span><span class="si">}</span><span class="s2"> fitted models&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">func_score_df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> training variants&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Loaded 14 fitted models
+Loaded 281,158 training variants
+</pre></div></div>
+</div>
+</section>
+<section id="Convergence-diagnostics">
+<h2>Convergence diagnostics<a class="headerlink" href="#Convergence-diagnostics" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Build summary table with fitted alpha and beta0 parameters</span>
+<span class="n">summary_rows</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">model_collection</span><span class="o">.</span><span class="n">fit_models</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+    <span class="n">jm</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_jax_model</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;dataset&quot;</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">,</span>
+        <span class="s2">&quot;fusionreg&quot;</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">fusionreg</span><span class="p">,</span>
+        <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">converged</span><span class="p">,</span>
+        <span class="s2">&quot;fit_time&quot;</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">fit_time</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="c1"># Per-condition loss</span>
+    <span class="k">for</span> <span class="n">cond</span> <span class="ow">in</span> <span class="n">experiment_conditions</span><span class="p">:</span>
+        <span class="n">loss_col</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cond</span><span class="si">}</span><span class="s2">_loss_training&quot;</span>
+        <span class="k">if</span> <span class="n">loss_col</span> <span class="ow">in</span> <span class="n">model_collection</span><span class="o">.</span><span class="n">fit_models</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">r</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;loss_</span><span class="si">{</span><span class="n">condition_titles</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span><span class="w"> </span><span class="n">cond</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">loss_col</span><span class="p">]</span>
+    <span class="c1"># Fitted alpha and beta0 per condition</span>
+    <span class="k">for</span> <span class="n">cond</span> <span class="ow">in</span> <span class="n">experiment_conditions</span><span class="p">:</span>
+        <span class="n">title</span> <span class="o">=</span> <span class="n">condition_titles</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span> <span class="n">cond</span><span class="p">)</span>
+        <span class="n">r</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;alpha_</span><span class="si">{</span><span class="n">title</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">jm</span><span class="o">.</span><span class="n">α</span><span class="p">[</span><span class="n">cond</span><span class="p">])</span>
+        <span class="n">r</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;beta0_</span><span class="si">{</span><span class="n">title</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">jm</span><span class="o">.</span><span class="n">φ</span><span class="p">[</span><span class="n">cond</span><span class="p">]</span><span class="o">.</span><span class="n">β0</span><span class="p">)</span>
+    <span class="n">summary_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+
+<span class="n">summary_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">summary_rows</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">summary_df</span><span class="p">[</span><span class="s1">&#39;converged&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">summary_df</span><span class="p">)</span><span class="si">}</span><span class="s2"> models converged</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">summary_df</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+8/14 models converged
+
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>dataset</th>
+      <th>fusionreg</th>
+      <th>converged</th>
+      <th>fit_time</th>
+      <th>loss_Delta</th>
+      <th>loss_BA.1</th>
+      <th>loss_BA.2</th>
+      <th>alpha_Delta</th>
+      <th>beta0_Delta</th>
+      <th>alpha_BA.1</th>
+      <th>beta0_BA.1</th>
+      <th>alpha_BA.2</th>
+      <th>beta0_BA.2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>rep_1</td>
+      <td>0.0</td>
+      <td>True</td>
+      <td>979</td>
+      <td>3145.643</td>
+      <td>9480.089</td>
+      <td>8271.396</td>
+      <td>5.926</td>
+      <td>0.026</td>
+      <td>6.157</td>
+      <td>0.210</td>
+      <td>5.881</td>
+      <td>0.039</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>rep_1</td>
+      <td>0.4</td>
+      <td>True</td>
+      <td>616</td>
+      <td>3354.925</td>
+      <td>9484.122</td>
+      <td>8565.297</td>
+      <td>6.099</td>
+      <td>-0.044</td>
+      <td>6.352</td>
+      <td>0.135</td>
+      <td>6.051</td>
+      <td>-0.025</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>rep_1</td>
+      <td>0.8</td>
+      <td>False</td>
+      <td>1566</td>
+      <td>3879.316</td>
+      <td>9460.927</td>
+      <td>9037.758</td>
+      <td>5.989</td>
+      <td>-0.003</td>
+      <td>5.792</td>
+      <td>0.342</td>
+      <td>6.469</td>
+      <td>-0.196</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>rep_1</td>
+      <td>1.6</td>
+      <td>True</td>
+      <td>627</td>
+      <td>5201.858</td>
+      <td>9484.436</td>
+      <td>10162.358</td>
+      <td>5.726</td>
+      <td>0.073</td>
+      <td>6.375</td>
+      <td>0.128</td>
+      <td>5.971</td>
+      <td>0.003</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>rep_1</td>
+      <td>3.2</td>
+      <td>True</td>
+      <td>1075</td>
+      <td>6328.016</td>
+      <td>9474.818</td>
+      <td>11640.125</td>
+      <td>2.176</td>
+      <td>2.240</td>
+      <td>6.094</td>
+      <td>0.229</td>
+      <td>5.053</td>
+      <td>0.366</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>rep_1</td>
+      <td>6.4</td>
+      <td>True</td>
+      <td>890</td>
+      <td>6596.412</td>
+      <td>9474.255</td>
+      <td>13239.243</td>
+      <td>2.078</td>
+      <td>2.628</td>
+      <td>6.073</td>
+      <td>0.237</td>
+      <td>4.370</td>
+      <td>0.684</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>rep_1</td>
+      <td>12.8</td>
+      <td>False</td>
+      <td>1064</td>
+      <td>6637.644</td>
+      <td>9454.326</td>
+      <td>14417.683</td>
+      <td>2.004</td>
+      <td>3.428</td>
+      <td>5.710</td>
+      <td>0.371</td>
+      <td>4.064</td>
+      <td>0.508</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>rep_2</td>
+      <td>0.0</td>
+      <td>False</td>
+      <td>1268</td>
+      <td>3597.770</td>
+      <td>7053.823</td>
+      <td>6735.751</td>
+      <td>5.941</td>
+      <td>0.009</td>
+      <td>5.851</td>
+      <td>0.358</td>
+      <td>5.299</td>
+      <td>0.344</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>rep_2</td>
+      <td>0.4</td>
+      <td>True</td>
+      <td>652</td>
+      <td>3878.584</td>
+      <td>7085.026</td>
+      <td>7071.741</td>
+      <td>6.113</td>
+      <td>-0.046</td>
+      <td>6.474</td>
+      <td>0.130</td>
+      <td>5.926</td>
+      <td>0.028</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>rep_2</td>
+      <td>0.8</td>
+      <td>True</td>
+      <td>599</td>
+      <td>4446.659</td>
+      <td>7086.564</td>
+      <td>7485.129</td>
+      <td>6.121</td>
+      <td>-0.042</td>
+      <td>6.515</td>
+      <td>0.115</td>
+      <td>5.964</td>
+      <td>0.012</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>rep_2</td>
+      <td>1.6</td>
+      <td>False</td>
+      <td>1956</td>
+      <td>6054.117</td>
+      <td>7047.997</td>
+      <td>8673.261</td>
+      <td>2.702</td>
+      <td>1.868</td>
+      <td>5.794</td>
+      <td>0.378</td>
+      <td>5.205</td>
+      <td>0.363</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>rep_2</td>
+      <td>3.2</td>
+      <td>False</td>
+      <td>1468</td>
+      <td>7226.702</td>
+      <td>7046.139</td>
+      <td>10349.027</td>
+      <td>2.368</td>
+      <td>2.256</td>
+      <td>5.770</td>
+      <td>0.388</td>
+      <td>4.542</td>
+      <td>0.700</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>rep_2</td>
+      <td>6.4</td>
+      <td>True</td>
+      <td>808</td>
+      <td>7543.630</td>
+      <td>7080.425</td>
+      <td>12076.997</td>
+      <td>2.362</td>
+      <td>2.594</td>
+      <td>6.333</td>
+      <td>0.180</td>
+      <td>4.587</td>
+      <td>0.710</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>rep_2</td>
+      <td>12.8</td>
+      <td>False</td>
+      <td>2079</td>
+      <td>7613.994</td>
+      <td>7045.438</td>
+      <td>13732.961</td>
+      <td>2.259</td>
+      <td>4.269</td>
+      <td>5.778</td>
+      <td>0.384</td>
+      <td>4.228</td>
+      <td>0.576</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">conv_data</span> <span class="o">=</span> <span class="n">model_collection</span><span class="o">.</span><span class="n">convergence_trajectory_df</span><span class="p">(</span>
+    <span class="n">id_vars</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;dataset_name&quot;</span><span class="p">,</span> <span class="s2">&quot;fusionreg&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">conv_data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;step&quot;</span>
+<span class="n">conv_data</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># Normalize loss to per-variant scale</span>
+<span class="n">n_variants_map</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">,</span> <span class="n">row</span><span class="o">.</span><span class="n">fusionreg</span><span class="p">):</span> <span class="nb">len</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">variants_df</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">fit_collection_df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()</span>
+<span class="p">}</span>
+<span class="n">conv_data</span><span class="p">[</span><span class="s2">&quot;n_variants&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">conv_data</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+    <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">n_variants_map</span><span class="p">[(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;dataset_name&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
+<span class="p">)</span>
+<span class="n">conv_data</span><span class="p">[</span><span class="s2">&quot;loss_per_variant&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">conv_data</span><span class="p">[</span><span class="s2">&quot;loss_trajectory&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">conv_data</span><span class="p">[</span><span class="s2">&quot;n_variants&quot;</span><span class="p">]</span>
+
+<span class="n">plot_df</span> <span class="o">=</span> <span class="n">conv_data</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;iteration &gt; 0&quot;</span><span class="p">)</span>
+
+<span class="c1"># Color by fusionreg, linestyle by replicate</span>
+<span class="n">fusionreg_values</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">plot_df</span><span class="p">[</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+<span class="n">cmap</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">viridis</span>
+<span class="n">colors</span> <span class="o">=</span> <span class="p">{</span><span class="n">fr</span><span class="p">:</span> <span class="n">cmap</span><span class="p">(</span><span class="n">i</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fusionreg_values</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fusionreg_values</span><span class="p">)}</span>
+<span class="n">linestyles</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;rep_1&quot;</span><span class="p">:</span> <span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;rep_2&quot;</span><span class="p">:</span> <span class="s2">&quot;--&quot;</span><span class="p">}</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">7</span><span class="p">))</span>
+
+<span class="k">for</span> <span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">fr</span><span class="p">),</span> <span class="n">grp</span> <span class="ow">in</span> <span class="n">plot_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;dataset_name&quot;</span><span class="p">,</span> <span class="s2">&quot;fusionreg&quot;</span><span class="p">]):</span>
+    <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span>
+        <span class="n">grp</span><span class="p">[</span><span class="s2">&quot;iteration&quot;</span><span class="p">],</span> <span class="n">grp</span><span class="p">[</span><span class="s2">&quot;loss_per_variant&quot;</span><span class="p">],</span>
+        <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="n">fr</span><span class="p">],</span> <span class="n">linestyle</span><span class="o">=</span><span class="n">linestyles</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">),</span>
+        <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\u03bb</span><span class="s2">=</span><span class="si">{</span><span class="n">fr</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">ds</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span>
+        <span class="n">grp</span><span class="p">[</span><span class="s2">&quot;iteration&quot;</span><span class="p">],</span> <span class="n">grp</span><span class="p">[</span><span class="s2">&quot;objective_error_trajectory&quot;</span><span class="p">],</span>
+        <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="n">fr</span><span class="p">],</span> <span class="n">linestyle</span><span class="o">=</span><span class="n">linestyles</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">),</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+    <span class="p">)</span>
+
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Loss / n_variants&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Iteration&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Loss per variant (log scale)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">spines</span><span class="p">[[</span><span class="s2">&quot;top&quot;</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Objective error&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Iteration&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Objective error (log scale)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">spines</span><span class="p">[[</span><span class="s2">&quot;top&quot;</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="c1"># Legend outside the plot area</span>
+<span class="n">handles</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_legend_handles_labels</span><span class="p">()</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span>
+    <span class="n">handles</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;center right&quot;</span><span class="p">,</span> <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">1.18</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
+    <span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;solid = rep_1, dashed = rep_2&quot;</span><span class="p">,</span>
+    <span class="n">title_fontsize</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Convergence trajectories (log scale, iteration &gt; 0)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">subplots_adjust</span><span class="p">(</span><span class="n">right</span><span class="o">=</span><span class="mf">0.78</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/spike_evaluate_9_0.png" src="_images/spike_evaluate_9_0.png" />
+</div>
+</div>
+</section>
+<section id="Shift-sparsity">
+<h2>Shift sparsity<a class="headerlink" href="#Shift-sparsity" title="Permalink to this heading">¶</a></h2>
+<p>Fraction of shift parameters that are exactly zero, across the regularization grid. Uses the <code class="docutils literal notranslate"><span class="pre">ModelCollection.shift_sparsity</span></code> method which returns an interactive Altair chart faceted by dataset and shift parameter.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sparsity_chart</span><span class="p">,</span> <span class="n">sparsity_data</span> <span class="o">=</span> <span class="n">model_collection</span><span class="o">.</span><span class="n">shift_sparsity</span><span class="p">(</span><span class="n">return_data</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">sparsity_chart</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+cache miss - this could take a moment
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<style>
+  #altair-viz-a0701e230b104857a31e96d0b96c1628.vega-embed {
+    width: 100%;
+    display: flex;
+  }
+
+  #altair-viz-a0701e230b104857a31e96d0b96c1628.vega-embed details,
+  #altair-viz-a0701e230b104857a31e96d0b96c1628.vega-embed details summary {
+    position: relative;
+  }
+</style>
+<div id="altair-viz-a0701e230b104857a31e96d0b96c1628"></div>
+<script type="text/javascript">
+  var VEGA_DEBUG = (typeof VEGA_DEBUG == "undefined") ? {} : VEGA_DEBUG;
+  (function(spec, embedOpt){
+    let outputDiv = document.currentScript.previousElementSibling;
+    if (outputDiv.id !== "altair-viz-a0701e230b104857a31e96d0b96c1628") {
+      outputDiv = document.getElementById("altair-viz-a0701e230b104857a31e96d0b96c1628");
+    }
+    const paths = {
+      "vega": "https://cdn.jsdelivr.net/npm/vega@5?noext",
+      "vega-lib": "https://cdn.jsdelivr.net/npm/vega-lib?noext",
+      "vega-lite": "https://cdn.jsdelivr.net/npm/vega-lite@5.15.1?noext",
+      "vega-embed": "https://cdn.jsdelivr.net/npm/vega-embed@6?noext",
+    };
+
+    function maybeLoadScript(lib, version) {
+      var key = `${lib.replace("-", "")}_version`;
+      return (VEGA_DEBUG[key] == version) ?
+        Promise.resolve(paths[lib]) :
+        new Promise(function(resolve, reject) {
+          var s = document.createElement('script');
+          document.getElementsByTagName("head")[0].appendChild(s);
+          s.async = true;
+          s.onload = () => {
+            VEGA_DEBUG[key] = version;
+            return resolve(paths[lib]);
+          };
+          s.onerror = () => reject(`Error loading script: ${paths[lib]}`);
+          s.src = paths[lib];
+        });
+    }
+
+    function showError(err) {
+      outputDiv.innerHTML = `<div class="error" style="color:red;">${err}</div>`;
+      throw err;
+    }
+
+    function displayChart(vegaEmbed) {
+      vegaEmbed(outputDiv, spec, embedOpt)
+        .catch(err => showError(`Javascript Error: ${err.message}<br>This usually means there's a typo in your chart specification. See the javascript console for the full traceback.`));
+    }
+
+    if(typeof define === "function" && define.amd) {
+      requirejs.config({paths});
+      require(["vega-embed"], displayChart, err => showError(`Error loading script: ${err.message}`));
+    } else {
+      maybeLoadScript("vega", "5")
+        .then(() => maybeLoadScript("vega-lite", "5.15.1"))
+        .then(() => maybeLoadScript("vega-embed", "6"))
+        .catch(showError)
+        .then(() => displayChart(vegaEmbed));
+    }
+  })({"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "data": {"name": "data-259d55120a245af1db44d60d205d6096"}, "facet": {"column": {"field": "mut_param", "title": "Experimental Shifts", "type": "nominal"}, "row": {"field": "dataset_name", "title": "Dataset", "type": "nominal"}}, "spec": {"layer": [{"mark": {"type": "point"}, "encoding": {"color": {"field": "mut_type", "title": "Mutation type", "type": "nominal"}, "tooltip": [{"field": "fusionreg", "type": "quantitative"}, {"field": "sparsity", "type": "quantitative"}, {"field": "mut_type", "type": "nominal"}], "x": {"axis": {"format": ".1e"}, "field": "fusionreg", "title": "Fusion Regularization", "type": "nominal"}, "y": {"axis": {"format": "%"}, "field": "sparsity", "title": "Sparsity", "type": "quantitative"}}}, {"mark": {"type": "line"}, "encoding": {"color": {"field": "mut_type", "title": "Mutation type", "type": "nominal"}, "tooltip": [{"field": "fusionreg", "type": "quantitative"}, {"field": "sparsity", "type": "quantitative"}, {"field": "mut_type", "type": "nominal"}], "x": {"axis": {"format": ".1e"}, "field": "fusionreg", "title": "Fusion Regularization", "type": "nominal"}, "y": {"axis": {"format": "%"}, "field": "sparsity", "title": "Sparsity", "type": "quantitative"}}}], "height": 200, "width": 200}, "$schema": "https://vega.github.io/schema/vega-lite/v5.15.1.json", "datasets": {"data-259d55120a245af1db44d60d205d6096": [{"dataset_name": "rep_1", "fusionreg": 0.0, "mut_type": "nonsynonymous", "mut_param": "shift_Delta", "sparsity": 0.04233783195472355}, {"dataset_name": "rep_1", "fusionreg": 0.0, "mut_type": "stop", "mut_param": "shift_Delta", "sparsity": 0.09047619047619047}, {"dataset_name": "rep_1", "fusionreg": 0.4, "mut_type": "nonsynonymous", "mut_param": "shift_Delta", "sparsity": 0.347845015237266}, {"dataset_name": "rep_1", "fusionreg": 0.4, "mut_type": "stop", "mut_param": "shift_Delta", "sparsity": 0.7095238095238096}, {"dataset_name": "rep_1", "fusionreg": 0.8, "mut_type": "nonsynonymous", "mut_param": "shift_Delta", "sparsity": 0.489007400957771}, {"dataset_name": "rep_1", "fusionreg": 0.8, "mut_type": "stop", "mut_param": "shift_Delta", "sparsity": 0.7714285714285715}, {"dataset_name": "rep_1", "fusionreg": 1.6, "mut_type": "nonsynonymous", "mut_param": "shift_Delta", "sparsity": 0.7483674357858076}, {"dataset_name": "rep_1", "fusionreg": 1.6, "mut_type": "stop", "mut_param": "shift_Delta", "sparsity": 1.0}, {"dataset_name": "rep_1", "fusionreg": 3.2, "mut_type": "nonsynonymous", "mut_param": "shift_Delta", "sparsity": 0.9799738789725729}, {"dataset_name": "rep_1", "fusionreg": 3.2, "mut_type": "stop", "mut_param": "shift_Delta", "sparsity": 1.0}, {"dataset_name": "rep_1", "fusionreg": 6.4, "mut_type": "nonsynonymous", "mut_param": "shift_Delta", "sparsity": 0.9976055724858511}, {"dataset_name": "rep_1", "fusionreg": 6.4, "mut_type": "stop", "mut_param": "shift_Delta", "sparsity": 1.0}, {"dataset_name": "rep_1", "fusionreg": 12.8, "mut_type": "nonsynonymous", "mut_param": "shift_Delta", "sparsity": 0.9993469743143231}, {"dataset_name": "rep_1", "fusionreg": 12.8, "mut_type": "stop", "mut_param": "shift_Delta", "sparsity": 1.0}, {"dataset_name": "rep_2", "fusionreg": 0.0, "mut_type": "nonsynonymous", "mut_param": "shift_Delta", "sparsity": 0.04266434479756204}, {"dataset_name": "rep_2", "fusionreg": 0.0, "mut_type": "stop", "mut_param": "shift_Delta", "sparsity": 0.06666666666666667}, {"dataset_name": "rep_2", "fusionreg": 0.4, "mut_type": "nonsynonymous", "mut_param": "shift_Delta", "sparsity": 0.36841532433609053}, {"dataset_name": "rep_2", "fusionreg": 0.4, "mut_type": "stop", "mut_param": "shift_Delta", "sparsity": 0.719047619047619}, {"dataset_name": "rep_2", "fusionreg": 0.8, "mut_type": "nonsynonymous", "mut_param": "shift_Delta", "sparsity": 0.5134958641706574}, {"dataset_name": "rep_2", "fusionreg": 0.8, "mut_type": "stop", "mut_param": "shift_Delta", "sparsity": 0.8047619047619048}, {"dataset_name": "rep_2", "fusionreg": 1.6, "mut_type": "nonsynonymous", "mut_param": "shift_Delta", "sparsity": 0.8649325206791467}, {"dataset_name": "rep_2", "fusionreg": 1.6, "mut_type": "stop", "mut_param": "shift_Delta", "sparsity": 1.0}, {"dataset_name": "rep_2", "fusionreg": 3.2, "mut_type": "nonsynonymous", "mut_param": "shift_Delta", "sparsity": 0.9789943404440574}, {"dataset_name": "rep_2", "fusionreg": 3.2, "mut_type": "stop", "mut_param": "shift_Delta", "sparsity": 1.0}, {"dataset_name": "rep_2", "fusionreg": 6.4, "mut_type": "nonsynonymous", "mut_param": "shift_Delta", "sparsity": 0.9972790596430127}, {"dataset_name": "rep_2", "fusionreg": 6.4, "mut_type": "stop", "mut_param": "shift_Delta", "sparsity": 1.0}, {"dataset_name": "rep_2", "fusionreg": 12.8, "mut_type": "nonsynonymous", "mut_param": "shift_Delta", "sparsity": 0.9991292990857641}, {"dataset_name": "rep_2", "fusionreg": 12.8, "mut_type": "stop", "mut_param": "shift_Delta", "sparsity": 1.0}, {"dataset_name": "rep_1", "fusionreg": 0.0, "mut_type": "nonsynonymous", "mut_param": "shift_Omicron_BA2", "sparsity": 0.06432303003918154}, {"dataset_name": "rep_1", "fusionreg": 0.0, "mut_type": "stop", "mut_param": "shift_Omicron_BA2", "sparsity": 0.10476190476190476}, {"dataset_name": "rep_1", "fusionreg": 0.4, "mut_type": "nonsynonymous", "mut_param": "shift_Omicron_BA2", "sparsity": 0.2560949063996517}, {"dataset_name": "rep_1", "fusionreg": 0.4, "mut_type": "stop", "mut_param": "shift_Omicron_BA2", "sparsity": 0.6238095238095238}, {"dataset_name": "rep_1", "fusionreg": 0.8, "mut_type": "nonsynonymous", "mut_param": "shift_Omicron_BA2", "sparsity": 0.3502394427514149}, {"dataset_name": "rep_1", "fusionreg": 0.8, "mut_type": "stop", "mut_param": "shift_Omicron_BA2", "sparsity": 0.7285714285714285}, {"dataset_name": "rep_1", "fusionreg": 1.6, "mut_type": "nonsynonymous", "mut_param": "shift_Omicron_BA2", "sparsity": 0.5260121898127993}, {"dataset_name": "rep_1", "fusionreg": 1.6, "mut_type": "stop", "mut_param": "shift_Omicron_BA2", "sparsity": 1.0}, {"dataset_name": "rep_1", "fusionreg": 3.2, "mut_type": "nonsynonymous", "mut_param": "shift_Omicron_BA2", "sparsity": 0.7361776229865041}, {"dataset_name": "rep_1", "fusionreg": 3.2, "mut_type": "stop", "mut_param": "shift_Omicron_BA2", "sparsity": 1.0}, {"dataset_name": "rep_1", "fusionreg": 6.4, "mut_type": "nonsynonymous", "mut_param": "shift_Omicron_BA2", "sparsity": 0.9031345232912494}, {"dataset_name": "rep_1", "fusionreg": 6.4, "mut_type": "stop", "mut_param": "shift_Omicron_BA2", "sparsity": 1.0}, {"dataset_name": "rep_1", "fusionreg": 12.8, "mut_type": "nonsynonymous", "mut_param": "shift_Omicron_BA2", "sparsity": 0.9746408358728776}, {"dataset_name": "rep_1", "fusionreg": 12.8, "mut_type": "stop", "mut_param": "shift_Omicron_BA2", "sparsity": 1.0}, {"dataset_name": "rep_2", "fusionreg": 0.0, "mut_type": "nonsynonymous", "mut_param": "shift_Omicron_BA2", "sparsity": 0.0631258162821071}, {"dataset_name": "rep_2", "fusionreg": 0.0, "mut_type": "stop", "mut_param": "shift_Omicron_BA2", "sparsity": 0.0761904761904762}, {"dataset_name": "rep_2", "fusionreg": 0.4, "mut_type": "nonsynonymous", "mut_param": "shift_Omicron_BA2", "sparsity": 0.27960383108402265}, {"dataset_name": "rep_2", "fusionreg": 0.4, "mut_type": "stop", "mut_param": "shift_Omicron_BA2", "sparsity": 0.6857142857142857}, {"dataset_name": "rep_2", "fusionreg": 0.8, "mut_type": "nonsynonymous", "mut_param": "shift_Omicron_BA2", "sparsity": 0.3718981279930344}, {"dataset_name": "rep_2", "fusionreg": 0.8, "mut_type": "stop", "mut_param": "shift_Omicron_BA2", "sparsity": 0.7571428571428571}, {"dataset_name": "rep_2", "fusionreg": 1.6, "mut_type": "nonsynonymous", "mut_param": "shift_Omicron_BA2", "sparsity": 0.54309969525468}, {"dataset_name": "rep_2", "fusionreg": 1.6, "mut_type": "stop", "mut_param": "shift_Omicron_BA2", "sparsity": 1.0}, {"dataset_name": "rep_2", "fusionreg": 3.2, "mut_type": "nonsynonymous", "mut_param": "shift_Omicron_BA2", "sparsity": 0.7518502394427514}, {"dataset_name": "rep_2", "fusionreg": 3.2, "mut_type": "stop", "mut_param": "shift_Omicron_BA2", "sparsity": 1.0}, {"dataset_name": "rep_2", "fusionreg": 6.4, "mut_type": "nonsynonymous", "mut_param": "shift_Omicron_BA2", "sparsity": 0.8885502829777971}, {"dataset_name": "rep_2", "fusionreg": 6.4, "mut_type": "stop", "mut_param": "shift_Omicron_BA2", "sparsity": 1.0}, {"dataset_name": "rep_2", "fusionreg": 12.8, "mut_type": "nonsynonymous", "mut_param": "shift_Omicron_BA2", "sparsity": 0.9695254680017414}, {"dataset_name": "rep_2", "fusionreg": 12.8, "mut_type": "stop", "mut_param": "shift_Omicron_BA2", "sparsity": 1.0}]}}, {"mode": "vega-lite"});
+</script></div>
+</div>
+</section>
+<section id="Replicate-parameter-correlations">
+<h2>Replicate parameter correlations<a class="headerlink" href="#Replicate-parameter-correlations" title="Permalink to this heading">¶</a></h2>
+<p>Correlation of mutation parameters (beta, shift) between replicates across the regularization grid. Uses the <code class="docutils literal notranslate"><span class="pre">ModelCollection.mut_param_dataset_correlation</span></code> method which returns an interactive Altair chart.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">corr_chart</span><span class="p">,</span> <span class="n">corr_data</span> <span class="o">=</span> <span class="n">model_collection</span><span class="o">.</span><span class="n">mut_param_dataset_correlation</span><span class="p">(</span>
+    <span class="n">return_data</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<span class="n">corr_chart</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<style>
+  #altair-viz-3607cd4cf33b4a01b68782875fc0aa37.vega-embed {
+    width: 100%;
+    display: flex;
+  }
+
+  #altair-viz-3607cd4cf33b4a01b68782875fc0aa37.vega-embed details,
+  #altair-viz-3607cd4cf33b4a01b68782875fc0aa37.vega-embed details summary {
+    position: relative;
+  }
+</style>
+<div id="altair-viz-3607cd4cf33b4a01b68782875fc0aa37"></div>
+<script type="text/javascript">
+  var VEGA_DEBUG = (typeof VEGA_DEBUG == "undefined") ? {} : VEGA_DEBUG;
+  (function(spec, embedOpt){
+    let outputDiv = document.currentScript.previousElementSibling;
+    if (outputDiv.id !== "altair-viz-3607cd4cf33b4a01b68782875fc0aa37") {
+      outputDiv = document.getElementById("altair-viz-3607cd4cf33b4a01b68782875fc0aa37");
+    }
+    const paths = {
+      "vega": "https://cdn.jsdelivr.net/npm/vega@5?noext",
+      "vega-lib": "https://cdn.jsdelivr.net/npm/vega-lib?noext",
+      "vega-lite": "https://cdn.jsdelivr.net/npm/vega-lite@5.15.1?noext",
+      "vega-embed": "https://cdn.jsdelivr.net/npm/vega-embed@6?noext",
+    };
+
+    function maybeLoadScript(lib, version) {
+      var key = `${lib.replace("-", "")}_version`;
+      return (VEGA_DEBUG[key] == version) ?
+        Promise.resolve(paths[lib]) :
+        new Promise(function(resolve, reject) {
+          var s = document.createElement('script');
+          document.getElementsByTagName("head")[0].appendChild(s);
+          s.async = true;
+          s.onload = () => {
+            VEGA_DEBUG[key] = version;
+            return resolve(paths[lib]);
+          };
+          s.onerror = () => reject(`Error loading script: ${paths[lib]}`);
+          s.src = paths[lib];
+        });
+    }
+
+    function showError(err) {
+      outputDiv.innerHTML = `<div class="error" style="color:red;">${err}</div>`;
+      throw err;
+    }
+
+    function displayChart(vegaEmbed) {
+      vegaEmbed(outputDiv, spec, embedOpt)
+        .catch(err => showError(`Javascript Error: ${err.message}<br>This usually means there's a typo in your chart specification. See the javascript console for the full traceback.`));
+    }
+
+    if(typeof define === "function" && define.amd) {
+      requirejs.config({paths});
+      require(["vega-embed"], displayChart, err => showError(`Error loading script: ${err.message}`));
+    } else {
+      maybeLoadScript("vega", "5")
+        .then(() => maybeLoadScript("vega-lite", "5.15.1"))
+        .then(() => maybeLoadScript("vega-embed", "6"))
+        .catch(showError)
+        .then(() => displayChart(vegaEmbed));
+    }
+  })({"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "data": {"name": "data-363273548be632e9494e45f4e93cd0d4"}, "facet": {"column": {"field": "datasets", "title": "Experiment comparison", "type": "nominal"}}, "spec": {"layer": [{"mark": {"type": "point"}, "encoding": {"color": {"field": "mut_param", "title": "Parameter", "type": "nominal"}, "tooltip": [{"field": "datasets", "type": "nominal"}, {"field": "correlation", "type": "quantitative"}, {"field": "mut_param", "type": "nominal"}], "x": {"axis": {"format": ".1e"}, "field": "fusionreg", "title": "Fusion Regularization", "type": "nominal"}, "y": {"field": "correlation", "title": "Correlation (pearson)", "type": "quantitative"}}}, {"mark": {"type": "line"}, "encoding": {"color": {"field": "mut_param", "title": "Parameter", "type": "nominal"}, "tooltip": [{"field": "datasets", "type": "nominal"}, {"field": "correlation", "type": "quantitative"}, {"field": "mut_param", "type": "nominal"}], "x": {"axis": {"format": ".1e"}, "field": "fusionreg", "title": "Fusion Regularization", "type": "nominal"}, "y": {"field": "correlation", "title": "Correlation (pearson)", "type": "quantitative"}}}], "height": 400, "width": 400}, "$schema": "https://vega.github.io/schema/vega-lite/v5.15.1.json", "datasets": {"data-363273548be632e9494e45f4e93cd0d4": [{"datasets": "rep_1,rep_2", "mut_param": "beta_Delta", "correlation": 0.46082334337355557, "fusionreg": 0.0}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Delta", "correlation": 0.625920992816922, "fusionreg": 0.4}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Delta", "correlation": 0.6560366664320226, "fusionreg": 0.8}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Delta", "correlation": 0.6557595635505591, "fusionreg": 1.6}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Delta", "correlation": 0.6559468598303171, "fusionreg": 3.2}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Delta", "correlation": 0.654689707296776, "fusionreg": 6.4}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Delta", "correlation": 0.6601020646014694, "fusionreg": 12.8}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Omicron_BA1", "correlation": 0.6574600514197538, "fusionreg": 0.0}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Omicron_BA1", "correlation": 0.6528010529178048, "fusionreg": 0.4}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Omicron_BA1", "correlation": 0.6560232122153015, "fusionreg": 0.8}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Omicron_BA1", "correlation": 0.6551461627786086, "fusionreg": 1.6}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Omicron_BA1", "correlation": 0.6568547951917443, "fusionreg": 3.2}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Omicron_BA1", "correlation": 0.6549219256675938, "fusionreg": 6.4}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Omicron_BA1", "correlation": 0.6600706277537415, "fusionreg": 12.8}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Omicron_BA2", "correlation": 0.6438025926522389, "fusionreg": 0.0}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Omicron_BA2", "correlation": 0.7507592452779633, "fusionreg": 0.4}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Omicron_BA2", "correlation": 0.746653714474463, "fusionreg": 0.8}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Omicron_BA2", "correlation": 0.702437583894409, "fusionreg": 1.6}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Omicron_BA2", "correlation": 0.6753711893061626, "fusionreg": 3.2}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Omicron_BA2", "correlation": 0.6519368406518855, "fusionreg": 6.4}, {"datasets": "rep_1,rep_2", "mut_param": "beta_Omicron_BA2", "correlation": 0.6586368738233217, "fusionreg": 12.8}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Delta", "correlation": 0.5067814204252761, "fusionreg": 0.0}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Delta", "correlation": 0.6601342207198007, "fusionreg": 0.4}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Delta", "correlation": 0.6879522523897104, "fusionreg": 0.8}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Delta", "correlation": 0.668020041330787, "fusionreg": 1.6}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Delta", "correlation": 0.6863066060593538, "fusionreg": 3.2}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Delta", "correlation": 0.6863601600563227, "fusionreg": 6.4}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Delta", "correlation": 0.6899081123403085, "fusionreg": 12.8}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Omicron_BA1", "correlation": 0.7077676166201352, "fusionreg": 0.0}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Omicron_BA1", "correlation": 0.7047551360263881, "fusionreg": 0.4}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Omicron_BA1", "correlation": 0.7073454199343522, "fusionreg": 0.8}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Omicron_BA1", "correlation": 0.7064819371974081, "fusionreg": 1.6}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Omicron_BA1", "correlation": 0.7078553830283022, "fusionreg": 3.2}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Omicron_BA1", "correlation": 0.7063365216619665, "fusionreg": 6.4}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Omicron_BA1", "correlation": 0.7097630694555241, "fusionreg": 12.8}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Omicron_BA2", "correlation": 0.6957037650419862, "fusionreg": 0.0}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Omicron_BA2", "correlation": 0.7971491623099591, "fusionreg": 0.4}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Omicron_BA2", "correlation": 0.8055268070623555, "fusionreg": 0.8}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Omicron_BA2", "correlation": 0.7579070271205633, "fusionreg": 1.6}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Omicron_BA2", "correlation": 0.726418686056036, "fusionreg": 3.2}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Omicron_BA2", "correlation": 0.7009116374438147, "fusionreg": 6.4}, {"datasets": "rep_1,rep_2", "mut_param": "predicted_func_score_Omicron_BA2", "correlation": 0.7041480451474643, "fusionreg": 12.8}, {"datasets": "rep_1,rep_2", "mut_param": "shift_Delta", "correlation": 0.46598602211288565, "fusionreg": 0.0}, {"datasets": "rep_1,rep_2", "mut_param": "shift_Delta", "correlation": 0.4343612921428207, "fusionreg": 0.4}, {"datasets": "rep_1,rep_2", "mut_param": "shift_Delta", "correlation": 0.4817697077503077, "fusionreg": 0.8}, {"datasets": "rep_1,rep_2", "mut_param": "shift_Delta", "correlation": 0.38187963673015063, "fusionreg": 1.6}, {"datasets": "rep_1,rep_2", "mut_param": "shift_Delta", "correlation": 0.41162475344854, "fusionreg": 3.2}, {"datasets": "rep_1,rep_2", "mut_param": "shift_Delta", "correlation": 0.21362853390340836, "fusionreg": 6.4}, {"datasets": "rep_1,rep_2", "mut_param": "shift_Delta", "correlation": 0.418651495472715, "fusionreg": 12.8}, {"datasets": "rep_1,rep_2", "mut_param": "shift_Omicron_BA2", "correlation": 0.20939633497565144, "fusionreg": 0.0}, {"datasets": "rep_1,rep_2", "mut_param": "shift_Omicron_BA2", "correlation": 0.3075746341091235, "fusionreg": 0.4}, {"datasets": "rep_1,rep_2", "mut_param": "shift_Omicron_BA2", "correlation": 0.3714298927787099, "fusionreg": 0.8}, {"datasets": "rep_1,rep_2", "mut_param": "shift_Omicron_BA2", "correlation": 0.3920350440576375, "fusionreg": 1.6}, {"datasets": "rep_1,rep_2", "mut_param": "shift_Omicron_BA2", "correlation": 0.4566773284742449, "fusionreg": 3.2}, {"datasets": "rep_1,rep_2", "mut_param": "shift_Omicron_BA2", "correlation": 0.6500795561228034, "fusionreg": 6.4}, {"datasets": "rep_1,rep_2", "mut_param": "shift_Omicron_BA2", "correlation": 0.6857648246981303, "fusionreg": 12.8}]}}, {"mode": "vega-lite"});
+</script></div>
+</div>
+</section>
+<section id="Global-epistasis-plots">
+<h2>Global epistasis plots<a class="headerlink" href="#Global-epistasis-plots" title="Permalink to this heading">¶</a></h2>
+<p>Global epistasis (GE) landscape at the chosen lasso strength, showing the fitted sigmoid mapping from latent to observed phenotype.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">IPython.display</span><span class="w"> </span><span class="kn">import</span> <span class="n">display</span><span class="p">,</span> <span class="n">Image</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+
+<span class="k">for</span> <span class="n">ds_name</span> <span class="ow">in</span> <span class="n">fit_collection_df</span><span class="p">[</span><span class="s2">&quot;dataset_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">():</span>
+    <span class="n">representative</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">model_collection</span><span class="o">.</span><span class="n">fit_models</span>
+        <span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;fusionreg == </span><span class="si">{</span><span class="n">lasso_choice</span><span class="si">}</span><span class="s2"> and dataset_name == &#39;</span><span class="si">{</span><span class="n">ds_name</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">representative</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No model at lasso=</span><span class="si">{</span><span class="n">lasso_choice</span><span class="si">}</span><span class="s2"> for </span><span class="si">{</span><span class="n">ds_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">continue</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">representative</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">model</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ds_name</span><span class="si">}</span><span class="s2"> (fusionreg=</span><span class="si">{</span><span class="n">lasso_choice</span><span class="si">}</span><span class="s2">):&quot;</span><span class="p">)</span>
+    <span class="n">chart</span> <span class="o">=</span> <span class="n">multidms</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">ge_landscape</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;.png&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmp</span><span class="p">:</span>
+        <span class="n">chart</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">tmp</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;png&quot;</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">display</span><span class="p">(</span><span class="n">Image</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">tmp</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+rep_1 (fusionreg=3.2):
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/spike_evaluate_15_1.png" src="_images/spike_evaluate_15_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+rep_2 (fusionreg=3.2):
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/spike_evaluate_15_3.png" src="_images/spike_evaluate_15_3.png" />
+</div>
+</div>
+</section>
+<section id="Export-mutations-DataFrame">
+<h2>Export mutations DataFrame<a class="headerlink" href="#Export-mutations-DataFrame" title="Permalink to this heading">¶</a></h2>
+<p>Merge mutation parameters from both replicates at the chosen lasso strength.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fit_dict</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">model_collection</span><span class="o">.</span><span class="n">fit_models</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+    <span class="sa">f</span><span class="s2">&quot;fusionreg == </span><span class="si">{</span><span class="n">lasso_choice</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="p">)</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+    <span class="n">fit_dict</span><span class="p">[</span><span class="n">row</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">model</span>
+
+<span class="n">mutations_df</span> <span class="o">=</span> <span class="n">combine_replicate_muts</span><span class="p">(</span><span class="n">fit_dict</span><span class="p">)</span>
+
+<span class="n">mutations_df</span><span class="p">[</span><span class="s2">&quot;sense&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+    <span class="n">mutations_df</span><span class="p">[</span><span class="s2">&quot;muts&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+    <span class="s2">&quot;stop&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;nonsynonymous&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mutations_df: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">mutations_df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> mutations&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  nonsynonymous: </span><span class="si">{</span><span class="p">(</span><span class="n">mutations_df</span><span class="p">[</span><span class="s1">&#39;sense&#39;</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s1">&#39;nonsynonymous&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  stop: </span><span class="si">{</span><span class="p">(</span><span class="n">mutations_df</span><span class="p">[</span><span class="s1">&#39;sense&#39;</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s1">&#39;stop&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">mutations_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+mutations_df: 9,398 mutations
+  nonsynonymous: 9,188
+  stop: 210
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>mutation</th>
+      <th>wts</th>
+      <th>sites</th>
+      <th>muts</th>
+      <th>rep_1_beta_Delta</th>
+      <th>rep_2_beta_Delta</th>
+      <th>avg_beta_Delta</th>
+      <th>rep_1_beta_Omicron_BA1</th>
+      <th>rep_2_beta_Omicron_BA1</th>
+      <th>avg_beta_Omicron_BA1</th>
+      <th>rep_1_beta_Omicron_BA2</th>
+      <th>rep_2_beta_Omicron_BA2</th>
+      <th>avg_beta_Omicron_BA2</th>
+      <th>rep_1_shift_Delta</th>
+      <th>rep_2_shift_Delta</th>
+      <th>avg_shift_Delta</th>
+      <th>rep_1_shift_Omicron_BA2</th>
+      <th>rep_2_shift_Omicron_BA2</th>
+      <th>avg_shift_Omicron_BA2</th>
+      <th>sense</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>M1F</td>
+      <td>M</td>
+      <td>1</td>
+      <td>F</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>nonsynonymous</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>M1I</td>
+      <td>M</td>
+      <td>1</td>
+      <td>I</td>
+      <td>-2.578499</td>
+      <td>-2.037218</td>
+      <td>-2.307858</td>
+      <td>-2.578499</td>
+      <td>-2.037218</td>
+      <td>-2.307858</td>
+      <td>-2.578499</td>
+      <td>-2.454212</td>
+      <td>-2.516355</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>-0.416995</td>
+      <td>-0.208497</td>
+      <td>nonsynonymous</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>M1K</td>
+      <td>M</td>
+      <td>1</td>
+      <td>K</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>nonsynonymous</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>M1L</td>
+      <td>M</td>
+      <td>1</td>
+      <td>L</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>nonsynonymous</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>M1T</td>
+      <td>M</td>
+      <td>1</td>
+      <td>T</td>
+      <td>-2.008708</td>
+      <td>-2.170207</td>
+      <td>-2.089458</td>
+      <td>-2.008708</td>
+      <td>-2.170207</td>
+      <td>-2.089458</td>
+      <td>-2.008708</td>
+      <td>-2.170207</td>
+      <td>-2.089458</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>nonsynonymous</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+</section>
+<section id="Save-outputs">
+<h2>Save outputs<a class="headerlink" href="#Save-outputs" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">groupby</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;dataset_name&quot;</span><span class="p">,</span> <span class="s2">&quot;fusionreg&quot;</span><span class="p">)</span>
+<span class="n">collection_muts_df</span> <span class="o">=</span> <span class="n">model_collection</span><span class="o">.</span><span class="n">split_apply_combine_muts</span><span class="p">(</span>
+    <span class="n">groupby</span><span class="o">=</span><span class="n">groupby</span>
+<span class="p">)</span>
+
+<span class="n">mutations_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;mutations_df.csv&quot;</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved mutations_df.csv (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">mutations_df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> rows)&quot;</span><span class="p">)</span>
+
+<span class="n">collection_muts_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;collection_muts.csv&quot;</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved collection_muts.csv (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">collection_muts_df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> rows)&quot;</span><span class="p">)</span>
+
+<span class="n">sparsity_data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;fit_sparsity.csv&quot;</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved fit_sparsity.csv (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">sparsity_data</span><span class="p">)</span><span class="si">}</span><span class="s2"> rows)&quot;</span><span class="p">)</span>
+
+<span class="n">corr_data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;library_replicate_correlation.csv&quot;</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved library_replicate_correlation.csv (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">corr_data</span><span class="p">)</span><span class="si">}</span><span class="s2"> rows)&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Saved mutations_df.csv (9,398 rows)
+Saved collection_muts.csv (131,572 rows)
+Saved fit_sparsity.csv (56 rows)
+Saved library_replicate_correlation.csv (56 rows)
+</pre></div></div>
+</div>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/2020-logo-1000px-transparent.png" alt="Logo" />
+    
+    <h1 class="logo logo-name">multidms</h1>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=matsengrp&repo=multidms&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="index.html">multidms documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulation_validation.html">Simulation Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html">Fit Delta BA.1 Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.html">multidms package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Simulation Analysis</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="sim_simulate_data.html">Simulation Data Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_fit_models.html">Model Fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_evaluate.html">Model Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_cross_validation.html">Cross-Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_manuscript_figures.html">Simulation Manuscript Figures</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Spike Analysis</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="spike_prepare_data.html">Spike Data Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_fit_models.html">Model Fitting</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Model Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_cross_validation.html">Cross-Validation</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="spike_fit_models.html" title="previous chapter">Model Fitting</a></li>
+      <li>Next: <a href="spike_cross_validation.html" title="next chapter">Cross-Validation</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2023, Jared Galloway, Hugh Haddox.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 6.2.1</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="_sources/spike_evaluate.nblink.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

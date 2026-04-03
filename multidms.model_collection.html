@@ -398,7 +398,7 @@ containing the chart and the underlying data will be returned.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.mut_param_dataset_correlation">
-<span class="sig-name descname"><span class="pre">mut_param_dataset_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'fusionreg'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.mut_param_dataset_correlation" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">mut_param_dataset_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'fusionreg'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.mut_param_dataset_correlation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Visualize the correlation between replicate datasets across the lasso penalty
 weights (by default) in the form of an <cite>altair.FacetChart</cite>.
 We compute correlation of mutation parameters accross each pair of datasets
@@ -408,13 +408,13 @@ in the collection.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – The parameter to plot on the x-axis.
 The default is “fusionreg”.</p></li>
-<li><p><strong>width_scalar</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – The width of the chart. The default is 150.</p></li>
-<li><p><strong>height</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – The height of the chart. The default is 200.</p></li>
+<li><p><strong>width_scalar</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – The width of the chart. The default is 400.</p></li>
+<li><p><strong>height</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – The height of the chart. The default is 400.</p></li>
 <li><p><strong>return_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to return the underlying data. The default is False.</p></li>
 <li><p><strong>r</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – The exponential of the correlation coefficient reported.
 May be either 1 for pearson,
 2 for coefficient of determination (r-squared),
-The default is 2.</p></li>
+The default is 1.</p></li>
 <li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – The keyword arguments to pass to the
 <a class="reference internal" href="#multidms.model_collection.ModelCollection.split_apply_combine_muts" title="multidms.model_collection.ModelCollection.split_apply_combine_muts"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.model_collection.ModelCollection.split_apply_combine_muts()</span></code></a>
 method. See the method docstring for details.</p></li>
@@ -486,6 +486,13 @@ containing the chart and the underlying data will be returned.</p>
 <li class="toctree-l1"><a class="reference internal" href="sim_evaluate.html">Model Evaluation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="sim_cross_validation.html">Cross-Validation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="sim_manuscript_figures.html">Simulation Manuscript Figures</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Spike Analysis</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="spike_prepare_data.html">Spike Data Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_fit_models.html">Model Fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_evaluate.html">Model Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_cross_validation.html">Cross-Validation</a></li>
 </ul>
 
 <div class="relations">

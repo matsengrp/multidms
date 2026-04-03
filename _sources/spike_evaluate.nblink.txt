@@ -1,0 +1,3 @@
+{
+    "path": "../experiments/scv2-spike/results/evaluate.ipynb"
+}

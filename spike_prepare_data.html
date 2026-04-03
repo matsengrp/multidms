@@ -1,0 +1,890 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Spike Data Preparation &#8212; multidms 1.3.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Model Fitting" href="spike_fit_models.html" />
+    <link rel="prev" title="Simulation Manuscript Figures" href="sim_manuscript_figures.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="Spike-Data-Preparation">
+<h1>Spike Data Preparation<a class="headerlink" href="#Spike-Data-Preparation" title="Permalink to this heading">¶</a></h1>
+<p>Download raw DMS functional selection data for SARS-CoV-2 spike variants (Delta, BA.1, BA.2), apply improved count-aggregation data preparation, and save training functional scores.</p>
+<p><strong>Outline</strong></p>
+<ol class="arabic simple">
+<li><p>Download raw data from the public repository (cached for subsequent runs)</p></li>
+<li><p>Load and concatenate raw functional selection CSVs</p></li>
+<li><p>Select replicates and map to condition names</p></li>
+<li><p>Remove deletions and invalid variants</p></li>
+<li><p>Aggregate barcode counts per (condition, replicate, aa_substitutions)</p></li>
+<li><p>Apply count-based filtering (pre_count, post_count thresholds)</p></li>
+<li><p>Apply mutation-number filtering (max_subs)</p></li>
+<li><p>Truncate nonsense variants (premature-stop logic)</p></li>
+<li><p>Compute functional scores as log-ratios of aggregated counts</p></li>
+<li><p>Subtract wildtype score, clip, and save</p></li>
+<li><p>Replicate correlation analysis</p></li>
+</ol>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;notebooks&quot;</span><span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">seaborn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sns</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">stats</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">_common</span><span class="w"> </span><span class="kn">import</span> <span class="n">download_data</span><span class="p">,</span> <span class="n">load_config</span><span class="p">,</span> <span class="n">load_raw_data</span><span class="p">,</span> <span class="n">truncate_nonsense</span>
+
+<span class="o">%</span><span class="k">matplotlib</span> inline
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
+<span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+<span class="n">spike</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;spike&quot;</span><span class="p">]</span>
+<span class="n">seed</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;seed&quot;</span><span class="p">]</span>
+
+<span class="n">reference</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;reference&quot;</span><span class="p">]</span>
+<span class="n">experiment_conditions</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;experiment_conditions&quot;</span><span class="p">]</span>
+<span class="n">replicate_1_experiments</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;replicate_1_experiments&quot;</span><span class="p">]</span>
+<span class="n">replicate_2_experiments</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;replicate_2_experiments&quot;</span><span class="p">]</span>
+<span class="n">pre_count_threshold</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;pre_count_threshold&quot;</span><span class="p">]</span>
+<span class="n">post_count_threshold</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;post_count_threshold&quot;</span><span class="p">]</span>
+<span class="n">max_subs</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;max_subs&quot;</span><span class="p">]</span>
+<span class="n">func_score_clip</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;func_score_clip&quot;</span><span class="p">]</span>
+<span class="n">pseudocount</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;pseudocount&quot;</span><span class="p">]</span>
+<span class="n">do_truncate_nonsense</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;do_truncate_nonsense&quot;</span><span class="p">]</span>
+<span class="n">subsample_frac</span> <span class="o">=</span> <span class="n">spike</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;subsample_frac&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">condition_colors</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;condition_colors&quot;</span><span class="p">]</span>
+<span class="n">condition_titles</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;condition_titles&quot;</span><span class="p">]</span>
+
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results&quot;</span>
+<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reference: </span><span class="si">{</span><span class="n">reference</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Conditions: </span><span class="si">{</span><span class="n">experiment_conditions</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Replicate 1: </span><span class="si">{</span><span class="n">replicate_1_experiments</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Replicate 2: </span><span class="si">{</span><span class="n">replicate_2_experiments</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Reference: Omicron_BA1
+Conditions: [&#39;Delta&#39;, &#39;Omicron_BA1&#39;, &#39;Omicron_BA2&#39;]
+Replicate 1: [&#39;Delta-2&#39;, &#39;Omicron_BA1-2&#39;, &#39;Omicron_BA2-1&#39;]
+Replicate 2: [&#39;Delta-4&#39;, &#39;Omicron_BA1-3&#39;, &#39;Omicron_BA2-2&#39;]
+</pre></div></div>
+</div>
+<section id="Download-and-load-raw-data">
+<h2>Download and load raw data<a class="headerlink" href="#Download-and-load-raw-data" title="Permalink to this heading">¶</a></h2>
+<p>Download raw functional selection CSVs from the public GitHub repository. Files are cached locally in <code class="docutils literal notranslate"><span class="pre">results/raw_data/</span></code> for subsequent runs.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Downloading raw data (skips if cached)...&quot;</span><span class="p">)</span>
+<span class="n">raw_df</span> <span class="o">=</span> <span class="n">load_raw_data</span><span class="p">(</span><span class="n">spike</span><span class="p">,</span> <span class="n">cache_dir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;raw_data&quot;</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">raw_df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> total variant rows across all experiments&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Experiments: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">raw_df</span><span class="p">[</span><span class="s1">&#39;condition&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Downloading raw data (skips if cached)...
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Delta/functional_selections.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Delta/Lib-1_2021-10-28_thaw-1_VSVG_control_1_vs_2021-12-14_thaw-1_no-antibody_control_1_func_scores.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Delta/Lib-1_2021-10-28_thaw-1_VSVG_control_2_vs_2021-12-14_thaw-1_no-antibody_control_2_func_scores.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Delta/Lib-3_2021-10-28_thaw-1_VSVG_control_1_vs_2021-12-14_thaw-1_no-antibody_control_1_func_scores.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Delta/Lib-3_2021-10-28_thaw-1_VSVG_control_2_vs_2021-12-14_thaw-1_no-antibody_control_2_func_scores.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Delta/Lib-4_2021-10-28_thaw-1_VSVG_control_1_vs_2021-12-14_thaw-1_no-antibody_control_1_func_scores.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Delta/Lib-4_2021-10-28_thaw-1_VSVG_control_2_vs_2021-12-14_thaw-1_no-antibody_control_2_func_scores.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Delta/Lib-2_2021-10-28_thaw-1_VSVG_control_1_vs_2021-11-28_thaw-1_no-antibody_control_1_func_scores.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Delta/Lib-2_2021-10-28_thaw-1_VSVG_control_2_vs_2021-11-28_thaw-1_no-antibody_control_2_func_scores.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Omicron_BA1/functional_selections.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Omicron_BA1/Lib-1_2022-03-25_thaw-1_VSVG_control_1_vs_2022-04-13_thaw-1_no-antibody_control_1_func_scores.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Omicron_BA1/Lib-1_2022-03-25_thaw-1_VSVG_control_2_vs_2022-04-13_thaw-1_no-antibody_control_2_func_scores.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Omicron_BA1/Lib-2_2022-06-22_thaw-1_VSVG_control_1_vs_2022-06-22_thaw-1_no-antibody_control_1_func_scores.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Omicron_BA1/Lib-3_2022-06-22_thaw-1_VSVG_control_1_vs_2022-06-22_thaw-1_no-antibody_control_1_func_scores.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Omicron_BA2/functional_selections.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Omicron_BA2/Lib-1_2022-10-22_thaw-1_VSVG_control_1_vs_2022-10-22_thaw-1_no-antibody_control_1_func_scores.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Omicron_BA2/Lib-2_2022-10-22_thaw-1_VSVG_control_1_vs_2022-10-22_thaw-1_no-antibody_control_1_func_scores.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Omicron_BA2/Lib-1_2022-10-22_thaw-2_VSVG_control_1_vs_2022-10-22_thaw-2_no-antibody_control_1_func_scores.csv
+  Downloading https://raw.githubusercontent.com/matsengrp/SARS-CoV-2_spike_multidms/main/data/Omicron_BA2/Lib-2_2022-10-22_thaw-2_VSVG_control_1_vs_2022-10-22_thaw-2_no-antibody_control_1_func_scores.csv
+Loaded 1,135,096 total variant rows across all experiments
+Experiments: [&#39;Delta-1&#39;, &#39;Delta-2&#39;, &#39;Delta-3&#39;, &#39;Delta-4&#39;, &#39;Omicron_BA1-1&#39;, &#39;Omicron_BA1-2&#39;, &#39;Omicron_BA1-3&#39;, &#39;Omicron_BA2-1&#39;, &#39;Omicron_BA2-2&#39;]
+</pre></div></div>
+</div>
+</section>
+<section id="Select-replicates">
+<h2>Select replicates<a class="headerlink" href="#Select-replicates" title="Permalink to this heading">¶</a></h2>
+<p>Map experiment names (e.g. Delta-2) to condition + replicate number.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">rep1_df</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">raw_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;condition in @replicate_1_experiments&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">assign</span><span class="p">(</span>
+        <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span> <span class="n">df</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;condition&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+            <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">replicate_1_experiments</span><span class="p">,</span> <span class="n">experiment_conditions</span><span class="p">))</span>
+        <span class="p">),</span>
+        <span class="n">replicate</span><span class="o">=</span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+<span class="n">rep2_df</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">raw_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;condition in @replicate_2_experiments&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">assign</span><span class="p">(</span>
+        <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span> <span class="n">df</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;condition&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+            <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">replicate_2_experiments</span><span class="p">,</span> <span class="n">experiment_conditions</span><span class="p">))</span>
+        <span class="p">),</span>
+        <span class="n">replicate</span><span class="o">=</span><span class="s2">&quot;2&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">rep1_df</span><span class="p">,</span> <span class="n">rep2_df</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Selected </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> variant rows across replicates&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Conditions: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;condition&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Variants per condition/replicate:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;replicate&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">to_string</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Selected 780,734 variant rows across replicates
+Conditions: [&#39;Delta&#39;, &#39;Omicron_BA1&#39;, &#39;Omicron_BA2&#39;]
+Variants per condition/replicate:
+condition    replicate
+Delta        1             83172
+             2             79388
+Omicron_BA1  1            140643
+             2            125127
+Omicron_BA2  1            181984
+             2            170420
+</pre></div></div>
+</div>
+</section>
+<section id="Remove-deletions-and-invalid-variants">
+<h2>Remove deletions and invalid variants<a class="headerlink" href="#Remove-deletions-and-invalid-variants" title="Permalink to this heading">¶</a></h2>
+<p>Drop variants with deletion characters (<code class="docutils literal notranslate"><span class="pre">-</span></code>) in substitutions, and variants with stop-codon wildtype or non-numeric site numbering.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n_before</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+<span class="c1"># Remove deletions</span>
+<span class="n">has_deletion</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="n">has_deletion</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removed </span><span class="si">{</span><span class="n">has_deletion</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> variants with deletions&quot;</span><span class="p">)</span>
+
+<span class="c1"># Remove stop-codon wildtypes (substitutions starting with *)</span>
+<span class="n">has_stop_wt</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;(^|\s)\*&quot;</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="n">has_stop_wt</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removed </span><span class="si">{</span><span class="n">has_stop_wt</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> variants with stop-codon wildtype&quot;</span><span class="p">)</span>
+
+<span class="c1"># Remove non-numeric site numbering (indels)</span>
+<span class="n">has_non_numeric</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s2">&quot;[^0-9][A-Za-z*\-](\s|$)&quot;</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="n">has_non_numeric</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removed </span><span class="si">{</span><span class="n">has_non_numeric</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> variants with non-numeric sites&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Total removed: </span><span class="si">{</span><span class="n">n_before</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> remaining)&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Removed 16,035 variants with deletions
+Removed 497 variants with stop-codon wildtype
+Removed 9,806 variants with non-numeric sites
+
+Total removed: 26,338 (754,396 remaining)
+</pre></div></div>
+</div>
+</section>
+<section id="Aggregate-barcode-counts">
+<h2>Aggregate barcode counts<a class="headerlink" href="#Aggregate-barcode-counts" title="Permalink to this heading">¶</a></h2>
+<p>Sum pre-selection and post-selection counts for identical variants (same condition, replicate, and amino acid substitutions). This is the improved count-aggregation approach from the jaxmodels empirical fits notebook — statistically more principled than averaging pre-computed functional scores.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;n_subs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+    <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">())</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">else</span> <span class="mi">0</span>
+<span class="p">)</span>
+
+<span class="n">n_before_agg</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+<span class="n">df</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;replicate&quot;</span><span class="p">,</span> <span class="s2">&quot;aa_substitutions&quot;</span><span class="p">],</span> <span class="n">dropna</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">agg</span><span class="p">({</span><span class="s2">&quot;n_subs&quot;</span><span class="p">:</span> <span class="s2">&quot;first&quot;</span><span class="p">,</span> <span class="s2">&quot;pre_count&quot;</span><span class="p">:</span> <span class="s2">&quot;sum&quot;</span><span class="p">,</span> <span class="s2">&quot;post_count&quot;</span><span class="p">:</span> <span class="s2">&quot;sum&quot;</span><span class="p">})</span>
+    <span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Aggregated </span><span class="si">{</span><span class="n">n_before_agg</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> barcode rows </span><span class="se">\u2192</span><span class="s2"> </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> unique variants&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Aggregated 754,396 barcode rows → 326,545 unique variants
+</pre></div></div>
+</div>
+<section id="Pre-vs-post-count-distribution">
+<h3>Pre vs post count distribution<a class="headerlink" href="#Pre-vs-post-count-distribution" title="Permalink to this heading">¶</a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mutant_mask</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">experiment_conditions</span><span class="p">),</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">experiment_conditions</span><span class="p">),</span> <span class="mf">3.5</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">cond</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">experiment_conditions</span><span class="p">):</span>
+    <span class="n">cond_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;condition&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">cond</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">mutant_mask</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">cond_mask</span><span class="p">,</span> <span class="s2">&quot;pre_count&quot;</span><span class="p">],</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">cond_mask</span><span class="p">,</span> <span class="s2">&quot;post_count&quot;</span><span class="p">],</span>
+        <span class="n">s</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">rasterized</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">pre_count_threshold</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="n">post_count_threshold</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xscale</span><span class="p">(</span><span class="s2">&quot;symlog&quot;</span><span class="p">,</span> <span class="n">linthresh</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linscale</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;symlog&quot;</span><span class="p">,</span> <span class="n">linthresh</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linscale</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Pre-selection count&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Post-selection count&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">condition_titles</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span> <span class="n">cond</span><span class="p">))</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[[</span><span class="s2">&quot;top&quot;</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/spike_prepare_data_14_0.png" src="_images/spike_prepare_data_14_0.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="Count-based-filtering">
+<h2>Count-based filtering<a class="headerlink" href="#Count-based-filtering" title="Permalink to this heading">¶</a></h2>
+<p>Filter variants by minimum pre-selection and post-selection counts.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n_before</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+    <span class="s2">&quot;pre_count &gt;= @pre_count_threshold and post_count &gt;= @post_count_threshold&quot;</span>
+<span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="sa">f</span><span class="s2">&quot;Count filter (pre &gt;= </span><span class="si">{</span><span class="n">pre_count_threshold</span><span class="si">}</span><span class="s2">, post &gt;= </span><span class="si">{</span><span class="n">post_count_threshold</span><span class="si">}</span><span class="s2">): &quot;</span>
+    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n_before</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> removed, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> remaining&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Count filter (pre &gt;= 100, post &gt;= 1): 38,674 removed, 287,871 remaining
+</pre></div></div>
+</div>
+</section>
+<section id="Mutation-number-filtering">
+<h2>Mutation-number filtering<a class="headerlink" href="#Mutation-number-filtering" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n_before</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;n_subs &lt;= @max_subs&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="sa">f</span><span class="s2">&quot;Mutation-number filter (n_subs &lt;= </span><span class="si">{</span><span class="n">max_subs</span><span class="si">}</span><span class="s2">): &quot;</span>
+    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n_before</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> removed, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> remaining&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Mutation-number filter (n_subs &lt;= 10): 76 removed, 287,795 remaining
+</pre></div></div>
+</div>
+<section id="Substitution-count-distribution">
+<h3>Substitution count distribution<a class="headerlink" href="#Substitution-count-distribution" title="Permalink to this heading">¶</a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">countplot</span><span class="p">(</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">],</span>
+    <span class="n">x</span><span class="o">=</span><span class="s2">&quot;n_subs&quot;</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span>
+    <span class="n">palette</span><span class="o">=</span><span class="n">condition_colors</span><span class="p">,</span>
+    <span class="n">native_scale</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Number of amino acid substitutions&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Variant count&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Substitution count distribution (after filtering)&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[[</span><span class="s2">&quot;top&quot;</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Condition&quot;</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="n">condition_titles</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">experiment_conditions</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/spike_prepare_data_20_0.png" src="_images/spike_prepare_data_20_0.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="Premature-stop-truncation">
+<h2>Premature-stop truncation<a class="headerlink" href="#Premature-stop-truncation" title="Permalink to this heading">¶</a></h2>
+<p>For variants containing stop codons, truncate mutations to include only those up to and including the first stop. Then re-aggregate counts for newly identical variants, and filter to retain only pure stop-codon variants (single mutation = stop) or all-missense variants.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">nonsense_mask</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">countplot</span><span class="p">(</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">nonsense_mask</span><span class="p">],</span> <span class="n">x</span><span class="o">=</span><span class="s2">&quot;n_subs&quot;</span><span class="p">,</span>
+    <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;steelblue&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Nonsense variants: before truncation&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Number of substitutions&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Count&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">spines</span><span class="p">[[</span><span class="s2">&quot;top&quot;</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">do_truncate_nonsense</span><span class="p">:</span>
+    <span class="n">n_before</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">truncate_nonsense</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Re-aggregate identical variants after truncation</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;replicate&quot;</span><span class="p">,</span> <span class="s2">&quot;aa_substitutions&quot;</span><span class="p">],</span> <span class="n">dropna</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">agg</span><span class="p">({</span><span class="s2">&quot;n_subs&quot;</span><span class="p">:</span> <span class="s2">&quot;first&quot;</span><span class="p">,</span> <span class="s2">&quot;pre_count&quot;</span><span class="p">:</span> <span class="s2">&quot;sum&quot;</span><span class="p">,</span> <span class="s2">&quot;post_count&quot;</span><span class="p">:</span> <span class="s2">&quot;sum&quot;</span><span class="p">})</span>
+        <span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Filter: keep only pure stop variants (n_subs == 1) or all-missense</span>
+    <span class="n">mixed_mask</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;n_subs&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="n">mixed_mask</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Nonsense truncation: </span><span class="si">{</span><span class="n">n_before</span><span class="si">}</span><span class="s2"> </span><span class="se">\u2192</span><span class="s2"> </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2"> variants &quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">n_before</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2"> removed/merged)&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">nonsense_mask_after</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">countplot</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">nonsense_mask_after</span><span class="p">],</span> <span class="n">x</span><span class="o">=</span><span class="s2">&quot;n_subs&quot;</span><span class="p">,</span>
+        <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;coral&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;After truncation (pure stops only)&quot;</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Truncation disabled&quot;</span><span class="p">)</span>
+
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Number of substitutions&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Count&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">spines</span><span class="p">[[</span><span class="s2">&quot;top&quot;</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Nonsense truncation: 287795 → 281158 variants (6637 removed/merged)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/spike_prepare_data_22_1.png" src="_images/spike_prepare_data_22_1.png" />
+</div>
+</div>
+</section>
+<section id="Compute-functional-scores">
+<h2>Compute functional scores<a class="headerlink" href="#Compute-functional-scores" title="Permalink to this heading">¶</a></h2>
+<p>Functional scores are log-ratios of aggregated counts:</p>
+<div class="math notranslate nohighlight">
+\[f = \log(\text{post\_count} + \epsilon) - \log(\text{pre\_count} + \epsilon)\]</div>
+<p>where <span class="math notranslate nohighlight">\(\epsilon\)</span> is the pseudocount.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;func_score&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;post_count&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">pseudocount</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;pre_count&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">pseudocount</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Raw func_score range: [</span><span class="si">{</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;func_score&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;func_score&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Raw func_score range: [-7.556, 3.020]
+</pre></div></div>
+</div>
+</section>
+<section id="Wildtype-subtraction">
+<h2>Wildtype subtraction<a class="headerlink" href="#Wildtype-subtraction" title="Permalink to this heading">¶</a></h2>
+<p>Subtract the wildtype functional score within each (condition, replicate) group so that wildtype variants have score 0.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">wt_scores</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;aa_substitutions == &#39;&#39;&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;func_score&quot;</span><span class="p">:</span> <span class="s2">&quot;wt_func_score&quot;</span><span class="p">})</span>
+    <span class="p">[[</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;replicate&quot;</span><span class="p">,</span> <span class="s2">&quot;wt_func_score&quot;</span><span class="p">]]</span>
+<span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">wt_scores</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;replicate&quot;</span><span class="p">])),</span> <span class="p">(</span>
+    <span class="sa">f</span><span class="s2">&quot;Expected one WT per group, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">wt_scores</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="p">)</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">wt_scores</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;replicate&quot;</span><span class="p">])</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">&quot;func_score&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;func_score&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;wt_func_score&quot;</span><span class="p">]</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;wt_func_score&quot;</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WT-subtracted func_score range: &quot;</span>
+      <span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;func_score&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;func_score&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+WT-subtracted func_score range: [-7.625, 2.805]
+</pre></div></div>
+</div>
+</section>
+<section id="Clip-functional-scores">
+<h2>Clip functional scores<a class="headerlink" href="#Clip-functional-scores" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">clip_lo</span><span class="p">,</span> <span class="n">clip_hi</span> <span class="o">=</span> <span class="n">func_score_clip</span>
+<span class="n">n_below</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;func_score&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">clip_lo</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<span class="n">n_above</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;func_score&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">clip_hi</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Clipping to [</span><span class="si">{</span><span class="n">clip_lo</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">clip_hi</span><span class="si">}</span><span class="s2">]: </span><span class="si">{</span><span class="n">n_below</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> below, </span><span class="si">{</span><span class="n">n_above</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> above&quot;</span><span class="p">)</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">&quot;func_score&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;func_score&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">clip_lo</span><span class="p">,</span> <span class="n">clip_hi</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Clipping to [-3.5, 2.5]: 16,400 below, 2 above
+</pre></div></div>
+</div>
+</section>
+<section id="Subsample-(test-profile-only)">
+<h2>Subsample (test profile only)<a class="headerlink" href="#Subsample-(test-profile-only)" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">subsample_frac</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">n_before</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="n">wt_rows</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">]</span>
+    <span class="n">non_wt_rows</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">]</span>
+    <span class="n">subsampled</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+        <span class="n">g</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">frac</span><span class="o">=</span><span class="n">subsample_frac</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">non_wt_rows</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;replicate&quot;</span><span class="p">])</span>
+    <span class="p">])</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">wt_rows</span><span class="p">,</span> <span class="n">subsampled</span><span class="p">])</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Subsampled: </span><span class="si">{</span><span class="n">n_before</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> </span><span class="se">\u2192</span><span class="s2"> </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> variants (frac=</span><span class="si">{</span><span class="n">subsample_frac</span><span class="si">}</span><span class="s2">, WT kept)&quot;</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No subsampling (production profile)&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+No subsampling (production profile)
+</pre></div></div>
+</div>
+</section>
+<section id="Save-training-data">
+<h2>Save training data<a class="headerlink" href="#Save-training-data" title="Permalink to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">output_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">,</span> <span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;replicate&quot;</span><span class="p">,</span> <span class="s2">&quot;func_score&quot;</span><span class="p">,</span> <span class="s2">&quot;n_subs&quot;</span><span class="p">,</span> <span class="s2">&quot;pre_count&quot;</span><span class="p">,</span> <span class="s2">&quot;post_count&quot;</span><span class="p">]</span>
+<span class="n">df_out</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">output_cols</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+<span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;training_functional_scores.csv&quot;</span><span class="p">)</span>
+<span class="n">df_out</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df_out</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> variants&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Conditions: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">df_out</span><span class="p">[</span><span class="s1">&#39;condition&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Replicates: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">df_out</span><span class="p">[</span><span class="s1">&#39;replicate&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Variants per condition/replicate:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">df_out</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;condition&quot;</span><span class="p">,</span> <span class="s2">&quot;replicate&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">to_string</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Saved results/training_functional_scores.csv
+  281,158 variants
+  Conditions: [&#39;Delta&#39;, &#39;Omicron_BA1&#39;, &#39;Omicron_BA2&#39;]
+  Replicates: [&#39;1&#39;, &#39;2&#39;]
+
+Variants per condition/replicate:
+condition    replicate
+Delta        1            27221
+             2            26040
+Omicron_BA1  1            62076
+             2            55414
+Omicron_BA2  1            56673
+             2            53734
+</pre></div></div>
+</div>
+</section>
+<section id="Functional-score-distributions">
+<h2>Functional score distributions<a class="headerlink" href="#Functional-score-distributions" title="Permalink to this heading">¶</a></h2>
+<p>Histograms of functional scores per condition, overlaying both replicates.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mutants</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;aa_substitutions != &#39;&#39;&quot;</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span>
+    <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">experiment_conditions</span><span class="p">),</span>
+    <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">4.5</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">experiment_conditions</span><span class="p">),</span> <span class="mf">3.5</span><span class="p">),</span>
+    <span class="n">sharey</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">cond</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">experiment_conditions</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">rep</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">mutants</span><span class="p">[</span><span class="s2">&quot;replicate&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()):</span>
+        <span class="n">subset</span> <span class="o">=</span> <span class="n">mutants</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;condition == @cond and replicate == @rep&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span>
+            <span class="n">subset</span><span class="p">[</span><span class="s2">&quot;func_score&quot;</span><span class="p">],</span> <span class="n">bins</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Rep </span><span class="si">{</span><span class="n">rep</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Functional score&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ax</span> <span class="o">==</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Density&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">condition_titles</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span> <span class="n">cond</span><span class="p">))</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[[</span><span class="s2">&quot;top&quot;</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/spike_prepare_data_34_0.png" src="_images/spike_prepare_data_34_0.png" />
+</div>
+</div>
+</section>
+<section id="Replicate-correlation-analysis">
+<h2>Replicate correlation analysis<a class="headerlink" href="#Replicate-correlation-analysis" title="Permalink to this heading">¶</a></h2>
+<p>For each condition, merge replicate 1 and replicate 2 functional scores on <code class="docutils literal notranslate"><span class="pre">aa_substitutions</span></code>, then compute the Pearson correlation. High replicate correlations (r &gt; 0.8) validate the data preparation.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">replicates</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;replicate&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+<span class="n">corr_data</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">cond</span> <span class="ow">in</span> <span class="n">experiment_conditions</span><span class="p">:</span>
+    <span class="n">rep1</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;condition == @cond and replicate == @replicates[0] and aa_substitutions != &#39;&#39;&quot;</span><span class="p">)</span>
+        <span class="p">[[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">,</span> <span class="s2">&quot;func_score&quot;</span><span class="p">]]</span>
+        <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;func_score&quot;</span><span class="p">:</span> <span class="s2">&quot;rep1&quot;</span><span class="p">})</span>
+    <span class="p">)</span>
+    <span class="n">rep2</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;condition == @cond and replicate == @replicates[1] and aa_substitutions != &#39;&#39;&quot;</span><span class="p">)</span>
+        <span class="p">[[</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">,</span> <span class="s2">&quot;func_score&quot;</span><span class="p">]]</span>
+        <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;func_score&quot;</span><span class="p">:</span> <span class="s2">&quot;rep2&quot;</span><span class="p">})</span>
+    <span class="p">)</span>
+    <span class="n">merged</span> <span class="o">=</span> <span class="n">rep1</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">rep2</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;aa_substitutions&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">merged</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">r</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">pearsonr</span><span class="p">(</span><span class="n">merged</span><span class="p">[</span><span class="s2">&quot;rep1&quot;</span><span class="p">],</span> <span class="n">merged</span><span class="p">[</span><span class="s2">&quot;rep2&quot;</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">r</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">)</span>
+    <span class="n">corr_data</span><span class="p">[</span><span class="n">cond</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;merged&quot;</span><span class="p">:</span> <span class="n">merged</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">:</span> <span class="n">r</span><span class="p">,</span> <span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="n">p</span><span class="p">,</span> <span class="s2">&quot;n&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">merged</span><span class="p">)}</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">condition_titles</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span><span class="w"> </span><span class="n">cond</span><span class="p">)</span><span class="si">:</span><span class="s2">&gt;6s</span><span class="si">}</span><span class="s2">: r = </span><span class="si">{</span><span class="n">r</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  (n = </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">merged</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> shared variants)&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+ Delta: r = 0.5831  (n = 3,024 shared variants)
+  BA.1: r = 0.8733  (n = 5,574 shared variants)
+  BA.2: r = 0.8408  (n = 4,417 shared variants)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span>
+    <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">experiment_conditions</span><span class="p">),</span>
+    <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">4.5</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">experiment_conditions</span><span class="p">),</span> <span class="mi">4</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">cond</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">experiment_conditions</span><span class="p">):</span>
+    <span class="n">merged</span> <span class="o">=</span> <span class="n">corr_data</span><span class="p">[</span><span class="n">cond</span><span class="p">][</span><span class="s2">&quot;merged&quot;</span><span class="p">]</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">corr_data</span><span class="p">[</span><span class="n">cond</span><span class="p">][</span><span class="s2">&quot;r&quot;</span><span class="p">]</span>
+    <span class="n">color</span> <span class="o">=</span> <span class="n">condition_colors</span><span class="p">[</span><span class="n">cond</span><span class="p">]</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+        <span class="n">merged</span><span class="p">[</span><span class="s2">&quot;rep1&quot;</span><span class="p">],</span> <span class="n">merged</span><span class="p">[</span><span class="s2">&quot;rep2&quot;</span><span class="p">],</span>
+        <span class="n">s</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">rasterized</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># Identity line</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">merged</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">lims</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">min</span><span class="p">(</span><span class="n">merged</span><span class="p">[</span><span class="s2">&quot;rep1&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">merged</span><span class="p">[</span><span class="s2">&quot;rep2&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span>
+            <span class="nb">max</span><span class="p">(</span><span class="n">merged</span><span class="p">[</span><span class="s2">&quot;rep1&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">merged</span><span class="p">[</span><span class="s2">&quot;rep2&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
+        <span class="p">]</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lims</span><span class="p">,</span> <span class="n">lims</span><span class="p">,</span> <span class="s2">&quot;k--&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Replicate 1 functional score&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Replicate 2 functional score&quot;</span><span class="p">)</span>
+    <span class="n">title</span> <span class="o">=</span> <span class="n">condition_titles</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span> <span class="n">cond</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">title</span><span class="si">}</span><span class="s2">  (r = </span><span class="si">{</span><span class="n">r</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, n = </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">merged</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">,</span> <span class="n">adjustable</span><span class="o">=</span><span class="s2">&quot;box&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[[</span><span class="s2">&quot;top&quot;</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/spike_prepare_data_37_0.png" src="_images/spike_prepare_data_37_0.png" />
+</div>
+</div>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/2020-logo-1000px-transparent.png" alt="Logo" />
+    
+    <h1 class="logo logo-name">multidms</h1>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=matsengrp&repo=multidms&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="index.html">multidms documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulation_validation.html">Simulation Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html">Fit Delta BA.1 Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.html">multidms package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Simulation Analysis</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="sim_simulate_data.html">Simulation Data Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_fit_models.html">Model Fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_evaluate.html">Model Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_cross_validation.html">Cross-Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim_manuscript_figures.html">Simulation Manuscript Figures</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Spike Analysis</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Spike Data Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_fit_models.html">Model Fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_evaluate.html">Model Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_cross_validation.html">Cross-Validation</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="sim_manuscript_figures.html" title="previous chapter">Simulation Manuscript Figures</a></li>
+      <li>Next: <a href="spike_fit_models.html" title="next chapter">Model Fitting</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2023, Jared Galloway, Hugh Haddox.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 6.2.1</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="_sources/spike_prepare_data.nblink.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

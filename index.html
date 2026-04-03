@@ -84,6 +84,22 @@ The pipeline is orchestrated by Snakemake and lives in <code class="docutils lit
 </ul>
 </div>
 </section>
+<section id="spike-analysis">
+<h2>Spike Analysis<a class="headerlink" href="#spike-analysis" title="Permalink to this heading">¶</a></h2>
+<p>These notebooks reproduce the SARS-CoV-2 spike analysis from the manuscript.
+Raw DMS data is downloaded from a public repository, processed via count
+aggregation, and <code class="docutils literal notranslate"><span class="pre">multidms</span></code> models are fitted across a regularization grid.
+The pipeline is orchestrated by Snakemake and lives in <code class="docutils literal notranslate"><span class="pre">experiments/scv2-spike/</span></code>.</p>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Spike Analysis</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="spike_prepare_data.html">Spike Data Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_fit_models.html">Model Fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_evaluate.html">Model Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_cross_validation.html">Cross-Validation</a></li>
+</ul>
+</div>
+</section>
 <section id="indices-and-tables">
 <h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
@@ -146,6 +162,13 @@ The pipeline is orchestrated by Snakemake and lives in <code class="docutils lit
 <li class="toctree-l1"><a class="reference internal" href="sim_evaluate.html">Model Evaluation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="sim_cross_validation.html">Cross-Validation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="sim_manuscript_figures.html">Simulation Manuscript Figures</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Spike Analysis</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="spike_prepare_data.html">Spike Data Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_fit_models.html">Model Fitting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_evaluate.html">Model Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_cross_validation.html">Cross-Validation</a></li>
 </ul>
 
 <div class="relations">
