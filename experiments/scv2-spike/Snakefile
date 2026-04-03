@@ -18,9 +18,14 @@ import os
 SPIKE_DIR = os.path.dirname(workflow.snakefile)
 NOTEBOOKS = os.path.join(SPIKE_DIR, "notebooks")
 RESULTS = os.path.join(SPIKE_DIR, "results")
+COMMON = os.path.join(NOTEBOOKS, "_common.py")
 
 # Config: use test profile if --config profile=test is passed
 profile = config.get("profile", None)
+if profile not in (None, "test"):
+    raise ValueError(
+        f"Unknown profile '{profile}'. Use 'test' or leave unset for production."
+    )
 if profile == "test":
     CONFIG_PATH = os.path.join(SPIKE_DIR, "config", "config_test.yaml")
 else:
@@ -43,16 +48,18 @@ rule prepare_data:
     input:
         config=CONFIG_PATH,
         notebook=os.path.join(NOTEBOOKS, "prepare_data.ipynb"),
+        common=COMMON,
     output:
         func_scores=os.path.join(RESULTS, "training_functional_scores.csv"),
         executed_notebook=os.path.join(RESULTS, "prepare_data.ipynb"),
     params:
         config_path=CONFIG_PATH_REL,
+        cwd=SPIKE_DIR,
     shell:
         """
-        papermill {input.notebook} {output.executed_notebook} \
-            -p config_path {params.config_path} \
-            --cwd {SPIKE_DIR}
+        papermill "{input.notebook}" "{output.executed_notebook}" \
+            -p config_path "{params.config_path}" \
+            --cwd "{params.cwd}"
         """
 
 
@@ -61,16 +68,18 @@ rule fit_models:
         config=CONFIG_PATH,
         func_scores=os.path.join(RESULTS, "training_functional_scores.csv"),
         notebook=os.path.join(NOTEBOOKS, "fit_models.ipynb"),
+        common=COMMON,
     output:
         fit_collection=os.path.join(RESULTS, "fit_collection.pkl"),
         executed_notebook=os.path.join(RESULTS, "fit_models.ipynb"),
     params:
         config_path=CONFIG_PATH_REL,
+        cwd=SPIKE_DIR,
     shell:
         """
-        papermill {input.notebook} {output.executed_notebook} \
-            -p config_path {params.config_path} \
-            --cwd {SPIKE_DIR}
+        papermill "{input.notebook}" "{output.executed_notebook}" \
+            -p config_path "{params.config_path}" \
+            --cwd "{params.cwd}"
         """
 
 
@@ -79,16 +88,18 @@ rule cross_validation:
         config=CONFIG_PATH,
         func_scores=os.path.join(RESULTS, "training_functional_scores.csv"),
         notebook=os.path.join(NOTEBOOKS, "cross_validation.ipynb"),
+        common=COMMON,
     output:
         cv_loss=os.path.join(RESULTS, "cross_validation_loss.csv"),
         executed_notebook=os.path.join(RESULTS, "cross_validation.ipynb"),
     params:
         config_path=CONFIG_PATH_REL,
+        cwd=SPIKE_DIR,
     shell:
         """
-        papermill {input.notebook} {output.executed_notebook} \
-            -p config_path {params.config_path} \
-            --cwd {SPIKE_DIR}
+        papermill "{input.notebook}" "{output.executed_notebook}" \
+            -p config_path "{params.config_path}" \
+            --cwd "{params.cwd}"
         """
 
 
@@ -98,6 +109,7 @@ rule evaluate:
         fit_collection=os.path.join(RESULTS, "fit_collection.pkl"),
         func_scores=os.path.join(RESULTS, "training_functional_scores.csv"),
         notebook=os.path.join(NOTEBOOKS, "evaluate.ipynb"),
+        common=COMMON,
     output:
         mutations_df=os.path.join(RESULTS, "mutations_df.csv"),
         collection_muts=os.path.join(RESULTS, "collection_muts.csv"),
@@ -108,9 +120,10 @@ rule evaluate:
         executed_notebook=os.path.join(RESULTS, "evaluate.ipynb"),
     params:
         config_path=CONFIG_PATH_REL,
+        cwd=SPIKE_DIR,
     shell:
         """
-        papermill {input.notebook} {output.executed_notebook} \
-            -p config_path {params.config_path} \
-            --cwd {SPIKE_DIR}
+        papermill "{input.notebook}" "{output.executed_notebook}" \
+            -p config_path "{params.config_path}" \
+            --cwd "{params.cwd}"
         """

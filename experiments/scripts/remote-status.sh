@@ -25,7 +25,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 eval "$(python3 "$SCRIPT_DIR/remote_config.py" "${OVERRIDES[@]+${OVERRIDES[@]}}")"
 
 echo "==> Remote git status ($host:$remote_dir):"
-ssh "$host" "cd $remote_dir && git log --oneline -3 && echo && git status -s"
+ssh "$host" "cd \"$remote_dir\" && git log --oneline -3 && echo && git status -s"
 
 echo ""
 
@@ -40,5 +40,5 @@ if [ -n "$PIPELINE" ]; then
     esac
     echo ""
     echo "==> Results directory for $PIPELINE:"
-    ssh "$host" "ls -la $remote_dir/experiments/$PIPELINE_DIR/results/ 2>/dev/null || echo '    (not yet created)'"
+    ssh "$host" "ls -la \"$remote_dir/experiments/$PIPELINE_DIR/results/\" 2>/dev/null || echo '    (not yet created)'"
 fi

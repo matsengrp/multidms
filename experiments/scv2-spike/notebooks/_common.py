@@ -4,6 +4,7 @@ import os
 from functools import reduce
 
 import pandas as pd
+import requests
 import yaml
 
 
@@ -43,14 +44,12 @@ def download_data(config, cache_dir="results/raw_data"):
     Returns
     -------
     dict
-        Maps each condition name to a list of local file paths for its
-        func_scores CSVs.
+        Maps each condition name to a dict with ``"manifest"`` (DataFrame)
+        and ``"paths"`` (list of local file paths).
     """
-    import requests
-
     data_url = config["data_url"]
     conditions = config["experiment_conditions"]
-    condition_files = {}
+    condition_data = {}
 
     for condition in conditions:
         condition_dir = os.path.join(cache_dir, condition)
@@ -85,9 +84,9 @@ def download_data(config, cache_dir="results/raw_data"):
                     f.write(resp.text)
             local_paths.append(local_path)
 
-        condition_files[condition] = local_paths
+        condition_data[condition] = {"manifest": manifest, "paths": local_paths}
 
-    return condition_files
+    return condition_data
 
 
 def load_raw_data(config, cache_dir="results/raw_data"):
@@ -107,20 +106,16 @@ def load_raw_data(config, cache_dir="results/raw_data"):
         ``post_count``, ``aa_substitutions``, ``condition`` (experiment
         name like ``"Delta-2"``), and ``homolog``.
     """
-    condition_files = download_data(config, cache_dir)
+    condition_data = download_data(config, cache_dir)
     conditions = config["experiment_conditions"]
 
     all_dfs = []
     for condition in conditions:
-        condition_dir = os.path.join(cache_dir, condition)
-        manifest = pd.read_csv(os.path.join(condition_dir, "functional_selections.csv"))
+        manifest = condition_data[condition]["manifest"]
 
-        for _, row in manifest.iterrows():
-            fname = (
-                f"{row['library']}_{row['preselection_sample']}"
-                f"_vs_{row['postselection_sample']}_func_scores.csv"
-            )
-            local_path = os.path.join(condition_dir, fname)
+        for local_path, (_, row) in zip(
+            condition_data[condition]["paths"], manifest.iterrows()
+        ):
             df = pd.read_csv(local_path)
 
             # Construct the experiment condition name: "{homolog}-{library_num}"
@@ -158,15 +153,16 @@ def truncate_nonsense(row):
     Returns
     -------
     pandas.Series
-        Modified row with truncated substitutions and updated count.
+        Copy of row with truncated substitutions and updated count.
     """
     if row.aa_substitutions:
         muts = row.aa_substitutions.split(" ")
-        new_muts = []
-        for mut in muts:
-            new_muts.append(mut)
-            if "*" in mut:
-                break
+        stop_idx = next((i for i, m in enumerate(muts) if "*" in m), None)
+        if stop_idx is not None:
+            new_muts = muts[: stop_idx + 1]
+        else:
+            new_muts = muts
+        row = row.copy()
         row.aa_substitutions = " ".join(new_muts)
         row.n_subs = len(new_muts)
     return row
@@ -228,14 +224,15 @@ def combine_replicate_muts(
     pandas.DataFrame
         Merged DataFrame with per-replicate and ``avg_`` columns.
     """
+    # Collect mutation DataFrames and track all parameter columns in one pass
     mutations_dfs = []
+    all_cols = set()
     for replicate, fit in fit_dict.items():
         fit_mut_df = fit.get_mutations_df(**kwargs).reset_index()
-        if "mutation" not in fit_mut_df.columns and fit_mut_df.index.name == "mutation":
-            fit_mut_df = fit_mut_df.reset_index()
         fit_mut_df = fit_mut_df.drop(
             [c for c in fit_mut_df.columns if "times_seen" in c], axis=1
         )
+        all_cols.update(fit_mut_df.columns)
         new_column_name_map = {
             c: f"{replicate}_{c}" for c in fit_mut_df.columns if c != "mutation"
         }
@@ -246,11 +243,6 @@ def combine_replicate_muts(
         lambda left, right: pd.merge(left, right, on="mutation", how=how),
         mutations_dfs,
     )
-
-    all_cols = set()
-    for fit in fit_dict.values():
-        ref_df = fit.get_mutations_df(**kwargs)
-        all_cols.update(c for c in ref_df.columns if "times_seen" not in c)
 
     meta_cols = ["mutation", "wts", "sites", "muts"]
     param_cols = sorted(c for c in all_cols if c not in meta_cols and c != "mutation")
@@ -266,7 +258,7 @@ def combine_replicate_muts(
         for mc_col in meta_cols
         if f"{rep}_{mc_col}" in mut_df.columns
     ]
-    mut_df.drop(drop_meta, axis=1, inplace=True)
+    mut_df = mut_df.drop(drop_meta, axis=1)
 
     column_order = []
     for c in param_cols:
