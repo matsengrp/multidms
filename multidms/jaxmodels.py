@@ -411,9 +411,19 @@ def fit(
                 If False, suppresses all print output.
 
     Returns:
-        Tuple of (fitted model, convergence trajectory DataFrame) with columns:
-        ``iteration``, ``objective_total_trajectory``,
-        ``objective_error_trajectory``, ``loss_trajectory``.
+        Tuple of (fitted model, convergence trajectory DataFrame).
+
+        The DataFrame has one row per outer iteration with columns:
+
+        - ``iteration``, ``objective_total_trajectory``,
+          ``objective_error_trajectory``, ``loss_trajectory``,
+          ``loss_per_variant_trajectory``
+        - Block-level diagnostics for each optimization block
+          (``calibration_error``, ``calibration_stepsize``,
+          ``calibration_iter_num``, ``beta0_error``, etc.)
+        - Per-condition parameters: ``alpha_{condition}``,
+          ``theta_{condition}``, ``beta0_{condition}``,
+          ``sparsity_{condition}`` (non-reference only)
     """
     if data_sets[reference_condition].x_wt.sum() != 0:
         raise ValueError(
@@ -572,6 +582,7 @@ def fit(
     )
 
     # track convergence trajectory
+    n_variants_total = sum(data_sets[d].functional_scores.shape[0] for d in data_sets)
     trajectory_rows = []
 
     try:
@@ -716,14 +727,40 @@ def fit(
                 print(f"  {objective_error=:.2e}")
 
             # store trajectory data
+            per_condition = {}
+            for d in model.φ:
+                per_condition[f"alpha_{d}"] = float(model.α[d])
+                per_condition[f"theta_{d}"] = float(jnp.exp(model.logθ[d]))
+                per_condition[f"beta0_{d}"] = float(model.φ[d].β0)
+                if d != model.reference_condition:
+                    per_condition[f"sparsity_{d}"] = float(
+                        (
+                            model.φ[d].β - model.φ[model.reference_condition].β == 0
+                        ).mean()
+                    )
+
+            loss_total = float(sum(loss_fn(model, data_sets, **loss_kwargs).values()))
+
             trajectory_rows.append(
                 {
                     "iteration": k,
                     "objective_total_trajectory": float(obj * scale),
                     "objective_error_trajectory": float(objective_error),
-                    "loss_trajectory": float(
-                        sum(loss_fn(model, data_sets, **loss_kwargs).values())
-                    ),
+                    "loss_trajectory": loss_total,
+                    "loss_per_variant_trajectory": loss_total / n_variants_total,
+                    "calibration_error": float(state_calibration.error),
+                    "calibration_stepsize": float(state_calibration.stepsize),
+                    "calibration_iter_num": int(state_calibration.iter_num),
+                    "beta0_error": float(state_β0.error),
+                    "beta0_stepsize": float(state_β0.stepsize),
+                    "beta0_iter_num": int(state_β0.iter_num),
+                    "beta_nonbundle_error": float(state_nonbundle.error),
+                    "beta_nonbundle_stepsize": float(state_nonbundle.stepsize),
+                    "beta_nonbundle_iter_num": int(state_nonbundle.iter_num),
+                    "beta_bundle_error": float(state_bundle.error),
+                    "beta_bundle_stepsize": float(state_bundle.stepsize),
+                    "beta_bundle_iter_num": int(state_bundle.iter_num),
+                    **per_condition,
                 }
             )
 
@@ -739,14 +776,35 @@ def fit(
     except KeyboardInterrupt:
         pass
 
+    conditions = list(data_sets.keys())
+    base_columns = [
+        "iteration",
+        "objective_total_trajectory",
+        "objective_error_trajectory",
+        "loss_trajectory",
+        "loss_per_variant_trajectory",
+        "calibration_error",
+        "calibration_stepsize",
+        "calibration_iter_num",
+        "beta0_error",
+        "beta0_stepsize",
+        "beta0_iter_num",
+        "beta_nonbundle_error",
+        "beta_nonbundle_stepsize",
+        "beta_nonbundle_iter_num",
+        "beta_bundle_error",
+        "beta_bundle_stepsize",
+        "beta_bundle_iter_num",
+    ]
+    condition_columns = []
+    for d in conditions:
+        condition_columns.extend([f"alpha_{d}", f"theta_{d}", f"beta0_{d}"])
+        if d != reference_condition:
+            condition_columns.append(f"sparsity_{d}")
+
     if len(trajectory_rows) == 0:
         convergence_trajectory_df = pd.DataFrame(
-            columns=[
-                "iteration",
-                "objective_total_trajectory",
-                "objective_error_trajectory",
-                "loss_trajectory",
-            ]
+            columns=base_columns + condition_columns
         )
     else:
         convergence_trajectory_df = pd.DataFrame(trajectory_rows)

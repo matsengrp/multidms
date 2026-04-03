@@ -127,14 +127,18 @@ class Model:
     @property
     def convergence_trajectory_df(self) -> pd.DataFrame:
         """
-        Convergence trajectory showing objective and loss over iterations.
+        Convergence trajectory with diagnostics over iterations.
 
         Returns
         -------
         pd.DataFrame
-            DataFrame with columns ``iteration``,
-            ``objective_total_trajectory``, ``objective_error_trajectory``,
-            ``loss_trajectory``.
+            One row per iteration with columns for overall objective
+            (``iteration``, ``objective_total_trajectory``,
+            ``objective_error_trajectory``, ``loss_trajectory``,
+            ``loss_per_variant_trajectory``), block-level diagnostics
+            (e.g. ``calibration_error``, ``beta0_stepsize``), and
+            per-condition parameters (``alpha_{cond}``, ``theta_{cond}``,
+            ``beta0_{cond}``, ``sparsity_{cond}``).
         """
         return self._convergence_trajectory_df
 

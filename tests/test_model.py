@@ -191,18 +191,78 @@ def test_model_fit_without_warmstart(simple_data):
 
 
 def test_model_fit_convergence_trajectory(simple_data):
-    """Test that convergence trajectory is recorded."""
+    """Test that convergence trajectory is recorded with all columns."""
     model = multidms.Model(simple_data)
     model.fit(maxiter=5, warmstart=False)
 
     traj_df = model.convergence_trajectory_df
     assert traj_df is not None
     assert isinstance(traj_df, pd.DataFrame)
-    assert "iteration" in traj_df.columns
-    assert "objective_total_trajectory" in traj_df.columns
-    assert "objective_error_trajectory" in traj_df.columns
-    assert "loss_trajectory" in traj_df.columns
     assert len(traj_df) > 0
+
+    # Original columns still present
+    for col in [
+        "iteration",
+        "objective_total_trajectory",
+        "objective_error_trajectory",
+        "loss_trajectory",
+    ]:
+        assert col in traj_df.columns
+
+    # New per-variant normalized loss
+    assert "loss_per_variant_trajectory" in traj_df.columns
+
+    # Block-level diagnostics for all 4 blocks
+    for block in ["calibration", "beta0", "beta_nonbundle", "beta_bundle"]:
+        for suffix in ["error", "stepsize", "iter_num"]:
+            assert f"{block}_{suffix}" in traj_df.columns
+
+    # Per-condition columns
+    conditions = simple_data.conditions
+    for cond in conditions:
+        assert f"alpha_{cond}" in traj_df.columns
+        assert f"theta_{cond}" in traj_df.columns
+        assert f"beta0_{cond}" in traj_df.columns
+    # Sparsity only for non-reference conditions
+    ref = simple_data.reference
+    for cond in conditions:
+        if cond != ref:
+            assert f"sparsity_{cond}" in traj_df.columns
+    assert f"sparsity_{ref}" not in traj_df.columns
+
+
+def test_convergence_trajectory_block_values(fitted_simple_model):
+    """Test that block-level diagnostic values are reasonable."""
+    traj_df = fitted_simple_model.convergence_trajectory_df
+    for block in ["calibration", "beta0", "beta_nonbundle", "beta_bundle"]:
+        assert (traj_df[f"{block}_error"] >= 0).all()
+        assert (traj_df[f"{block}_stepsize"] > 0).all()
+        assert (traj_df[f"{block}_iter_num"] >= 0).all()
+
+
+def test_convergence_trajectory_per_variant_loss(fitted_simple_model):
+    """Test that loss_per_variant_trajectory is correctly normalized."""
+    traj_df = fitted_simple_model.convergence_trajectory_df
+    # The ratio loss / loss_per_variant should be constant (= n_variants_total)
+    ratios = traj_df["loss_trajectory"] / traj_df["loss_per_variant_trajectory"]
+    np.testing.assert_allclose(ratios, ratios.iloc[0])
+    # n_variants_total must be a positive integer
+    n_variants = ratios.iloc[0]
+    assert n_variants > 0
+    assert n_variants == int(n_variants)
+
+
+def test_convergence_trajectory_single_condition(fitted_single_condition_model):
+    """Test trajectory columns for single-condition model (no sparsity)."""
+    traj_df = fitted_single_condition_model.convergence_trajectory_df
+    assert len(traj_df) > 0
+    # Should have alpha/theta/beta0 for the single condition
+    assert "alpha_a" in traj_df.columns
+    assert "theta_a" in traj_df.columns
+    assert "beta0_a" in traj_df.columns
+    # No sparsity columns (reference is the only condition)
+    sparsity_cols = [c for c in traj_df.columns if c.startswith("sparsity_")]
+    assert len(sparsity_cols) == 0
 
 
 # ==================== get_mutations_df Tests ====================
