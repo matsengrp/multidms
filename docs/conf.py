@@ -33,6 +33,7 @@ extensions = [
     "sphinxcontrib.bibtex",
     "sphinx.ext.napoleon",
     "nbsphinx",
+    "nbsphinx_link",
 ]
 
 bibtex_bibfiles = ["docs.bib"]

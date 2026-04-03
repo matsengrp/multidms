@@ -299,9 +299,11 @@ class Model:
         -------
         pd.DataFrame
             DataFrame with mutations as rows (index) and columns:
+
             - beta_{condition} for each condition
             - shift_{condition} for each non-reference condition
             - predicted_func_score_{condition} for each condition
+
             Shift parameters represent the difference in beta values between each
             condition and the reference condition. Predicted functional scores
             are the model's predictions for each single mutation on its
@@ -309,10 +311,10 @@ class Model:
 
         Example
         -------
-        For a model with conditions ['a', 'b'] where 'a' is reference:
-        - Columns: beta_a, beta_b, shift_b,
-          predicted_func_score_a, predicted_func_score_b
-        - One row per mutation
+        For a model with conditions ['a', 'b'] where 'a' is reference,
+        the returned columns are: ``beta_a``, ``beta_b``, ``shift_b``,
+        ``predicted_func_score_a``, ``predicted_func_score_b``.
+        One row per mutation.
         """
         if self._jax_model is None:
             raise ValueError("Model has not been fitted. Call fit() first.")

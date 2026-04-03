@@ -1,0 +1,45 @@
+# Production configuration for the simulation validation pipeline.
+# All parameters match the manuscript defaults from the legacy config.
+
+seed: 2
+train_frac: 0.8
+
+simulation:
+  genelength: 50
+  wt_latent: 5.0
+  stop_effect: -10
+  norm_weights: [[0.4, -0.33, 0.8], [0.6, -2.666, 2]]
+  n_non_identical_sites: 10
+  min_muteffect_in_bundle: -1.0
+  max_muteffect_in_bundle: 1.0
+  n_shifted_non_identical_sites: 6
+  n_shifted_identical_sites: 4
+  shift_gauss_variance: 0.666
+  sigmoid_phenotype_scale: 6
+  variants_per_lib_genelength_scalar: 1000
+  avgmuts: 2.0
+  bclen: 16
+  variant_error_rate: 0.0
+  avgdepth_per_variant: 200
+  lib_uniformity: 5
+  noise: 0.0
+  bottleneck_variants_per_lib_scalar:
+    tight_bottle: 5
+    loose_bottle: 100
+  output_dir: results
+  fitting:
+    maxiter: 100
+    tol: 1.0e-6
+    fusionreg_values: [0.0, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
+    l2reg: 1.0e-4
+    beta0_ridge: 1.0e-5
+    ge_type: "Sigmoid"
+    warmstart: false
+    beta0_init: {h1: 5.0, h2: 0.0}
+    alpha_init: {h1: 6.0, h2: 6.0}
+    beta_clip_range: [-10, 10]
+    loss_kwargs: {"δ": 1.0}
+    ge_kwargs: {tol: 1.0e-5, maxiter: 1000, maxls: 40, jit: true, verbose: false}
+    cal_kwargs: {tol: 1.0e-4, maxiter: 1000, maxls: 40, jit: true, verbose: false}
+    n_processes: null  # null = auto: min(cpu_count // 2, n_models)
+  lasso_choice: 3.2

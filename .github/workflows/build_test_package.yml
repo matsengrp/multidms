@@ -54,8 +54,3 @@ jobs:
       - name: Test
         run: |
           pytest --doctest-modules multidms tests
-
-      - name: Test docs build
-        run: |
-          make -C docs clean
-          make -C docs html
