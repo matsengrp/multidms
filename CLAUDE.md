@@ -93,6 +93,8 @@ GitHub Actions runs on push to main and PRs: ruff lint â†’ black format check â†
 ## Active Technologies
 - Python 3.9+ (matches existing CI matrix) + multidms (this package), snakemake, papermill, jupyter, matplotlib, seaborn, pandas, numpy, pyyaml (002-simulation-pipeline)
 - CSV intermediate files + pickle for fitted model collections; all in `experiments/simulation/results/` (002-simulation-pipeline)
+- Python 3.9+ (matches existing CI matrix) + multidms (this package), snakemake, papermill, jupyter, matplotlib, seaborn, pandas, numpy, pyyaml, requests (for data download) (003-spike-pipeline)
+- CSV intermediate files + pickle for fitted model collections; all in `experiments/scv2-spike/results/` (003-spike-pipeline)
 
 ## Recent Changes
 - 002-simulation-pipeline: Added Python 3.9+ (matches existing CI matrix) + multidms (this package), snakemake, papermill, jupyter, matplotlib, seaborn, pandas, numpy, pyyaml

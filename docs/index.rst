@@ -66,6 +66,23 @@ The pipeline is orchestrated by Snakemake and lives in ``experiments/simulation/
     sim_cross_validation
     sim_manuscript_figures
 
+Spike Analysis
+--------------
+
+These notebooks reproduce the SARS-CoV-2 spike analysis from the manuscript.
+Raw DMS data is downloaded from a public repository, processed via count
+aggregation, and ``multidms`` models are fitted across a regularization grid.
+The pipeline is orchestrated by Snakemake and lives in ``experiments/scv2-spike/``.
+
+.. toctree::
+    :maxdepth: 1
+    :caption: Spike Analysis
+
+    spike_prepare_data
+    spike_fit_models
+    spike_evaluate
+    spike_cross_validation
+
 Indices and tables
 ------------------
 

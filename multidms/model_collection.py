@@ -1135,10 +1135,10 @@ class ModelCollection:
     def mut_param_dataset_correlation(
         self,
         x="fusionreg",
-        width_scalar=200,
-        height=200,
+        width_scalar=400,
+        height=400,
         return_data=False,
-        r=2,
+        r=1,
         **kwargs,
     ):
         """
@@ -1153,16 +1153,16 @@ class ModelCollection:
             The parameter to plot on the x-axis.
             The default is "fusionreg".
         width_scalar : int, optional
-            The width of the chart. The default is 150.
+            The width of the chart. The default is 400.
         height : int, optional
-            The height of the chart. The default is 200.
+            The height of the chart. The default is 400.
         return_data : bool, optional
             Whether to return the underlying data. The default is False.
         r : int, optional
             The exponential of the correlation coefficient reported.
             May be either 1 for pearson,
             2 for coefficient of determination (r-squared),
-            The default is 2.
+            The default is 1.
         **kwargs : dict
             The keyword arguments to pass to the
             :func:`multidms.model_collection.ModelCollection.split_apply_combine_muts`
@@ -1191,7 +1191,14 @@ class ModelCollection:
         for datasets in comparisons:
             wide_df = (
                 muts_df.query(f"dataset_name.isin({datasets})")
-                .drop([c for c in muts_df.columns if "times_seen" in c], axis=1)
+                .drop(
+                    [
+                        c
+                        for c in muts_df.columns
+                        if "times_seen" in c or c in ("sites", "wts", "muts")
+                    ],
+                    axis=1,
+                )
                 .pivot(columns=["dataset_name", x], index="mutation")
             )
             wide_df.columns.names = ["mut_param"] + wide_df.columns.names[1:]
