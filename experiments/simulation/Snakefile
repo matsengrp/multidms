@@ -12,12 +12,11 @@ Run with:
 """
 
 import os
+import yaml
 
 # Resolve paths relative to the Snakefile location
 SIM_DIR = os.path.dirname(workflow.snakefile)
 NOTEBOOKS = os.path.join(SIM_DIR, "notebooks")
-RESULTS = os.path.join(SIM_DIR, "results")
-FIGURES = os.path.join(RESULTS, "figures")
 
 # Config: use test profile if --config profile=test is passed
 profile = config.get("profile", None)
@@ -25,6 +24,14 @@ if profile == "test":
     CONFIG_PATH = os.path.join(SIM_DIR, "config", "config_test.yaml")
 else:
     CONFIG_PATH = os.path.join(SIM_DIR, "config", "config.yaml")
+
+# Read output_dir from the YAML config so test profiles can isolate results
+with open(CONFIG_PATH) as _f:
+    _cfg = yaml.safe_load(_f)
+RESULTS = os.path.join(
+    SIM_DIR, _cfg.get("simulation", {}).get("output_dir", "results")
+)
+FIGURES = os.path.join(RESULTS, "figures")
 
 # Relative config path for papermill parameter injection — avoids
 # leaking absolute server paths into executed notebook metadata.
@@ -54,7 +61,8 @@ rule simulate_data:
         """
         papermill {input.notebook} {output.executed_notebook} \
             -p config_path {params.config_path} \
-            --cwd {SIM_DIR}
+            --cwd {SIM_DIR} \
+        && jupyter trust {output.executed_notebook}
         """
 
 
@@ -72,7 +80,8 @@ rule fit_models:
         """
         papermill {input.notebook} {output.executed_notebook} \
             -p config_path {params.config_path} \
-            --cwd {SIM_DIR}
+            --cwd {SIM_DIR} \
+        && jupyter trust {output.executed_notebook}
         """
 
 
@@ -102,7 +111,8 @@ rule evaluate:
         """
         papermill {input.notebook} {output.executed_notebook} \
             -p config_path {params.config_path} \
-            --cwd {SIM_DIR}
+            --cwd {SIM_DIR} \
+        && jupyter trust {output.executed_notebook}
         """
 
 
@@ -120,7 +130,8 @@ rule cross_validation:
         """
         papermill {input.notebook} {output.executed_notebook} \
             -p config_path {params.config_path} \
-            --cwd {SIM_DIR}
+            --cwd {SIM_DIR} \
+        && jupyter trust {output.executed_notebook}
         """
 
 
@@ -157,5 +168,6 @@ rule manuscript_figures:
         """
         papermill {input.notebook} {output.executed_notebook} \
             -p config_path {params.config_path} \
-            --cwd {SIM_DIR}
+            --cwd {SIM_DIR} \
+        && jupyter trust {output.executed_notebook}
         """

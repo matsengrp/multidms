@@ -30,8 +30,10 @@ see:
 
  - :mod:`~multidms.biophysical`
 
-:mod:`~multidms.plot` mostly contains code for interactive plotting
-at the moment.
+:mod:`~multidms.plot` contains all interactive Altair-based visualizations.
+Every public function takes a DataFrame and returns an ``alt.Chart``.
+Class methods on ``Data``, ``Model``, and ``ModelCollection`` are thin
+wrappers that delegate here.
 
 It also imports the following alphabets:
 

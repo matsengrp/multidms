@@ -5,6 +5,7 @@ seed: 4
 train_frac: 0.8
 
 spike:
+  output_dir: results_test
   reference: "Omicron_BA1"
   experiment_conditions: ["Delta", "Omicron_BA1", "Omicron_BA2"]
   replicate_1_experiments: ["Delta-2", "Omicron_BA1-2", "Omicron_BA2-1"]

@@ -43,7 +43,7 @@ dependencies = [
     "numpy",
     "pandas>=2.2.0",
     "binarymap>=0.7",
-    "altair==5.1.2",     # pandas convert_dtypes bug
+    "altair>=5.1.2",
     "matplotlib",
     "seaborn",
     "scipy",

@@ -1004,7 +1004,8 @@ def test_ge_landscape_plot_returns_chart(fitted_simple_model):
     import altair as alt
     import multidms.plot as mplt
 
-    chart = mplt.ge_landscape(fitted_simple_model)
+    variants_df, ge_curve_df = fitted_simple_model.get_ge_landscape_df()
+    chart = mplt.ge_landscape(variants_df, ge_curve_df)
     assert isinstance(chart, alt.LayerChart)
 
 
@@ -1013,5 +1014,14 @@ def test_ge_landscape_plot_with_predicted_fitness(fitted_simple_model):
     import altair as alt
     import multidms.plot as mplt
 
-    chart = mplt.ge_landscape(fitted_simple_model, fitness_col="predicted_fitness")
+    variants_df, ge_curve_df = fitted_simple_model.get_ge_landscape_df()
+    chart = mplt.ge_landscape(variants_df, ge_curve_df, fitness_col="predicted_fitness")
+    assert isinstance(chart, alt.LayerChart)
+
+
+def test_plot_ge_landscape_convenience(fitted_simple_model):
+    """Test Model.plot_ge_landscape() convenience method."""
+    import altair as alt
+
+    chart = fitted_simple_model.plot_ge_landscape()
     assert isinstance(chart, alt.LayerChart)

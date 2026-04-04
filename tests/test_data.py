@@ -250,16 +250,23 @@ def test_single_mut_encodings():
 
 
 def test_plotting_fxns():
-    """Test that the plotting functions work"""
-    Data = multidms.Data(
+    """Test that the plotting functions return Altair charts."""
+    import altair as alt
+
+    data = multidms.Data(
         TEST_FUNC_SCORES,
         alphabet=multidms.AAS_WITHSTOP,
         reference="a",
         assert_site_integrity=False,
     )
 
-    Data.plot_times_seen_hist(show=False)
-    Data.plot_func_score_boxplot(show=False)
+    hist_chart = data.plot_times_seen_hist()
+    assert isinstance(hist_chart, alt.Chart)
+    hist_chart.to_dict()
+
+    box_chart = data.plot_func_score_boxplot()
+    assert isinstance(box_chart, alt.Chart)
+    box_chart.to_dict()
 
 
 def test_missing_wildtype_error():

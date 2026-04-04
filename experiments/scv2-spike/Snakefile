@@ -13,11 +13,11 @@ Run with:
 """
 
 import os
+import yaml
 
 # Resolve paths relative to the Snakefile location
 SPIKE_DIR = os.path.dirname(workflow.snakefile)
 NOTEBOOKS = os.path.join(SPIKE_DIR, "notebooks")
-RESULTS = os.path.join(SPIKE_DIR, "results")
 COMMON = os.path.join(NOTEBOOKS, "_common.py")
 
 # Config: use test profile if --config profile=test is passed
@@ -30,6 +30,13 @@ if profile == "test":
     CONFIG_PATH = os.path.join(SPIKE_DIR, "config", "config_test.yaml")
 else:
     CONFIG_PATH = os.path.join(SPIKE_DIR, "config", "config.yaml")
+
+# Read output_dir from the YAML config so test profiles can isolate results
+with open(CONFIG_PATH) as _f:
+    _cfg = yaml.safe_load(_f)
+RESULTS = os.path.join(
+    SPIKE_DIR, _cfg.get("spike", {}).get("output_dir", "results")
+)
 
 # Relative config path for papermill parameter injection — avoids
 # leaking absolute server paths into executed notebook metadata.
@@ -59,7 +66,8 @@ rule prepare_data:
         """
         papermill "{input.notebook}" "{output.executed_notebook}" \
             -p config_path "{params.config_path}" \
-            --cwd "{params.cwd}"
+            --cwd "{params.cwd}" \
+        && jupyter trust "{output.executed_notebook}"
         """
 
 
@@ -79,7 +87,8 @@ rule fit_models:
         """
         papermill "{input.notebook}" "{output.executed_notebook}" \
             -p config_path "{params.config_path}" \
-            --cwd "{params.cwd}"
+            --cwd "{params.cwd}" \
+        && jupyter trust "{output.executed_notebook}"
         """
 
 
@@ -99,7 +108,8 @@ rule cross_validation:
         """
         papermill "{input.notebook}" "{output.executed_notebook}" \
             -p config_path "{params.config_path}" \
-            --cwd "{params.cwd}"
+            --cwd "{params.cwd}" \
+        && jupyter trust "{output.executed_notebook}"
         """
 
 
@@ -125,5 +135,6 @@ rule evaluate:
         """
         papermill "{input.notebook}" "{output.executed_notebook}" \
             -p config_path "{params.config_path}" \
-            --cwd "{params.cwd}"
+            --cwd "{params.cwd}" \
+        && jupyter trust "{output.executed_notebook}"
         """

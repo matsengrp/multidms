@@ -3,14 +3,33 @@
 plot
 ==========
 
-Plotting functions.
+All interactive Altair-based visualizations for ``multidms``.
+
+Every public function accepts DataFrames and returns ``alt.Chart`` objects,
+making them independently testable and usable with any data source.
+
+Public functions
+----------------
+- :func:`color_gradient_hex` — linear color gradient utility
+- :func:`lineplot_and_heatmap` — interactive per-site/per-mutation heatmap
+- :func:`convergence_trajectory` — convergence diagnostics with group dropdown
+- :func:`mut_param_heatmap` — mutation parameter heatmap (wraps lineplot_and_heatmap)
+- :func:`mut_param_traceplot` — mutation parameters across regularization
+- :func:`shift_sparsity` — shift sparsity across regularization
+- :func:`mut_param_dataset_correlation` — replicate correlation
+- :func:`times_seen_hist` — mutation occurrence histogram
+- :func:`func_score_boxplot` — functional score distribution
+- :func:`ge_landscape` — global epistasis landscape
 """
 
 
 import altair as alt
 import matplotlib.colors
 import natsort
-from polyclonal.plot import DEFAULT_NEGATIVE_COLOR, DEFAULT_POSITIVE_COLORS
+
+# Colorblind-friendly palette (formerly from polyclonal.plot)
+DEFAULT_POSITIVE_COLORS = ("#0072B2", "#CC79A7", "#009E73", "#17BECF", "#BCDB22")
+DEFAULT_NEGATIVE_COLOR = "#E69F00"
 
 
 alt.data_transformers.disable_max_rows()
@@ -46,7 +65,7 @@ def color_gradient_hex(start, end, n):
     return [matplotlib.colors.rgb2hex(tup) for tup in cmap(list(range(0, n)))]
 
 
-def _lineplot_and_heatmap(
+def lineplot_and_heatmap(
     *,
     data_df,
     stat_col,
@@ -619,8 +638,540 @@ def _lineplot_and_heatmap(
     return chart
 
 
+CONVERGENCE_TRAJECTORY_GROUPS = {
+    "overall": [
+        "loss_trajectory",
+        "loss_per_variant_trajectory",
+        "objective_total_trajectory",
+        "objective_error_trajectory",
+    ],
+    "block_errors": [
+        "calibration_error",
+        "beta0_error",
+        "beta_nonbundle_error",
+        "beta_bundle_error",
+    ],
+    "block_stepsizes": [
+        "calibration_stepsize",
+        "beta0_stepsize",
+        "beta_nonbundle_stepsize",
+        "beta_bundle_stepsize",
+    ],
+    "block_iterations": [
+        "calibration_iter_num",
+        "beta0_iter_num",
+        "beta_nonbundle_iter_num",
+        "beta_bundle_iter_num",
+    ],
+}
+
+
+def _detect_per_condition_groups(columns):
+    """Detect per-condition column groups from DataFrame columns.
+
+    Looks for columns matching ``alpha_{cond}``, ``theta_{cond}``,
+    ``beta0_{cond}``, and ``sparsity_{cond}`` patterns and groups them
+    by parameter type.
+
+    Parameters
+    ----------
+    columns : list of str
+        DataFrame column names.
+
+    Returns
+    -------
+    dict
+        Mapping from group name to list of matching column names.
+    """
+    prefixes = {
+        "alpha": "alpha_",
+        "theta": "theta_",
+        "beta0_condition": "beta0_",
+        "sparsity": "sparsity_",
+    }
+    # These are the base (non-condition) columns that start with the same prefix
+    base_cols = set(CONVERGENCE_TRAJECTORY_GROUPS.get("overall", []))
+    for group_cols in CONVERGENCE_TRAJECTORY_GROUPS.values():
+        base_cols.update(group_cols)
+
+    groups = {}
+    for group_name, prefix in prefixes.items():
+        matching = [c for c in columns if c.startswith(prefix) and c not in base_cols]
+        if matching:
+            groups[group_name] = sorted(matching)
+    return groups
+
+
+def convergence_trajectory(
+    df,
+    *,
+    x="iteration",
+    id_cols=None,
+    trajectory_groups=None,
+    init_group="overall",
+    log_y=True,
+    skip_first=True,
+    width=700,
+    height=250,
+    title="Convergence Diagnostics",
+):
+    """Interactive convergence trajectory plot.
+
+    Creates an Altair chart with a dropdown to switch between groups
+    of convergence diagnostics (overall loss, block errors, block
+    stepsizes, block iterations, per-condition parameters). Within
+    each group, individual metrics can be toggled via legend clicks.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Convergence trajectory data, typically from
+        ``ModelCollection.convergence_trajectory_df()`` or
+        ``Model.convergence_trajectory_df``. Must contain an
+        ``iteration`` column and one or more trajectory value columns.
+    x : str
+        Column for the x-axis. Default ``'iteration'``.
+    id_cols : list of str or None
+        Columns that identify distinct model runs (e.g.
+        ``['dataset_name', 'fusionreg']``). Each unique combination
+        gets a distinct line style. If None, no model identity
+        distinction is made.
+    trajectory_groups : dict or None
+        Mapping from group name to list of column names. If None,
+        auto-detected from the DataFrame using canonical groupings
+        plus any per-condition columns.
+    init_group : str
+        Which group to display initially. Default ``'overall'``.
+    log_y : bool
+        Whether to use log scale on the y-axis. Default True.
+    skip_first : bool
+        If True, filter out ``iteration == 0``. Default True.
+    width : int
+        Chart width in pixels. Default 700.
+    height : int
+        Chart height in pixels. Default 250.
+    title : str or None
+        Chart title. Default ``'Convergence Diagnostics'``.
+
+    Returns
+    -------
+    alt.Chart
+        Interactive Altair chart with group dropdown and legend toggle.
+    """
+    df = df.copy()
+
+    if skip_first:
+        df = df[df[x] > 0]
+
+    # Build trajectory groups
+    if trajectory_groups is None:
+        trajectory_groups = {}
+        for group_name, group_cols in CONVERGENCE_TRAJECTORY_GROUPS.items():
+            present = [c for c in group_cols if c in df.columns]
+            if present:
+                trajectory_groups[group_name] = present
+        # Add per-condition groups
+        trajectory_groups.update(_detect_per_condition_groups(df.columns))
+
+    if not trajectory_groups:
+        raise ValueError("No trajectory columns found in DataFrame.")
+
+    if init_group not in trajectory_groups:
+        init_group = next(iter(trajectory_groups))
+
+    # Collect all value columns
+    value_cols = [col for cols in trajectory_groups.values() for col in cols]
+    # Build metric -> group mapping
+    metric_to_group = {
+        col: group for group, cols in trajectory_groups.items() for col in cols
+    }
+
+    # Build id columns
+    if id_cols is None:
+        id_cols = []
+    keep_cols = [x] + id_cols + value_cols
+    keep_cols = [c for c in keep_cols if c in df.columns]
+
+    # Melt to long form
+    long_df = df[keep_cols].melt(
+        id_vars=[x] + id_cols,
+        value_vars=[c for c in value_cols if c in df.columns],
+        var_name="metric",
+        value_name="value",
+    )
+    long_df["group"] = long_df["metric"].map(metric_to_group)
+
+    # Build model_id from id_cols
+    if id_cols:
+        long_df["model_id"] = long_df[id_cols].astype(str).agg(" | ".join, axis=1)
+    else:
+        long_df["model_id"] = "model"
+
+    # Group dropdown
+    group_options = list(trajectory_groups.keys())
+    group_selector = alt.selection_point(
+        fields=["group"],
+        bind=alt.binding_select(
+            options=group_options,
+            name="Trajectory group ",
+        ),
+        value=[{"group": init_group}],
+    )
+
+    # Legend toggle
+    metric_toggle = alt.selection_point(
+        fields=["metric"],
+        bind="legend",
+    )
+
+    # Build chart
+    y_scale = alt.Scale(type="log") if log_y else alt.Scale()
+
+    tooltip_fields = [
+        alt.Tooltip(f"{x}:Q"),
+        alt.Tooltip("metric:N"),
+        alt.Tooltip("value:Q", format=".4g"),
+    ]
+    if id_cols:
+        tooltip_fields.append(alt.Tooltip("model_id:N", title="model"))
+
+    base = alt.Chart(long_df).transform_filter(group_selector)
+
+    lines = base.mark_line().encode(
+        x=alt.X(f"{x}:Q", title="Iteration"),
+        y=alt.Y("value:Q", title="Value", scale=y_scale),
+        color=alt.Color("metric:N", title="Metric"),
+        strokeDash=alt.StrokeDash("model_id:N", title="Model"),
+        opacity=alt.condition(metric_toggle, alt.value(1), alt.value(0.1)),
+        tooltip=tooltip_fields,
+    )
+
+    chart = lines.add_params(group_selector, metric_toggle).properties(
+        width=width, height=height
+    )
+
+    if title:
+        chart = chart.properties(
+            title=alt.TitleParams(title, anchor="start", fontSize=14)
+        )
+
+    return chart
+
+
+PARAMETER_NAMES_FOR_PLOTTING = {
+    "fusionreg": "Fusion Regularization",
+}
+
+
+def mut_param_heatmap(muts_df_tall, *, mut_param="shift", **kwargs):
+    """Interactive heatmap of mutation parameters across conditions.
+
+    Thin wrapper around :func:`lineplot_and_heatmap` with mutation-specific
+    defaults.
+
+    Parameters
+    ----------
+    muts_df_tall : pandas.DataFrame
+        Long-form DataFrame with columns ``site``, ``wildtype``,
+        ``mutant``, ``condition``, and ``mut_param``.
+    mut_param : str
+        Name of the statistic column in ``muts_df_tall``.
+    **kwargs
+        Passed to :func:`lineplot_and_heatmap`.
+
+    Returns
+    -------
+    alt.Chart
+    """
+    defaults = {
+        "data_df": muts_df_tall,
+        "stat_col": mut_param,
+        "category_col": "condition",
+        "heatmap_color_scheme": "redblue",
+        "init_floor_at_zero": False,
+        "categorical_wildtype": True,
+    }
+    defaults.update(kwargs)
+    return lineplot_and_heatmap(**defaults)
+
+
+def mut_param_traceplot(
+    muts_df_tall,
+    *,
+    x="fusionreg",
+    mut_param="shift",
+    width_scalar=100,
+    height_scalar=100,
+):
+    """Trace mutation parameter values across regularization weights.
+
+    Parameters
+    ----------
+    muts_df_tall : pandas.DataFrame
+        Long-form DataFrame with columns ``dataset_name``, ``x``,
+        ``mut_type``, ``mutation``, ``condition``, and ``mut_param``.
+    x : str
+        Column for the x-axis. Default ``'fusionreg'``.
+    mut_param : str
+        Column with mutation parameter values. Default ``'shift'``.
+    width_scalar : int
+        Width multiplier per facet column.
+    height_scalar : int
+        Height multiplier per facet row.
+
+    Returns
+    -------
+    alt.FacetChart
+    """
+    highlight = alt.selection_point(on="mouseover", fields=["mutation"], nearest=True)
+    num_facet_rows = len(muts_df_tall.dataset_name.unique())
+    num_facet_cols = len(muts_df_tall.condition.unique())
+
+    base = (
+        alt.Chart(muts_df_tall)
+        .encode(
+            x=alt.X(
+                x,
+                type="nominal",
+                title=(
+                    PARAMETER_NAMES_FOR_PLOTTING[x]
+                    if x in PARAMETER_NAMES_FOR_PLOTTING
+                    else x
+                ),
+            ),
+            y=alt.Y(mut_param, type="quantitative", title=mut_param),
+            color="mut_type",
+            detail="mutation",
+            tooltip=["mutation", mut_param],
+        )
+        .properties(
+            width=num_facet_cols * width_scalar,
+            height=num_facet_rows * height_scalar,
+        )
+    )
+
+    points = base.mark_circle().encode(opacity=alt.value(0)).add_params(highlight)
+
+    lines = base.mark_line().encode(
+        size=alt.condition(~highlight, alt.value(1), alt.value(3))
+    )
+
+    return alt.layer(points, lines).facet(
+        row=alt.Row("dataset_name", title="Replicate"),
+        column=alt.Column("condition", title="Experiment"),
+    )
+
+
+def shift_sparsity(
+    sparsity_df,
+    *,
+    x="fusionreg",
+    width_scalar=100,
+    height_scalar=100,
+):
+    """Visualize shift parameter sparsity across regularization weights.
+
+    Parameters
+    ----------
+    sparsity_df : pandas.DataFrame
+        DataFrame with columns ``dataset_name``, ``x``, ``mut_type``,
+        ``mut_param``, and ``sparsity``.
+    x : str
+        Column for the x-axis. Default ``'fusionreg'``.
+    width_scalar : int
+        Width multiplier per facet column.
+    height_scalar : int
+        Height multiplier per facet row.
+
+    Returns
+    -------
+    alt.FacetChart
+    """
+    num_facet_rows = len(sparsity_df.dataset_name.unique())
+    num_facet_cols = len(sparsity_df.mut_param.unique())
+
+    base_chart = (
+        alt.Chart(sparsity_df)
+        .encode(
+            x=alt.X(
+                x,
+                type="nominal",
+                title=(
+                    PARAMETER_NAMES_FOR_PLOTTING[x]
+                    if x in PARAMETER_NAMES_FOR_PLOTTING
+                    else x
+                ),
+            ).axis(
+                format=".1e",
+            ),
+            y=alt.Y("sparsity", type="quantitative", title="Sparsity").axis(format="%"),
+            color=alt.Color("mut_type", type="nominal", title="Mutation type"),
+            tooltip=[
+                x,
+                "sparsity",
+                "mut_type",
+            ],
+        )
+        .properties(
+            width=num_facet_cols * width_scalar,
+            height=num_facet_rows * height_scalar,
+        )
+    )
+
+    if sparsity_df[x].dtype.kind in "biufc":
+        chart = base_chart.mark_point() + base_chart.mark_line()
+    else:
+        chart = base_chart.mark_bar().encode(xOffset="mut_type")
+
+    return chart.facet(
+        row=alt.Row("dataset_name", title="Dataset"),
+        column=alt.Column("mut_param", title="Experimental Shifts"),
+    )
+
+
+def mut_param_dataset_correlation(
+    replicate_df,
+    *,
+    x="fusionreg",
+    r=1,
+    width_scalar=400,
+    height=400,
+):
+    """Visualize mutation parameter correlation between replicate datasets.
+
+    Parameters
+    ----------
+    replicate_df : pandas.DataFrame
+        DataFrame with columns ``datasets``, ``mut_param``,
+        ``correlation``, and ``x``.
+    x : str
+        Column for the x-axis. Default ``'fusionreg'``.
+    r : int
+        Exponent used (1 for pearson, 2 for R^2). Only affects title.
+    width_scalar : int
+        Width multiplier per facet column.
+    height : int
+        Chart height.
+
+    Returns
+    -------
+    alt.FacetChart
+    """
+    comparisons = replicate_df["datasets"].unique()
+    title_suffix = "(R^2)" if r == 2 else "(pearson)"
+
+    base_chart = (
+        alt.Chart(replicate_df)
+        .encode(
+            x=alt.X(
+                x,
+                type="nominal",
+                title=(
+                    PARAMETER_NAMES_FOR_PLOTTING[x]
+                    if x in PARAMETER_NAMES_FOR_PLOTTING
+                    else x
+                ),
+            ).axis(
+                format=".1e",
+            ),
+            y=alt.Y(
+                "correlation",
+                type="quantitative",
+                title=f"Correlation {title_suffix}",
+            ),
+            color=alt.Color("mut_param", type="nominal", title="Parameter"),
+            tooltip=["datasets", "correlation", "mut_param"],
+        )
+        .properties(width=len(comparisons) * width_scalar, height=height)
+    )
+
+    if replicate_df[x].dtype.kind in "biufc":
+        chart = base_chart.mark_point() + base_chart.mark_line()
+    else:
+        chart = base_chart.mark_bar().encode(xOffset="mut_param")
+
+    return chart.facet(
+        column=alt.Column("datasets", title="Experiment comparison"),
+    )
+
+
+def times_seen_hist(mutations_df, *, conditions=None, width=400, height=300):
+    """Interactive histogram of mutation occurrence counts.
+
+    Parameters
+    ----------
+    mutations_df : pandas.DataFrame
+        Mutations DataFrame with ``times_seen_{condition}`` columns.
+    conditions : list of str or None
+        Condition names. If None, auto-detected from column names
+        matching ``times_seen_*``.
+    width : int
+        Chart width in pixels.
+    height : int
+        Chart height in pixels.
+
+    Returns
+    -------
+    alt.Chart
+    """
+    if conditions is None:
+        conditions = [
+            c.replace("times_seen_", "")
+            for c in mutations_df.columns
+            if c.startswith("times_seen_")
+        ]
+
+    ts_cols = [f"times_seen_{c}" for c in conditions]
+    long_df = mutations_df[ts_cols].melt(var_name="condition", value_name="times_seen")
+    long_df["condition"] = long_df["condition"].str.replace(
+        "^times_seen_", "", regex=True
+    )
+
+    return (
+        alt.Chart(long_df)
+        .mark_bar(opacity=0.7)
+        .encode(
+            x=alt.X("times_seen:Q", bin=True, title="Times seen"),
+            y=alt.Y("count()", title="Number of mutations"),
+            color=alt.Color("condition:N"),
+            tooltip=["condition:N", "times_seen:Q"],
+        )
+        .properties(width=width, height=height)
+    )
+
+
+def func_score_boxplot(variants_df, *, width=400, height=300):
+    """Interactive boxplot of functional scores by condition.
+
+    Parameters
+    ----------
+    variants_df : pandas.DataFrame
+        Variants DataFrame with ``condition`` and ``func_score`` columns.
+    width : int
+        Chart width in pixels.
+    height : int
+        Chart height in pixels.
+
+    Returns
+    -------
+    alt.Chart
+    """
+    return (
+        alt.Chart(variants_df)
+        .mark_boxplot()
+        .encode(
+            x=alt.X("condition:N", title="Condition"),
+            y=alt.Y("func_score:Q", title="Functional score"),
+            color=alt.Color("condition:N", legend=None),
+            tooltip=["condition:N"],
+        )
+        .properties(width=width, height=height)
+    )
+
+
 def ge_landscape(
-    model,
+    variants_df,
+    ge_curve_df,
     fitness_col="measured_fitness",
     color_by="condition",
     point_size=5,
@@ -629,7 +1180,6 @@ def ge_landscape(
     curve_width=3,
     width=500,
     height=400,
-    n_curve_points=200,
 ):
     """Plot the global epistasis landscape.
 
@@ -640,8 +1190,14 @@ def ge_landscape(
 
     Parameters
     ----------
-    model : multidms.Model
-        A fitted Model object.
+    variants_df : pandas.DataFrame
+        Variant-level data with columns ``predicted_latent``,
+        ``condition``, ``wildtype_latent``, and ``fitness_col``.
+        Typically from :meth:`Model.get_ge_landscape_df`.
+    ge_curve_df : pandas.DataFrame
+        Global epistasis curve with columns ``predicted_latent``
+        and ``ge_curve_value``.
+        Typically from :meth:`Model.get_ge_landscape_df`.
     fitness_col : str
         Which fitness column to plot on the y-axis: ``'measured_fitness'``
         or ``'predicted_fitness'``. Default is ``'measured_fitness'``.
@@ -659,8 +1215,6 @@ def ge_landscape(
         Chart width in pixels. Default is 500.
     height : int
         Chart height in pixels. Default is 400.
-    n_curve_points : int
-        Number of points for the ``g(φ)`` curve grid. Default is 200.
 
     Returns
     -------
@@ -668,10 +1222,6 @@ def ge_landscape(
         Altair layered chart with scatter, curve, and wildtype reference
         lines.
     """
-    variants_df, ge_curve = model.get_ge_landscape_df(
-        n_curve_points=n_curve_points,
-    )
-
     # Scatter layer: variant fitness vs latent phenotype
     scatter = (
         alt.Chart(variants_df)
@@ -688,7 +1238,7 @@ def ge_landscape(
 
     # Curve layer: g(φ)
     curve = (
-        alt.Chart(ge_curve)
+        alt.Chart(ge_curve_df)
         .mark_line(color=curve_color, strokeWidth=curve_width)
         .encode(
             x="predicted_latent:Q",

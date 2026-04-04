@@ -13,7 +13,7 @@ import warnings
 import binarymap as bmap
 import numpy as onp
 import pandas as pd
-from polyclonal.plot import DEFAULT_POSITIVE_COLORS
+from multidms.plot import DEFAULT_POSITIVE_COLORS
 from polyclonal.utils import MutationParser
 from tqdm import tqdm
 
@@ -22,9 +22,7 @@ from multidms.utils import split_subs
 
 import jax
 import jax.numpy as jnp
-import seaborn as sns
 from jax.experimental import sparse
-from matplotlib import pyplot as plt
 
 jax.config.update("jax_enable_x64", True)
 
@@ -783,35 +781,30 @@ class Data:
         converted_muts = ret[self.reference] + ret.index.astype(str) + ret[condition]
         return " ".join(converted_muts)
 
-    def plot_times_seen_hist(self, saveas=None, show=True, **kwargs):
-        """Plot a histogram of the number of times each mutation was seen."""
-        times_seen_cols = [f"times_seen_{c}" for c in self._conditions]
-        fig, ax = plt.subplots()
-        sns.histplot(self._mutations_df[times_seen_cols], ax=ax, **kwargs)
-        if saveas:
-            fig.saveas(saveas)
-        if show:
-            plt.show()
-        return fig, ax
+    def plot_times_seen_hist(self, **kwargs):
+        """Plot an interactive histogram of mutation occurrence counts.
 
-    def plot_func_score_boxplot(self, saveas=None, show=True, **kwargs):
-        """Plot a boxplot of the functional scores for each condition."""
-        fig, ax = plt.subplots()
-        sns.boxplot(
-            self._variants_df,
-            x="condition",
-            y="func_score",
-            ax=ax,
-            notch=True,
-            showcaps=False,
-            flierprops={"marker": "x"},
-            boxprops={"facecolor": (0.4, 0.6, 0.8, 0.5)},
-            medianprops={"color": "coral"},
+        Returns
+        -------
+        alt.Chart
+            Interactive Altair histogram.
+        """
+        import multidms.plot
+
+        return multidms.plot.times_seen_hist(
+            self._mutations_df,
+            conditions=list(self._conditions),
             **kwargs,
         )
 
-        if saveas:
-            fig.saveas(saveas)
-        if show:
-            plt.show()
-        return fig, ax
+    def plot_func_score_boxplot(self, **kwargs):
+        """Plot an interactive boxplot of functional scores by condition.
+
+        Returns
+        -------
+        alt.Chart
+            Interactive Altair boxplot.
+        """
+        import multidms.plot
+
+        return multidms.plot.func_score_boxplot(self._variants_df, **kwargs)

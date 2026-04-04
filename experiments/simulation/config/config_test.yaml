@@ -26,7 +26,7 @@ simulation:
   bottleneck_variants_per_lib_scalar:
     tight_bottle: 5
     loose_bottle: 100
-  output_dir: results
+  output_dir: results_test
   fitting:
     maxiter: 20
     tol: 1.0e-6

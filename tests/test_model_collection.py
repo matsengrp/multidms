@@ -666,3 +666,52 @@ class TestVisualization:
         assert isinstance(data, pd.DataFrame)
         # For identical data, R^2 should be very close to 1.0
         assert np.allclose(data["correlation"], 1.0, atol=0.01)
+
+    def test_plot_convergence_trajectory(self, collection):
+        import altair as alt
+
+        chart = collection.plot_convergence_trajectory()
+        assert isinstance(chart, alt.Chart)
+        # Verify chart produces a valid Vega-Lite spec
+        chart.to_dict()
+
+    def test_plot_convergence_trajectory_standalone(self, collection):
+        """Test the standalone plot.convergence_trajectory function."""
+        import altair as alt
+        import multidms.plot
+
+        df = collection.convergence_trajectory_df()
+        chart = multidms.plot.convergence_trajectory(
+            df, id_cols=["dataset_name", "fusionreg"]
+        )
+        assert isinstance(chart, alt.Chart)
+        chart.to_dict()
+
+    def test_plot_convergence_trajectory_no_id_cols(self, collection):
+        """Test convergence plot with no id_cols."""
+        import altair as alt
+        import multidms.plot
+
+        # Get trajectory from a single model
+        model = collection.fit_models.iloc[0].model
+        df = model.convergence_trajectory_df
+        chart = multidms.plot.convergence_trajectory(df)
+        assert isinstance(chart, alt.Chart)
+        chart.to_dict()
+
+    def test_plot_convergence_trajectory_custom_groups(self, collection):
+        """Test convergence plot with custom trajectory groups."""
+        import altair as alt
+        import multidms.plot
+
+        df = collection.convergence_trajectory_df()
+        custom_groups = {
+            "loss": ["loss_trajectory", "loss_per_variant_trajectory"],
+        }
+        chart = multidms.plot.convergence_trajectory(
+            df,
+            trajectory_groups=custom_groups,
+            init_group="loss",
+        )
+        assert isinstance(chart, alt.Chart)
+        chart.to_dict()
