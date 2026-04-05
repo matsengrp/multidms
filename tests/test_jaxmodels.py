@@ -650,3 +650,46 @@ class TestFitParameters:
         for model in [model_no_ridge, model_moderate_ridge, model_strong_ridge]:
             for cond in model.φ:
                 assert jnp.isfinite(model.φ[cond].β0)
+
+    def test_early_stopping_ignores_inner_convergence(self, multi_condition_data):
+        """Test early stopping triggers on objective_error alone.
+
+        Verifies that the outer loop breaks when objective_error < block_tol
+        even if inner solver blocks have not converged (error >= tol).
+        """
+        # Inner tolerances set impossibly tight so inner blocks never converge
+        tight_kwargs = dict(tol=1e-15, maxiter=5, maxls=15, jit=True)
+        block_iters = 100
+        block_tol = 1e-1  # Loose outer tolerance -> converges quickly
+
+        model, trajectory_df = jaxmodels.fit(
+            data_sets=multi_condition_data,
+            reference_condition="condition1",
+            l2reg=0.1,
+            fusionreg=0.1,
+            block_iters=block_iters,
+            block_tol=block_tol,
+            ge_kwargs=tight_kwargs,
+            cal_kwargs=tight_kwargs,
+            warmstart=False,
+            verbose=False,
+        )
+
+        # Early stopping should have fired before exhausting block_iters
+        assert (
+            len(trajectory_df) < block_iters
+        ), f"Early stopping did not fire: ran all {block_iters} iterations"
+
+        # At least one inner block should NOT have converged in the final row
+        final_row = trajectory_df.iloc[-1]
+        inner_tol = tight_kwargs["tol"]
+        inner_errors = [
+            final_row["calibration_error"],
+            final_row["beta0_error"],
+            final_row["beta_nonbundle_error"],
+            final_row["beta_bundle_error"],
+        ]
+        assert any(err >= inner_tol for err in inner_errors), (
+            f"Expected at least one inner block to NOT converge with "
+            f"tol={inner_tol}, but all converged: {inner_errors}"
+        )

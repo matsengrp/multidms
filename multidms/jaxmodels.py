@@ -574,13 +574,6 @@ def fit(
         global_epistasis=global_epistasis,
     )
 
-    # numerical rescaling
-    scale = abs(
-        objective_total(
-            model, data_sets, l2reg=l2reg, fusionreg=fusionreg, beta0_ridge=beta0_ridge
-        )
-    )
-
     # track convergence trajectory
     n_variants_total = sum(data_sets[d].functional_scores.shape[0] for d in data_sets)
     trajectory_rows = []
@@ -589,6 +582,23 @@ def fit(
         for k in range(block_iters):
             if verbose:
                 print(f"iter {k + 1}:")
+
+            # Recompute scale each iteration so the proximal lasso
+            # threshold (fusionreg / scale) stays calibrated as the
+            # model evolves.
+            scale = abs(
+                objective_total(
+                    model,
+                    data_sets,
+                    l2reg=l2reg,
+                    fusionreg=fusionreg,
+                    scale=1.0,
+                    beta0_ridge=beta0_ridge,
+                )
+            )
+            if scale == 0:
+                scale = 1.0
+
             obj_old = objective_total(
                 model,
                 data_sets,
@@ -764,13 +774,20 @@ def fit(
                 }
             )
 
-            if (
-                state_calibration.error < opt_calibration.tol
-                and state_β0.error < opt_β0.tol
-                and state_bundle.error < opt_β.tol
-                and state_nonbundle.error < opt_β.tol
-                and objective_error < block_tol
-            ):
+            if objective_error < block_tol:
+                if verbose:
+                    inner_states = {
+                        "calibration": (state_calibration, opt_calibration),
+                        "β0": (state_β0, opt_β0),
+                        "β_nonbundle": (state_nonbundle, opt_β),
+                        "β_bundle": (state_bundle, opt_β),
+                    }
+                    for name, (state, opt) in inner_states.items():
+                        if state.error >= opt.tol:
+                            print(
+                                f"  warning: {name} block did not converge "
+                                f"(error={state.error:.2e}, tol={opt.tol:.2e})"
+                            )
                 break
 
     except KeyboardInterrupt:
