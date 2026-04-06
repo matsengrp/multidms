@@ -91,6 +91,18 @@ User provides a pandas DataFrame with columns for condition, substitutions, and 
 
 GitHub Actions runs on push to main and PRs: ruff lint → black format check → pytest with doctests → docs build. Tested on Python 3.9/3.10/3.11 across ubuntu and macos.
 
+## Remote Pipeline Execution
+
+Before launching any remote pipeline:
+
+1. **Scout first**: `bip scout` — pick a server with <20% CPU
+2. **Launch with host override**: `pixi run remote-pipeline -- host=<server> <pipeline> <profile>`
+3. **Monitor**: `pixi run remote-status -- host=<server> <pipeline>`
+4. **Fetch results**: `pixi run run-pull -- host=<server> <pipeline>`
+5. **Clean up immediately**: `ssh <server> "tmux kill-session -t smk-<pipeline>"`
+
+Never skip step 1. Never leave tmux sessions running after fetching results.
+
 ## Active Technologies
 - Python 3.9+ (matches existing CI matrix) + multidms (this package), snakemake, papermill, jupyter, matplotlib, seaborn, pandas, numpy, pyyaml (002-simulation-pipeline)
 - CSV intermediate files + pickle for fitted model collections; all in `experiments/simulation/results/` (002-simulation-pipeline)

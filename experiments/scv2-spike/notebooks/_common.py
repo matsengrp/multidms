@@ -189,6 +189,7 @@ def build_fit_params(fit_config, datasets):
         "fusionreg": fit_config["fusionreg_values"],
         "l2reg": [fit_config["l2reg"]],
         "beta0_ridge": [fit_config["beta0_ridge"]],
+        "scale_fusion_by_n": [fit_config.get("scale_fusion_by_n", False)],
         "ge_type": [fit_config["ge_type"]],
         "ge_kwargs": [fit_config["ge_kwargs"]],
         "cal_kwargs": [fit_config["cal_kwargs"]],

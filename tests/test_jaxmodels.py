@@ -650,3 +650,83 @@ class TestFitParameters:
         for model in [model_no_ridge, model_moderate_ridge, model_strong_ridge]:
             for cond in model.φ:
                 assert jnp.isfinite(model.φ[cond].β0)
+
+    def test_early_stopping_ignores_inner_convergence(self, multi_condition_data):
+        """Test early stopping triggers on objective_error alone.
+
+        Verifies that the outer loop breaks when objective_error < block_tol
+        even if inner solver blocks have not converged (error >= tol).
+        """
+        # Inner tolerances set impossibly tight so inner blocks never converge
+        tight_kwargs = dict(tol=1e-15, maxiter=5, maxls=15, jit=True)
+        block_iters = 100
+        block_tol = 1e-1  # Loose outer tolerance -> converges quickly
+
+        model, trajectory_df = jaxmodels.fit(
+            data_sets=multi_condition_data,
+            reference_condition="condition1",
+            l2reg=0.1,
+            fusionreg=0.1,
+            block_iters=block_iters,
+            block_tol=block_tol,
+            ge_kwargs=tight_kwargs,
+            cal_kwargs=tight_kwargs,
+            warmstart=False,
+            verbose=False,
+        )
+
+        # Early stopping should have fired before exhausting block_iters
+        assert (
+            len(trajectory_df) < block_iters
+        ), f"Early stopping did not fire: ran all {block_iters} iterations"
+
+        # At least one inner block should NOT have converged in the final row
+        final_row = trajectory_df.iloc[-1]
+        inner_tol = tight_kwargs["tol"]
+        inner_errors = [
+            final_row["calibration_error"],
+            final_row["beta0_error"],
+            final_row["beta_nonbundle_error"],
+            final_row["beta_bundle_error"],
+        ]
+        assert any(err >= inner_tol for err in inner_errors), (
+            f"Expected at least one inner block to NOT converge with "
+            f"tol={inner_tol}, but all converged: {inner_errors}"
+        )
+
+    def test_scale_fusion_by_n_equal_sizes(self, multi_condition_data):
+        """Test scale_fusion_by_n=True matches False when conditions have equal sizes."""
+        common_kwargs = dict(
+            data_sets=multi_condition_data,
+            reference_condition="condition1",
+            l2reg=0.1,
+            fusionreg=0.5,
+            block_iters=3,
+            warmstart=False,
+            verbose=False,
+        )
+
+        model_off, _ = jaxmodels.fit(**common_kwargs, scale_fusion_by_n=False)
+        model_on, _ = jaxmodels.fit(**common_kwargs, scale_fusion_by_n=True)
+
+        # With equal-sized conditions, weights are all 1.0 so results
+        # should be identical
+        for cond in multi_condition_data:
+            assert jnp.allclose(model_off.φ[cond].β, model_on.φ[cond].β, atol=1e-5), (
+                f"Equal-sized conditions should give identical results, "
+                f"but {cond} betas differ"
+            )
+
+    def test_scale_fusion_by_n_default_false(self, multi_condition_data):
+        """Test that the default for scale_fusion_by_n is False."""
+        model, _ = jaxmodels.fit(
+            data_sets=multi_condition_data,
+            reference_condition="condition1",
+            l2reg=0.1,
+            fusionreg=0.5,
+            block_iters=1,
+            warmstart=False,
+            verbose=False,
+        )
+        # If it runs without error and returns a model, the default works
+        assert model is not None

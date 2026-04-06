@@ -39,7 +39,8 @@ spike:
     tol: 1.0e-6
     fusionreg_values: [0.0, 3.2]
     l2reg: 1.0e-2
-    beta0_ridge: 0
+    beta0_ridge: 10
+    scale_fusion_by_n: false
     ge_type: "Sigmoid"
     warmstart: false
     beta0_init: {Omicron_BA1: 0.0, Delta: 0.0, Omicron_BA2: 0.0}

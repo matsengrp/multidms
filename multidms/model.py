@@ -65,6 +65,7 @@ class Model:
         l2reg: float = 0.0,
         fusionreg: float = 0.0,
         beta0_ridge: float = 0.0,
+        scale_fusion_by_n: bool = False,
     ):
         """Initialize Model with data and hyperparameters."""
         # Validate inputs
@@ -83,6 +84,7 @@ class Model:
         self._l2reg = l2reg
         self._fusionreg = fusionreg
         self._beta0_ridge = beta0_ridge
+        self._scale_fusion_by_n = scale_fusion_by_n
 
         # Will be populated by fit()
         self._jax_model = None
@@ -233,6 +235,7 @@ class Model:
             l2reg=self._l2reg,
             fusionreg=self._fusionreg,
             beta0_ridge=self._beta0_ridge,
+            scale_fusion_by_n=self._scale_fusion_by_n,
             block_iters=maxiter,
             block_tol=tol,
             global_epistasis=global_epistasis,
