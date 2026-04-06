@@ -1,6 +1,6 @@
 .beads
 
-archive/
+**archive/
 
 # pixi
 .pixi/
@@ -15,6 +15,9 @@ pixi.lock
 /doctrees
 docs/multidms*rst
 .vscode
+
+experiments/scv2-spike/results_test/
+experiments/simulation/results_test/
 
 
 
