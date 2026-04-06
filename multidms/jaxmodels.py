@@ -463,12 +463,6 @@ def fit(
     def objective_part(model_part, model_rest, data_sets, scale=1.0, beta0_ridge=0.0):
         model = eqx.combine(model_part, model_rest)
         loss = sum(loss_fn(model, data_sets, **loss_kwargs).values())
-        # Add β0 ridge penalty for non-reference conditions
-        # beta0_penalty = 0.0
-        # ref_beta0 = model.φ[model.reference_condition].β0
-        # for d in model.φ:
-        #     if d != model.reference_condition:
-        #         beta0_penalty += (model.φ[d].β0 - ref_beta0) ** 2
         return (loss + _beta_ridge_penalty(model, beta0_ridge)) / scale
 
     @jax.jit
@@ -608,27 +602,20 @@ def fit(
             # Recompute scale each iteration so the proximal lasso
             # threshold (fusionreg / scale) stays calibrated as the
             # model evolves.
-            scale = abs(
-                objective_total(
-                    model,
-                    data_sets,
-                    l2reg=l2reg,
-                    fusionreg=fusionreg,
-                    scale=1.0,
-                    beta0_ridge=beta0_ridge,
+            raw_obj = float(
+                abs(
+                    objective_total(
+                        model,
+                        data_sets,
+                        l2reg=l2reg,
+                        fusionreg=fusionreg,
+                        scale=1.0,
+                        beta0_ridge=beta0_ridge,
+                    )
                 )
             )
-            if scale == 0:
-                scale = 1.0
-
-            obj_old = objective_total(
-                model,
-                data_sets,
-                l2reg=l2reg,
-                fusionreg=fusionreg,
-                scale=scale,
-                beta0_ridge=beta0_ridge,
-            )
+            scale = raw_obj if raw_obj > 1e-30 else 1.0
+            obj_old = raw_obj / scale  # 1.0 by construction
 
             # calibration block
             model_calibration, model_rest = eqx.partition(
