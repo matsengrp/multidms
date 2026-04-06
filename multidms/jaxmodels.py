@@ -357,6 +357,7 @@ def fit(
     l2reg: Float = 0.0,
     fusionreg: Float = 0.0,
     beta0_ridge: Float = 0.0,
+    scale_fusion_by_n: bool = False,
     block_iters: int = 10,
     block_tol: Float = 1e-6,
     ge_kwargs: dict[str, Any] = dict(),
@@ -382,6 +383,8 @@ def fit(
         l2reg: L2 regularization strength for mutation effects.
         fusionreg: Fusion (shift lasso) regularization strength.
         beta0_ridge: Ridge penalty for β0 differences from reference condition.
+        scale_fusion_by_n: If True, weight each condition's fusion penalty by
+            n_ref / n_d, reducing shrinkage for data-poor conditions.
         block_iters: Number iterations for block coordinate descent.
         block_tol: Tolerance on objective function for block coordinate descent.
         ge_kwargs: Keyword arguments for the global epistasis model optimizer.
@@ -430,6 +433,23 @@ def fit(
             "WT sequence of the reference condition should have no mutations."
         )
 
+    # Compute per-condition fusion weights
+    n_ref = data_sets[reference_condition].functional_scores.shape[0]
+    if scale_fusion_by_n:
+        fusion_weights = {
+            d: n_ref / data_sets[d].functional_scores.shape[0]
+            for d in data_sets
+            if d != reference_condition
+        }
+    else:
+        fusion_weights = {d: 1.0 for d in data_sets if d != reference_condition}
+
+    if verbose and scale_fusion_by_n:
+        print("Fusion weights (scale_fusion_by_n=True):")
+        for d, w in fusion_weights.items():
+            n_d = data_sets[d].functional_scores.shape[0]
+            print(f"  {d}: {w:.3f} (n_ref={n_ref}, n_d={n_d})")
+
     def _beta_ridge_penalty(model: Model, beta0_ridge=0.0) -> Float:
         r"""Calculate ridge penalty for β0 differences from reference condition."""
         penalty = 0.0
@@ -477,9 +497,10 @@ def fit(
             β = model.φ[d].β
             l2_penalty += (β**2).sum()
             if d != model.reference_condition:
-                fusion_penalty += jnp.abs(
-                    model.φ[d].β - model.φ[model.reference_condition].β
-                ).sum()
+                fusion_penalty += (
+                    fusion_weights[d]
+                    * jnp.abs(model.φ[d].β - model.φ[model.reference_condition].β).sum()
+                )
         return (
             loss
             + l2reg * l2_penalty
@@ -492,6 +513,7 @@ def fit(
         model = hyperparameters["model"]
         fusionreg = hyperparameters["fusionreg"]
         scale = hyperparameters["scale"]
+        fw = hyperparameters["fusion_weights"]
         beta_clip_range = hyperparameters.get("beta_clip_range", None)
         # lasso
         β_ref = β_block[model.reference_condition]
@@ -499,7 +521,7 @@ def fit(
             if d != model.reference_condition:
                 β = β_block[d]
                 Δ = β - β_ref
-                Δ_lasso = jaxopt.prox.prox_lasso(Δ, fusionreg / scale, scaling)
+                Δ_lasso = jaxopt.prox.prox_lasso(Δ, fw[d] * fusionreg / scale, scaling)
                 β_block[d] = β_ref + Δ_lasso
         # box clipping (if specified)
         if beta_clip_range is not None:
@@ -658,6 +680,7 @@ def fit(
                 model=model,
                 fusionreg=fusionreg,
                 scale=scale,
+                fusion_weights=fusion_weights,
                 beta_clip_range=beta_clip_range,
             )
             β_block, state_nonbundle = opt_β.run(
@@ -689,6 +712,7 @@ def fit(
                 model=model,
                 fusionreg=fusionreg,
                 scale=scale,
+                fusion_weights=fusion_weights,
                 beta_clip_range=beta_clip_range,
             )
             β_block, state_bundle = opt_β.run(

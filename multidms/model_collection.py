@@ -50,6 +50,7 @@ def fit_one_model(
     l2reg=0.0,
     fusionreg=0.0,
     beta0_ridge=0.0,
+    scale_fusion_by_n=False,
     loss_type="functional_score_loss",
     maxiter=10,
     tol=1e-6,
@@ -83,6 +84,8 @@ def fit_one_model(
         Fusion (shift lasso) regularization strength.
     beta0_ridge : float
         Ridge penalty for beta0 differences from reference condition.
+    scale_fusion_by_n : bool
+        Weight each condition's fusion penalty by n_ref / n_d.
     loss_type : str
         Loss function: ``'functional_score_loss'`` or ``'count_loss'``.
     maxiter : int
@@ -120,6 +123,7 @@ def fit_one_model(
         l2reg=l2reg,
         fusionreg=fusionreg,
         beta0_ridge=beta0_ridge,
+        scale_fusion_by_n=scale_fusion_by_n,
         loss_type=loss_type,
     )
 

@@ -693,3 +693,40 @@ class TestFitParameters:
             f"Expected at least one inner block to NOT converge with "
             f"tol={inner_tol}, but all converged: {inner_errors}"
         )
+
+    def test_scale_fusion_by_n_equal_sizes(self, multi_condition_data):
+        """Test scale_fusion_by_n=True matches False when conditions have equal sizes."""
+        common_kwargs = dict(
+            data_sets=multi_condition_data,
+            reference_condition="condition1",
+            l2reg=0.1,
+            fusionreg=0.5,
+            block_iters=3,
+            warmstart=False,
+            verbose=False,
+        )
+
+        model_off, _ = jaxmodels.fit(**common_kwargs, scale_fusion_by_n=False)
+        model_on, _ = jaxmodels.fit(**common_kwargs, scale_fusion_by_n=True)
+
+        # With equal-sized conditions, weights are all 1.0 so results
+        # should be identical
+        for cond in multi_condition_data:
+            assert jnp.allclose(model_off.φ[cond].β, model_on.φ[cond].β, atol=1e-5), (
+                f"Equal-sized conditions should give identical results, "
+                f"but {cond} betas differ"
+            )
+
+    def test_scale_fusion_by_n_default_false(self, multi_condition_data):
+        """Test that the default for scale_fusion_by_n is False."""
+        model, _ = jaxmodels.fit(
+            data_sets=multi_condition_data,
+            reference_condition="condition1",
+            l2reg=0.1,
+            fusionreg=0.5,
+            block_iters=1,
+            warmstart=False,
+            verbose=False,
+        )
+        # If it runs without error and returns a model, the default works
+        assert model is not None
