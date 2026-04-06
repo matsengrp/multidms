@@ -65,8 +65,10 @@ see:</p>
 <li><p><code class="xref py py-mod docutils literal notranslate"><span class="pre">biophysical</span></code></p></li>
 </ul>
 </div></blockquote>
-<p><a class="reference internal" href="multidms.plot.html#module-multidms.plot" title="multidms.plot"><code class="xref py py-mod docutils literal notranslate"><span class="pre">plot</span></code></a> mostly contains code for interactive plotting
-at the moment.</p>
+<p><a class="reference internal" href="multidms.plot.html#module-multidms.plot" title="multidms.plot"><code class="xref py py-mod docutils literal notranslate"><span class="pre">plot</span></code></a> contains all interactive Altair-based visualizations.
+Every public function takes a DataFrame and returns an <code class="docutils literal notranslate"><span class="pre">alt.Chart</span></code>.
+Class methods on <code class="docutils literal notranslate"><span class="pre">Data</span></code>, <code class="docutils literal notranslate"><span class="pre">Model</span></code>, and <code class="docutils literal notranslate"><span class="pre">ModelCollection</span></code> are thin
+wrappers that delegate here.</p>
 <p>It also imports the following alphabets:</p>
 <blockquote>
 <div><ul class="simple">
@@ -394,21 +396,37 @@ to converted</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Data.plot_times_seen_hist">
-<span class="sig-name descname"><span class="pre">plot_times_seen_hist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Data.plot_times_seen_hist" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plot a histogram of the number of times each mutation was seen.</p>
+<span class="sig-name descname"><span class="pre">plot_times_seen_hist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Data.plot_times_seen_hist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot an interactive histogram of mutation occurrence counts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Interactive Altair histogram.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>alt.Chart</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.Data.plot_func_score_boxplot">
-<span class="sig-name descname"><span class="pre">plot_func_score_boxplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">saveas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Data.plot_func_score_boxplot" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plot a boxplot of the functional scores for each condition.</p>
+<span class="sig-name descname"><span class="pre">plot_func_score_boxplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Data.plot_func_score_boxplot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot an interactive boxplot of functional scores by condition.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Interactive Altair boxplot.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>alt.Chart</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="multidms.Model">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="multidms.data.html#multidms.data.Data" title="multidms.data.Data"><span class="pre">Data</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.14)"><span class="pre">Literal</span></a><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'functional_score_loss'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'count_loss'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'functional_score_loss'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ge_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.14)"><span class="pre">Literal</span></a><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'Identity'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'Sigmoid'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Sigmoid'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l2reg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fusionreg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta0_ridge</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="multidms.data.html#multidms.data.Data" title="multidms.data.Data"><span class="pre">Data</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.14)"><span class="pre">Literal</span></a><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'functional_score_loss'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'count_loss'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'functional_score_loss'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ge_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.14)"><span class="pre">Literal</span></a><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'Identity'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'Sigmoid'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Sigmoid'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l2reg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fusionreg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta0_ridge</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_fusion_by_n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Model for global epistasis analysis of DMS experiments.</p>
 <p>This class wraps the jaxmodels backend to provide a user-friendly
@@ -466,12 +484,16 @@ was below the tolerance used during fitting.</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.Model.convergence_trajectory_df">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">convergence_trajectory_df</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.Model.convergence_trajectory_df" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convergence trajectory showing objective and loss over iterations.</p>
+<dd><p>Convergence trajectory with diagnostics over iterations.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>DataFrame with columns <code class="docutils literal notranslate"><span class="pre">iteration</span></code>,
-<code class="docutils literal notranslate"><span class="pre">objective_total_trajectory</span></code>, <code class="docutils literal notranslate"><span class="pre">objective_error_trajectory</span></code>,
-<code class="docutils literal notranslate"><span class="pre">loss_trajectory</span></code>.</p>
+<dd class="field-odd"><p>One row per iteration with columns for overall objective
+(<code class="docutils literal notranslate"><span class="pre">iteration</span></code>, <code class="docutils literal notranslate"><span class="pre">objective_total_trajectory</span></code>,
+<code class="docutils literal notranslate"><span class="pre">objective_error_trajectory</span></code>, <code class="docutils literal notranslate"><span class="pre">loss_trajectory</span></code>,
+<code class="docutils literal notranslate"><span class="pre">loss_per_variant_trajectory</span></code>), block-level diagnostics
+(e.g. <code class="docutils literal notranslate"><span class="pre">calibration_error</span></code>, <code class="docutils literal notranslate"><span class="pre">beta0_stepsize</span></code>), and
+per-condition parameters (<code class="docutils literal notranslate"><span class="pre">alpha_{cond}</span></code>, <code class="docutils literal notranslate"><span class="pre">theta_{cond}</span></code>,
+<code class="docutils literal notranslate"><span class="pre">beta0_{cond}</span></code>, <code class="docutils literal notranslate"><span class="pre">sparsity_{cond}</span></code>).</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>pd.DataFrame</p>
@@ -712,6 +734,28 @@ plus <code class="docutils literal notranslate"><span class="pre">wildtype_laten
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="multidms.Model.plot_ge_landscape">
+<span class="sig-name descname"><span class="pre">plot_ge_landscape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_curve_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.plot_ge_landscape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the global epistasis landscape.</p>
+<p>Convenience wrapper that calls <a class="reference internal" href="#multidms.Model.get_ge_landscape_df" title="multidms.Model.get_ge_landscape_df"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_ge_landscape_df()</span></code></a> and
+delegates to <a class="reference internal" href="multidms.plot.html#multidms.plot.ge_landscape" title="multidms.plot.ge_landscape"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.plot.ge_landscape()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_curve_points</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of points for the <code class="docutils literal notranslate"><span class="pre">g(φ)</span></code> curve grid. Default 200.</p></li>
+<li><p><strong>**kwargs</strong> – Passed to <a class="reference internal" href="multidms.plot.html#multidms.plot.ge_landscape" title="multidms.plot.ge_landscape"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.plot.ge_landscape()</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Interactive Altair chart.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>alt.LayerChart</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.get_ge_curve">
 <span class="sig-name descname"><span class="pre">get_ge_curve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grid_min</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_max</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><span class="pre">DataFrame</span></a></span></span><a class="headerlink" href="#multidms.Model.get_ge_curve" title="Permalink to this definition">¶</a></dt>
 <dd><p>Evaluate the global epistasis function over a latent phenotype grid.</p>
@@ -884,6 +928,29 @@ all fits in the queried collection.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="multidms.ModelCollection.plot_convergence_trajectory">
+<span class="sig-name descname"><span class="pre">plot_convergence_trajectory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id_vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('dataset_name',</span> <span class="pre">'fusionreg')</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.plot_convergence_trajectory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot convergence trajectories as an interactive Altair chart.</p>
+<p>Delegates to <a class="reference internal" href="multidms.plot.html#multidms.plot.convergence_trajectory" title="multidms.plot.convergence_trajectory"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.plot.convergence_trajectory()</span></code></a> after
+extracting the convergence data from fitted models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>query</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Query to filter <code class="docutils literal notranslate"><span class="pre">fit_models</span></code> before extracting trajectories.</p></li>
+<li><p><strong>id_vars</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><em>tuple</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Columns identifying individual model runs.</p></li>
+<li><p><strong>**kwargs</strong> – Passed to <a class="reference internal" href="multidms.plot.html#multidms.plot.convergence_trajectory" title="multidms.plot.convergence_trajectory"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.plot.convergence_trajectory()</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Interactive Altair chart with group dropdown and legend toggle.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>alt.Chart</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="multidms.ModelCollection.mut_param_heatmap">
 <span class="sig-name descname"><span class="pre">mut_param_heatmap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mut_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aggregate_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_merge_dataset_muts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times_seen_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phenotype_as_effect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.ModelCollection.mut_param_heatmap" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create lineplot and heatmap altair chart
@@ -923,7 +990,7 @@ aggregation. The default is 0.</p></li>
 <li><p><strong>phenotype_as_effect</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Passed to <cite>Model.get_mutations_df()</cite>,
 Only applies if <cite>mut_param=”predicted_func_score”</cite>.</p></li>
 <li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Keyword arguments to pass to
-<code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.plot._lineplot_and_heatmap()</span></code>.</p></li>
+<a class="reference internal" href="multidms.plot.html#multidms.plot.lineplot_and_heatmap" title="multidms.plot.lineplot_and_heatmap"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.plot.lineplot_and_heatmap()</span></code></a>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1167,6 +1234,7 @@ comparison and visualization.</p>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.eval_loss"><code class="docutils literal notranslate"><span class="pre">Model.eval_loss()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.add_phenotypes_to_df"><code class="docutils literal notranslate"><span class="pre">Model.add_phenotypes_to_df()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_ge_landscape_df"><code class="docutils literal notranslate"><span class="pre">Model.get_ge_landscape_df()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.plot_ge_landscape"><code class="docutils literal notranslate"><span class="pre">Model.plot_ge_landscape()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_ge_curve"><code class="docutils literal notranslate"><span class="pre">Model.get_ge_curve()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.wildtype_latent"><code class="docutils literal notranslate"><span class="pre">Model.wildtype_latent</span></code></a></li>
 </ul>
@@ -1186,14 +1254,26 @@ comparison and visualization.</p>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.add_eval_loss"><code class="docutils literal notranslate"><span class="pre">ModelCollection.add_eval_loss()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.loss_df"><code class="docutils literal notranslate"><span class="pre">ModelCollection.loss_df()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.convergence_trajectory_df"><code class="docutils literal notranslate"><span class="pre">ModelCollection.convergence_trajectory_df()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.plot_convergence_trajectory"><code class="docutils literal notranslate"><span class="pre">ModelCollection.plot_convergence_trajectory()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.mut_param_heatmap"><code class="docutils literal notranslate"><span class="pre">ModelCollection.mut_param_heatmap()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.mut_param_traceplot"><code class="docutils literal notranslate"><span class="pre">ModelCollection.mut_param_traceplot()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.shift_sparsity"><code class="docutils literal notranslate"><span class="pre">ModelCollection.shift_sparsity()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model_collection.html#multidms.model_collection.ModelCollection.mut_param_dataset_correlation"><code class="docutils literal notranslate"><span class="pre">ModelCollection.mut_param_dataset_correlation()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="multidms.plot.html">plot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.plot.html">plot</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="multidms.plot.html#public-functions">Public functions</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.plot.html#multidms.plot.color_gradient_hex"><code class="docutils literal notranslate"><span class="pre">color_gradient_hex()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.plot.html#multidms.plot.lineplot_and_heatmap"><code class="docutils literal notranslate"><span class="pre">lineplot_and_heatmap()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.plot.html#multidms.plot.convergence_trajectory"><code class="docutils literal notranslate"><span class="pre">convergence_trajectory()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.plot.html#multidms.plot.mut_param_heatmap"><code class="docutils literal notranslate"><span class="pre">mut_param_heatmap()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.plot.html#multidms.plot.mut_param_traceplot"><code class="docutils literal notranslate"><span class="pre">mut_param_traceplot()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.plot.html#multidms.plot.shift_sparsity"><code class="docutils literal notranslate"><span class="pre">shift_sparsity()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.plot.html#multidms.plot.mut_param_dataset_correlation"><code class="docutils literal notranslate"><span class="pre">mut_param_dataset_correlation()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.plot.html#multidms.plot.times_seen_hist"><code class="docutils literal notranslate"><span class="pre">times_seen_hist()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="multidms.plot.html#multidms.plot.func_score_boxplot"><code class="docutils literal notranslate"><span class="pre">func_score_boxplot()</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.plot.html#multidms.plot.ge_landscape"><code class="docutils literal notranslate"><span class="pre">ge_landscape()</span></code></a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.utils.html">Utils</a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.utils.html#multidms.utils.explode_params_dict"><code class="docutils literal notranslate"><span class="pre">explode_params_dict()</span></code></a></li>

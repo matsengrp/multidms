@@ -36,7 +36,24 @@
             
   <span class="target" id="module-multidms.plot"></span><section id="plot">
 <h1>plot<a class="headerlink" href="#plot" title="Permalink to this heading">¶</a></h1>
-<p>Plotting functions.</p>
+<p>All interactive Altair-based visualizations for <code class="docutils literal notranslate"><span class="pre">multidms</span></code>.</p>
+<p>Every public function accepts DataFrames and returns <code class="docutils literal notranslate"><span class="pre">alt.Chart</span></code> objects,
+making them independently testable and usable with any data source.</p>
+<section id="public-functions">
+<h2>Public functions<a class="headerlink" href="#public-functions" title="Permalink to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="#multidms.plot.color_gradient_hex" title="multidms.plot.color_gradient_hex"><code class="xref py py-func docutils literal notranslate"><span class="pre">color_gradient_hex()</span></code></a> — linear color gradient utility</p></li>
+<li><p><a class="reference internal" href="#multidms.plot.lineplot_and_heatmap" title="multidms.plot.lineplot_and_heatmap"><code class="xref py py-func docutils literal notranslate"><span class="pre">lineplot_and_heatmap()</span></code></a> — interactive per-site/per-mutation heatmap</p></li>
+<li><p><a class="reference internal" href="#multidms.plot.convergence_trajectory" title="multidms.plot.convergence_trajectory"><code class="xref py py-func docutils literal notranslate"><span class="pre">convergence_trajectory()</span></code></a> — convergence diagnostics with group dropdown</p></li>
+<li><p><a class="reference internal" href="#multidms.plot.mut_param_heatmap" title="multidms.plot.mut_param_heatmap"><code class="xref py py-func docutils literal notranslate"><span class="pre">mut_param_heatmap()</span></code></a> — mutation parameter heatmap (wraps lineplot_and_heatmap)</p></li>
+<li><p><a class="reference internal" href="#multidms.plot.mut_param_traceplot" title="multidms.plot.mut_param_traceplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">mut_param_traceplot()</span></code></a> — mutation parameters across regularization</p></li>
+<li><p><a class="reference internal" href="#multidms.plot.shift_sparsity" title="multidms.plot.shift_sparsity"><code class="xref py py-func docutils literal notranslate"><span class="pre">shift_sparsity()</span></code></a> — shift sparsity across regularization</p></li>
+<li><p><a class="reference internal" href="#multidms.plot.mut_param_dataset_correlation" title="multidms.plot.mut_param_dataset_correlation"><code class="xref py py-func docutils literal notranslate"><span class="pre">mut_param_dataset_correlation()</span></code></a> — replicate correlation</p></li>
+<li><p><a class="reference internal" href="#multidms.plot.times_seen_hist" title="multidms.plot.times_seen_hist"><code class="xref py py-func docutils literal notranslate"><span class="pre">times_seen_hist()</span></code></a> — mutation occurrence histogram</p></li>
+<li><p><a class="reference internal" href="#multidms.plot.func_score_boxplot" title="multidms.plot.func_score_boxplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">func_score_boxplot()</span></code></a> — functional score distribution</p></li>
+<li><p><a class="reference internal" href="#multidms.plot.ge_landscape" title="multidms.plot.ge_landscape"><code class="xref py py-func docutils literal notranslate"><span class="pre">ge_landscape()</span></code></a> — global epistasis landscape</p></li>
+</ul>
+</section>
 </section>
 <dl class="py function">
 <dt class="sig sig-object py" id="multidms.plot.color_gradient_hex">
@@ -66,8 +83,232 @@
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="multidms.plot.lineplot_and_heatmap">
+<span class="sig-prename descclassname"><span class="pre">multidms.plot.</span></span><span class="sig-name descname"><span class="pre">lineplot_and_heatmap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stat_col</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">category_col</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alphabet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sites</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">addtl_tooltip_stats</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">addtl_slider_stats</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_floor_at_zero</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_site_statistic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sum'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">11</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lineplot_width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">690</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lineplot_height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">site_zoom_bar_width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">site_zoom_bar_color_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_single_category_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">category_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heatmap_negative_color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heatmap_color_scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heatmap_color_scheme_mid_0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heatmap_max_at_least</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heatmap_min_at_least</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">site_zoom_bar_color_scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'set3'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slider_binding_range_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">category_prefix_as_replicate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">categorical_wildtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.plot.lineplot_and_heatmap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lineplots and heatmaps of per-site and per-mutation values.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This code is _mostly_ from <code class="docutils literal notranslate"><span class="pre">polyclonal</span></code>, but modified for use with <code class="docutils literal notranslate"><span class="pre">multidms</span></code></p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data_df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><em>pandas.DataFrame</em></a>) – Data to plot. Must have columns “site”, “wildtype”, “mutant”, <cite>stat_col</cite>, and
+<cite>category_col</cite>. The wildtype values (wildtype = mutant) should be included,
+but are not used for the slider filtering or included in site summary lineplot.</p></li>
+<li><p><strong>stat_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column in <cite>data_df</cite> with statistic to plot.</p></li>
+<li><p><strong>category_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column in <cite>data_df</cite> with category to facet plots over. You can just create
+a dummy column with some dummy value if you only have one category.</p></li>
+<li><p><strong>alphabet</strong> (<em>array-like</em><em> or </em><em>None</em>) – Alphabet letters in order. If <cite>None</cite>, use natsorted “mutant” col of <cite>data_df</cite>.</p></li>
+<li><p><strong>sites</strong> (<em>array-like</em><em> or </em><em>None</em>) – Sites in order. If <cite>None</cite>, use natsorted “site” col of <cite>data_df</cite>.</p></li>
+<li><p><strong>addtl_tooltip_stats</strong> (<em>None</em><em> or </em><em>array-like</em>) – Additional mutation-level stats to show in the heatmap tooltips. Values in
+<cite>addtl_slider_stats</cite> automatically included.</p></li>
+<li><p><strong>addtl_slider_stats</strong> (<em>None</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Additional stats for which to have a slider, value is initial setting. Ignores
+wildtype and drops it when all mutants have been dropped at site. Null values
+are not filtered.</p></li>
+<li><p><strong>init_floor_at_zero</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Initial value for option to put floor of zero on value is <cite>stat_col</cite>.</p></li>
+<li><p><strong>init_site_statistic</strong> (<em>{'sum'</em><em>, </em><em>'mean'</em><em>, </em><em>'max'</em><em>, </em><em>'min'}</em>) – Initial value for site statistic in lineplot, calculated from <cite>stat_col</cite>.</p></li>
+<li><p><strong>cell_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Size of cells in heatmap</p></li>
+<li><p><strong>lineplot_width</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>None</em>) – Overall width of lineplot.</p></li>
+<li><p><strong>lineplot_height</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Height of line plot.</p></li>
+<li><p><strong>site_zoom_bar_width</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Width of site zoom bar.</p></li>
+<li><p><strong>site_zoom_bar_color_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Column in <cite>data_df</cite> with which to color zoom bar. Must be the same for all
+entries for a site.</p></li>
+<li><p><strong>plot_title</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em>) – Overall plot title.</p></li>
+<li><p><strong>show_single_category_label</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Show the category label if just one category.</p></li>
+<li><p><strong>category_colors</strong> (<em>None</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Map each category to its color, or None to use default. These are the
+colors for <strong>positive</strong> values of <cite>stat_col</cite>.</p></li>
+<li><p><strong>heatmap_negative_color</strong> (<em>None</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Color used for negative values in heatmaps, or None to use default.</p></li>
+<li><p><strong>heatmap_color_scheme</strong> (<em>None</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Heatmap uses this <a class="reference external" href="https://vega.github.io/vega/docs/schemes">Vega scheme</a>
+rather than <cite>category_colors</cite> and <cite>heatmap_negative_color</cite>.</p></li>
+<li><p><strong>heatmap_color_scheme_mid_0</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Set the heatmap color scheme so the domain mid is zero.</p></li>
+<li><p><strong>heatmap_max_at_least</strong> (<em>None</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Make heatmap color max at least this large.</p></li>
+<li><p><strong>heatmap_min_at_least</strong> (<em>None</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Make heatmap color min at least this small, but still set to 0 if floor of zero
+selected.</p></li>
+<li><p><strong>site_zoom_bar_color_scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – If using <cite>site_zoom_bar_color_col</cite>, the
+<a class="reference external" href="https://vega.github.io/vega/docs/schemes">Vega color scheme</a> to use.</p></li>
+<li><p><strong>slider_binding_range_kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Keyed by keys in <code class="docutils literal notranslate"><span class="pre">addtl_slider_stats</span></code>, with values being dicts
+giving keyword arguments passed to <code class="docutils literal notranslate"><span class="pre">altair.binding_range</span></code> (eg,
+‘min’, ‘max’, ‘step’, etc.</p></li>
+<li><p><strong>category_prefix_as_replicate</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – The first part of the category will be treated as a key on which to
+merge conditions as if they were replicates. Any number of replicates
+can be matched with any given category. The replicates will be combined
+using an inner merge, and tooltips will be added to each point
+showing the average value of all replicates.</p></li>
+<li><p><strong>categorical_wildtype</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – if true, then the columns that are prefixed with ‘wildtype’ and
+follow with a suffix matching a specific condition,
+will be labeled with points at all non identical sites when compared
+with the ‘wildtype’ column (which will be used to mark ‘x’ on each category
+heatmap).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="multidms.plot.convergence_trajectory">
+<span class="sig-prename descclassname"><span class="pre">multidms.plot.</span></span><span class="sig-name descname"><span class="pre">convergence_trajectory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'iteration'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id_cols</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajectory_groups</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_group</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'overall'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_first</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">700</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">250</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Convergence</span> <span class="pre">Diagnostics'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.plot.convergence_trajectory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interactive convergence trajectory plot.</p>
+<p>Creates an Altair chart with a dropdown to switch between groups
+of convergence diagnostics (overall loss, block errors, block
+stepsizes, block iterations, per-condition parameters). Within
+each group, individual metrics can be toggled via legend clicks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><em>pandas.DataFrame</em></a>) – Convergence trajectory data, typically from
+<code class="docutils literal notranslate"><span class="pre">ModelCollection.convergence_trajectory_df()</span></code> or
+<code class="docutils literal notranslate"><span class="pre">Model.convergence_trajectory_df</span></code>. Must contain an
+<code class="docutils literal notranslate"><span class="pre">iteration</span></code> column and one or more trajectory value columns.</p></li>
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column for the x-axis. Default <code class="docutils literal notranslate"><span class="pre">'iteration'</span></code>.</p></li>
+<li><p><strong>id_cols</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em>) – Columns that identify distinct model runs (e.g.
+<code class="docutils literal notranslate"><span class="pre">['dataset_name',</span> <span class="pre">'fusionreg']</span></code>). Each unique combination
+gets a distinct line style. If None, no model identity
+distinction is made.</p></li>
+<li><p><strong>trajectory_groups</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em> or </em><em>None</em>) – Mapping from group name to list of column names. If None,
+auto-detected from the DataFrame using canonical groupings
+plus any per-condition columns.</p></li>
+<li><p><strong>init_group</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Which group to display initially. Default <code class="docutils literal notranslate"><span class="pre">'overall'</span></code>.</p></li>
+<li><p><strong>log_y</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Whether to use log scale on the y-axis. Default True.</p></li>
+<li><p><strong>skip_first</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, filter out <code class="docutils literal notranslate"><span class="pre">iteration</span> <span class="pre">==</span> <span class="pre">0</span></code>. Default True.</p></li>
+<li><p><strong>width</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Chart width in pixels. Default 700.</p></li>
+<li><p><strong>height</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Chart height in pixels. Default 250.</p></li>
+<li><p><strong>title</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em>) – Chart title. Default <code class="docutils literal notranslate"><span class="pre">'Convergence</span> <span class="pre">Diagnostics'</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Interactive Altair chart with group dropdown and legend toggle.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>alt.Chart</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="multidms.plot.mut_param_heatmap">
+<span class="sig-prename descclassname"><span class="pre">multidms.plot.</span></span><span class="sig-name descname"><span class="pre">mut_param_heatmap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">muts_df_tall</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mut_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.plot.mut_param_heatmap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interactive heatmap of mutation parameters across conditions.</p>
+<p>Thin wrapper around <a class="reference internal" href="#multidms.plot.lineplot_and_heatmap" title="multidms.plot.lineplot_and_heatmap"><code class="xref py py-func docutils literal notranslate"><span class="pre">lineplot_and_heatmap()</span></code></a> with mutation-specific
+defaults.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>muts_df_tall</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><em>pandas.DataFrame</em></a>) – Long-form DataFrame with columns <code class="docutils literal notranslate"><span class="pre">site</span></code>, <code class="docutils literal notranslate"><span class="pre">wildtype</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mutant</span></code>, <code class="docutils literal notranslate"><span class="pre">condition</span></code>, and <code class="docutils literal notranslate"><span class="pre">mut_param</span></code>.</p></li>
+<li><p><strong>mut_param</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Name of the statistic column in <code class="docutils literal notranslate"><span class="pre">muts_df_tall</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> – Passed to <a class="reference internal" href="#multidms.plot.lineplot_and_heatmap" title="multidms.plot.lineplot_and_heatmap"><code class="xref py py-func docutils literal notranslate"><span class="pre">lineplot_and_heatmap()</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>alt.Chart</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="multidms.plot.mut_param_traceplot">
+<span class="sig-prename descclassname"><span class="pre">multidms.plot.</span></span><span class="sig-name descname"><span class="pre">mut_param_traceplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">muts_df_tall</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'fusionreg'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mut_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.plot.mut_param_traceplot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trace mutation parameter values across regularization weights.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>muts_df_tall</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><em>pandas.DataFrame</em></a>) – Long-form DataFrame with columns <code class="docutils literal notranslate"><span class="pre">dataset_name</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mut_type</span></code>, <code class="docutils literal notranslate"><span class="pre">mutation</span></code>, <code class="docutils literal notranslate"><span class="pre">condition</span></code>, and <code class="docutils literal notranslate"><span class="pre">mut_param</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column for the x-axis. Default <code class="docutils literal notranslate"><span class="pre">'fusionreg'</span></code>.</p></li>
+<li><p><strong>mut_param</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column with mutation parameter values. Default <code class="docutils literal notranslate"><span class="pre">'shift'</span></code>.</p></li>
+<li><p><strong>width_scalar</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Width multiplier per facet column.</p></li>
+<li><p><strong>height_scalar</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Height multiplier per facet row.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>alt.FacetChart</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="multidms.plot.shift_sparsity">
+<span class="sig-prename descclassname"><span class="pre">multidms.plot.</span></span><span class="sig-name descname"><span class="pre">shift_sparsity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sparsity_df</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'fusionreg'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.plot.shift_sparsity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Visualize shift parameter sparsity across regularization weights.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sparsity_df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><em>pandas.DataFrame</em></a>) – DataFrame with columns <code class="docutils literal notranslate"><span class="pre">dataset_name</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">mut_type</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mut_param</span></code>, and <code class="docutils literal notranslate"><span class="pre">sparsity</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column for the x-axis. Default <code class="docutils literal notranslate"><span class="pre">'fusionreg'</span></code>.</p></li>
+<li><p><strong>width_scalar</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Width multiplier per facet column.</p></li>
+<li><p><strong>height_scalar</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Height multiplier per facet row.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>alt.FacetChart</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="multidms.plot.mut_param_dataset_correlation">
+<span class="sig-prename descclassname"><span class="pre">multidms.plot.</span></span><span class="sig-name descname"><span class="pre">mut_param_dataset_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">replicate_df</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'fusionreg'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width_scalar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">400</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.plot.mut_param_dataset_correlation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Visualize mutation parameter correlation between replicate datasets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>replicate_df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><em>pandas.DataFrame</em></a>) – DataFrame with columns <code class="docutils literal notranslate"><span class="pre">datasets</span></code>, <code class="docutils literal notranslate"><span class="pre">mut_param</span></code>,
+<code class="docutils literal notranslate"><span class="pre">correlation</span></code>, and <code class="docutils literal notranslate"><span class="pre">x</span></code>.</p></li>
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column for the x-axis. Default <code class="docutils literal notranslate"><span class="pre">'fusionreg'</span></code>.</p></li>
+<li><p><strong>r</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Exponent used (1 for pearson, 2 for R^2). Only affects title.</p></li>
+<li><p><strong>width_scalar</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Width multiplier per facet column.</p></li>
+<li><p><strong>height</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Chart height.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>alt.FacetChart</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="multidms.plot.times_seen_hist">
+<span class="sig-prename descclassname"><span class="pre">multidms.plot.</span></span><span class="sig-name descname"><span class="pre">times_seen_hist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mutations_df</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.plot.times_seen_hist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interactive histogram of mutation occurrence counts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mutations_df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><em>pandas.DataFrame</em></a>) – Mutations DataFrame with <code class="docutils literal notranslate"><span class="pre">times_seen_{condition}</span></code> columns.</p></li>
+<li><p><strong>conditions</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em>) – Condition names. If None, auto-detected from column names
+matching <code class="docutils literal notranslate"><span class="pre">times_seen_*</span></code>.</p></li>
+<li><p><strong>width</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Chart width in pixels.</p></li>
+<li><p><strong>height</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Chart height in pixels.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>alt.Chart</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="multidms.plot.func_score_boxplot">
+<span class="sig-prename descclassname"><span class="pre">multidms.plot.</span></span><span class="sig-name descname"><span class="pre">func_score_boxplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variants_df</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.plot.func_score_boxplot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interactive boxplot of functional scores by condition.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>variants_df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><em>pandas.DataFrame</em></a>) – Variants DataFrame with <code class="docutils literal notranslate"><span class="pre">condition</span></code> and <code class="docutils literal notranslate"><span class="pre">func_score</span></code> columns.</p></li>
+<li><p><strong>width</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Chart width in pixels.</p></li>
+<li><p><strong>height</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Chart height in pixels.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>alt.Chart</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="multidms.plot.ge_landscape">
-<span class="sig-prename descclassname"><span class="pre">multidms.plot.</span></span><span class="sig-name descname"><span class="pre">ge_landscape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fitness_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'measured_fitness'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'condition'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point_opacity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">curve_color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'grey'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">curve_width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_curve_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.plot.ge_landscape" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">multidms.plot.</span></span><span class="sig-name descname"><span class="pre">ge_landscape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variants_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ge_curve_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fitness_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'measured_fitness'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'condition'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point_opacity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">curve_color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'grey'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">curve_width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">400</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.plot.ge_landscape" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plot the global epistasis landscape.</p>
 <p>Overlays per-variant fitness scores on the global epistasis curve
 <code class="docutils literal notranslate"><span class="pre">g(φ)</span></code>, showing how the nonlinear transformation maps latent
@@ -76,7 +317,12 @@ condition are shown as dashed vertical reference lines.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<a class="reference internal" href="multidms.html#multidms.Model" title="multidms.Model"><em>multidms.Model</em></a>) – A fitted Model object.</p></li>
+<li><p><strong>variants_df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><em>pandas.DataFrame</em></a>) – Variant-level data with columns <code class="docutils literal notranslate"><span class="pre">predicted_latent</span></code>,
+<code class="docutils literal notranslate"><span class="pre">condition</span></code>, <code class="docutils literal notranslate"><span class="pre">wildtype_latent</span></code>, and <code class="docutils literal notranslate"><span class="pre">fitness_col</span></code>.
+Typically from <code class="xref py py-meth docutils literal notranslate"><span class="pre">Model.get_ge_landscape_df()</span></code>.</p></li>
+<li><p><strong>ge_curve_df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><em>pandas.DataFrame</em></a>) – Global epistasis curve with columns <code class="docutils literal notranslate"><span class="pre">predicted_latent</span></code>
+and <code class="docutils literal notranslate"><span class="pre">ge_curve_value</span></code>.
+Typically from <code class="xref py py-meth docutils literal notranslate"><span class="pre">Model.get_ge_landscape_df()</span></code>.</p></li>
 <li><p><strong>fitness_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Which fitness column to plot on the y-axis: <code class="docutils literal notranslate"><span class="pre">'measured_fitness'</span></code>
 or <code class="docutils literal notranslate"><span class="pre">'predicted_fitness'</span></code>. Default is <code class="docutils literal notranslate"><span class="pre">'measured_fitness'</span></code>.</p></li>
 <li><p><strong>color_by</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column to color scatter points by. Default is <code class="docutils literal notranslate"><span class="pre">'condition'</span></code>.</p></li>
@@ -86,7 +332,6 @@ or <code class="docutils literal notranslate"><span class="pre">'predicted_fitne
 <li><p><strong>curve_width</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Stroke width of the <code class="docutils literal notranslate"><span class="pre">g(φ)</span></code> curve. Default is 3.</p></li>
 <li><p><strong>width</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Chart width in pixels. Default is 500.</p></li>
 <li><p><strong>height</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Chart height in pixels. Default is 400.</p></li>
-<li><p><strong>n_curve_points</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of points for the <code class="docutils literal notranslate"><span class="pre">g(φ)</span></code> curve grid. Default is 200.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

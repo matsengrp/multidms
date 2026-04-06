@@ -101,7 +101,7 @@
 <span class="n">train_frac</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;train_frac&quot;</span><span class="p">]</span>
 <span class="n">condition_titles</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;condition_titles&quot;</span><span class="p">]</span>
 
-<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="n">spike</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output_dir&quot;</span><span class="p">,</span> <span class="s2">&quot;results&quot;</span><span class="p">)</span>
 <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
