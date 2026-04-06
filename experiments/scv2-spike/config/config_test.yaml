@@ -39,8 +39,8 @@ spike:
     tol: 1.0e-6
     fusionreg_values: [0.0, 3.2]
     l2reg: 1.0e-2
-    beta0_ridge: 100
-    scale_fusion_by_n: true
+    beta0_ridge: 10
+    scale_fusion_by_n: false
     ge_type: "Sigmoid"
     warmstart: false
     beta0_init: {Omicron_BA1: 0.0, Delta: 0.0, Omicron_BA2: 0.0}
@@ -49,7 +49,7 @@ spike:
     loss_kwargs: {"δ": 1.0}
     ge_kwargs: {tol: 1.0e-5, maxiter: 1000, maxls: 40, jit: true, verbose: false}
     cal_kwargs: {tol: 1.0e-4, maxiter: 1000, maxls: 40, jit: true, verbose: false}
-    n_processes: 7
+    n_processes: null  # null = auto: min(cpu_count // 2, n_models)
   lasso_choice: 3.2
 
   # Spike protein domain boundaries (for downstream Phase 4 notebooks)
