@@ -400,7 +400,7 @@ class TestModel:
         assert model is not None
         assert model.reference_condition == "condition1"
         assert len(model.φ) == len(multi_condition_data)
-        assert len(model.α) == len(multi_condition_data)
+        assert model.α.shape == ()
         assert len(model.logθ) == len(multi_condition_data)
 
     def test_predict_score(self, multi_condition_data):

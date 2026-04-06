@@ -94,8 +94,10 @@ def fit_one_model(
         Convergence tolerance.
     warmstart : bool
         Whether to use Ridge regression for initialization.
-    beta0_init, beta_init, alpha_init : dict, optional
+    beta0_init, beta_init : dict, optional
         Initial parameter values per condition.
+    alpha_init : float, optional
+        Initial shared α scaling value.
     beta_clip_range : tuple, optional
         ``(min, max)`` clipping for beta parameters.
     ge_kwargs, cal_kwargs, loss_kwargs : dict, optional

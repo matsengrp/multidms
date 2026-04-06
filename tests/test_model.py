@@ -233,10 +233,12 @@ def test_model_fit_convergence_trajectory(simple_data):
         for suffix in ["error", "stepsize", "iter_num"]:
             assert f"{block}_{suffix}" in traj_df.columns
 
+    # Shared alpha column
+    assert "alpha" in traj_df.columns
+
     # Per-condition columns
     conditions = simple_data.conditions
     for cond in conditions:
-        assert f"alpha_{cond}" in traj_df.columns
         # theta is only tracked when count data is present
         assert f"theta_{cond}" not in traj_df.columns
         assert f"beta0_{cond}" in traj_df.columns
@@ -273,8 +275,8 @@ def test_convergence_trajectory_single_condition(fitted_single_condition_model):
     """Test trajectory columns for single-condition model (no sparsity)."""
     traj_df = fitted_single_condition_model.convergence_trajectory_df
     assert len(traj_df) > 0
-    # Should have alpha/beta0 for the single condition (no theta without count data)
-    assert "alpha_a" in traj_df.columns
+    # Should have shared alpha and beta0 for the single condition (no theta without count data)
+    assert "alpha" in traj_df.columns
     assert "theta_a" not in traj_df.columns
     assert "beta0_a" in traj_df.columns
     # No sparsity columns (reference is the only condition)
@@ -405,7 +407,7 @@ def test_identity_ge_predicted_func_score_equals_alpha_times_beta(simple_data):
     muts_df = model.get_mutations_df()
     ref = model.data.reference
 
-    alpha = float(model._jax_model.α[ref])
+    alpha = float(model._jax_model.α)
     expected = muts_df[f"beta_{ref}"].values * alpha
     actual = muts_df[f"predicted_func_score_{ref}"].values
 
@@ -770,11 +772,8 @@ def test_add_phenotypes_to_df_with_explicit_parameters(simple_data):
         "b": np.array([1.2, 2.2, -0.3, -1.3]),  # Different effects in condition b
     }
 
-    # α: scaling factors
-    alpha_values = {
-        "a": 1.0,
-        "b": 1.0,
-    }
+    # α: shared scaling factor
+    alpha_values = 1.0
 
     # Create model with Identity global epistasis for simple linear predictions
     model = multidms.Model(simple_data, ge_type="Identity", l2reg=0.0)
@@ -907,7 +906,7 @@ def test_identity_ge_fitness_formula(simple_data):
 
     for condition in model.data.conditions:
         cond_df = vars_df[vars_df["condition"] == condition]
-        α = float(model._jax_model.α[condition])
+        α = float(model._jax_model.α)
         φ_wt = wt_latent[condition]
         expected_measured = cond_df["func_score"].values / α + φ_wt
         assert np.allclose(

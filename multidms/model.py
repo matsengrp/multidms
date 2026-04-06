@@ -139,8 +139,8 @@ class Model:
             ``objective_error_trajectory``, ``loss_trajectory``,
             ``loss_per_variant_trajectory``), block-level diagnostics
             (e.g. ``calibration_error``, ``beta0_stepsize``), and
-            per-condition parameters (``alpha_{cond}``,
-            ``beta0_{cond}``, ``sparsity_{cond}``), and
+            shared alpha (``alpha``), and per-condition parameters
+            (``beta0_{cond}``, ``sparsity_{cond}``), and
             ``theta_{cond}`` when count data is present.
         """
         return self._convergence_trajectory_df
@@ -153,7 +153,7 @@ class Model:
         tol: float = 1e-6,
         beta0_init: dict = None,
         beta_init: dict = None,
-        alpha_init: dict = None,
+        alpha_init: float = None,
         beta_clip_range: tuple = None,
         ge_kwargs: dict = None,
         cal_kwargs: dict = None,
@@ -175,8 +175,8 @@ class Model:
             Initial β0 values per condition.
         beta_init : dict, optional
             Initial β values per condition.
-        alpha_init : dict, optional
-            Initial α scaling values per condition.
+        alpha_init : float, optional
+            Initial α scaling value shared across all conditions.
         beta_clip_range : tuple, optional
             Tuple of (min, max) values for clipping β parameters during optimization.
             Example: (-10.0, 10.0). If None, no clipping is applied.
@@ -420,7 +420,7 @@ class Model:
             cond_data["predicted_latent"] = full_latent[: len(cond_data)]
 
             # Fitness: back-transform into g(φ) space
-            α = float(self._jax_model.α[condition])
+            α = float(self._jax_model.α)
             g_φ_wt = float(self._jax_model.global_epistasis(φ(x_wt)))
 
             cond_data["predicted_fitness"] = (
@@ -710,7 +710,7 @@ class Model:
             ret.loc[condition_df.index.values, "predicted_latent"] = φ_X
 
             # Fitness in g(φ) space
-            α = float(self._jax_model.α[condition])
+            α = float(self._jax_model.α)
             g_φ_wt = float(self._jax_model.global_epistasis(φ(temp_data.x_wt)))
             ret.loc[condition_df.index.values, "predicted_fitness"] = (
                 phenotype_predictions / α + g_φ_wt

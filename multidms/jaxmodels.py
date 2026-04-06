@@ -227,8 +227,8 @@ class Model(eqx.Module):
 
     φ: dict[str, Latent]
     """Latent models for each condition."""
-    α: dict[str, Float[Array, ""]]
-    """Fitness-functional score scaling factors for each condition."""
+    α: Float[Array, ""]
+    """Shared fitness-functional score scaling factor."""
     logθ: dict[str, Float[Array, ""]]
     """Overdispersion parameter for each condition."""
     reference_condition: str = eqx.field(static=True)
@@ -247,10 +247,9 @@ class Model(eqx.Module):
         result = {}
         for d in data_sets:
             φ = self.φ[d]
-            α = self.α[d]
             X = data_sets[d].X
             x_wt = data_sets[d].x_wt
-            result[d] = α * (
+            result[d] = self.α * (
                 self.global_epistasis(φ(X)) - self.global_epistasis(φ(x_wt))
             )
         return result
@@ -370,7 +369,7 @@ def fit(
     warmstart: bool = True,
     beta0_init: dict[str, Float] | None = None,
     beta_init: dict[str, Float[Array, " n_mutations"]] | None = None,
-    alpha_init: dict[str, Float] | None = None,
+    alpha_init: Float | None = None,
     beta_clip_range: tuple[Float, Float] | None = None,
     verbose: bool = True,
 ) -> tuple[Model, pd.DataFrame]:
@@ -403,9 +402,8 @@ def fit(
         beta_init: Initial β (mutation effects) values for each condition.
                   If None, uses zeros (or warmstart values if warmstart=True).
                   If dict provided, uses those values for specified conditions.
-        alpha_init: Initial α (fitness-functional score scaling) values
-                   for each condition. If None, uses 1.0 for all conditions.
-                   If dict provided, uses those values for specified conditions.
+        alpha_init: Initial α (fitness-functional score scaling) value
+                   shared across all conditions. If None, uses 1.0.
         beta_clip_range: Optional tuple of (min, max) values for clipping β parameters.
                         If None, no clipping is applied. Example: (-10.0, 10.0).
                         This constrains mutation effect parameters during optimization
@@ -569,22 +567,13 @@ def fit(
         # Create the Latent model with the final values
         latent_models[d] = Latent(β0=β0_val, β=β_val)
 
-    # Initialize alpha values with control over each parameter
-    alpha_models = {}
-    for d in data_sets:
-        # Default to 1.0
-        α_val = jnp.array(1.0)
-
-        # Override with explicit values if provided
-        if alpha_init is not None and d in alpha_init:
-            α_val = jnp.array(alpha_init[d])
-
-        alpha_models[d] = α_val
+    # Initialize shared alpha
+    α_val = jnp.array(alpha_init) if alpha_init is not None else jnp.array(1.0)
 
     # initialize model
     model = Model(
         φ=latent_models,
-        α=alpha_models,
+        α=α_val,
         logθ={d: jnp.array(0.0) for d in data_sets},
         reference_condition=reference_condition,
         global_epistasis=global_epistasis,
@@ -632,10 +621,9 @@ def fit(
                     f"stepsize={state_calibration.stepsize:.1e}, "
                     f"iter={state_calibration.iter_num}"
                 )
+                print(f"    α={model.α:.2f}")
                 for d in model.φ:
-                    print(
-                        f"    {d}: α={model.α[d]:.2f}, θ={jnp.exp(model.logθ[d]):.2f}"
-                    )
+                    print(f"    {d}: θ={jnp.exp(model.logθ[d]):.2f}")
 
             # β0 block
             model_β0, model_rest = eqx.partition(model, filter_spec=filter_spec_β0)
@@ -749,9 +737,8 @@ def fit(
                 print(f"  {objective_error=:.2e}")
 
             # store trajectory data
-            per_condition = {}
+            per_condition = {"alpha": float(model.α)}
             for d in model.φ:
-                per_condition[f"alpha_{d}"] = float(model.α[d])
                 if has_counts:
                     per_condition[f"theta_{d}"] = float(jnp.exp(model.logθ[d]))
                 per_condition[f"beta0_{d}"] = float(model.φ[d].β0)
@@ -826,9 +813,8 @@ def fit(
         "beta_bundle_stepsize",
         "beta_bundle_iter_num",
     ]
-    condition_columns = []
+    condition_columns = ["alpha"]
     for d in conditions:
-        condition_columns.append(f"alpha_{d}")
         if has_counts:
             condition_columns.append(f"theta_{d}")
         condition_columns.append(f"beta0_{d}")

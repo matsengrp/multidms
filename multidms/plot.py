@@ -652,6 +652,7 @@ CONVERGENCE_TRAJECTORY_GROUPS = {
         "loss_per_variant_trajectory",
         "objective_total_trajectory",
         "objective_error_trajectory",
+        "alpha",
     ],
     "block_errors": [
         "calibration_error",
@@ -677,9 +678,8 @@ CONVERGENCE_TRAJECTORY_GROUPS = {
 def _detect_per_condition_groups(columns):
     """Detect per-condition column groups from DataFrame columns.
 
-    Looks for columns matching ``alpha_{cond}``, ``theta_{cond}``,
-    ``beta0_{cond}``, and ``sparsity_{cond}`` patterns and groups them
-    by parameter type.
+    Looks for columns matching ``theta_{cond}``, ``beta0_{cond}``,
+    and ``sparsity_{cond}`` patterns and groups them by parameter type.
 
     Parameters
     ----------
@@ -692,7 +692,6 @@ def _detect_per_condition_groups(columns):
         Mapping from group name to list of matching column names.
     """
     prefixes = {
-        "alpha": "alpha_",
         "theta": "theta_",
         "beta0_condition": "beta0_",
         "sparsity": "sparsity_",
