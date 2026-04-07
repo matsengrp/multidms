@@ -223,7 +223,15 @@ def _(mo, mc, mplot, ge_dataset_dropdown, ge_fusionreg_dropdown):
 
 
 @app.cell
-def _(mo, mc):
+def _(mo):
+    corr_run_button = mo.ui.run_button(label="Compute correlation")
+    return (corr_run_button,)
+
+
+@app.cell
+def _(mo, mc, corr_run_button):
+    mo.stop(not corr_run_button.value, mo.md("Click **Compute correlation** to run."))
+
     _n_datasets = len(mc.fit_models["dataset_name"].unique())
     if _n_datasets < 2:
         correlation_chart = mo.md("Need at least 2 datasets for correlation analysis.")
@@ -236,6 +244,12 @@ def _(mo, mc):
 
 
 @app.cell
+def _(mo):
+    scatter_run_button = mo.ui.run_button(label="Compute scatter")
+    return (scatter_run_button,)
+
+
+@app.cell
 def _(
     mo,
     mc,
@@ -243,7 +257,9 @@ def _(
     datasets,
     scatter_fusionreg_dropdown,
     scatter_param_dropdown,
+    scatter_run_button,
 ):
+    mo.stop(not scatter_run_button.value, mo.md("Click **Compute scatter** to run."))
     mo.stop(
         len(datasets) < 2,
         mo.md("Need at least 2 datasets for scatter comparison."),
@@ -338,7 +354,9 @@ def _(
     ge_dataset_dropdown,
     ge_fusionreg_dropdown,
     ge_chart,
+    corr_run_button,
     correlation_chart,
+    scatter_run_button,
     scatter_fusionreg_dropdown,
     scatter_param_dropdown,
     scatter_chart,
@@ -360,7 +378,7 @@ def _(
                 ],
                 widths=[1, 3],
             ),
-            "Param Correlation": correlation_chart,
+            "Param Correlation": mo.vstack([corr_run_button, correlation_chart]),
             "Replicate Scatter": mo.hstack(
                 [
                     scatter_chart,
@@ -368,6 +386,7 @@ def _(
                         [
                             scatter_fusionreg_dropdown,
                             scatter_param_dropdown,
+                            scatter_run_button,
                         ]
                     ),
                 ],
