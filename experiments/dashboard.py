@@ -181,19 +181,18 @@ def _(mo, mc):
 
 @app.cell
 def _(mo, mc, mplot, conv_dataset_select, conv_fusionreg_select):
-    mo.stop(
-        not conv_dataset_select.value or not conv_fusionreg_select.value,
-        mo.md("Select at least one dataset and one fusionreg value."),
-    )
-
-    _ds = conv_dataset_select.value
-    _fr = [float(x) for x in conv_fusionreg_select.value]
-    _query = f"dataset_name.isin({_ds}) and fusionreg.isin({_fr})"
-
-    _conv_df = mc.convergence_trajectory_df(query=_query)
-    convergence_chart = mplot.convergence_trajectory(
-        _conv_df, id_cols=["dataset_name", "fusionreg"]
-    )
+    if not conv_dataset_select.value or not conv_fusionreg_select.value:
+        convergence_chart = mo.md(
+            "Select at least one dataset and one fusionreg value."
+        )
+    else:
+        _ds = conv_dataset_select.value
+        _fr = [float(x) for x in conv_fusionreg_select.value]
+        _query = f"dataset_name.isin({_ds}) and fusionreg.isin({_fr})"
+        _conv_df = mc.convergence_trajectory_df(query=_query)
+        convergence_chart = mplot.convergence_trajectory(
+            _conv_df, id_cols=["dataset_name", "fusionreg"]
+        )
     return (convergence_chart,)
 
 
@@ -202,20 +201,20 @@ def _(mo, mc, mplot, conv_dataset_select, conv_fusionreg_select):
 
 @app.cell
 def _(mo, mc, mplot, ge_dataset_dropdown, ge_fusionreg_dropdown):
-    mo.stop(
-        not ge_dataset_dropdown.value or not ge_fusionreg_dropdown.value,
-        mo.md("Select a dataset and fusionreg."),
-    )
-
-    ge_ds = ge_dataset_dropdown.value  # noqa: F841 (used in query @ge_ds)
-    ge_fr = float(ge_fusionreg_dropdown.value)  # noqa: F841 (used in query @ge_fr)
-    _row = mc.fit_models.query("dataset_name == @ge_ds and fusionreg == @ge_fr").iloc[0]
-    _model = _row["model"]
-    _variants_df, _ge_curve_df = _model.get_ge_landscape_df()
-    _max_points = 5000
-    if len(_variants_df) > _max_points:
-        _variants_df = _variants_df.sample(n=_max_points, random_state=0)
-    ge_chart = mplot.ge_landscape(_variants_df, _ge_curve_df, point_size=20)
+    if not ge_dataset_dropdown.value or not ge_fusionreg_dropdown.value:
+        ge_chart = mo.md("Select a dataset and fusionreg.")
+    else:
+        ge_ds = ge_dataset_dropdown.value  # noqa: F841 (used in query)
+        ge_fr = float(ge_fusionreg_dropdown.value)  # noqa: F841 (used in query)
+        _row = mc.fit_models.query(
+            "dataset_name == @ge_ds and fusionreg == @ge_fr"
+        ).iloc[0]
+        _model = _row["model"]
+        _variants_df, _ge_curve_df = _model.get_ge_landscape_df()
+        _max_points = 5000
+        if len(_variants_df) > _max_points:
+            _variants_df = _variants_df.sample(n=_max_points, random_state=0)
+        ge_chart = mplot.ge_landscape(_variants_df, _ge_curve_df, point_size=20)
     return (ge_chart,)
 
 
@@ -230,10 +229,9 @@ def _(mo):
 
 @app.cell
 def _(mo, mc, corr_run_button):
-    mo.stop(not corr_run_button.value, mo.md("Click **Compute correlation** to run."))
-
-    _n_datasets = len(mc.fit_models["dataset_name"].unique())
-    if _n_datasets < 2:
+    if not corr_run_button.value:
+        correlation_chart = mo.md("Click **Compute correlation** above to run.")
+    elif len(mc.fit_models["dataset_name"].unique()) < 2:
         correlation_chart = mo.md("Need at least 2 datasets for correlation analysis.")
     else:
         correlation_chart = mc.mut_param_dataset_correlation()
@@ -259,39 +257,39 @@ def _(
     scatter_param_dropdown,
     scatter_run_button,
 ):
-    mo.stop(not scatter_run_button.value, mo.md("Click **Compute scatter** to run."))
-    mo.stop(
-        len(datasets) < 2,
-        mo.md("Need at least 2 datasets for scatter comparison."),
-    )
+    if not scatter_run_button.value:
+        scatter_chart = mo.md("Click **Compute scatter** to run.")
+    elif len(datasets) < 2:
+        scatter_chart = mo.md("Need at least 2 datasets for scatter comparison.")
+    else:
+        _fr = float(scatter_fusionreg_dropdown.value)
+        _param_col = scatter_param_dropdown.value
 
-    _fr = float(scatter_fusionreg_dropdown.value)
-    _param_col = scatter_param_dropdown.value
+        _muts_df = mc.split_apply_combine_muts(
+            groupby=("dataset_name", "fusionreg"),
+            query=f"fusionreg == {_fr}",
+        ).reset_index()
 
-    _muts_df = mc.split_apply_combine_muts(
-        groupby=("dataset_name", "fusionreg"),
-        query=f"fusionreg == {_fr}",
-    ).reset_index()
+        d0, d1 = datasets[0], datasets[1]  # noqa: F841 (used in query)
+        _df0 = _muts_df.query("dataset_name == @d0")[["mutation", _param_col]]
+        _df1 = _muts_df.query("dataset_name == @d1")[["mutation", _param_col]]
 
-    # Always compare the first two datasets (replicates)
-    d0, d1 = datasets[0], datasets[1]  # noqa: F841 (used in query @d0, @d1)
-    _df0 = _muts_df.query("dataset_name == @d0")[["mutation", _param_col]]
-    _df1 = _muts_df.query("dataset_name == @d1")[["mutation", _param_col]]
+        _x_label = f"{_param_col} ({d0})"
+        _y_label = f"{_param_col} ({d1})"
 
-    _x_label = f"{_param_col} ({d0})"
-    _y_label = f"{_param_col} ({d1})"
+        _merged = _df0.merge(
+            _df1, on="mutation", suffixes=(f"_{d0}", f"_{d1}")
+        ).dropna()
+        _x_col = f"{_param_col}_{d0}"
+        _y_col = f"{_param_col}_{d1}"
 
-    _merged = _df0.merge(_df1, on="mutation", suffixes=(f"_{d0}", f"_{d1}")).dropna()
-    _x_col = f"{_param_col}_{d0}"
-    _y_col = f"{_param_col}_{d1}"
-
-    scatter_chart = mplot.replicate_param_scatter(
-        _merged,
-        x_col=_x_col,
-        y_col=_y_col,
-        x_label=_x_label,
-        y_label=_y_label,
-    )
+        scatter_chart = mplot.replicate_param_scatter(
+            _merged,
+            x_col=_x_col,
+            y_col=_y_col,
+            x_label=_x_label,
+            y_label=_y_label,
+        )
     return (scatter_chart,)
 
 
