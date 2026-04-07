@@ -46,7 +46,6 @@ def _(mo):
 def _(Path, os):
     # Resolve the experiments directory relative to this file
     _dashboard_dir = Path(os.path.abspath(__file__)).parent
-    _repo_root = _dashboard_dir.parent
 
     # Scan for fit_collection.pkl files
     _pkl_paths = sorted(_dashboard_dir.glob("*/results*/fit_collection.pkl"))
@@ -54,11 +53,10 @@ def _(Path, os):
     # Build mapping: display label -> path
     discovered_collections = {}
     for p in _pkl_paths:
-        # e.g. "simulation/results" or "scv2-spike/results-test"
         label = f"{p.parent.parent.name}/{p.parent.name}"
         discovered_collections[label] = p
 
-    return discovered_collections, _repo_root
+    return (discovered_collections,)
 
 
 @app.cell
@@ -91,50 +89,107 @@ def _(mo, pickle, pipeline_dropdown, discovered_collections):
     with open(_pkl_path, "rb") as _f:
         _loaded = pickle.load(_f)
 
-    # Pickle may contain a ModelCollection or a raw DataFrame
     if isinstance(_loaded, ModelCollection):
         mc = _loaded
     else:
-        mc = ModelCollection(_loaded)
+        try:
+            mc = ModelCollection(_loaded)
+        except TypeError:
+            # Pickle may be from an incompatible code version (e.g. shared
+            # vs per-condition alpha). Fall back to constructing without the
+            # training_loss validation that triggers predict_score.
+            mc = ModelCollection.__new__(ModelCollection)
+            _first = _loaded.iloc[0].model.data
+            mc.fit_models = _loaded
+            mc._conditions = _first.conditions
+            mc._reference = _first.reference
+            mc._site_map_union = _first.site_map.copy()
+            mc.condition_colors = _first.condition_colors
+            mc._shared_mutations = tuple(set(_first.mutations))
+            mc._all_mutations = tuple(set(_first.mutations))
 
     _n_models = len(mc.fit_models)
-    _datasets = list(mc.fit_models["dataset_name"].unique())
-    _fusionregs = sorted(mc.fit_models["fusionreg"].unique())
+    datasets = list(mc.fit_models["dataset_name"].unique())
+    fusionregs = [str(f) for f in sorted(mc.fit_models["fusionreg"].unique())]
 
     mo.md(
         f"Loaded **{_n_models}** models from `{pipeline_dropdown.value}` "
-        f"| datasets: {_datasets} | fusionreg values: {_fusionregs}"
+        f"| datasets: {datasets} | fusionreg values: {fusionregs}"
     )
-    return (mc,)
-
-
-# ── C: Tab Controls + Charts ─────────────────────────────────────────────
-
-# --- Tab 1: Convergence ---
+    return mc, datasets, fusionregs
 
 
 @app.cell
-def _(mo, mc):
-    _datasets = list(mc.fit_models["dataset_name"].unique())
-    _fusionregs = [str(f) for f in sorted(mc.fit_models["fusionreg"].unique())]
+def _():
+    import multidms.plot as mplot
 
+    return (mplot,)
+
+
+# ── C: Tab controls (always available) ───────────────────────────────────
+
+
+@app.cell
+def _(mo, datasets, fusionregs):
     conv_dataset_select = mo.ui.multiselect(
-        options=_datasets,
-        value=_datasets[:2],
+        options=datasets,
+        value=datasets[:2],
         label="Datasets",
     )
     conv_fusionreg_select = mo.ui.multiselect(
-        options=_fusionregs,
-        value=_fusionregs[:1],
+        options=fusionregs,
+        value=fusionregs[:1],
         label="Fusion reg",
     )
-    return conv_dataset_select, conv_fusionreg_select
+    ge_dataset_dropdown = mo.ui.dropdown(
+        options=datasets,
+        value=datasets[0],
+        label="Dataset",
+    )
+    ge_fusionreg_dropdown = mo.ui.dropdown(
+        options=fusionregs,
+        value=fusionregs[0],
+        label="Fusion reg",
+    )
+    corr_fusionreg_dropdown = mo.ui.dropdown(
+        options=fusionregs,
+        value=fusionregs[0],
+        label="Fusion reg",
+    )
+    scatter_dataset_select = mo.ui.multiselect(
+        options=datasets,
+        value=datasets[:2] if len(datasets) >= 2 else datasets,
+        label="Datasets (select exactly 2)",
+    )
+    scatter_fusionreg_dropdown = mo.ui.dropdown(
+        options=fusionregs,
+        value=fusionregs[0],
+        label="Fusion reg",
+    )
+    scatter_param_dropdown = mo.ui.dropdown(
+        options=["beta", "shift", "predicted_func_score"],
+        value="beta",
+        label="Parameter",
+    )
+    return (
+        conv_dataset_select,
+        conv_fusionreg_select,
+        ge_dataset_dropdown,
+        ge_fusionreg_dropdown,
+        corr_fusionreg_dropdown,
+        scatter_dataset_select,
+        scatter_fusionreg_dropdown,
+        scatter_param_dropdown,
+    )
+
+
+# ── D: Tab chart computations ────────────────────────────────────────────
+
+# --- Convergence ---
 
 
 @app.cell
-def _(mo, mc, conv_dataset_select, conv_fusionreg_select):
-    import multidms.plot as mplot
-
+def _(mo, mc, mplot, conv_dataset_select, conv_fusionreg_select):
     mo.stop(
         not conv_dataset_select.value or not conv_fusionreg_select.value,
         mo.md("Select at least one dataset and one fusionreg value."),
@@ -144,33 +199,14 @@ def _(mo, mc, conv_dataset_select, conv_fusionreg_select):
     _fr = [float(x) for x in conv_fusionreg_select.value]
     _query = f"dataset_name.isin({_ds}) and fusionreg.isin({_fr})"
 
-    conv_df = mc.convergence_trajectory_df(query=_query)
+    _conv_df = mc.convergence_trajectory_df(query=_query)
     convergence_chart = mplot.convergence_trajectory(
-        conv_df, id_cols=["dataset_name", "fusionreg"]
+        _conv_df, id_cols=["dataset_name", "fusionreg"]
     )
-    convergence_chart
-    return mplot, convergence_chart
+    return (convergence_chart,)
 
 
-# --- Tab 2: GE Landscape ---
-
-
-@app.cell
-def _(mo, mc):
-    _datasets = list(mc.fit_models["dataset_name"].unique())
-    _fusionregs = [str(f) for f in sorted(mc.fit_models["fusionreg"].unique())]
-
-    ge_dataset_dropdown = mo.ui.dropdown(
-        options=_datasets,
-        value=_datasets[0],
-        label="Dataset",
-    )
-    ge_fusionreg_dropdown = mo.ui.dropdown(
-        options=_fusionregs,
-        value=_fusionregs[0],
-        label="Fusion reg",
-    )
-    return ge_dataset_dropdown, ge_fusionreg_dropdown
+# --- GE Landscape ---
 
 
 @app.cell
@@ -185,28 +221,14 @@ def _(mo, mc, mplot, ge_dataset_dropdown, ge_fusionreg_dropdown):
     _row = mc.fit_models.query("dataset_name == @ge_ds and fusionreg == @ge_fr").iloc[0]
     _model = _row["model"]
     _variants_df, _ge_curve_df = _model.get_ge_landscape_df()
-    # Subsample variants to keep chart under marimo's output size limit
     _max_points = 5000
     if len(_variants_df) > _max_points:
         _variants_df = _variants_df.sample(n=_max_points, random_state=0)
     ge_chart = mplot.ge_landscape(_variants_df, _ge_curve_df)
-    ge_chart
     return (ge_chart,)
 
 
-# --- Tab 3: Parameter Correlation ---
-
-
-@app.cell
-def _(mo, mc):
-    _fusionregs = [str(f) for f in sorted(mc.fit_models["fusionreg"].unique())]
-
-    corr_fusionreg_dropdown = mo.ui.dropdown(
-        options=_fusionregs,
-        value=_fusionregs[0],
-        label="Fusion reg",
-    )
-    return (corr_fusionreg_dropdown,)
+# --- Correlation ---
 
 
 @app.cell
@@ -224,35 +246,10 @@ def _(mo, mc, corr_fusionreg_dropdown):
         correlation_chart = mc.mut_param_dataset_correlation(
             query=f"fusionreg == {_fr}"
         )
-    correlation_chart
     return (correlation_chart,)
 
 
-# --- Tab 4: Replicate Scatter ---
-
-
-@app.cell
-def _(mo, mc):
-    _datasets = list(mc.fit_models["dataset_name"].unique())
-    _fusionregs = [str(f) for f in sorted(mc.fit_models["fusionreg"].unique())]
-    _param_types = ["beta", "shift", "predicted_func_score"]
-
-    scatter_dataset_select = mo.ui.multiselect(
-        options=_datasets,
-        value=_datasets[:2] if len(_datasets) >= 2 else _datasets,
-        label="Datasets (select exactly 2)",
-    )
-    scatter_fusionreg_dropdown = mo.ui.dropdown(
-        options=_fusionregs,
-        value=_fusionregs[0],
-        label="Fusion reg",
-    )
-    scatter_param_dropdown = mo.ui.dropdown(
-        options=_param_types,
-        value="beta",
-        label="Parameter",
-    )
-    return scatter_dataset_select, scatter_fusionreg_dropdown, scatter_param_dropdown
+# --- Scatter ---
 
 
 @app.cell
@@ -277,23 +274,17 @@ def _(
     _fr = float(scatter_fusionreg_dropdown.value)
     _param = scatter_param_dropdown.value
 
-    _query = f"fusionreg == {_fr}"
     _muts_df = mc.split_apply_combine_muts(
         groupby=("dataset_name", "fusionreg"),
-        query=_query,
+        query=f"fusionreg == {_fr}",
     ).reset_index()
 
-    # Pivot to get one column per dataset for the chosen parameter
-    _conditions = mc.conditions
     _param_cols = [c for c in _muts_df.columns if c.startswith(_param)]
-    _keep_cols = ["mutation", "dataset_name", "fusionreg"] + _param_cols
 
-    # For each condition param column, pivot datasets side by side
-    d0, d1 = _ds[0], _ds[1]
+    d0, d1 = _ds[0], _ds[1]  # noqa: F841 (used in query @d0, @d1)
     _df0 = _muts_df.query("dataset_name == @d0")[["mutation"] + _param_cols]
     _df1 = _muts_df.query("dataset_name == @d1")[["mutation"] + _param_cols]
 
-    # Use the first param column (reference condition beta, or first shift)
     _col = _param_cols[0]
     _x_label = f"{_col} ({d0})"
     _y_label = f"{_col} ({d1})"
@@ -311,11 +302,10 @@ def _(
         x_label=_x_label,
         y_label=_y_label,
     )
-    scatter_chart
     return (scatter_chart,)
 
 
-# --- Tab 5: Sparsity ---
+# --- Sparsity ---
 
 
 @app.cell
@@ -331,11 +321,10 @@ def _(mo, mc):
             sparsity_chart = mc.shift_sparsity()
         except Exception as _e:
             sparsity_chart = mo.md(f"Sparsity chart failed: {_e}")
-    sparsity_chart
     return (sparsity_chart,)
 
 
-# ── D: Summary ───────────────────────────────────────────────────────────
+# --- Summary ---
 
 
 @app.cell
@@ -351,10 +340,8 @@ def _(mo, mc, pd):
                 "ge_type": _fit.get("ge_type", "N/A"),
             }
         )
-    summary_df = pd.DataFrame(_rows)
-    summary_table = mo.ui.table(summary_df)
-    summary_table
-    return summary_df, summary_table
+    summary_table = mo.ui.table(pd.DataFrame(_rows))
+    return (summary_table,)
 
 
 # ── E: Layout Assembly ───────────────────────────────────────────────────
@@ -378,7 +365,7 @@ def _(
     sparsity_chart,
     summary_table,
 ):
-    _tabs = mo.ui.tabs(
+    mo.ui.tabs(
         {
             "Convergence": mo.hstack(
                 [
@@ -415,10 +402,10 @@ def _(
                 widths=[1, 3],
             ),
             "Sparsity": sparsity_chart,
-        }
+            "Summary": summary_table,
+        },
+        lazy=True,
     )
-
-    mo.vstack([_tabs, mo.md("## Model Summary"), summary_table])
     return
 
 
