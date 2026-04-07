@@ -222,16 +222,8 @@ def _(mo, mc, mplot, ge_dataset_dropdown, ge_fusionreg_dropdown):
 
 
 @app.cell
-def _(mo):
-    corr_run_button = mo.ui.run_button(label="Compute correlation")
-    return (corr_run_button,)
-
-
-@app.cell
-def _(mo, mc, corr_run_button):
-    if not corr_run_button.value:
-        correlation_chart = mo.md("Click **Compute correlation** above to run.")
-    elif len(mc.fit_models["dataset_name"].unique()) < 2:
+def _(mo, mc):
+    if len(mc.fit_models["dataset_name"].unique()) < 2:
         correlation_chart = mo.md("Need at least 2 datasets for correlation analysis.")
     else:
         correlation_chart = mc.mut_param_dataset_correlation()
@@ -242,12 +234,6 @@ def _(mo, mc, corr_run_button):
 
 
 @app.cell
-def _(mo):
-    scatter_run_button = mo.ui.run_button(label="Compute scatter")
-    return (scatter_run_button,)
-
-
-@app.cell
 def _(
     mo,
     mc,
@@ -255,11 +241,8 @@ def _(
     datasets,
     scatter_fusionreg_dropdown,
     scatter_param_dropdown,
-    scatter_run_button,
 ):
-    if not scatter_run_button.value:
-        scatter_chart = mo.md("Click **Compute scatter** to run.")
-    elif len(datasets) < 2:
+    if len(datasets) < 2:
         scatter_chart = mo.md("Need at least 2 datasets for scatter comparison.")
     else:
         _fr = float(scatter_fusionreg_dropdown.value)
@@ -352,9 +335,7 @@ def _(
     ge_dataset_dropdown,
     ge_fusionreg_dropdown,
     ge_chart,
-    corr_run_button,
     correlation_chart,
-    scatter_run_button,
     scatter_fusionreg_dropdown,
     scatter_param_dropdown,
     scatter_chart,
@@ -376,7 +357,7 @@ def _(
                 ],
                 widths=[1, 3],
             ),
-            "Param Correlation": mo.vstack([corr_run_button, correlation_chart]),
+            "Param Correlation": correlation_chart,
             "Replicate Scatter": mo.hstack(
                 [
                     scatter_chart,
@@ -384,7 +365,6 @@ def _(
                         [
                             scatter_fusionreg_dropdown,
                             scatter_param_dropdown,
-                            scatter_run_button,
                         ]
                     ),
                 ],
