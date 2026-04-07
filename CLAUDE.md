@@ -98,13 +98,20 @@ GitHub Actions runs on push to main and PRs: ruff lint → black format check �
 
 Before launching any remote pipeline:
 
-1. **Scout first**: `bip scout` — pick a server with <20% CPU
-2. **Launch with host override**: `pixi run remote-pipeline -- host=<server> <pipeline> <profile>`
-3. **Monitor**: `pixi run remote-status -- host=<server> <pipeline>`
-4. **Fetch results**: `pixi run run-pull -- host=<server> <pipeline>`
-5. **Clean up immediately**: `ssh <server> "tmux kill-session -t smk-<pipeline>"`
+1. **Create a local worktree** (if not on main): `git worktree add ../multidms-wt-<branch> <branch>`
+2. **Scout first**: `bip scout` — pick a server with <20% CPU
+3. **Launch** (from the worktree): `pixi run remote-pipeline -- <pipeline> <profile> host=<server>`
+   - Auto-creates remote worktree at `$remote_dir/../multidms-worktrees/<branch>/`
+   - Auto-generates `output_dir=results-<profile>-<branch>`
+   - Runs `pixi install` then snakemake in the remote worktree
+4. **Monitor**: `pixi run remote-status -- <pipeline> <profile> host=<server>`
+5. **Fetch results**: `pixi run run-pull -- <pipeline> <profile> host=<server>`
+6. **Preserve results** (optional): Copy results dir to main clone before removing worktrees
+7. **Clean up**: Remove local worktree, remote worktree, and tmux session
 
-Never skip step 1. Never leave tmux sessions running after fetching results.
+Convention: `output_dir` is always `results-<profile>-<branch>` (e.g., `results-prod-fix-alpha`).
+
+Never skip step 2. Never leave tmux sessions running after fetching results.
 
 ## Active Technologies
 - marimo (interactive dashboard for exploring ModelCollection results)
