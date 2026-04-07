@@ -92,21 +92,7 @@ def _(mo, pickle, pipeline_dropdown, discovered_collections):
     if isinstance(_loaded, ModelCollection):
         mc = _loaded
     else:
-        try:
-            mc = ModelCollection(_loaded)
-        except TypeError:
-            # Pickle may be from an incompatible code version (e.g. shared
-            # vs per-condition alpha). Fall back to constructing without the
-            # training_loss validation that triggers predict_score.
-            mc = ModelCollection.__new__(ModelCollection)
-            _first = _loaded.iloc[0].model.data
-            mc.fit_models = _loaded
-            mc._conditions = _first.conditions
-            mc._reference = _first.reference
-            mc._site_map_union = _first.site_map.copy()
-            mc.condition_colors = _first.condition_colors
-            mc._shared_mutations = tuple(set(_first.mutations))
-            mc._all_mutations = tuple(set(_first.mutations))
+        mc = ModelCollection(_loaded)
 
     _n_models = len(mc.fit_models)
     datasets = list(mc.fit_models["dataset_name"].unique())
@@ -328,12 +314,9 @@ def _(mo, mc, pd):
             "fit_time": _fit.get("fit_time", "N/A"),
             "ge_type": _fit.get("ge_type", "N/A"),
         }
-        # Alpha: shared scalar or per-condition dict
-        if isinstance(_jm.α, dict):
-            for cond, val in _jm.α.items():
-                _row[f"alpha_{cond}"] = round(float(val), 4)
-        else:
-            _row["alpha"] = round(float(_jm.α), 4)
+        # Alpha: per-condition dict
+        for cond, val in _jm.α.items():
+            _row[f"alpha_{cond}"] = round(float(val), 4)
         # Beta0: per-condition from Latent objects
         for cond, latent in _jm.φ.items():
             if hasattr(latent, "β0"):
