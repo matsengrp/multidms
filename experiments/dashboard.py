@@ -156,20 +156,10 @@ def _(mo, datasets, fusionregs):
         value=fusionregs[0],
         label="Fusion reg",
     )
-    scatter_dataset_select = mo.ui.multiselect(
-        options=datasets,
-        value=datasets[:2] if len(datasets) >= 2 else datasets,
-        label="Datasets (select exactly 2)",
-    )
     scatter_fusionreg_dropdown = mo.ui.dropdown(
         options=fusionregs,
         value=fusionregs[0],
         label="Fusion reg",
-    )
-    scatter_param_dropdown = mo.ui.dropdown(
-        options=["beta", "shift", "predicted_func_score"],
-        value="beta",
-        label="Parameter",
     )
     return (
         conv_dataset_select,
@@ -177,10 +167,31 @@ def _(mo, datasets, fusionregs):
         ge_dataset_dropdown,
         ge_fusionreg_dropdown,
         corr_fusionreg_dropdown,
-        scatter_dataset_select,
         scatter_fusionreg_dropdown,
-        scatter_param_dropdown,
     )
+
+
+# Scatter param dropdown depends on the muts columns, so we derive param
+# options from the collection's conditions.
+@app.cell
+def _(mo, mc):
+    _conditions = mc._conditions
+    _param_options = []
+    for c in _conditions:
+        _param_options.append(f"beta_{c}")
+    for c in _conditions:
+        col = f"shift_{c}"
+        # shift columns only exist for non-reference conditions
+        _param_options.append(col)
+    for c in _conditions:
+        _param_options.append(f"predicted_func_score_{c}")
+
+    scatter_param_dropdown = mo.ui.dropdown(
+        options=_param_options,
+        value=_param_options[0],
+        label="Parameter",
+    )
+    return (scatter_param_dropdown,)
 
 
 # ── D: Tab chart computations ────────────────────────────────────────────
@@ -224,7 +235,7 @@ def _(mo, mc, mplot, ge_dataset_dropdown, ge_fusionreg_dropdown):
     _max_points = 5000
     if len(_variants_df) > _max_points:
         _variants_df = _variants_df.sample(n=_max_points, random_state=0)
-    ge_chart = mplot.ge_landscape(_variants_df, _ge_curve_df)
+    ge_chart = mplot.ge_landscape(_variants_df, _ge_curve_df, point_size=20)
     return (ge_chart,)
 
 
@@ -257,43 +268,34 @@ def _(
     mo,
     mc,
     mplot,
-    scatter_dataset_select,
+    datasets,
     scatter_fusionreg_dropdown,
     scatter_param_dropdown,
 ):
     mo.stop(
-        not scatter_dataset_select.value,
-        mo.md("Select at least one dataset."),
-    )
-    mo.stop(
-        len(scatter_dataset_select.value) != 2,
-        mo.md("Select exactly 2 datasets for scatter comparison."),
+        len(datasets) < 2,
+        mo.md("Need at least 2 datasets for scatter comparison."),
     )
 
-    _ds = scatter_dataset_select.value
     _fr = float(scatter_fusionreg_dropdown.value)
-    _param = scatter_param_dropdown.value
+    _param_col = scatter_param_dropdown.value
 
     _muts_df = mc.split_apply_combine_muts(
         groupby=("dataset_name", "fusionreg"),
         query=f"fusionreg == {_fr}",
     ).reset_index()
 
-    _param_cols = [c for c in _muts_df.columns if c.startswith(_param)]
+    # Always compare the first two datasets (replicates)
+    d0, d1 = datasets[0], datasets[1]  # noqa: F841 (used in query @d0, @d1)
+    _df0 = _muts_df.query("dataset_name == @d0")[["mutation", _param_col]]
+    _df1 = _muts_df.query("dataset_name == @d1")[["mutation", _param_col]]
 
-    d0, d1 = _ds[0], _ds[1]  # noqa: F841 (used in query @d0, @d1)
-    _df0 = _muts_df.query("dataset_name == @d0")[["mutation"] + _param_cols]
-    _df1 = _muts_df.query("dataset_name == @d1")[["mutation"] + _param_cols]
+    _x_label = f"{_param_col} ({d0})"
+    _y_label = f"{_param_col} ({d1})"
 
-    _col = _param_cols[0]
-    _x_label = f"{_col} ({d0})"
-    _y_label = f"{_col} ({d1})"
-
-    _merged = _df0[["mutation", _col]].merge(
-        _df1[["mutation", _col]], on="mutation", suffixes=(f"_{d0}", f"_{d1}")
-    )
-    _x_col = f"{_col}_{d0}"
-    _y_col = f"{_col}_{d1}"
+    _merged = _df0.merge(_df1, on="mutation", suffixes=(f"_{d0}", f"_{d1}")).dropna()
+    _x_col = f"{_param_col}_{d0}"
+    _y_col = f"{_param_col}_{d1}"
 
     scatter_chart = mplot.replicate_param_scatter(
         _merged,
@@ -331,15 +333,26 @@ def _(mo, mc):
 def _(mo, mc, pd):
     _rows = []
     for _, _fit in mc.fit_models.iterrows():
-        _rows.append(
-            {
-                "dataset": _fit["dataset_name"],
-                "fusionreg": _fit["fusionreg"],
-                "converged": _fit.get("converged", "N/A"),
-                "fit_time": _fit.get("fit_time", "N/A"),
-                "ge_type": _fit.get("ge_type", "N/A"),
-            }
-        )
+        _model = _fit["model"]
+        _jm = _model._jax_model
+        _row = {
+            "dataset": _fit["dataset_name"],
+            "fusionreg": _fit["fusionreg"],
+            "converged": _fit.get("converged", "N/A"),
+            "fit_time": _fit.get("fit_time", "N/A"),
+            "ge_type": _fit.get("ge_type", "N/A"),
+        }
+        # Alpha: shared scalar or per-condition dict
+        if isinstance(_jm.α, dict):
+            for cond, val in _jm.α.items():
+                _row[f"alpha_{cond}"] = round(float(val), 4)
+        else:
+            _row["alpha"] = round(float(_jm.α), 4)
+        # Beta0: per-condition from Latent objects
+        for cond, latent in _jm.φ.items():
+            if hasattr(latent, "β0"):
+                _row[f"beta0_{cond}"] = round(float(latent.β0), 4)
+        _rows.append(_row)
     summary_table = mo.ui.table(pd.DataFrame(_rows))
     return (summary_table,)
 
@@ -358,7 +371,6 @@ def _(
     ge_chart,
     corr_fusionreg_dropdown,
     correlation_chart,
-    scatter_dataset_select,
     scatter_fusionreg_dropdown,
     scatter_param_dropdown,
     scatter_chart,
@@ -367,12 +379,11 @@ def _(
 ):
     mo.ui.tabs(
         {
-            "Convergence": mo.hstack(
+            "Convergence": mo.vstack(
                 [
-                    mo.vstack([conv_dataset_select, conv_fusionreg_select]),
+                    mo.hstack([conv_dataset_select, conv_fusionreg_select]),
                     convergence_chart,
-                ],
-                widths=[1, 3],
+                ]
             ),
             "GE Landscape": mo.hstack(
                 [
@@ -392,7 +403,6 @@ def _(
                 [
                     mo.vstack(
                         [
-                            scatter_dataset_select,
                             scatter_fusionreg_dropdown,
                             scatter_param_dropdown,
                         ]

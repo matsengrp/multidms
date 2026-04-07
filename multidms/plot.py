@@ -1371,6 +1371,9 @@ def ge_landscape(
         Altair layered chart with scatter, curve, and wildtype reference
         lines.
     """
+    # Interactive legend selection to toggle conditions
+    selection = alt.selection_point(fields=[color_by], bind="legend")
+
     # Scatter layer: variant fitness vs latent phenotype
     scatter = (
         alt.Chart(variants_df)
@@ -1382,7 +1385,13 @@ def ge_landscape(
             ),
             y=alt.Y(f"{fitness_col}:Q", title="Fitness"),
             color=alt.Color(f"{color_by}:N"),
+            opacity=alt.condition(
+                selection,
+                alt.value(point_opacity),
+                alt.value(0),
+            ),
         )
+        .add_params(selection)
     )
 
     # Curve layer: g(φ)
@@ -1403,10 +1412,15 @@ def ge_landscape(
     )
     wt_rules = (
         alt.Chart(wt_data)
-        .mark_rule(strokeDash=[4, 4], opacity=0.6)
+        .mark_rule(strokeDash=[4, 4])
         .encode(
             x="wildtype_latent:Q",
             color=alt.Color("condition:N"),
+            opacity=alt.condition(
+                selection,
+                alt.value(0.6),
+                alt.value(0),
+            ),
         )
     )
 
