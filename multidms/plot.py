@@ -17,6 +17,7 @@ Public functions
 - :func:`mut_param_traceplot` — mutation parameters across regularization
 - :func:`shift_sparsity` — shift sparsity across regularization
 - :func:`mut_param_dataset_correlation` — replicate correlation
+- :func:`replicate_param_scatter` — replicate parameter scatter with identity line
 - :func:`times_seen_hist` — mutation occurrence histogram
 - :func:`func_score_boxplot` — functional score distribution
 - :func:`ge_landscape` — global epistasis landscape
@@ -26,6 +27,8 @@ Public functions
 import altair as alt
 import matplotlib.colors
 import natsort
+import pandas as pd
+from scipy import stats
 
 # Colorblind-friendly palette (formerly from polyclonal.plot)
 DEFAULT_POSITIVE_COLORS = ("#0072B2", "#CC79A7", "#009E73", "#17BECF", "#BCDB22")
@@ -1145,6 +1148,102 @@ def mut_param_dataset_correlation(
     )
 
 
+def replicate_param_scatter(
+    muts_df_pair,
+    *,
+    x_col,
+    y_col,
+    x_label=None,
+    y_label=None,
+    color_by=None,
+    point_size=30,
+    point_opacity=0.5,
+    width=500,
+    height=500,
+):
+    """Scatter plot comparing mutation parameters between two replicates.
+
+    Parameters
+    ----------
+    muts_df_pair : pandas.DataFrame
+        One row per mutation with columns ``x_col``, ``y_col``.
+        The ``mutation`` column (or index) contains mutation strings
+        like "A5G". Optional columns for tooltips: ``site``, ``wildtype``,
+        ``mutant`` (derived by parsing mutation strings via ``split_sub``).
+    x_col, y_col : str
+        Column names for the two datasets' parameter values.
+    x_label, y_label : str or None
+        Axis labels (default to column names).
+    color_by : str or None
+        Column to color points by.
+    point_size, point_opacity : float
+        Point styling.
+    width, height : int
+        Chart dimensions.
+
+    Returns
+    -------
+    alt.LayerChart
+        Scatter + diagonal identity line + Pearson r annotation.
+    """
+    df = muts_df_pair.copy()
+    if x_label is None:
+        x_label = x_col
+    if y_label is None:
+        y_label = y_col
+
+    # Tooltips
+    tooltip_cols = [x_col, y_col]
+    if "mutation" in df.columns:
+        tooltip_cols = ["mutation"] + tooltip_cols
+    for col in ("site", "wildtype", "mutant"):
+        if col in df.columns:
+            tooltip_cols.append(col)
+    if color_by and color_by not in tooltip_cols:
+        tooltip_cols.append(color_by)
+
+    # Scatter
+    color_enc = alt.Color(f"{color_by}:N") if color_by else alt.value("#4682b4")
+    scatter = (
+        alt.Chart(df)
+        .mark_circle(size=point_size, opacity=point_opacity)
+        .encode(
+            x=alt.X(f"{x_col}:Q", title=x_label),
+            y=alt.Y(f"{y_col}:Q", title=y_label),
+            color=color_enc,
+            tooltip=tooltip_cols,
+        )
+    )
+
+    # Diagonal identity line
+    valid = df[[x_col, y_col]].dropna()
+    lo = float(min(valid[x_col].min(), valid[y_col].min()))
+    hi = float(max(valid[x_col].max(), valid[y_col].max()))
+    line_df = pd.DataFrame({x_col: [lo, hi], y_col: [lo, hi]})
+    diag = (
+        alt.Chart(line_df)
+        .mark_line(strokeDash=[4, 4], color="grey", strokeWidth=1.5)
+        .encode(x=f"{x_col}:Q", y=f"{y_col}:Q")
+    )
+
+    # Pearson r annotation
+    r_val, _ = stats.pearsonr(valid[x_col], valid[y_col])
+    ann_df = pd.DataFrame(
+        {
+            "text": [f"r = {r_val:.3f}"],
+            "x": [lo + (hi - lo) * 0.05],
+            "y": [hi - (hi - lo) * 0.05],
+        }
+    )
+    annotation = (
+        alt.Chart(ann_df)
+        .mark_text(align="left", fontSize=14, fontWeight="bold")
+        .encode(x="x:Q", y="y:Q", text="text:N")
+    )
+
+    return (scatter + diag + annotation).properties(width=width, height=height)
+
+
 def times_seen_hist(mutations_df, *, conditions=None, width=400, height=300):
     """Interactive histogram of mutation occurrence counts.
 
@@ -1272,6 +1371,9 @@ def ge_landscape(
         Altair layered chart with scatter, curve, and wildtype reference
         lines.
     """
+    # Interactive legend selection to toggle conditions
+    selection = alt.selection_point(fields=[color_by], bind="legend")
+
     # Scatter layer: variant fitness vs latent phenotype
     scatter = (
         alt.Chart(variants_df)
@@ -1283,7 +1385,13 @@ def ge_landscape(
             ),
             y=alt.Y(f"{fitness_col}:Q", title="Fitness"),
             color=alt.Color(f"{color_by}:N"),
+            opacity=alt.condition(
+                selection,
+                alt.value(point_opacity),
+                alt.value(0),
+            ),
         )
+        .add_params(selection)
     )
 
     # Curve layer: g(φ)
@@ -1304,10 +1412,15 @@ def ge_landscape(
     )
     wt_rules = (
         alt.Chart(wt_data)
-        .mark_rule(strokeDash=[4, 4], opacity=0.6)
+        .mark_rule(strokeDash=[4, 4])
         .encode(
             x="wildtype_latent:Q",
             color=alt.Color("condition:N"),
+            opacity=alt.condition(
+                selection,
+                alt.value(0.6),
+                alt.value(0),
+            ),
         )
     )
 

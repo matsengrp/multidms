@@ -47,6 +47,8 @@ pixi run fmt              # black .
 pixi run fmt-check        # black --check .
 pixi run docs             # build Sphinx docs
 pixi run -e py39 test     # test against Python 3.9
+pixi run dashboard        # launch interactive marimo dashboard (read-only)
+pixi run dashboard-edit   # launch marimo dashboard in edit mode
 ```
 
 ## Architecture
@@ -77,8 +79,9 @@ User provides a pandas DataFrame with columns for condition, substitutions, and 
 - **Sparse computation**: Variant-mutation matrices use JAX BCOO sparse format for memory efficiency.
 - **Multi-condition modeling**: Conditions share a reference beta vector; non-reference conditions get shift parameters capturing condition-specific effects.
 - **Loss types**: `functional_score_loss` (regression on scores) and `count_loss` (likelihood on pre/post selection counts).
-- **GE nonlinearity**: `Identity` (linear) or `Sigmoid` (nonlinear global epistasis).
+- **GE nonlinearity**: `Identity` (linear) or `Sigmoid` (nonlinear global epistasis). Alpha is shared across all conditions to prevent per-condition sigmoid degeneracy.
 - **Plotting separation**: Rendering logic is fully separated from data preparation. Classes own data extraction (`get_*_df`, `_prepare_*_df`); `plot.py` owns chart construction.
+- **Interactive dashboard**: `experiments/dashboard.py` is a marimo app for exploring `ModelCollection` results interactively. Launch with `pixi run dashboard`.
 
 ## Code Style
 
@@ -104,6 +107,7 @@ Before launching any remote pipeline:
 Never skip step 1. Never leave tmux sessions running after fetching results.
 
 ## Active Technologies
+- marimo (interactive dashboard for exploring ModelCollection results)
 - Python 3.9+ (matches existing CI matrix) + multidms (this package), snakemake, papermill, jupyter, matplotlib, seaborn, pandas, numpy, pyyaml (002-simulation-pipeline)
 - CSV intermediate files + pickle for fitted model collections; all in `experiments/simulation/results/` (002-simulation-pipeline)
 - Python 3.9+ (matches existing CI matrix) + multidms (this package), snakemake, papermill, jupyter, matplotlib, seaborn, pandas, numpy, pyyaml, requests (for data download) (003-spike-pipeline)

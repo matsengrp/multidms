@@ -59,6 +59,20 @@ experiments/
 └── scv2-spike/            # SARS-CoV-2 spike pipeline (Phase 2)
 ```
 
+## Interactive Dashboard
+
+An interactive [marimo](https://marimo.io) dashboard is available for exploring `ModelCollection` results. It auto-discovers `fit_collection.pkl` files from pipeline runs and provides tabs for convergence diagnostics, global epistasis landscape, parameter correlation, replicate scatter, and sparsity analysis.
+
+```bash
+# Launch the dashboard (read-only mode)
+pixi run dashboard
+
+# Launch in edit mode (modify cells interactively)
+pixi run dashboard-edit
+```
+
+The dashboard file is `experiments/dashboard.py`.
+
 ## Design Principles
 
 - **No large files in git**: All results are gitignored and produced at runtime
