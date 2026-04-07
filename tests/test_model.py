@@ -221,7 +221,8 @@ def test_model_fit_convergence_trajectory(simple_data):
     conditions = simple_data.conditions
     for cond in conditions:
         assert f"alpha_{cond}" in traj_df.columns
-        assert f"theta_{cond}" in traj_df.columns
+        # theta is only tracked when count data is present
+        assert f"theta_{cond}" not in traj_df.columns
         assert f"beta0_{cond}" in traj_df.columns
     # Sparsity only for non-reference conditions
     ref = simple_data.reference
@@ -256,9 +257,9 @@ def test_convergence_trajectory_single_condition(fitted_single_condition_model):
     """Test trajectory columns for single-condition model (no sparsity)."""
     traj_df = fitted_single_condition_model.convergence_trajectory_df
     assert len(traj_df) > 0
-    # Should have alpha/theta/beta0 for the single condition
+    # Should have alpha/beta0 for the single condition (no theta without count data)
     assert "alpha_a" in traj_df.columns
-    assert "theta_a" in traj_df.columns
+    assert "theta_a" not in traj_df.columns
     assert "beta0_a" in traj_df.columns
     # No sparsity columns (reference is the only condition)
     sparsity_cols = [c for c in traj_df.columns if c.startswith("sparsity_")]

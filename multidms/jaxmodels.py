@@ -592,6 +592,7 @@ def fit(
 
     # track convergence trajectory
     n_variants_total = sum(data_sets[d].functional_scores.shape[0] for d in data_sets)
+    has_counts = any(data_sets[d].post_counts is not None for d in data_sets)
     trajectory_rows = []
 
     try:
@@ -751,7 +752,8 @@ def fit(
             per_condition = {}
             for d in model.φ:
                 per_condition[f"alpha_{d}"] = float(model.α[d])
-                per_condition[f"theta_{d}"] = float(jnp.exp(model.logθ[d]))
+                if has_counts:
+                    per_condition[f"theta_{d}"] = float(jnp.exp(model.logθ[d]))
                 per_condition[f"beta0_{d}"] = float(model.φ[d].β0)
                 if d != model.reference_condition:
                     per_condition[f"sparsity_{d}"] = float(

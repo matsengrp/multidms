@@ -671,7 +671,7 @@ class TestVisualization:
         import altair as alt
 
         chart = collection.plot_convergence_trajectory()
-        assert isinstance(chart, alt.Chart)
+        assert isinstance(chart, (alt.Chart, alt.LayerChart))
         # Verify chart produces a valid Vega-Lite spec
         chart.to_dict()
 
@@ -684,7 +684,7 @@ class TestVisualization:
         chart = multidms.plot.convergence_trajectory(
             df, id_cols=["dataset_name", "fusionreg"]
         )
-        assert isinstance(chart, alt.Chart)
+        assert isinstance(chart, (alt.Chart, alt.LayerChart))
         chart.to_dict()
 
     def test_plot_convergence_trajectory_no_id_cols(self, collection):
@@ -696,7 +696,7 @@ class TestVisualization:
         model = collection.fit_models.iloc[0].model
         df = model.convergence_trajectory_df
         chart = multidms.plot.convergence_trajectory(df)
-        assert isinstance(chart, alt.Chart)
+        assert isinstance(chart, (alt.Chart, alt.LayerChart))
         chart.to_dict()
 
     def test_plot_convergence_trajectory_custom_groups(self, collection):
@@ -713,5 +713,5 @@ class TestVisualization:
             trajectory_groups=custom_groups,
             init_group="loss",
         )
-        assert isinstance(chart, alt.Chart)
+        assert isinstance(chart, (alt.Chart, alt.LayerChart))
         chart.to_dict()
