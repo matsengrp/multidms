@@ -180,9 +180,9 @@ def _(mo, mc, mplot, ge_dataset_dropdown, ge_fusionreg_dropdown):
         mo.md("Select a dataset and fusionreg."),
     )
 
-    ds = ge_dataset_dropdown.value
-    fr = float(ge_fusionreg_dropdown.value)
-    _row = mc.fit_models.query("dataset_name == @ds and fusionreg == @fr").iloc[0]
+    ge_ds = ge_dataset_dropdown.value  # noqa: F841 (used in query @ge_ds)
+    ge_fr = float(ge_fusionreg_dropdown.value)  # noqa: F841 (used in query @ge_fr)
+    _row = mc.fit_models.query("dataset_name == @ge_ds and fusionreg == @ge_fr").iloc[0]
     _model = _row["model"]
     _variants_df, _ge_curve_df = _model.get_ge_landscape_df()
     # Subsample variants to keep chart under marimo's output size limit
@@ -199,11 +199,31 @@ def _(mo, mc, mplot, ge_dataset_dropdown, ge_fusionreg_dropdown):
 
 @app.cell
 def _(mo, mc):
+    _fusionregs = [str(f) for f in sorted(mc.fit_models["fusionreg"].unique())]
+
+    corr_fusionreg_dropdown = mo.ui.dropdown(
+        options=_fusionregs,
+        value=_fusionregs[0],
+        label="Fusion reg",
+    )
+    return (corr_fusionreg_dropdown,)
+
+
+@app.cell
+def _(mo, mc, corr_fusionreg_dropdown):
+    mo.stop(
+        not corr_fusionreg_dropdown.value,
+        mo.md("Select a fusionreg value."),
+    )
+
     _n_datasets = len(mc.fit_models["dataset_name"].unique())
     if _n_datasets < 2:
         correlation_chart = mo.md("Need at least 2 datasets for correlation analysis.")
     else:
-        correlation_chart = mc.mut_param_dataset_correlation()
+        _fr = float(corr_fusionreg_dropdown.value)
+        correlation_chart = mc.mut_param_dataset_correlation(
+            query=f"fusionreg == {_fr}"
+        )
     correlation_chart
     return (correlation_chart,)
 
@@ -349,6 +369,7 @@ def _(
     ge_dataset_dropdown,
     ge_fusionreg_dropdown,
     ge_chart,
+    corr_fusionreg_dropdown,
     correlation_chart,
     scatter_dataset_select,
     scatter_fusionreg_dropdown,
@@ -373,7 +394,13 @@ def _(
                 ],
                 widths=[1, 3],
             ),
-            "Param Correlation": correlation_chart,
+            "Param Correlation": mo.hstack(
+                [
+                    mo.vstack([corr_fusionreg_dropdown]),
+                    correlation_chart,
+                ],
+                widths=[1, 3],
+            ),
             "Replicate Scatter": mo.hstack(
                 [
                     mo.vstack(
