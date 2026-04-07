@@ -183,8 +183,9 @@ sim-test  = "snakemake -s experiments/simulation/Snakefile --config profile=test
 sim-prod  = "snakemake -s experiments/simulation/Snakefile -j4"
 
 # Spike pipeline
-spike-test = "snakemake -s experiments/scv2-spike/Snakefile --config profile=test -j4"
-spike-prod = "snakemake -s experiments/scv2-spike/Snakefile -j4"
+spike-test         = "snakemake -s experiments/scv2-spike/Snakefile --config profile=test -j4"
+spike-experimental = "snakemake -s experiments/scv2-spike/Snakefile --config profile=experimental -j4"
+spike-prod         = "snakemake -s experiments/scv2-spike/Snakefile -j4"
 
 # Remote execution
 remote-sync     = "bash experiments/scripts/remote-sync.sh"

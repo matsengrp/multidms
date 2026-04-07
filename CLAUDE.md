@@ -101,6 +101,8 @@ Before launching any remote pipeline:
 1. **Create a local worktree** (if not on main): `git worktree add ../multidms-wt-<branch> <branch>`
 2. **Scout first**: `bip scout` — pick a server with <20% CPU
 3. **Launch** (from the worktree): `pixi run remote-pipeline -- <pipeline> <profile> host=<server>`
+   - pipeline: `simulation` or `spike`
+   - profile: `test`, `experimental`, or `prod`
    - Auto-creates remote worktree at `$remote_dir/../multidms-worktrees/<branch>/`
    - Auto-generates `output_dir=results-<profile>-<branch>`
    - Runs `pixi install` then snakemake in the remote worktree
