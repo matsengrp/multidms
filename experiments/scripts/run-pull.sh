@@ -17,7 +17,9 @@ set -euo pipefail
 POSITIONAL=()
 OVERRIDES=()
 for arg in "$@"; do
-    if [[ "$arg" == *=* ]]; then
+    if [[ "$arg" == "--" ]]; then
+        continue
+    elif [[ "$arg" == *=* ]]; then
         OVERRIDES+=("$arg")
     else
         POSITIONAL+=("$arg")

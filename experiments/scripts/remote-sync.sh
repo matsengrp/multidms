@@ -9,8 +9,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Load remote config (pass through any override args like host=orca03)
-eval "$(python3 "$SCRIPT_DIR/remote_config.py" "$@")"
+# Filter out bare "--" (pixi passes it literally) and load remote config
+ARGS=()
+for arg in "$@"; do
+    [[ "$arg" == "--" ]] || ARGS+=("$arg")
+done
+eval "$(python3 "$SCRIPT_DIR/remote_config.py" "${ARGS[@]+${ARGS[@]}}")"
 
 # Use the current local branch, not a config value
 BRANCH="$(cd "$PROJECT_DIR" && git rev-parse --abbrev-ref HEAD)"
