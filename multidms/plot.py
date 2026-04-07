@@ -638,6 +638,11 @@ def lineplot_and_heatmap(
     return chart
 
 
+# Per-condition parameter groups that should always use a linear y-axis.
+# These contain real-valued parameters (possibly zero or negative) that are
+# undefined on a log scale.
+LINEAR_SCALE_GROUPS = {"beta0_condition", "alpha", "theta", "sparsity"}
+
 CONVERGENCE_TRAJECTORY_GROUPS = {
     "overall": [
         "loss_trajectory",
@@ -818,14 +823,15 @@ def convergence_trajectory(
         value=[{"group": init_group}],
     )
 
-    # Legend toggle
+    # Legend toggles
     metric_toggle = alt.selection_point(
         fields=["metric"],
         bind="legend",
     )
-
-    # Build chart
-    y_scale = alt.Scale(type="log") if log_y else alt.Scale()
+    model_toggle = alt.selection_point(
+        fields=["model_id"],
+        bind="legend",
+    )
 
     tooltip_fields = [
         alt.Tooltip(f"{x}:Q"),
@@ -837,18 +843,62 @@ def convergence_trajectory(
 
     base = alt.Chart(long_df).transform_filter(group_selector)
 
-    lines = base.mark_line().encode(
+    shared_encoding = dict(
         x=alt.X(f"{x}:Q", title="Iteration"),
-        y=alt.Y("value:Q", title="Value", scale=y_scale),
         color=alt.Color("metric:N", title="Metric"),
         strokeDash=alt.StrokeDash("model_id:N", title="Model"),
-        opacity=alt.condition(metric_toggle, alt.value(1), alt.value(0.1)),
+        opacity=alt.condition(
+            metric_toggle & model_toggle, alt.value(1), alt.value(0.1)
+        ),
         tooltip=tooltip_fields,
     )
 
-    chart = lines.add_params(group_selector, metric_toggle).properties(
-        width=width, height=height
-    )
+    if log_y:
+        # Determine which groups need a linear y-axis (parameter values
+        # that can be zero or negative are undefined on a log scale).
+        linear_groups = set(LINEAR_SCALE_GROUPS)
+        for group_name in trajectory_groups:
+            group_vals = long_df[long_df["group"] == group_name]["value"]
+            if (group_vals <= 0).any():
+                linear_groups.add(group_name)
+
+        long_df = long_df.assign(
+            scale_type=long_df["group"].apply(
+                lambda g: "linear" if g in linear_groups else "log"
+            )
+        )
+
+        # Build two layers: log-scale for loss/error groups, linear for params
+        base = alt.Chart(long_df).transform_filter(group_selector)
+        log_layer = (
+            base.transform_filter(alt.datum.scale_type == "log")
+            .mark_line()
+            .encode(
+                y=alt.Y("value:Q", title="Value", scale=alt.Scale(type="log")),
+                **shared_encoding,
+            )
+        )
+        linear_layer = (
+            base.transform_filter(alt.datum.scale_type == "linear")
+            .mark_line()
+            .encode(
+                y=alt.Y("value:Q", title="Value", scale=alt.Scale()),
+                **shared_encoding,
+            )
+        )
+        chart = (
+            (log_layer + linear_layer)
+            .resolve_scale(y="independent")
+            .add_params(group_selector, metric_toggle, model_toggle)
+        )
+    else:
+        lines = base.mark_line().encode(
+            y=alt.Y("value:Q", title="Value", scale=alt.Scale()),
+            **shared_encoding,
+        )
+        chart = lines.add_params(group_selector, metric_toggle, model_toggle)
+
+    chart = chart.properties(width=width, height=height)
 
     if title:
         chart = chart.properties(
