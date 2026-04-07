@@ -275,7 +275,7 @@ def test_convergence_trajectory_single_condition(fitted_single_condition_model):
     """Test trajectory columns for single-condition model (no sparsity)."""
     traj_df = fitted_single_condition_model.convergence_trajectory_df
     assert len(traj_df) > 0
-    # Should have shared alpha and beta0 for the single condition (no theta without count data)
+    # Shared alpha, beta0 for the condition (no theta without count data)
     assert "alpha" in traj_df.columns
     assert "theta_a" not in traj_df.columns
     assert "beta0_a" in traj_df.columns
