@@ -151,11 +151,6 @@ def _(mo, datasets, fusionregs):
         value=fusionregs[0],
         label="Fusion reg",
     )
-    corr_fusionreg_dropdown = mo.ui.dropdown(
-        options=fusionregs,
-        value=fusionregs[0],
-        label="Fusion reg",
-    )
     scatter_fusionreg_dropdown = mo.ui.dropdown(
         options=fusionregs,
         value=fusionregs[0],
@@ -166,7 +161,6 @@ def _(mo, datasets, fusionregs):
         conv_fusionreg_select,
         ge_dataset_dropdown,
         ge_fusionreg_dropdown,
-        corr_fusionreg_dropdown,
         scatter_fusionreg_dropdown,
     )
 
@@ -243,20 +237,12 @@ def _(mo, mc, mplot, ge_dataset_dropdown, ge_fusionreg_dropdown):
 
 
 @app.cell
-def _(mo, mc, corr_fusionreg_dropdown):
-    mo.stop(
-        not corr_fusionreg_dropdown.value,
-        mo.md("Select a fusionreg value."),
-    )
-
+def _(mo, mc):
     _n_datasets = len(mc.fit_models["dataset_name"].unique())
     if _n_datasets < 2:
         correlation_chart = mo.md("Need at least 2 datasets for correlation analysis.")
     else:
-        _fr = float(corr_fusionreg_dropdown.value)
-        correlation_chart = mc.mut_param_dataset_correlation(
-            query=f"fusionreg == {_fr}"
-        )
+        correlation_chart = mc.mut_param_dataset_correlation()
     return (correlation_chart,)
 
 
@@ -369,7 +355,6 @@ def _(
     ge_dataset_dropdown,
     ge_fusionreg_dropdown,
     ge_chart,
-    corr_fusionreg_dropdown,
     correlation_chart,
     scatter_fusionreg_dropdown,
     scatter_param_dropdown,
@@ -392,24 +377,18 @@ def _(
                 ],
                 widths=[1, 3],
             ),
-            "Param Correlation": mo.hstack(
-                [
-                    mo.vstack([corr_fusionreg_dropdown]),
-                    correlation_chart,
-                ],
-                widths=[1, 3],
-            ),
+            "Param Correlation": correlation_chart,
             "Replicate Scatter": mo.hstack(
                 [
+                    scatter_chart,
                     mo.vstack(
                         [
                             scatter_fusionreg_dropdown,
                             scatter_param_dropdown,
                         ]
                     ),
-                    scatter_chart,
                 ],
-                widths=[1, 3],
+                widths=[3, 1],
             ),
             "Sparsity": sparsity_chart,
             "Summary": summary_table,
