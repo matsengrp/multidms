@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Launch a pipeline on the remote server in a tmux session.
+# Uses git worktrees for non-main branches and auto-generates output_dir.
 #
 # Usage: scripts/remote-pipeline.sh <pipeline> <profile>
 #
@@ -9,14 +10,16 @@
 #
 # Examples:
 #   scripts/remote-pipeline.sh simulation test
-#   scripts/remote-pipeline.sh spike prod
+#   scripts/remote-pipeline.sh spike prod host=orca03
 set -euo pipefail
 
 # Separate positional args from key=value overrides (e.g. host=quokka)
 POSITIONAL=()
 OVERRIDES=()
 for arg in "$@"; do
-    if [[ "$arg" == *=* ]]; then
+    if [[ "$arg" == "--" ]]; then
+        continue
+    elif [[ "$arg" == *=* ]]; then
         OVERRIDES+=("$arg")
     else
         POSITIONAL+=("$arg")
@@ -55,6 +58,7 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Sync first (pass through host overrides)
 "$SCRIPT_DIR/remote-sync.sh" "${OVERRIDES[@]+${OVERRIDES[@]}}"
@@ -62,19 +66,31 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # Load remote config (with overrides)
 eval "$(python3 "$SCRIPT_DIR/remote_config.py" "${OVERRIDES[@]+${OVERRIDES[@]}}")"
 
-# Map pipeline name to pixi task prefix
-if [ "$PIPELINE" = "simulation" ]; then
-    PIXI_TASK="sim-${PROFILE}"
+# Branch name and sanitization
+BRANCH="$(cd "$PROJECT_DIR" && git rev-parse --abbrev-ref HEAD)"
+SAFE_BRANCH="${BRANCH//\//-}"
+
+# Compute working directory and output directory
+if [ "$BRANCH" = "main" ]; then
+    WORK_DIR="$remote_dir"
 else
-    PIXI_TASK="spike-${PROFILE}"
+    WORK_DIR="${worktree_base}/${SAFE_BRANCH}"
 fi
+OUTPUT_DIR="results-${PROFILE}-${SAFE_BRANCH}"
+TMUX_SESSION="smk-${PIPELINE}-${SAFE_BRANCH}"
 
-TMUX_SESSION="smk-${PIPELINE}"
+# Map pipeline name to directory containing the Snakefile
+case "$PIPELINE" in
+    spike) PIPELINE_DIR="scv2-spike" ;;
+    *)     PIPELINE_DIR="$PIPELINE" ;;
+esac
+SNAKEFILE="experiments/${PIPELINE_DIR}/Snakefile"
 
-echo "==> Launching $PIPELINE pipeline ($PROFILE) on $host (tmux: $TMUX_SESSION)..."
-
-# Build the remote command
-REMOTE_CMD="export PATH=\$HOME/.pixi/bin:\$PATH && cd ${remote_dir} && pixi run ${PIXI_TASK}"
+echo "==> Launching $PIPELINE pipeline ($PROFILE) on $host"
+echo "    Branch: $BRANCH (safe: $SAFE_BRANCH)"
+echo "    Work dir: $WORK_DIR"
+echo "    Output dir: $OUTPUT_DIR"
+echo "    tmux: $TMUX_SESSION"
 
 # Check for existing tmux session
 if ssh "$host" "tmux has-session -t ${TMUX_SESSION} 2>/dev/null"; then
@@ -83,9 +99,19 @@ if ssh "$host" "tmux has-session -t ${TMUX_SESSION} 2>/dev/null"; then
     exit 1
 fi
 
+# Build profile config arg (empty for prod)
+if [ "$PROFILE" = "test" ]; then
+    CONFIG_ARGS="profile=test output_dir=${OUTPUT_DIR}"
+else
+    CONFIG_ARGS="output_dir=${OUTPUT_DIR}"
+fi
+
+# Build the remote command: pixi install, then snakemake with output_dir override
+REMOTE_CMD="export PATH=\$HOME/.pixi/bin:\$PATH && cd ${WORK_DIR} && pixi install && pixi run snakemake -s ${SNAKEFILE} --config ${CONFIG_ARGS} -j4"
+
 # Create tmux session and send command
 ssh "$host" "tmux new-session -d -s ${TMUX_SESSION} && tmux send-keys -t ${TMUX_SESSION} '${REMOTE_CMD}' Enter"
 
 echo "==> Pipeline launched in tmux session: $TMUX_SESSION"
 echo "    Attach: ssh $host -t \"tmux attach -t $TMUX_SESSION\""
-echo "    Status: scripts/remote-status.sh $PIPELINE"
+echo "    Status: pixi run remote-status -- $PIPELINE $PROFILE host=$(echo $host | cut -d@ -f2 2>/dev/null || echo $host)"

@@ -70,6 +70,12 @@ def load_remote_config(overrides=None):
             )
             sys.exit(1)
 
+    # Add computed default for worktree_base
+    if "worktree_base" not in cfg:
+        cfg["worktree_base"] = os.path.join(
+            os.path.dirname(cfg["remote_dir"]), "multidms-worktrees"
+        )
+
     return cfg
 
 

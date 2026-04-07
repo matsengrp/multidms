@@ -18,6 +18,7 @@ docs/multidms*rst
 
 experiments/scv2-spike/results_test/
 experiments/simulation/results_test/
+experiments/*/results-*/
 
 
 

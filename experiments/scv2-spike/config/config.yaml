@@ -36,10 +36,10 @@ spike:
 
   # Fitting parameters (profile_beta0_zero_l2reg_10x)
   fitting:
-    maxiter: 75
-    tol: 1.0e-6
-    fusionreg_values: [0.0, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
-    l2reg: 1.0e-2
+    maxiter: 50
+    tol: 1.0e-4
+    fusionreg_values: [0.0, 0.8, 3.2, 12.8] # [0.0, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
+    l2reg: 1.0e-4
     beta0_ridge: 10
     scale_fusion_by_n: false
     ge_type: "Sigmoid"
@@ -48,8 +48,8 @@ spike:
     alpha_init: {Omicron_BA1: 6.0, Delta: 6.0, Omicron_BA2: 6.0}
     beta_clip_range: [-10, 10]
     loss_kwargs: {"δ": 1.0}
-    ge_kwargs: {tol: 1.0e-5, maxiter: 1000, maxls: 40, jit: true, verbose: false}
-    cal_kwargs: {tol: 1.0e-4, maxiter: 1000, maxls: 40, jit: true, verbose: false}
+    ge_kwargs: {tol: 1.0e-4, maxiter: 75, maxls: 40, jit: true, verbose: false}
+    cal_kwargs: {tol: 1.0e-4, maxiter: 75, maxls: 40, jit: true, verbose: false}
     n_processes: null  # null = auto: min(cpu_count // 2, n_models)
   lasso_choice: 3.2
 

@@ -28,9 +28,10 @@ else:
 # Read output_dir from the YAML config so test profiles can isolate results
 with open(CONFIG_PATH) as _f:
     _cfg = yaml.safe_load(_f)
-RESULTS = os.path.join(
-    SIM_DIR, _cfg.get("simulation", {}).get("output_dir", "results")
-)
+# CLI override (--config output_dir=...) takes precedence over YAML
+_yaml_output_dir = _cfg.get("simulation", {}).get("output_dir", "results")
+output_dir = config.get("output_dir", _yaml_output_dir)
+RESULTS = os.path.join(SIM_DIR, output_dir)
 FIGURES = os.path.join(RESULTS, "figures")
 
 # Relative config path for papermill parameter injection — avoids
@@ -57,10 +58,12 @@ rule simulate_data:
         executed_notebook=os.path.join(RESULTS, "simulate_data.ipynb"),
     params:
         config_path=CONFIG_PATH_REL,
+        output_dir=output_dir,
     shell:
         """
         papermill {input.notebook} {output.executed_notebook} \
             -p config_path {params.config_path} \
+            -p output_dir {params.output_dir} \
             --cwd {SIM_DIR} \
         && jupyter trust {output.executed_notebook}
         """
@@ -76,10 +79,12 @@ rule fit_models:
         executed_notebook=os.path.join(RESULTS, "fit_models.ipynb"),
     params:
         config_path=CONFIG_PATH_REL,
+        output_dir=output_dir,
     shell:
         """
         papermill {input.notebook} {output.executed_notebook} \
             -p config_path {params.config_path} \
+            -p output_dir {params.output_dir} \
             --cwd {SIM_DIR} \
         && jupyter trust {output.executed_notebook}
         """
@@ -107,10 +112,12 @@ rule evaluate:
         executed_notebook=os.path.join(RESULTS, "evaluate.ipynb"),
     params:
         config_path=CONFIG_PATH_REL,
+        output_dir=output_dir,
     shell:
         """
         papermill {input.notebook} {output.executed_notebook} \
             -p config_path {params.config_path} \
+            -p output_dir {params.output_dir} \
             --cwd {SIM_DIR} \
         && jupyter trust {output.executed_notebook}
         """
@@ -126,10 +133,12 @@ rule cross_validation:
         executed_notebook=os.path.join(RESULTS, "cross_validation.ipynb"),
     params:
         config_path=CONFIG_PATH_REL,
+        output_dir=output_dir,
     shell:
         """
         papermill {input.notebook} {output.executed_notebook} \
             -p config_path {params.config_path} \
+            -p output_dir {params.output_dir} \
             --cwd {SIM_DIR} \
         && jupyter trust {output.executed_notebook}
         """
@@ -164,10 +173,12 @@ rule manuscript_figures:
         sparsity_diag=os.path.join(FIGURES, "sparsity_diagnostic.pdf"),
     params:
         config_path=CONFIG_PATH_REL,
+        output_dir=output_dir,
     shell:
         """
         papermill {input.notebook} {output.executed_notebook} \
             -p config_path {params.config_path} \
+            -p output_dir {params.output_dir} \
             --cwd {SIM_DIR} \
         && jupyter trust {output.executed_notebook}
         """
