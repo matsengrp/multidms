@@ -139,8 +139,9 @@ class Model:
             ``objective_error_trajectory``, ``loss_trajectory``,
             ``loss_per_variant_trajectory``), block-level diagnostics
             (e.g. ``calibration_error``, ``beta0_stepsize``), and
-            per-condition parameters (``alpha_{cond}``, ``theta_{cond}``,
-            ``beta0_{cond}``, ``sparsity_{cond}``).
+            per-condition parameters (``alpha_{cond}``,
+            ``beta0_{cond}``, ``sparsity_{cond}``), and
+            ``theta_{cond}`` when count data is present.
         """
         return self._convergence_trajectory_df
 

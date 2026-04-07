@@ -828,7 +828,10 @@ def fit(
     ]
     condition_columns = []
     for d in conditions:
-        condition_columns.extend([f"alpha_{d}", f"theta_{d}", f"beta0_{d}"])
+        condition_columns.append(f"alpha_{d}")
+        if has_counts:
+            condition_columns.append(f"theta_{d}")
+        condition_columns.append(f"beta0_{d}")
         if d != reference_condition:
             condition_columns.append(f"sparsity_{d}")
 

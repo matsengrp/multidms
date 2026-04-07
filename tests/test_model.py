@@ -58,6 +58,22 @@ def single_condition_data():
     )
 
 
+@pytest.fixture(scope="session")
+def count_data():
+    """Data object with synthetic count data for testing count_loss paths."""
+    count_df = TEST_FUNC_SCORES.copy()
+    rng = np.random.default_rng(42)
+    count_df["pre_count"] = rng.integers(50, 200, size=len(count_df))
+    count_df["post_count"] = rng.integers(10, 100, size=len(count_df))
+    return multidms.Data(
+        count_df,
+        alphabet=multidms.AAS_WITHSTOP,
+        reference="a",
+        assert_site_integrity=True,
+        include_counts=True,
+    )
+
+
 @pytest.fixture(scope="module")
 def fitted_simple_model(simple_data):
     """Pre-fitted model for read-only tests (module-scoped to share across tests)."""
@@ -264,6 +280,18 @@ def test_convergence_trajectory_single_condition(fitted_single_condition_model):
     # No sparsity columns (reference is the only condition)
     sparsity_cols = [c for c in traj_df.columns if c.startswith("sparsity_")]
     assert len(sparsity_cols) == 0
+
+
+def test_convergence_trajectory_theta_with_count_data(count_data):
+    """Test that theta columns ARE tracked when count data is present."""
+    model = multidms.Model(count_data, loss_type="count_loss")
+    model.fit(maxiter=3, warmstart=False)
+    traj_df = model.convergence_trajectory_df
+    assert len(traj_df) > 0
+    for cond in count_data.conditions:
+        assert f"theta_{cond}" in traj_df.columns
+        # theta values should be positive (exp of logθ)
+        assert (traj_df[f"theta_{cond}"] > 0).all()
 
 
 # ==================== get_mutations_df Tests ====================

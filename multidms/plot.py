@@ -833,19 +833,6 @@ def convergence_trajectory(
         bind="legend",
     )
 
-    # Determine which groups need a linear y-axis
-    linear_groups = set(LINEAR_SCALE_GROUPS)
-    if log_y:
-        for group_name in trajectory_groups:
-            group_vals = long_df[long_df["group"] == group_name]["value"]
-            if (group_vals <= 0).any():
-                linear_groups.add(group_name)
-
-    # Add scale_type column for dual-layer filtering
-    long_df["scale_type"] = long_df["group"].apply(
-        lambda g: "linear" if g in linear_groups else "log"
-    )
-
     tooltip_fields = [
         alt.Tooltip(f"{x}:Q"),
         alt.Tooltip("metric:N"),
@@ -867,7 +854,22 @@ def convergence_trajectory(
     )
 
     if log_y:
+        # Determine which groups need a linear y-axis (parameter values
+        # that can be zero or negative are undefined on a log scale).
+        linear_groups = set(LINEAR_SCALE_GROUPS)
+        for group_name in trajectory_groups:
+            group_vals = long_df[long_df["group"] == group_name]["value"]
+            if (group_vals <= 0).any():
+                linear_groups.add(group_name)
+
+        long_df = long_df.assign(
+            scale_type=long_df["group"].apply(
+                lambda g: "linear" if g in linear_groups else "log"
+            )
+        )
+
         # Build two layers: log-scale for loss/error groups, linear for params
+        base = alt.Chart(long_df).transform_filter(group_selector)
         log_layer = (
             base.transform_filter(alt.datum.scale_type == "log")
             .mark_line()
@@ -884,8 +886,10 @@ def convergence_trajectory(
                 **shared_encoding,
             )
         )
-        chart = (log_layer + linear_layer).add_params(
-            group_selector, metric_toggle, model_toggle
+        chart = (
+            (log_layer + linear_layer)
+            .resolve_scale(y="independent")
+            .add_params(group_selector, metric_toggle, model_toggle)
         )
     else:
         lines = base.mark_line().encode(
