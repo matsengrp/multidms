@@ -180,9 +180,9 @@ def _(mo, mc, mplot, ge_dataset_dropdown, ge_fusionreg_dropdown):
         mo.md("Select a dataset and fusionreg."),
     )
 
-    _ds = ge_dataset_dropdown.value
-    _fr = float(ge_fusionreg_dropdown.value)
-    _row = mc.fit_models.query("dataset_name == @_ds and fusionreg == @_fr").iloc[0]
+    ds = ge_dataset_dropdown.value
+    fr = float(ge_fusionreg_dropdown.value)
+    _row = mc.fit_models.query("dataset_name == @ds and fusionreg == @fr").iloc[0]
     _model = _row["model"]
     _variants_df, _ge_curve_df = _model.get_ge_landscape_df()
     ge_chart = mplot.ge_landscape(_variants_df, _ge_curve_df)
@@ -265,20 +265,20 @@ def _(
     _keep_cols = ["mutation", "dataset_name", "fusionreg"] + _param_cols
 
     # For each condition param column, pivot datasets side by side
-    _d0, _d1 = _ds[0], _ds[1]
-    _df0 = _muts_df.query("dataset_name == @_d0")[["mutation"] + _param_cols]
-    _df1 = _muts_df.query("dataset_name == @_d1")[["mutation"] + _param_cols]
+    d0, d1 = _ds[0], _ds[1]
+    _df0 = _muts_df.query("dataset_name == @d0")[["mutation"] + _param_cols]
+    _df1 = _muts_df.query("dataset_name == @d1")[["mutation"] + _param_cols]
 
     # Use the first param column (reference condition beta, or first shift)
     _col = _param_cols[0]
-    _x_label = f"{_col} ({_d0})"
-    _y_label = f"{_col} ({_d1})"
+    _x_label = f"{_col} ({d0})"
+    _y_label = f"{_col} ({d1})"
 
     _merged = _df0[["mutation", _col]].merge(
-        _df1[["mutation", _col]], on="mutation", suffixes=(f"_{_d0}", f"_{_d1}")
+        _df1[["mutation", _col]], on="mutation", suffixes=(f"_{d0}", f"_{d1}")
     )
-    _x_col = f"{_col}_{_d0}"
-    _y_col = f"{_col}_{_d1}"
+    _x_col = f"{_col}_{d0}"
+    _y_col = f"{_col}_{d1}"
 
     scatter_chart = mplot.replicate_param_scatter(
         _merged,
