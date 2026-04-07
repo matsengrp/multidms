@@ -35,9 +35,9 @@ spike:
 
   # Fitting parameters — reduced for fast iteration
   fitting:
-    maxiter: 20
-    tol: 1.0e-6
-    fusionreg_values: [0.0, 1.6, 3.2, 6.4]
+    maxiter: 15
+    tol: 1.0e-4
+    fusionreg_values: [0.0, 0.8, 0.9, 1.0, 10.0]
     l2reg: 1.0e-2
     beta0_ridge: 10
     scale_fusion_by_n: false
