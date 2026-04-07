@@ -83,11 +83,19 @@ def _(mo, discovered_collections):
 
 @app.cell
 def _(mo, pickle, pipeline_dropdown, discovered_collections):
+    from multidms.model_collection import ModelCollection
+
     mo.stop(not pipeline_dropdown.value, mo.md("Select a pipeline above."))
 
     _pkl_path = discovered_collections[pipeline_dropdown.value]
     with open(_pkl_path, "rb") as _f:
-        mc = pickle.load(_f)
+        _loaded = pickle.load(_f)
+
+    # Pickle may contain a ModelCollection or a raw DataFrame
+    if isinstance(_loaded, ModelCollection):
+        mc = _loaded
+    else:
+        mc = ModelCollection(_loaded)
 
     _n_models = len(mc.fit_models)
     _datasets = list(mc.fit_models["dataset_name"].unique())
