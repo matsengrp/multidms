@@ -185,6 +185,10 @@ def _(mo, mc, mplot, ge_dataset_dropdown, ge_fusionreg_dropdown):
     _row = mc.fit_models.query("dataset_name == @ds and fusionreg == @fr").iloc[0]
     _model = _row["model"]
     _variants_df, _ge_curve_df = _model.get_ge_landscape_df()
+    # Subsample variants to keep chart under marimo's output size limit
+    _max_points = 5000
+    if len(_variants_df) > _max_points:
+        _variants_df = _variants_df.sample(n=_max_points, random_state=0)
     ge_chart = mplot.ge_landscape(_variants_df, _ge_curve_df)
     ge_chart
     return (ge_chart,)
