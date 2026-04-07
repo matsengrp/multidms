@@ -50,7 +50,7 @@ spike:
     ge_kwargs: {tol: 1.0e-5, maxiter: 1000, maxls: 40, jit: true, verbose: false}
     cal_kwargs: {tol: 1.0e-4, maxiter: 1000, maxls: 40, jit: true, verbose: false}
     n_processes: null  # null = auto: min(cpu_count // 2, n_models)
-  lasso_choice: 3.2
+  lasso_choice: 1.0
 
   # Optional pipeline steps
   skip_cross_validation: true
