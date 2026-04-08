@@ -1,11 +1,11 @@
-# Test configuration for the SARS-CoV-2 spike analysis pipeline.
-# Reduced parameters for fast laptop iteration (<10 minutes end-to-end).
+# Experimental configuration for fast iteration (~30 min on remote server).
+# Full data, reduced fusionreg grid, lower maxiter, no cross-validation.
 
 seed: 4
 train_frac: 0.8
 
 spike:
-  output_dir: results_test
+  output_dir: results_experimental
   reference: "Omicron_BA1"
   experiment_conditions: ["Delta", "Omicron_BA1", "Omicron_BA2"]
   replicate_1_experiments: ["Delta-2", "Omicron_BA1-2", "Omicron_BA2-1"]
@@ -21,7 +21,7 @@ spike:
   func_score_clip: [-3.5, 2.5]
   pseudocount: 0.5
   do_truncate_nonsense: true
-  subsample_frac: 0.1  # 10% subsample for fast testing
+  subsample_frac: null  # null = use all data
 
   # Display
   condition_colors:
@@ -33,12 +33,12 @@ spike:
     Omicron_BA1: "BA.1"
     Omicron_BA2: "BA.2"
 
-  # Fitting parameters (reduced for test)
+  # Fitting parameters — reduced for fast iteration
   fitting:
-    maxiter: 2
+    maxiter: 20
     tol: 1.0e-4
-    fusionreg_values: [0.0, 3.2]
-    l2reg: 1.0e-4
+    fusionreg_values: [0.0, 0.8, 3.2, 12.8]
+    l2reg: 1.0e-2
     beta0_ridge: 10
     scale_fusion_by_n: false
     ge_type: "Sigmoid"
@@ -48,10 +48,13 @@ spike:
     share_alpha: true
     beta_clip_range: [-10, 10]
     loss_kwargs: {"δ": 1.0}
-    ge_kwargs: {tol: 1.0e-4, maxiter: 2, maxls: 40, jit: true, verbose: false}
-    cal_kwargs: {tol: 1.0e-4, maxiter: 2, maxls: 40, jit: true, verbose: false}
+    ge_kwargs: {tol: 1.0e-4, maxiter: 20, maxls: 40, jit: true, verbose: false}
+    cal_kwargs: {tol: 1.0e-4, maxiter: 20, maxls: 40, jit: true, verbose: false}
     n_processes: null  # null = auto: min(cpu_count // 2, n_models)
   lasso_choice: 3.2
+
+  # Optional pipeline steps
+  skip_cross_validation: true
 
   # Spike protein domain boundaries (for downstream Phase 4 notebooks)
   domain_dict:

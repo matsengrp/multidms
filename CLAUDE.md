@@ -60,7 +60,7 @@ The package has two layers:
 1. **`jaxmodels`** — The core JAX-native API. Uses equinox modules, BCOO sparse arrays, and jaxopt for optimization. Key classes:
    - `jaxmodels.Data` (equinox Module) — holds JAX arrays for one condition
    - `jaxmodels.Latent` — models latent phenotypes
-   - `jaxmodels.Model` — global epistasis model with fitting/loss functions
+   - `jaxmodels.Model` — global epistasis model with fitting/loss functions. `Model.α` is a shared scalar (not per-condition).
 
 2. **`data.py` / `model.py`** — The user-facing wrapper API. `Data` handles pandas DataFrames, one-hot encoding via `binarymap`, and multi-condition bookkeeping. `Model` wraps `jaxmodels` with a friendlier interface. Conversion between layers: `jaxmodels.Data.from_multidms()`.
 
@@ -101,6 +101,8 @@ Before launching any remote pipeline:
 1. **Create a local worktree** (if not on main): `git worktree add ../multidms-wt-<branch> <branch>`
 2. **Scout first**: `bip scout` — pick a server with <20% CPU
 3. **Launch** (from the worktree): `pixi run remote-pipeline -- <pipeline> <profile> host=<server>`
+   - pipeline: `simulation` or `spike`
+   - profile: `test`, `experimental`, or `prod`
    - Auto-creates remote worktree at `$remote_dir/../multidms-worktrees/<branch>/`
    - Auto-generates `output_dir=results-<profile>-<branch>`
    - Runs `pixi install` then snakemake in the remote worktree

@@ -28,18 +28,19 @@ simulation:
     loose_bottle: 100
   output_dir: results_test
   fitting:
-    maxiter: 20
-    tol: 1.0e-6
+    maxiter: 2
+    tol: 1.0e-4
     fusionreg_values: [0.0, 3.2]
     l2reg: 1.0e-4
     beta0_ridge: 1.0e-5
     ge_type: "Sigmoid"
     warmstart: false
     beta0_init: {h1: 5.0, h2: 0.0}
-    alpha_init: {h1: 6.0, h2: 6.0}
+    alpha_init: 6.0
+    share_alpha: true
     beta_clip_range: [-10, 10]
     loss_kwargs: {"δ": 1.0}
-    ge_kwargs: {tol: 1.0e-5, maxiter: 1000, maxls: 40, jit: true, verbose: false}
-    cal_kwargs: {tol: 1.0e-4, maxiter: 1000, maxls: 40, jit: true, verbose: false}
+    ge_kwargs: {tol: 1.0e-4, maxiter: 2, maxls: 40, jit: true, verbose: false}
+    cal_kwargs: {tol: 1.0e-4, maxiter: 2, maxls: 40, jit: true, verbose: false}
     n_processes: null  # null = auto: min(cpu_count // 2, n_models)
   lasso_choice: 3.2

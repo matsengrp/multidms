@@ -45,11 +45,12 @@ spike:
     ge_type: "Sigmoid"
     warmstart: false
     beta0_init: {Omicron_BA1: 0.0, Delta: 0.0, Omicron_BA2: 0.0}
-    alpha_init: {Omicron_BA1: 6.0, Delta: 6.0, Omicron_BA2: 6.0}
+    alpha_init: 6.0
+    share_alpha: true
     beta_clip_range: [-10, 10]
     loss_kwargs: {"δ": 1.0}
-    ge_kwargs: {tol: 1.0e-4, maxiter: 75, maxls: 40, jit: true, verbose: false}
-    cal_kwargs: {tol: 1.0e-4, maxiter: 75, maxls: 40, jit: true, verbose: false}
+    ge_kwargs: {tol: 1.0e-4, maxiter: 50, maxls: 40, jit: true, verbose: false}
+    cal_kwargs: {tol: 1.0e-4, maxiter: 50, maxls: 40, jit: true, verbose: false}
     n_processes: null  # null = auto: min(cpu_count // 2, n_models)
   lasso_choice: 3.2
 

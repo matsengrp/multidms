@@ -647,12 +647,11 @@ def lineplot_and_heatmap(
 LINEAR_SCALE_GROUPS = {"beta0_condition", "alpha", "theta", "sparsity"}
 
 CONVERGENCE_TRAJECTORY_GROUPS = {
-    "overall": [
-        "loss_trajectory",
-        "loss_per_variant_trajectory",
-        "objective_total_trajectory",
-        "objective_error_trajectory",
-    ],
+    "loss": ["loss_trajectory"],
+    "loss_per_variant": ["loss_per_variant_trajectory"],
+    "objective_total": ["objective_total_trajectory"],
+    "objective_error": ["objective_error_trajectory"],
+    "alpha": ["alpha"],
     "block_errors": [
         "calibration_error",
         "beta0_error",
@@ -716,7 +715,7 @@ def convergence_trajectory(
     x="iteration",
     id_cols=None,
     trajectory_groups=None,
-    init_group="overall",
+    init_group="loss",
     log_y=True,
     skip_first=True,
     width=700,

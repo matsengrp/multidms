@@ -22,12 +22,14 @@ COMMON = os.path.join(NOTEBOOKS, "_common.py")
 
 # Config: use test profile if --config profile=test is passed
 profile = config.get("profile", None)
-if profile not in (None, "test"):
+if profile not in (None, "test", "experimental"):
     raise ValueError(
-        f"Unknown profile '{profile}'. Use 'test' or leave unset for production."
+        f"Unknown profile '{profile}'. Use 'test', 'experimental', or leave unset for production."
     )
 if profile == "test":
     CONFIG_PATH = os.path.join(SPIKE_DIR, "config", "config_test.yaml")
+elif profile == "experimental":
+    CONFIG_PATH = os.path.join(SPIKE_DIR, "config", "config_experimental.yaml")
 else:
     CONFIG_PATH = os.path.join(SPIKE_DIR, "config", "config.yaml")
 
@@ -38,18 +40,27 @@ with open(CONFIG_PATH) as _f:
 _yaml_output_dir = _cfg.get("spike", {}).get("output_dir", "results")
 output_dir = config.get("output_dir", _yaml_output_dir)
 RESULTS = os.path.join(SPIKE_DIR, output_dir)
+SKIP_CV = _cfg.get("spike", {}).get("skip_cross_validation", False)
 
 # Relative config path for papermill parameter injection — avoids
 # leaking absolute server paths into executed notebook metadata.
 CONFIG_PATH_REL = os.path.relpath(CONFIG_PATH, SPIKE_DIR)
 
+# Build target list — cross-validation is optional
+_all_targets = [
+    os.path.join(RESULTS, "evaluate.ipynb"),
+    os.path.join(RESULTS, "mutations_df.csv"),
+]
+if not SKIP_CV:
+    _all_targets += [
+        os.path.join(RESULTS, "cross_validation.ipynb"),
+        os.path.join(RESULTS, "cross_validation_loss.csv"),
+    ]
+
 
 rule all:
     input:
-        os.path.join(RESULTS, "evaluate.ipynb"),
-        os.path.join(RESULTS, "cross_validation.ipynb"),
-        os.path.join(RESULTS, "mutations_df.csv"),
-        os.path.join(RESULTS, "cross_validation_loss.csv"),
+        _all_targets,
 
 
 rule prepare_data:

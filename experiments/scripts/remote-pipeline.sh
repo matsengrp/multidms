@@ -6,7 +6,7 @@
 #
 # Arguments:
 #   pipeline   Pipeline name: simulation or spike
-#   profile    Run profile: test or prod
+#   profile    Run profile: test, experimental, or prod
 #
 # Examples:
 #   scripts/remote-pipeline.sh simulation test
@@ -29,7 +29,7 @@ done
 if [ ${#POSITIONAL[@]} -lt 2 ]; then
     echo "Usage: $0 <pipeline> <profile> [key=value ...]"
     echo "  pipeline: simulation | spike"
-    echo "  profile:  test | prod"
+    echo "  profile:  test | experimental | prod"
     echo "  overrides: host=quokka (optional, overrides remote.yaml)"
     exit 1
 fi
@@ -44,8 +44,8 @@ if [[ "$PIPELINE" != "simulation" && "$PIPELINE" != "spike" ]]; then
 fi
 
 # Validate profile name
-if [[ "$PROFILE" != "test" && "$PROFILE" != "prod" ]]; then
-    echo "Error: profile must be 'test' or 'prod', got '$PROFILE'" >&2
+if [[ "$PROFILE" != "test" && "$PROFILE" != "experimental" && "$PROFILE" != "prod" ]]; then
+    echo "Error: profile must be 'test', 'experimental', or 'prod', got '$PROFILE'" >&2
     exit 1
 fi
 

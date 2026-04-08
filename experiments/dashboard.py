@@ -311,9 +311,12 @@ def _(mo, mc, pd):
             "fit_time": _fit.get("fit_time", "N/A"),
             "ge_type": _fit.get("ge_type", "N/A"),
         }
-        # Alpha: per-condition dict
-        for cond, val in _jm.α.items():
-            _row[f"alpha_{cond}"] = round(float(val), 4)
+        # Alpha: shared scalar or legacy per-condition dict
+        if hasattr(_jm.α, "items"):
+            for cond, val in _jm.α.items():
+                _row[f"alpha_{cond}"] = round(float(val), 4)
+        else:
+            _row["alpha"] = round(float(_jm.α), 4)
         # Beta0: per-condition from Latent objects
         for cond, latent in _jm.φ.items():
             if hasattr(latent, "β0"):
