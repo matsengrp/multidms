@@ -137,11 +137,13 @@ class Model:
             One row per iteration with columns for overall objective
             (``iteration``, ``objective_total_trajectory``,
             ``objective_error_trajectory``, ``loss_trajectory``,
-            ``loss_per_variant_trajectory``), block-level diagnostics
-            (e.g. ``calibration_error``, ``beta0_stepsize``), and
-            shared alpha (``alpha``), and per-condition parameters
-            (``beta0_{cond}``, ``sparsity_{cond}``), and
-            ``theta_{cond}`` when count data is present.
+            ``loss_per_variant_trajectory``), per-condition loss
+            (``loss_{cond}``, ``loss_per_variant_{cond}``),
+            block-level diagnostics (e.g. ``calibration_error``,
+            ``beta0_stepsize``), shared alpha (``alpha``),
+            per-condition parameters (``beta0_{cond}``,
+            ``sparsity_{cond}``), and ``theta_{cond}`` when count
+            data is present.
         """
         return self._convergence_trajectory_df
 
