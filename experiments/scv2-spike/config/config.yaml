@@ -38,7 +38,7 @@ spike:
   fitting:
     maxiter: 50
     tol: 1.0e-4
-    fusionreg_values: [0.0, 0.8, 3.2, 12.8] # [0.0, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
+    fusionreg_values: [0.0, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
     l2reg: 1.0e-4
     beta0_ridge: 10
     scale_fusion_by_n: false
