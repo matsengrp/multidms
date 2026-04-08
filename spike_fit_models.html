@@ -76,6 +76,7 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="kc">None</span>
 </pre></div>
 </div>
 </div>
@@ -85,6 +86,7 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
 <span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results-prod-225-spike-data-prep-improvements&quot;</span>
 <br/></pre></div>
 </div>
 </div>
@@ -97,7 +99,8 @@
 <span class="n">fit_config</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;fitting&quot;</span><span class="p">]</span>
 <span class="n">reference</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;reference&quot;</span><span class="p">]</span>
 
-<span class="n">output_dir</span> <span class="o">=</span> <span class="n">spike</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output_dir&quot;</span><span class="p">,</span> <span class="s2">&quot;results&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">output_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">output_dir</span> <span class="o">=</span> <span class="n">spike</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output_dir&quot;</span><span class="p">,</span> <span class="s2">&quot;results&quot;</span><span class="p">)</span>
 <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -120,7 +123,7 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Loaded 281,158 variants
+Loaded 303,007 variants
 </pre></div></div>
 </div>
 </section>
@@ -155,8 +158,8 @@ Loaded 281,158 variants
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-rep_1: 145,970 variants, conditions=(&#39;Delta&#39;, &#39;Omicron_BA1&#39;, &#39;Omicron_BA2&#39;)
-rep_2: 135,188 variants, conditions=(&#39;Delta&#39;, &#39;Omicron_BA1&#39;, &#39;Omicron_BA2&#39;)
+rep_1: 157,295 variants, conditions=(&#39;Delta&#39;, &#39;Omicron_BA1&#39;, &#39;Omicron_BA2&#39;)
+rep_2: 145,712 variants, conditions=(&#39;Delta&#39;, &#39;Omicron_BA1&#39;, &#39;Omicron_BA2&#39;)
 </pre></div></div>
 </div>
 </section>
@@ -180,18 +183,20 @@ rep_2: 135,188 variants, conditions=(&#39;Delta&#39;, &#39;Omicron_BA1&#39;, &#3
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Fitting parameters:
-  maxiter: [75]
-  tol: [1e-06]
+  maxiter: [50]
+  tol: [0.0001]
   fusionreg: [0.0, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
-  l2reg: [0.01]
+  l2reg: [0.0001]
   beta0_ridge: [10]
+  scale_fusion_by_n: [False]
   ge_type: [&#39;Sigmoid&#39;]
-  ge_kwargs: [{&#39;tol&#39;: 1e-05, &#39;maxiter&#39;: 1000, &#39;maxls&#39;: 40, &#39;jit&#39;: True, &#39;verbose&#39;: False}]
-  cal_kwargs: [{&#39;tol&#39;: 0.0001, &#39;maxiter&#39;: 1000, &#39;maxls&#39;: 40, &#39;jit&#39;: True, &#39;verbose&#39;: False}]
+  ge_kwargs: [{&#39;tol&#39;: 0.0001, &#39;maxiter&#39;: 50, &#39;maxls&#39;: 40, &#39;jit&#39;: True, &#39;verbose&#39;: False}]
+  cal_kwargs: [{&#39;tol&#39;: 0.0001, &#39;maxiter&#39;: 50, &#39;maxls&#39;: 40, &#39;jit&#39;: True, &#39;verbose&#39;: False}]
   loss_kwargs: [{&#39;δ&#39;: 1.0}]
   warmstart: [False]
   beta0_init: [{&#39;Omicron_BA1&#39;: 0.0, &#39;Delta&#39;: 0.0, &#39;Omicron_BA2&#39;: 0.0}]
-  alpha_init: [{&#39;Omicron_BA1&#39;: 6.0, &#39;Delta&#39;: 6.0, &#39;Omicron_BA2&#39;: 6.0}]
+  alpha_init: [6.0]
+  share_alpha: [True]
   beta_clip_range: [(-10, 10)]
 </pre></div></div>
 </div>
@@ -228,7 +233,7 @@ Fitting parameters:
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Fitting 14 models with n_processes=14 (cpus=32)
+Fitting 14 models with n_processes=14 (cpus=64)
 Fit 14 models successfully, 0 failed
 </pre></div></div>
 </div>
@@ -251,7 +256,7 @@ Fit 14 models successfully, 0 failed
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Saved results/fit_collection.pkl (14 models)
+Saved results-prod-225-spike-data-prep-improvements/fit_collection.pkl (14 models)
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
@@ -297,85 +302,85 @@ Saved results/fit_collection.pkl (14 models)
       <th>0</th>
       <td>rep_1</td>
       <td>0.0</td>
-      <td>9953</td>
+      <td>272</td>
     </tr>
     <tr>
       <th>1</th>
       <td>rep_1</td>
       <td>0.4</td>
-      <td>9146</td>
+      <td>168</td>
     </tr>
     <tr>
       <th>2</th>
       <td>rep_1</td>
       <td>0.8</td>
-      <td>10189</td>
+      <td>140</td>
     </tr>
     <tr>
       <th>3</th>
       <td>rep_1</td>
       <td>1.6</td>
-      <td>9177</td>
+      <td>134</td>
     </tr>
     <tr>
       <th>4</th>
       <td>rep_1</td>
       <td>3.2</td>
-      <td>10226</td>
+      <td>303</td>
     </tr>
     <tr>
       <th>5</th>
       <td>rep_1</td>
       <td>6.4</td>
-      <td>10500</td>
+      <td>96</td>
     </tr>
     <tr>
       <th>6</th>
       <td>rep_1</td>
       <td>12.8</td>
-      <td>10700</td>
+      <td>215</td>
     </tr>
     <tr>
       <th>7</th>
       <td>rep_2</td>
       <td>0.0</td>
-      <td>10181</td>
+      <td>271</td>
     </tr>
     <tr>
       <th>8</th>
       <td>rep_2</td>
       <td>0.4</td>
-      <td>9844</td>
+      <td>181</td>
     </tr>
     <tr>
       <th>9</th>
       <td>rep_2</td>
       <td>0.8</td>
-      <td>9713</td>
+      <td>156</td>
     </tr>
     <tr>
       <th>10</th>
       <td>rep_2</td>
       <td>1.6</td>
-      <td>9636</td>
+      <td>122</td>
     </tr>
     <tr>
       <th>11</th>
       <td>rep_2</td>
       <td>3.2</td>
-      <td>10218</td>
+      <td>134</td>
     </tr>
     <tr>
       <th>12</th>
       <td>rep_2</td>
       <td>6.4</td>
-      <td>10389</td>
+      <td>94</td>
     </tr>
     <tr>
       <th>13</th>
       <td>rep_2</td>
       <td>12.8</td>
-      <td>10875</td>
+      <td>262</td>
     </tr>
   </tbody>
 </table>

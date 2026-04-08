@@ -49,6 +49,7 @@ making them independently testable and usable with any data source.</p>
 <li><p><a class="reference internal" href="#multidms.plot.mut_param_traceplot" title="multidms.plot.mut_param_traceplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">mut_param_traceplot()</span></code></a> — mutation parameters across regularization</p></li>
 <li><p><a class="reference internal" href="#multidms.plot.shift_sparsity" title="multidms.plot.shift_sparsity"><code class="xref py py-func docutils literal notranslate"><span class="pre">shift_sparsity()</span></code></a> — shift sparsity across regularization</p></li>
 <li><p><a class="reference internal" href="#multidms.plot.mut_param_dataset_correlation" title="multidms.plot.mut_param_dataset_correlation"><code class="xref py py-func docutils literal notranslate"><span class="pre">mut_param_dataset_correlation()</span></code></a> — replicate correlation</p></li>
+<li><p><a class="reference internal" href="#multidms.plot.replicate_param_scatter" title="multidms.plot.replicate_param_scatter"><code class="xref py py-func docutils literal notranslate"><span class="pre">replicate_param_scatter()</span></code></a> — replicate parameter scatter with identity line</p></li>
 <li><p><a class="reference internal" href="#multidms.plot.times_seen_hist" title="multidms.plot.times_seen_hist"><code class="xref py py-func docutils literal notranslate"><span class="pre">times_seen_hist()</span></code></a> — mutation occurrence histogram</p></li>
 <li><p><a class="reference internal" href="#multidms.plot.func_score_boxplot" title="multidms.plot.func_score_boxplot"><code class="xref py py-func docutils literal notranslate"><span class="pre">func_score_boxplot()</span></code></a> — functional score distribution</p></li>
 <li><p><a class="reference internal" href="#multidms.plot.ge_landscape" title="multidms.plot.ge_landscape"><code class="xref py py-func docutils literal notranslate"><span class="pre">ge_landscape()</span></code></a> — global epistasis landscape</p></li>
@@ -264,6 +265,37 @@ defaults.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>alt.FacetChart</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="multidms.plot.replicate_param_scatter">
+<span class="sig-prename descclassname"><span class="pre">multidms.plot.</span></span><span class="sig-name descname"><span class="pre">replicate_param_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">muts_df_pair</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_col</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_col</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point_opacity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.plot.replicate_param_scatter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scatter plot comparing mutation parameters between two replicates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>muts_df_pair</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><em>pandas.DataFrame</em></a>) – One row per mutation with columns <code class="docutils literal notranslate"><span class="pre">x_col</span></code>, <code class="docutils literal notranslate"><span class="pre">y_col</span></code>.
+The <code class="docutils literal notranslate"><span class="pre">mutation</span></code> column (or index) contains mutation strings
+like “A5G”. Optional columns for tooltips: <code class="docutils literal notranslate"><span class="pre">site</span></code>, <code class="docutils literal notranslate"><span class="pre">wildtype</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mutant</span></code> (derived by parsing mutation strings via <code class="docutils literal notranslate"><span class="pre">split_sub</span></code>).</p></li>
+<li><p><strong>x_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column names for the two datasets’ parameter values.</p></li>
+<li><p><strong>y_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Column names for the two datasets’ parameter values.</p></li>
+<li><p><strong>x_label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em>) – Axis labels (default to column names).</p></li>
+<li><p><strong>y_label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em>) – Axis labels (default to column names).</p></li>
+<li><p><strong>color_by</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em>) – Column to color points by.</p></li>
+<li><p><strong>point_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Point styling.</p></li>
+<li><p><strong>point_opacity</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Point styling.</p></li>
+<li><p><strong>width</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Chart dimensions.</p></li>
+<li><p><strong>height</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Chart dimensions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Scatter + diagonal identity line + Pearson r annotation.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>alt.LayerChart</p>
 </dd>
 </dl>
 </dd></dl>

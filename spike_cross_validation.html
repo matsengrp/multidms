@@ -76,6 +76,7 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="kc">None</span>
 </pre></div>
 </div>
 </div>
@@ -85,6 +86,7 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
 <span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results-prod-225-spike-data-prep-improvements&quot;</span>
 <br/></pre></div>
 </div>
 </div>
@@ -101,7 +103,8 @@
 <span class="n">train_frac</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;train_frac&quot;</span><span class="p">]</span>
 <span class="n">condition_titles</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;condition_titles&quot;</span><span class="p">]</span>
 
-<span class="n">output_dir</span> <span class="o">=</span> <span class="n">spike</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output_dir&quot;</span><span class="p">,</span> <span class="s2">&quot;results&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">output_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">output_dir</span> <span class="o">=</span> <span class="n">spike</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output_dir&quot;</span><span class="p">,</span> <span class="s2">&quot;results&quot;</span><span class="p">)</span>
 <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -124,7 +127,7 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Loaded 281,158 variants
+Loaded 303,007 variants
 </pre></div></div>
 </div>
 </section>
@@ -175,8 +178,8 @@ Loaded 281,158 variants
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-rep_1: 116,776 train, 29,194 test
-rep_2: 108,151 train, 27,037 test
+rep_1: 125,836 train, 31,459 test
+rep_2: 116,570 train, 29,142 test
 </pre></div></div>
 </div>
 </section>
@@ -259,8 +262,8 @@ CV: fit 14 models, 0 failed
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-rep_1: dropped 5447/29194 test variants with unseen mutations
-rep_2: dropped 4999/27037 test variants with unseen mutations
+rep_1: dropped 6062/31459 test variants with unseen mutations
+rep_2: dropped 5413/29142 test variants with unseen mutations
 </pre></div></div>
 </div>
 </section>
