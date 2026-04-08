@@ -17,9 +17,9 @@ spike:
 
   # Filtering thresholds
   pre_count_threshold: 100
-  post_count_threshold: 1
+  post_count_threshold: 0
   max_subs: 10
-  func_score_clip: [-3.5, 2.5]
+  func_score_clip: [-5.0, 3.6]
   pseudocount: 0.5
   do_truncate_nonsense: true
   subsample_frac: null  # null = use all data
