@@ -29,7 +29,7 @@ simulation:
   output_dir: results
   fitting:
     maxiter: 100
-    tol: 1.0e-6
+    tol: 1.0e-4
     fusionreg_values: [0.0, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
     l2reg: 1.0e-4
     beta0_ridge: 1.0e-5
@@ -37,9 +37,10 @@ simulation:
     warmstart: false
     beta0_init: {h1: 5.0, h2: 0.0}
     alpha_init: 6.0
+    share_alpha: true
     beta_clip_range: [-10, 10]
     loss_kwargs: {"δ": 1.0}
-    ge_kwargs: {tol: 1.0e-5, maxiter: 1000, maxls: 40, jit: true, verbose: false}
-    cal_kwargs: {tol: 1.0e-4, maxiter: 1000, maxls: 40, jit: true, verbose: false}
+    ge_kwargs: {tol: 1.0e-4, maxiter: 100, maxls: 40, jit: true, verbose: false}
+    cal_kwargs: {tol: 1.0e-4, maxiter: 100, maxls: 40, jit: true, verbose: false}
     n_processes: null  # null = auto: min(cpu_count // 2, n_models)
   lasso_choice: 3.2

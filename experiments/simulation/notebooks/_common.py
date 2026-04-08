@@ -240,6 +240,7 @@ def build_fit_params(fit_config, datasets):
         "warmstart": [fit_config["warmstart"]],
         "beta0_init": [fit_config["beta0_init"]],
         "alpha_init": [fit_config["alpha_init"]],
+        "share_alpha": [fit_config.get("share_alpha", True)],
         "beta_clip_range": [tuple(fit_config["beta_clip_range"])],
         "dataset": datasets,
     }

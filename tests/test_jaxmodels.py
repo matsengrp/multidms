@@ -403,6 +403,19 @@ class TestModel:
         assert model.α.shape == ()
         assert len(model.logθ) == len(multi_condition_data)
 
+    def test_model_creation_per_condition_alpha(self, multi_condition_data):
+        """Test model creation with share_alpha=False."""
+        model, _ = jaxmodels.fit(
+            data_sets=multi_condition_data,
+            reference_condition="condition1",
+            block_iters=1,
+            warmstart=False,
+            share_alpha=False,
+        )
+
+        assert isinstance(model.α, dict)
+        assert len(model.α) == len(multi_condition_data)
+
     def test_predict_score(self, multi_condition_data):
         """Test score prediction."""
         model, _ = jaxmodels.fit(

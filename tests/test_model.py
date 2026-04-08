@@ -296,6 +296,42 @@ def test_convergence_trajectory_theta_with_count_data(count_data):
         assert (traj_df[f"theta_{cond}"] > 0).all()
 
 
+# ==================== share_alpha Tests ====================
+
+
+def test_fit_share_alpha_false(simple_data):
+    """Test that share_alpha=False produces per-condition alpha dict."""
+    model = multidms.Model(simple_data)
+    model.fit(maxiter=3, warmstart=False, verbose=False, share_alpha=False)
+
+    jm = model._jax_model
+    assert isinstance(jm.α, dict)
+    assert set(jm.α.keys()) == set(simple_data.conditions)
+    for v in jm.α.values():
+        assert v.shape == ()
+
+    # Trajectory should have alpha_{cond} columns, not "alpha"
+    traj_df = model.convergence_trajectory_df
+    assert "alpha" not in traj_df.columns
+    for cond in simple_data.conditions:
+        assert f"alpha_{cond}" in traj_df.columns
+
+
+def test_fit_share_alpha_true_default(simple_data):
+    """Test that default share_alpha=True produces scalar alpha."""
+    model = multidms.Model(simple_data)
+    model.fit(maxiter=3, warmstart=False, verbose=False)
+
+    jm = model._jax_model
+    assert not isinstance(jm.α, dict)
+    assert jm.α.shape == ()
+
+    traj_df = model.convergence_trajectory_df
+    assert "alpha" in traj_df.columns
+    for cond in simple_data.conditions:
+        assert f"alpha_{cond}" not in traj_df.columns
+
+
 # ==================== get_mutations_df Tests ====================
 
 

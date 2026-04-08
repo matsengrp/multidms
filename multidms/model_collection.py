@@ -58,6 +58,7 @@ def fit_one_model(
     beta0_init=None,
     beta_init=None,
     alpha_init=None,
+    share_alpha=True,
     beta_clip_range=None,
     ge_kwargs=None,
     cal_kwargs=None,
@@ -96,8 +97,10 @@ def fit_one_model(
         Whether to use Ridge regression for initialization.
     beta0_init, beta_init : dict, optional
         Initial parameter values per condition.
-    alpha_init : float, optional
-        Initial shared α scaling value.
+    alpha_init : float or dict, optional
+        Initial α scaling value (float for all, dict for per-condition).
+    share_alpha : bool
+        If True (default), single shared α; if False, per-condition α.
     beta_clip_range : tuple, optional
         ``(min, max)`` clipping for beta parameters.
     ge_kwargs, cal_kwargs, loss_kwargs : dict, optional
@@ -146,6 +149,7 @@ def fit_one_model(
         beta0_init=beta0_init,
         beta_init=beta_init,
         alpha_init=alpha_init,
+        share_alpha=share_alpha,
         beta_clip_range=beta_clip_range,
         ge_kwargs=ge_kwargs,
         cal_kwargs=cal_kwargs,
