@@ -8,6 +8,7 @@ experiment:
   data:
     func_scores: "data/simulated_func_scores.csv"
     true_effects: "data/simulated_muteffects.csv"
+    subsample_frac: 0.05  # subsample to ~5% for fast test runs
 
   fitting:
     maxiter: 2
