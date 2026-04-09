@@ -715,3 +715,112 @@ class TestVisualization:
         )
         assert isinstance(chart, (alt.Chart, alt.LayerChart))
         chart.to_dict()
+
+    def test_per_condition_loss_in_convergence_trajectory(self, collection):
+        """Test that per-condition loss columns appear in trajectory DataFrame."""
+        df = collection.convergence_trajectory_df()
+        # Should have per-condition loss columns for each condition
+        loss_cols = [
+            c
+            for c in df.columns
+            if c.startswith("loss_")
+            and c not in {"loss_trajectory", "loss_per_variant_trajectory"}
+            and not c.startswith("loss_per_variant_")
+        ]
+        assert len(loss_cols) > 0
+
+        loss_pv_cols = [
+            c
+            for c in df.columns
+            if c.startswith("loss_per_variant_") and c != "loss_per_variant_trajectory"
+        ]
+        assert len(loss_pv_cols) > 0
+
+
+# ========== _detect_per_condition_groups tests ==========
+
+
+class TestDetectPerConditionGroups:
+    """Tests for _detect_per_condition_groups with loss columns."""
+
+    def test_detects_loss_per_condition(self):
+        """Test that loss_{cond} columns are grouped as loss_per_condition."""
+        from multidms.plot import _detect_per_condition_groups
+
+        columns = [
+            "loss_trajectory",
+            "loss_per_variant_trajectory",
+            "loss_Delta",
+            "loss_Omicron",
+            "loss_per_variant_Delta",
+            "loss_per_variant_Omicron",
+            "beta0_Delta",
+            "beta0_Omicron",
+            "sparsity_Omicron",
+        ]
+        groups = _detect_per_condition_groups(columns)
+        assert "loss_per_condition" in groups
+        assert sorted(groups["loss_per_condition"]) == ["loss_Delta", "loss_Omicron"]
+
+    def test_detects_loss_per_variant_per_condition(self):
+        """Test that loss_per_variant_{cond} columns are grouped correctly."""
+        from multidms.plot import _detect_per_condition_groups
+
+        columns = [
+            "loss_trajectory",
+            "loss_per_variant_trajectory",
+            "loss_Delta",
+            "loss_Omicron",
+            "loss_per_variant_Delta",
+            "loss_per_variant_Omicron",
+            "beta0_Delta",
+        ]
+        groups = _detect_per_condition_groups(columns)
+        assert "loss_per_variant_per_condition" in groups
+        assert sorted(groups["loss_per_variant_per_condition"]) == [
+            "loss_per_variant_Delta",
+            "loss_per_variant_Omicron",
+        ]
+
+    def test_no_column_in_multiple_groups(self):
+        """Test that no column appears in more than one group."""
+        from multidms.plot import _detect_per_condition_groups
+
+        columns = [
+            "loss_trajectory",
+            "loss_per_variant_trajectory",
+            "loss_Delta",
+            "loss_Omicron",
+            "loss_per_variant_Delta",
+            "loss_per_variant_Omicron",
+            "alpha_Delta",
+            "alpha_Omicron",
+            "beta0_Delta",
+            "beta0_Omicron",
+            "sparsity_Omicron",
+        ]
+        groups = _detect_per_condition_groups(columns)
+        all_cols = []
+        for cols in groups.values():
+            all_cols.extend(cols)
+        assert len(all_cols) == len(
+            set(all_cols)
+        ), f"Duplicate columns across groups: {all_cols}"
+
+    def test_base_cols_excluded(self):
+        """Test that static base columns are not matched by prefix detection."""
+        from multidms.plot import _detect_per_condition_groups
+
+        columns = [
+            "loss_trajectory",
+            "loss_per_variant_trajectory",
+            "loss_Delta",
+        ]
+        groups = _detect_per_condition_groups(columns)
+        if "loss_per_condition" in groups:
+            assert "loss_trajectory" not in groups["loss_per_condition"]
+        if "loss_per_variant_per_condition" in groups:
+            assert (
+                "loss_per_variant_trajectory"
+                not in groups["loss_per_variant_per_condition"]
+            )

@@ -676,9 +676,13 @@ CONVERGENCE_TRAJECTORY_GROUPS = {
 def _detect_per_condition_groups(columns):
     """Detect per-condition column groups from DataFrame columns.
 
-    Looks for columns matching ``alpha_{cond}``, ``theta_{cond}``,
-    ``beta0_{cond}``, and ``sparsity_{cond}`` patterns and groups them
-    by parameter type.
+    Looks for columns matching ``loss_{cond}``, ``loss_per_variant_{cond}``,
+    ``alpha_{cond}``, ``theta_{cond}``, ``beta0_{cond}``, and
+    ``sparsity_{cond}`` patterns and groups them by parameter type.
+
+    Prefixes are processed in decreasing length order to avoid ambiguity
+    (e.g., ``loss_per_variant_Delta`` matching both ``loss_`` and
+    ``loss_per_variant_``).
 
     Parameters
     ----------
@@ -690,22 +694,30 @@ def _detect_per_condition_groups(columns):
     dict
         Mapping from group name to list of matching column names.
     """
-    prefixes = {
-        "alpha": "alpha_",
-        "theta": "theta_",
-        "beta0_condition": "beta0_",
-        "sparsity": "sparsity_",
-    }
+    prefixes = [
+        ("loss_per_variant_per_condition", "loss_per_variant_"),
+        ("loss_per_condition", "loss_"),
+        ("alpha", "alpha_"),
+        ("theta", "theta_"),
+        ("beta0_condition", "beta0_"),
+        ("sparsity", "sparsity_"),
+    ]
     # These are the base (non-condition) columns that start with the same prefix
     base_cols = set(CONVERGENCE_TRAJECTORY_GROUPS.get("overall", []))
     for group_cols in CONVERGENCE_TRAJECTORY_GROUPS.values():
         base_cols.update(group_cols)
 
     groups = {}
-    for group_name, prefix in prefixes.items():
-        matching = [c for c in columns if c.startswith(prefix) and c not in base_cols]
+    assigned = set()
+    for group_name, prefix in sorted(prefixes, key=lambda x: -len(x[1])):
+        matching = [
+            c
+            for c in columns
+            if c.startswith(prefix) and c not in base_cols and c not in assigned
+        ]
         if matching:
             groups[group_name] = sorted(matching)
+            assigned.update(matching)
     return groups
 
 

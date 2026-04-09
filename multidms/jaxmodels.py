@@ -426,6 +426,10 @@ def fit(
         - ``iteration``, ``objective_total_trajectory``,
           ``objective_error_trajectory``, ``loss_trajectory``,
           ``loss_per_variant_trajectory``
+        - Per-condition loss: ``loss_{condition}`` (total Huber loss
+          for that condition) and ``loss_per_variant_{condition}``
+          (normalized by that condition's variant count). Per-condition
+          losses sum to ``loss_trajectory``.
         - Block-level diagnostics for each optimization block
           (``calibration_error``, ``calibration_stepsize``,
           ``calibration_iter_num``, ``beta0_error``, etc.)
@@ -783,7 +787,8 @@ def fit(
                         ).mean()
                     )
 
-            loss_total = float(sum(loss_fn(model, data_sets, **loss_kwargs).values()))
+            per_condition_losses = loss_fn(model, data_sets, **loss_kwargs)
+            loss_total = float(sum(per_condition_losses.values()))
 
             trajectory_rows.append(
                 {
@@ -792,6 +797,12 @@ def fit(
                     "objective_error_trajectory": float(objective_error),
                     "loss_trajectory": loss_total,
                     "loss_per_variant_trajectory": loss_total / n_variants_total,
+                    **{f"loss_{d}": float(per_condition_losses[d]) for d in data_sets},
+                    **{
+                        f"loss_per_variant_{d}": float(per_condition_losses[d])
+                        / data_sets[d].functional_scores.shape[0]
+                        for d in data_sets
+                    },
                     "calibration_error": float(state_calibration.error),
                     "calibration_stepsize": float(state_calibration.stepsize),
                     "calibration_iter_num": int(state_calibration.iter_num),
@@ -849,6 +860,8 @@ def fit(
     ]
     condition_columns = ["alpha"] if share_alpha else []
     for d in conditions:
+        condition_columns.append(f"loss_{d}")
+        condition_columns.append(f"loss_per_variant_{d}")
         if not share_alpha:
             condition_columns.append(f"alpha_{d}")
         if has_counts:

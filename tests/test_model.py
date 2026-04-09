@@ -284,6 +284,59 @@ def test_convergence_trajectory_single_condition(fitted_single_condition_model):
     assert len(sparsity_cols) == 0
 
 
+def test_per_condition_loss_columns_exist(fitted_simple_model, simple_data):
+    """Test that per-condition loss columns exist in trajectory."""
+    traj_df = fitted_simple_model.convergence_trajectory_df
+    for cond in simple_data.conditions:
+        assert f"loss_{cond}" in traj_df.columns
+        assert f"loss_per_variant_{cond}" in traj_df.columns
+
+
+def test_per_condition_loss_sum_all_iterations(fitted_simple_model, simple_data):
+    """Test that per-condition losses sum to total loss for every iteration."""
+    traj_df = fitted_simple_model.convergence_trajectory_df
+    conditions = simple_data.conditions
+    per_condition_sum = sum(traj_df[f"loss_{cond}"] for cond in conditions)
+    np.testing.assert_allclose(per_condition_sum, traj_df["loss_trajectory"], rtol=1e-5)
+
+
+def test_per_condition_loss_non_negative(fitted_simple_model, simple_data):
+    """Test that all per-condition loss values are non-negative."""
+    traj_df = fitted_simple_model.convergence_trajectory_df
+    for cond in simple_data.conditions:
+        assert (traj_df[f"loss_{cond}"] >= 0).all()
+        assert (traj_df[f"loss_per_variant_{cond}"] >= 0).all()
+
+
+def test_per_condition_loss_per_variant_normalization(simple_data):
+    """Test that loss_per_variant_{d} = loss_{d} / n_variants_for_d."""
+    model = multidms.Model(simple_data)
+    model.fit(maxiter=3, warmstart=False)
+    traj_df = model.convergence_trajectory_df
+
+    for cond in simple_data.conditions:
+        # Use the jax data variant count (excludes wildtype row)
+        n_variants = model._jax_data_sets[cond].functional_scores.shape[0]
+        expected = traj_df[f"loss_{cond}"] / n_variants
+        np.testing.assert_allclose(
+            traj_df[f"loss_per_variant_{cond}"], expected, rtol=1e-10
+        )
+
+
+def test_single_condition_loss_equals_total(fitted_single_condition_model):
+    """For single-condition model, per-condition loss equals total loss."""
+    traj_df = fitted_single_condition_model.convergence_trajectory_df
+    assert len(traj_df) > 0
+    np.testing.assert_allclose(
+        traj_df["loss_a"], traj_df["loss_trajectory"], rtol=1e-10
+    )
+    np.testing.assert_allclose(
+        traj_df["loss_per_variant_a"],
+        traj_df["loss_per_variant_trajectory"],
+        rtol=1e-10,
+    )
+
+
 def test_convergence_trajectory_theta_with_count_data(count_data):
     """Test that theta columns ARE tracked when count data is present."""
     model = multidms.Model(count_data, loss_type="count_loss")
