@@ -259,16 +259,14 @@ def test_convergence_trajectory_block_values(fitted_simple_model):
         assert (traj_df[f"{block}_iter_num"] >= 0).all()
 
 
-def test_convergence_trajectory_per_variant_loss(fitted_simple_model):
-    """Test that loss_per_variant_trajectory is correctly normalized."""
+def test_convergence_trajectory_per_variant_loss(fitted_simple_model, simple_data):
+    """Test that loss_per_variant_trajectory is average per-condition mean loss."""
     traj_df = fitted_simple_model.convergence_trajectory_df
-    # The ratio loss / loss_per_variant should be constant (= n_variants_total)
+    # The ratio loss / loss_per_variant should be constant (= n_conditions)
     ratios = traj_df["loss_trajectory"] / traj_df["loss_per_variant_trajectory"]
     np.testing.assert_allclose(ratios, ratios.iloc[0])
-    # n_variants_total must be a positive integer
-    n_variants = ratios.iloc[0]
-    assert n_variants > 0
-    assert n_variants == int(n_variants)
+    n_conditions = ratios.iloc[0]
+    assert n_conditions == len(simple_data.conditions)
 
 
 def test_convergence_trajectory_single_condition(fitted_single_condition_model):
@@ -309,17 +307,18 @@ def test_per_condition_loss_non_negative(fitted_simple_model, simple_data):
 
 
 def test_per_condition_loss_per_variant_normalization(simple_data):
-    """Test that loss_per_variant_{d} = loss_{d} / n_variants_for_d."""
+    """Test loss_per_variant_{d} equals loss_{d} (already per-variant)."""
     model = multidms.Model(simple_data)
     model.fit(maxiter=3, warmstart=False)
     traj_df = model.convergence_trajectory_df
 
     for cond in simple_data.conditions:
-        # Use the jax data variant count (excludes wildtype row)
-        n_variants = model._jax_data_sets[cond].functional_scores.shape[0]
-        expected = traj_df[f"loss_{cond}"] / n_variants
+        # With .mean() loss, loss_{d} is already per-variant,
+        # so loss_per_variant_{d} should be identical
         np.testing.assert_allclose(
-            traj_df[f"loss_per_variant_{cond}"], expected, rtol=1e-10
+            traj_df[f"loss_per_variant_{cond}"],
+            traj_df[f"loss_{cond}"],
+            rtol=1e-10,
         )
 
 

@@ -1,0 +1,84 @@
+"""Snakemake workflow for the loss normalization experiment.
+
+Two notebooks executed via papermill:
+  fit_models → evaluate
+
+Run with:
+  snakemake -s experiments/loss-normalization/Snakefile -j4
+  snakemake -s experiments/loss-normalization/Snakefile --config profile=test -j4
+"""
+
+import os
+import yaml
+
+# Resolve paths relative to the Snakefile location
+EXP_DIR = os.path.dirname(workflow.snakefile)
+NOTEBOOKS = os.path.join(EXP_DIR, "notebooks")
+
+# Config: use test profile if --config profile=test is passed
+profile = config.get("profile", None)
+if profile == "test":
+    CONFIG_PATH = os.path.join(EXP_DIR, "config", "config_test.yaml")
+else:
+    CONFIG_PATH = os.path.join(EXP_DIR, "config", "config.yaml")
+
+# Read output_dir from the YAML config
+with open(CONFIG_PATH) as _f:
+    _cfg = yaml.safe_load(_f)
+_yaml_output_dir = _cfg.get("experiment", {}).get("output_dir", "results")
+output_dir = config.get("output_dir", _yaml_output_dir)
+RESULTS = os.path.join(EXP_DIR, output_dir)
+
+# Relative config path for papermill parameter injection
+CONFIG_PATH_REL = os.path.relpath(CONFIG_PATH, EXP_DIR)
+
+
+rule all:
+    input:
+        os.path.join(RESULTS, "evaluate.ipynb"),
+        os.path.join(RESULTS, "fit_summary.csv"),
+        os.path.join(RESULTS, "sparsity_vs_fusionreg.pdf"),
+        os.path.join(RESULTS, "correlation_vs_fusionreg.pdf"),
+
+
+rule fit_models:
+    input:
+        config=CONFIG_PATH,
+        notebook=os.path.join(NOTEBOOKS, "fit_models.ipynb"),
+    output:
+        fit_collection=os.path.join(RESULTS, "fit_collection.pkl"),
+        executed_notebook=os.path.join(RESULTS, "fit_models.ipynb"),
+    params:
+        config_path=CONFIG_PATH_REL,
+        output_dir=output_dir,
+    shell:
+        """
+        papermill {input.notebook} {output.executed_notebook} \
+            -p config_path {params.config_path} \
+            -p output_dir {params.output_dir} \
+            --cwd {EXP_DIR} \
+        && jupyter trust {output.executed_notebook}
+        """
+
+
+rule evaluate:
+    input:
+        config=CONFIG_PATH,
+        fit_collection=os.path.join(RESULTS, "fit_collection.pkl"),
+        notebook=os.path.join(NOTEBOOKS, "evaluate.ipynb"),
+    output:
+        fit_summary=os.path.join(RESULTS, "fit_summary.csv"),
+        sparsity_plot=os.path.join(RESULTS, "sparsity_vs_fusionreg.pdf"),
+        corr_plot=os.path.join(RESULTS, "correlation_vs_fusionreg.pdf"),
+        executed_notebook=os.path.join(RESULTS, "evaluate.ipynb"),
+    params:
+        config_path=CONFIG_PATH_REL,
+        output_dir=output_dir,
+    shell:
+        """
+        papermill {input.notebook} {output.executed_notebook} \
+            -p config_path {params.config_path} \
+            -p output_dir {params.output_dir} \
+            --cwd {EXP_DIR} \
+        && jupyter trust {output.executed_notebook}
+        """

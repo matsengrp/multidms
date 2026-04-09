@@ -1,6 +1,7 @@
 """Tests for the jaxmodels module."""
 
 import pytest
+import numpy as np
 import jax
 import jax.numpy as jnp
 from jax.experimental.sparse import BCOO
@@ -486,6 +487,149 @@ class TestLossFunctions:
             assert losses[cond].shape == ()  # Scalar loss
             assert jnp.isfinite(losses[cond])  # No NaN or inf
             assert losses[cond] >= 0  # Huber loss is non-negative
+
+
+# ==================== Tests for mean loss normalization ====================
+
+
+class TestMeanLossNormalization:
+    """Tests verifying the .mean() normalization in functional_score_loss."""
+
+    def test_mean_loss_known_answer(self, n_mutations, n_variants):
+        """Mean loss with uniform residual should equal huber(r) regardless of N."""
+        import jaxopt
+
+        # Create model and data where all variants have residual r = 0.5
+        r = 0.5
+        β = jnp.zeros(n_mutations)
+        latent = jaxmodels.Latent(β0=jnp.array(0.0), β=β)
+        ge = jaxmodels.Identity()
+
+        # Create variant matrix of zeros so predictions are all β0 = 0
+        X = BCOO.fromdense(jnp.zeros((n_variants, n_mutations), dtype=jnp.int32))
+        x_wt = jnp.zeros(n_mutations, dtype=jnp.int32)
+        # functional_scores = r so residual = y - f = r - 0 = r
+        scores = jnp.full(n_variants, r)
+
+        data = jaxmodels.Data(x_wt=x_wt, X=X, functional_scores=scores)
+        model = jaxmodels.Model(
+            φ={"c": latent},
+            α=jnp.array(1.0),
+            logθ={"c": jnp.array(0.0)},
+            global_epistasis=ge,
+            reference_condition="c",
+        )
+
+        losses = jaxmodels.functional_score_loss(model, {"c": data}, δ=1.0)
+        expected = jaxopt.loss.huber_loss(r, 0.0, 1.0)
+        np.testing.assert_allclose(losses["c"], expected, rtol=1e-5)
+
+    def test_mean_loss_invariant_to_duplicates(self, n_mutations):
+        """Doubling all variants should not change the per-condition loss."""
+        n_small = 5
+        n_large = 10
+
+        β = jnp.zeros(n_mutations)
+        latent = jaxmodels.Latent(β0=jnp.array(0.0), β=β)
+        ge = jaxmodels.Identity()
+        x_wt = jnp.zeros(n_mutations, dtype=jnp.int32)
+
+        rng = jax.random.PRNGKey(99)
+        scores_small = jax.random.normal(rng, shape=(n_small,))
+        # Duplicate: repeat each score
+        scores_large = jnp.concatenate([scores_small, scores_small])
+        assert scores_large.shape[0] == n_large
+
+        X_small = BCOO.fromdense(jnp.zeros((n_small, n_mutations), dtype=jnp.int32))
+        X_large = BCOO.fromdense(jnp.zeros((n_large, n_mutations), dtype=jnp.int32))
+
+        data_small = jaxmodels.Data(
+            x_wt=x_wt, X=X_small, functional_scores=scores_small
+        )
+        data_large = jaxmodels.Data(
+            x_wt=x_wt, X=X_large, functional_scores=scores_large
+        )
+
+        model = jaxmodels.Model(
+            φ={"c": latent},
+            α=jnp.array(1.0),
+            logθ={"c": jnp.array(0.0)},
+            global_epistasis=ge,
+            reference_condition="c",
+        )
+
+        loss_small = jaxmodels.functional_score_loss(model, {"c": data_small})
+        loss_large = jaxmodels.functional_score_loss(model, {"c": data_large})
+        np.testing.assert_allclose(loss_small["c"], loss_large["c"], rtol=1e-5)
+
+    def test_mean_loss_gradient_scaling(self, n_mutations):
+        """Gradient of mean loss should equal gradient of sum loss / n_variants."""
+        import jaxopt
+
+        n_v = 8
+        β = jnp.zeros(n_mutations)
+        latent = jaxmodels.Latent(β0=jnp.array(0.0), β=β)
+        ge = jaxmodels.Identity()
+        x_wt = jnp.zeros(n_mutations, dtype=jnp.int32)
+
+        rng = jax.random.PRNGKey(77)
+        k1, k2 = jax.random.split(rng)
+        X_dense = (jax.random.uniform(k1, shape=(n_v, n_mutations)) < 0.3).astype(
+            jnp.int32
+        )
+        X = BCOO.fromdense(X_dense)
+        scores = jax.random.normal(k2, shape=(n_v,))
+
+        data = jaxmodels.Data(x_wt=x_wt, X=X, functional_scores=scores)
+        data_sets = {"c": data}
+
+        model = jaxmodels.Model(
+            φ={"c": latent},
+            α=jnp.array(1.0),
+            logθ={"c": jnp.array(0.0)},
+            global_epistasis=ge,
+            reference_condition="c",
+        )
+
+        # Mean loss (current implementation)
+        def mean_loss(m):
+            return jaxmodels.functional_score_loss(m, data_sets)["c"]
+
+        # Sum loss (old implementation)
+        def sum_loss(m):
+            score_pred = m.predict_score(data_sets)
+            y = data_sets["c"].functional_scores
+            f = score_pred["c"]
+            return jaxopt.loss.huber_loss(y, f, 1.0).sum()
+
+        grad_mean = jax.grad(mean_loss)(model)
+        grad_sum = jax.grad(sum_loss)(model)
+
+        # mean grad should equal sum grad / n_variants
+        np.testing.assert_allclose(
+            grad_mean.φ["c"].β, grad_sum.φ["c"].β / n_v, rtol=1e-5
+        )
+
+    def test_count_loss_unchanged(self, multi_condition_data):
+        """Verify count_loss still uses .sum() (not affected by this change)."""
+        model, _ = jaxmodels.fit(
+            data_sets=multi_condition_data,
+            reference_condition="condition1",
+            block_iters=1,
+            warmstart=False,
+        )
+
+        losses = jaxmodels.count_loss(model, multi_condition_data)
+        # Count loss should be total NLL (sum), which is typically >> 1
+        # for multi-variant data. Mean would be much smaller.
+        for cond in losses:
+            assert losses[cond].shape == ()
+            assert jnp.isfinite(losses[cond])
+            # Sum of NLLs across variants should be larger than mean
+            # (for n_variants > 1, sum > mean)
+            n_v = multi_condition_data[cond].post_counts.shape[0]
+            if n_v > 1:
+                assert losses[cond] > 1.0  # sum of NLLs, not mean
 
 
 # ==================== Tests for fit function parameters ====================

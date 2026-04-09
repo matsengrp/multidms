@@ -78,7 +78,7 @@ User provides a pandas DataFrame with columns for condition, substitutions, and 
 
 - **Sparse computation**: Variant-mutation matrices use JAX BCOO sparse format for memory efficiency.
 - **Multi-condition modeling**: Conditions share a reference beta vector; non-reference conditions get shift parameters capturing condition-specific effects.
-- **Loss types**: `functional_score_loss` (regression on scores) and `count_loss` (likelihood on pre/post selection counts).
+- **Loss types**: `functional_score_loss` uses per-variant `.mean()` Huber loss so conditions contribute equally regardless of variant count. `count_loss` uses `.sum()` (total NLL). Hyperparameter values are calibrated to the `.mean()` scale.
 - **GE nonlinearity**: `Identity` (linear) or `Sigmoid` (nonlinear global epistasis). Alpha is shared across all conditions to prevent per-condition sigmoid degeneracy.
 - **Plotting separation**: Rendering logic is fully separated from data preparation. Classes own data extraction (`get_*_df`, `_prepare_*_df`); `plot.py` owns chart construction.
 - **Interactive dashboard**: `experiments/dashboard.py` is a marimo app for exploring `ModelCollection` results interactively. Launch with `pixi run dashboard`.
@@ -121,6 +121,7 @@ Never skip step 2. Never leave tmux sessions running after fetching results.
 - CSV intermediate files + pickle for fitted model collections; all in `experiments/simulation/results/` (002-simulation-pipeline)
 - Python 3.9+ (matches existing CI matrix) + multidms (this package), snakemake, papermill, jupyter, matplotlib, seaborn, pandas, numpy, pyyaml, requests (for data download) (003-spike-pipeline)
 - CSV intermediate files + pickle for fitted model collections; all in `experiments/scv2-spike/results/` (003-spike-pipeline)
+- Snakemake experiment pipeline in `experiments/loss-normalization/` for validating `.mean()` loss normalization against V0.4.0 hyperparameter anchors (fusionreg × l2reg 2D grid)
 
 ## Recent Changes
 - 002-simulation-pipeline: Added Python 3.9+ (matches existing CI matrix) + multidms (this package), snakemake, papermill, jupyter, matplotlib, seaborn, pandas, numpy, pyyaml
