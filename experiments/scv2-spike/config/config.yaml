@@ -34,13 +34,13 @@ spike:
     Omicron_BA1: "BA.1"
     Omicron_BA2: "BA.2"
 
-  # Fitting parameters (profile_beta0_zero_l2reg_10x)
+  # Fitting parameters — rescaled for .mean() loss normalization (V0.4.0 anchors)
   fitting:
     maxiter: 50
     tol: 1.0e-4
-    fusionreg_values: [0.0, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
-    l2reg: 1.0e-4
-    beta0_ridge: 10
+    fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4]
+    l2reg: 0.0
+    beta0_ridge: 1.0e-4
     scale_fusion_by_n: false
     ge_type: "Sigmoid"
     warmstart: false
@@ -52,7 +52,7 @@ spike:
     ge_kwargs: {tol: 1.0e-4, maxiter: 50, maxls: 40, jit: true, verbose: false}
     cal_kwargs: {tol: 1.0e-4, maxiter: 50, maxls: 40, jit: true, verbose: false}
     n_processes: null  # null = auto: min(cpu_count // 2, n_models)
-  lasso_choice: 3.2
+  lasso_choice: 4.0e-5
 
   # Spike protein domain boundaries (for downstream Phase 4 notebooks)
   domain_dict:

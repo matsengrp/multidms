@@ -1,5 +1,5 @@
 # Production configuration for the simulation validation pipeline.
-# All parameters match the manuscript defaults from the legacy config.
+# Hyperparameters rescaled for .mean() loss normalization (V0.4.0 anchors).
 
 seed: 2
 train_frac: 0.8
@@ -30,9 +30,9 @@ simulation:
   fitting:
     maxiter: 100
     tol: 1.0e-4
-    fusionreg_values: [0.0, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
-    l2reg: 1.0e-4
-    beta0_ridge: 1.0e-5
+    fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4]
+    l2reg: 0.0
+    beta0_ridge: 0.0
     ge_type: "Sigmoid"
     warmstart: false
     beta0_init: {h1: 5.0, h2: 0.0}
@@ -43,4 +43,4 @@ simulation:
     ge_kwargs: {tol: 1.0e-4, maxiter: 100, maxls: 40, jit: true, verbose: false}
     cal_kwargs: {tol: 1.0e-4, maxiter: 100, maxls: 40, jit: true, verbose: false}
     n_processes: null  # null = auto: min(cpu_count // 2, n_models)
-  lasso_choice: 3.2
+  lasso_choice: 8.0e-5
