@@ -451,6 +451,14 @@ def _fit_one_path_step(prev_model, **kwargs):
     ``alpha_init`` values in ``kwargs`` with the fitted parameters of
     ``prev_model``. The Ridge warmstart is always disabled on path steps
     — the previous fit's parameters are the warm-start.
+
+    The ``beta_init`` / ``beta0_init`` / ``alpha_init`` cells of the
+    returned row are cleared to ``None`` after fitting. The seeds are
+    JAX arrays (or dicts of them), so leaving them in the row would
+    break pandas operations downstream (``.apply(str)``,
+    ``groupby``) and make the path DataFrame schema-incompatible with
+    :func:`fit_models` output. The true seed is always recoverable
+    from the previous step's ``model`` column.
     """
     beta_init, beta0_init, alpha_init = _extract_seed(prev_model)
     kwargs = {
@@ -460,7 +468,11 @@ def _fit_one_path_step(prev_model, **kwargs):
         "beta0_init": beta0_init,
         "alpha_init": alpha_init,
     }
-    return fit_one_model(**kwargs)
+    row = fit_one_model(**kwargs)
+    row["beta_init"] = None
+    row["beta0_init"] = None
+    row["alpha_init"] = None
+    return row
 
 
 def fit_models_path(params, verbose=False):

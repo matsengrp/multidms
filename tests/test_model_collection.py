@@ -12,6 +12,7 @@ from multidms.model_collection import (
     ModelCollection,
     ModelCollectionFitError,
     _assert_no_nan,
+    _extract_seed,
     concat_path_trajectories,
     fit_models,
     fit_models_path,
@@ -869,30 +870,79 @@ class TestFitModelsPath:
         expected_rows = 2 * len(self._fusionreg_path())  # datasets × path
         assert len(path_df) == expected_rows
 
-    def test_seeding_round_trip(self, simple_data):
-        """Step k+1's beta/beta0/alpha_init equal step k's fitted params."""
+    def test_extract_seed_round_trip(self, simple_data):
+        """_extract_seed returns exactly the fitted (β, β0, α) of the model."""
         import jax.numpy as jnp
 
+        # Fit a single model to produce a realistic source.
+        params = {
+            "dataset": [simple_data],
+            "fusionreg": [0.0],
+            **{k: [v] for k, v in _PATH_FIT_KWARGS.items()},
+        }
+        _, _, df = fit_models_path(params)
+        model = df.iloc[0]["model"]
+
+        beta_init, beta0_init, alpha_init = _extract_seed(model)
+        for d in model.data.conditions:
+            assert jnp.array_equal(beta_init[d], model.params.φ[d].β)
+            assert jnp.array_equal(
+                jnp.asarray(beta0_init[d]),
+                jnp.asarray(model.params.φ[d].β0),
+            )
+        # share_alpha=True ⇒ α is a scalar (not a dict)
+        assert not isinstance(alpha_init, dict)
+        assert jnp.array_equal(
+            jnp.asarray(alpha_init),
+            jnp.asarray(model.params.α),
+        )
+
+    def test_path_step_rows_have_no_jax_seed_leakage(self, simple_data):
+        """Path DF is schema-clean: beta/beta0/alpha_init cells are not jax or dict.
+
+        The row returned for path steps k>0 is seeded from the previous
+        model, but the seed *values* must not live in the row — they'd be
+        jax arrays and dicts-of-jax, which break pandas .apply(str),
+        groupby, and pickling round-trips that callers do on fit_models()
+        output. Step-0 rows inherit whatever the user passed (usually
+        None) so they're clean by construction; only steps k>0 are at
+        risk.
+        """
         params = self._path_params([simple_data])
         _, _, df = fit_models_path(params)
-        df = df.sort_values("fusionreg").reset_index(drop=True)
-        # Step 0 is a fresh fit; steps 1,2 should be seeded from predecessor.
-        for step in range(1, len(df)):
-            prev_model = df.loc[step - 1, "model"]
-            beta_init = df.loc[step, "beta_init"]
-            beta0_init = df.loc[step, "beta0_init"]
-            alpha_init = df.loc[step, "alpha_init"]
-            for d in prev_model.data.conditions:
-                assert jnp.allclose(beta_init[d], prev_model.params.φ[d].β)
-                assert jnp.allclose(
-                    jnp.asarray(beta0_init[d]),
-                    jnp.asarray(prev_model.params.φ[d].β0),
+        for col in ("beta_init", "beta0_init", "alpha_init"):
+            assert col in df.columns
+            for val in df[col]:
+                assert val is None, (
+                    f"path DF col '{col}' holds non-None value of type "
+                    f"{type(val).__name__}: {val!r}"
                 )
-            # Scalar α (share_alpha defaults to True)
-            assert jnp.allclose(
-                jnp.asarray(alpha_init),
-                jnp.asarray(prev_model.params.α),
-            )
+
+    def test_schema_matches_fit_models_exactly(self, simple_data):
+        """fit_models and fit_models_path produce identical-shape DataFrames.
+
+        "Identical shape" means same columns AND no column of the path
+        DataFrame holds a dict or a jax.Array — the same contract as
+        fit_models output, so a ModelCollection built from either is
+        indistinguishable.
+        """
+        import jax
+
+        params = {
+            "dataset": [simple_data],
+            "fusionreg": [0.0, 1e-5, 1e-4],
+            **{k: [v] for k, v in _PATH_FIT_KWARGS.items()},
+        }
+        _, _, path_df = fit_models_path(params)
+        _, _, indep_df = fit_models(params, failures="tolerate")
+        assert set(path_df.columns) == set(indep_df.columns)
+        for col in path_df.columns:
+            if col == "model":
+                continue
+            for val in path_df[col]:
+                assert not isinstance(val, (dict, jax.Array)), (
+                    f"path DF col '{col}' leaked a {type(val).__name__}: " f"{val!r}"
+                )
 
     def test_constant_fusionreg_identity(self, simple_data):
         """Constant-fusionreg path: repeated steps converge to the same point.
@@ -1046,6 +1096,23 @@ class TestFitModelsPath:
         }
         with pytest.warns(UserWarning, match="unregularized"):
             fit_models_path(params)
+
+    def test_verbose_in_params_does_not_collide(self, simple_data):
+        """User-supplied verbose in params must not double-pass.
+
+        fit_models_path takes its own verbose= kwarg for convenience, and
+        fit_one_model also accepts verbose — if a user puts verbose into
+        params, a naïve implementation would pass it twice and raise
+        TypeError. The driver uses setdefault so the user value wins.
+        """
+        params = {
+            "dataset": [simple_data],
+            "fusionreg": [0.0, 1e-5],
+            "verbose": [False],  # user sets it in params
+            **{k: [v] for k, v in _PATH_FIT_KWARGS.items()},
+        }
+        n_fit, n_failed, df = fit_models_path(params)
+        assert n_fit == 2 and n_failed == 0
 
 
 class TestConcatPathTrajectories:
