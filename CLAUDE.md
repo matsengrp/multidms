@@ -78,7 +78,7 @@ User provides a pandas DataFrame with columns for condition, substitutions, and 
 
 - **Sparse computation**: Variant-mutation matrices use JAX BCOO sparse format for memory efficiency.
 - **Multi-condition modeling**: Conditions share a reference beta vector; non-reference conditions get shift parameters capturing condition-specific effects.
-- **Loss types**: `functional_score_loss` uses per-variant `.mean()` Huber loss so conditions contribute equally regardless of variant count. `count_loss` uses `.sum()` (total NLL). Hyperparameter values are calibrated to the `.mean()` scale.
+- **Loss types**: `functional_score_loss` uses per-variant `.mean()` Huber loss so conditions contribute equally regardless of variant count. `count_loss` uses `.sum()` (total NLL). Hyperparameter values are calibrated to the `.mean()` scale. As a consequence, `ModelCollection.fit_models["total_loss_*"]` columns are already per-variant averages (one per condition, plus `"total"` averaged over conditions) — do not divide again by variant count when plotting or you will produce doubly-normalized values.
 - **GE nonlinearity**: `Identity` (linear) or `Sigmoid` (nonlinear global epistasis). Alpha is shared across all conditions to prevent per-condition sigmoid degeneracy.
 - **Plotting separation**: Rendering logic is fully separated from data preparation. Classes own data extraction (`get_*_df`, `_prepare_*_df`); `plot.py` owns chart construction.
 - **Interactive dashboard**: `experiments/dashboard.py` is a marimo app for exploring `ModelCollection` results interactively. Launch with `pixi run dashboard`.
