@@ -67,6 +67,7 @@ The package has two layers:
 ### Key module roles
 
 - **`model_collection.py`** — `ModelCollection` and `fit_models()` for parallel fitting across parameter grids using `ThreadPoolExecutor`. Includes cross-validation, mutation DataFrames, and thin visualization wrappers that delegate to `plot.py`.
+- **Fitting strategies**: `fit_models()` fits each `(dataset, hyperparameter)` combination independently in parallel (CPU processes or GPU devices). `fit_models_path()` fits the same combinations sequentially along the `fusionreg` axis, warm-starting each step from the previous fit's `(β, β0, α)`. Both return the same DataFrame schema and feed into `ModelCollection`. Use the path fitter when a strong shift lasso distorts data-poor conditions under independent fitting. In the spike pipeline, the choice is driven by `spike.fitting.strategy: "independent" | "continuation"` in the active YAML config.
 - **`plot.py`** — All interactive Altair-based visualizations. Every public function takes a DataFrame and returns an `alt.Chart`. Class methods on `Data`, `Model`, and `ModelCollection` are thin wrappers that delegate here.
 - **`utils.py`** — Mutation string parsing (`split_sub`, `split_subs`), parameter transforms, difference matrices.
 

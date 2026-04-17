@@ -5,6 +5,20 @@ model_collection
 
 Contains the :class:`ModelCollection` class, which takes a collection of models
 and merges the results for comparison and visualization.
+
+Two fitting strategies are provided:
+
+- :func:`fit_models` fits each ``(dataset, hyperparameter)`` combination
+  independently in parallel (across CPU processes or GPU devices).
+- :func:`fit_models_path` fits the same combinations sequentially along an
+  ascending ``fusionreg`` axis, warm-starting each step from the previous
+  fit's ``(β, β0, α)``. Use this when a strong shift lasso distorts the
+  global-epistasis calibration for data-poor conditions under independent
+  fitting — starting at the unregularized solution keeps each step in the
+  basin of the previous one as the lasso is tightened.
+
+Both return the same DataFrame schema, so either output can be passed to
+:class:`ModelCollection` unchanged.
 """
 
 import itertools as it
@@ -388,6 +402,234 @@ def fit_models(
         )
 
     return (n_fit, n_failed, stack_fit_models(fit_results))
+
+
+def _extract_seed(prev_model):
+    """Extract (β, β0, α) seed dicts from a fitted multidms.Model.
+
+    Returns a dict suitable for passing as ``beta_init``, ``beta0_init``,
+    and ``alpha_init`` kwargs to :func:`fit_one_model`. ``alpha_init`` is
+    a scalar jax array when the previous fit used ``share_alpha=True``
+    and a ``dict[str, jax_scalar]`` when it used ``share_alpha=False``.
+    """
+    conditions = prev_model.data.conditions
+    p = prev_model.params
+    beta_init = {d: p.φ[d].β for d in conditions}
+    beta0_init = {d: p.φ[d].β0 for d in conditions}
+    if isinstance(p.α, dict):
+        alpha_init = {d: p.α[d] for d in conditions}
+    else:
+        alpha_init = p.α
+    return beta_init, beta0_init, alpha_init
+
+
+def _assert_no_nan(model):
+    """Raise :class:`ModelCollectionFitError` if any fitted parameter is NaN.
+
+    Checks ``β``, ``β0``, and ``α`` across all conditions. The guard runs
+    between steps of a continuation path so that a NaN fit cannot silently
+    seed the next step.
+    """
+    import jax.numpy as jnp
+
+    p = model.params
+    for d in model.data.conditions:
+        if bool(jnp.isnan(p.φ[d].β).any()):
+            raise ModelCollectionFitError(f"NaN in β for condition {d}")
+        if bool(jnp.isnan(jnp.asarray(p.φ[d].β0)).any()):
+            raise ModelCollectionFitError(f"NaN in β0 for condition {d}")
+    α_vals = p.α.values() if isinstance(p.α, dict) else [p.α]
+    for a in α_vals:
+        if bool(jnp.isnan(jnp.asarray(a)).any()):
+            raise ModelCollectionFitError("NaN in α")
+
+
+def _fit_one_path_step(prev_model, **kwargs):
+    """Fit one step of a continuation path, seeded from ``prev_model``.
+
+    Overrides any ``warmstart`` / ``beta_init`` / ``beta0_init`` /
+    ``alpha_init`` values in ``kwargs`` with the fitted parameters of
+    ``prev_model``. The Ridge warmstart is always disabled on path steps
+    — the previous fit's parameters are the warm-start.
+    """
+    beta_init, beta0_init, alpha_init = _extract_seed(prev_model)
+    kwargs = {
+        **kwargs,
+        "warmstart": False,
+        "beta_init": beta_init,
+        "beta0_init": beta0_init,
+        "alpha_init": alpha_init,
+    }
+    return fit_one_model(**kwargs)
+
+
+def fit_models_path(params, verbose=False):
+    """Fit a continuation path of models along ascending ``fusionreg``.
+
+    For every combination of the non-``fusionreg`` hyperparameters, fit a
+    sequence of models in order of increasing ``fusionreg``, warm-starting
+    each step from the previous step's fitted ``(β, β0, α)``. The first
+    step of each path is a normal :func:`fit_one_model` call and honours
+    ``warmstart`` as passed; subsequent steps set ``warmstart=False`` and
+    seed explicitly from the previous fit.
+
+    Parameters
+    ----------
+    params : dict
+        Same shape as the ``params`` dict accepted by :func:`fit_models`.
+        The value at key ``"fusionreg"`` is treated as the path axis and
+        is sorted ascending internally; all other list-valued keys are
+        Cartesian-producted over as in :func:`fit_models`.
+    verbose : bool
+        If True, print the hyperparameters of each step before fitting.
+
+    Returns
+    -------
+    (n_fit, n_failed, fit_collection_df)
+        A tuple matching :func:`fit_models`. ``fit_collection_df`` has one
+        row per successfully fit step and the same column schema as
+        :func:`fit_models`.
+
+    Notes
+    -----
+    - Failure handling is step-local. If step *k* of a combo fails, steps
+      0..*k*−1 are kept and steps *k*..end of that combo are skipped;
+      other combos continue independently. A step is considered a failure
+      if :func:`fit_one_model` raises, or if the fitted parameters contain
+      any NaN (caught by :func:`_assert_no_nan` so that NaNs cannot seed a
+      downstream step).
+    - If the smallest ``fusionreg`` in the path is non-zero, a warning is
+      emitted — the physical motivation for continuation is to start from
+      the unregularized problem.
+    """
+    if "fusionreg" not in params:
+        raise ValueError(
+            "fit_models_path requires a 'fusionreg' key in params; it is "
+            "the path axis."
+        )
+    fusionreg_path = sorted(params["fusionreg"])
+    if len(fusionreg_path) == 0:
+        raise ValueError("fit_models_path requires at least one fusionreg value.")
+    if fusionreg_path[0] != 0.0:
+        warnings.warn(
+            f"fit_models_path starting at fusionreg={fusionreg_path[0]} "
+            f"(!= 0.0). The continuation rationale assumes the path starts "
+            f"from the unregularized problem; a non-zero first step is "
+            f"almost never intended."
+        )
+
+    non_path_params = {k: v for k, v in params.items() if k != "fusionreg"}
+
+    rows = []
+    n_failed = 0
+    for combo in explode_params_dict(non_path_params):
+        prev_model = None
+        for fr in fusionreg_path:
+            step_kwargs = {**combo, "fusionreg": fr}
+            step_kwargs.setdefault("verbose", verbose)
+            try:
+                if prev_model is None:
+                    row = fit_one_model(**step_kwargs)
+                else:
+                    row = _fit_one_path_step(prev_model, **step_kwargs)
+                _assert_no_nan(row["model"])
+            except Exception as e:
+                n_failed += 1
+                if verbose:
+                    print(f"path step fusionreg={fr} failed: {e!r}")
+                prev_model = None
+                # Remaining steps in this path are also counted as failures,
+                # since the path cannot continue without a valid seed.
+                remaining = [f for f in fusionreg_path if f > fr]
+                n_failed += len(remaining)
+                break
+            rows.append(row)
+            prev_model = row["model"]
+
+    if len(rows) == 0:
+        raise ModelCollectionFitError(
+            f"Failed fitting all path steps across {n_failed} attempts"
+        )
+
+    return len(rows), n_failed, stack_fit_models(rows)
+
+
+def concat_path_trajectories(fit_collection_df, groupby_cols=None):
+    """Concatenate per-step convergence trajectories within each path.
+
+    Each row of ``fit_collection_df`` (the output of :func:`fit_models_path`)
+    carries a fitted :class:`multidms.Model` whose
+    ``convergence_trajectory_df`` describes only its own step. This helper
+    stitches the per-step trajectories within each path into a single long
+    DataFrame, tagged with ``fusionreg``, ``step_index``, and a running
+    global iteration counter, so a whole path can be plotted on one axis.
+
+    Parameters
+    ----------
+    fit_collection_df : pandas.DataFrame
+        Output of :func:`fit_models_path`. Must contain a ``model`` column
+        and a ``fusionreg`` column.
+    groupby_cols : list of str, optional
+        Columns that identify a path. When ``None`` (default), every
+        column is used except ``fusionreg``, ``model``, ``fit_time``,
+        ``beta0_init``, ``beta_init``, and ``alpha_init`` — the latter
+        three change between path steps by construction.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Long-form trajectory with ``path_id``, ``step_index``,
+        ``fusionreg``, ``iteration_within_step``, and
+        ``iteration_global`` columns, followed by the columns carried
+        from each step's ``convergence_trajectory_df``.
+    """
+    excluded = {
+        "fusionreg",
+        "model",
+        "fit_time",
+        "beta0_init",
+        "beta_init",
+        "alpha_init",
+    }
+    if groupby_cols is None:
+        groupby_cols = [c for c in fit_collection_df.columns if c not in excluded]
+
+    rows = []
+    if len(groupby_cols) == 0:
+        groups = [(None, fit_collection_df)]
+    else:
+        groups = list(fit_collection_df.groupby(groupby_cols, dropna=False))
+
+    for path_id, (_, path_df) in enumerate(groups):
+        path_df = path_df.sort_values("fusionreg").reset_index(drop=True)
+        iteration_global_offset = 0
+        for step_index, row in path_df.iterrows():
+            traj = row["model"].convergence_trajectory_df
+            if traj is None or len(traj) == 0:
+                continue
+            traj = traj.copy()
+            traj = traj.rename(columns={"iteration": "iteration_within_step"})
+            traj["step_index"] = step_index
+            traj["fusionreg"] = row["fusionreg"]
+            traj["path_id"] = path_id
+            traj["iteration_global"] = (
+                iteration_global_offset + traj["iteration_within_step"]
+            )
+            iteration_global_offset = int(traj["iteration_global"].iloc[-1]) + 1
+            rows.append(traj)
+
+    if not rows:
+        return pd.DataFrame()
+    out = pd.concat(rows, ignore_index=True)
+    front = [
+        "path_id",
+        "step_index",
+        "fusionreg",
+        "iteration_within_step",
+        "iteration_global",
+    ]
+    ordered = front + [c for c in out.columns if c not in front]
+    return out[ordered]
 
 
 class ModelCollection:

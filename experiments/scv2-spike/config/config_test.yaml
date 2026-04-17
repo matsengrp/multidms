@@ -35,6 +35,9 @@ spike:
 
   # Fitting parameters (reduced for test)
   fitting:
+    # Strategy: "independent" fits each fusionreg from scratch (parallel);
+    # "continuation" fits a warm-started path along ascending fusionreg.
+    strategy: "independent"
     maxiter: 2
     tol: 1.0e-4
     fusionreg_values: [0.0, 4.0e-5]

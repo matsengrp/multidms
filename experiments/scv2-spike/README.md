@@ -61,6 +61,22 @@ snakemake -s experiments/scv2-spike/Snakefile --config profile=test -j4
 | Notebook | Description |
 |----------|-------------|
 | `prepare_data.ipynb` | Download raw data, count aggregation, filtering, functional score computation, replicate correlations |
-| `fit_models.ipynb` | Fit multidms models across fusionreg grid per replicate |
+| `fit_models.ipynb` | Fit multidms models across fusionreg grid per replicate (independent, parallel) |
+| `fit_models_path.ipynb` | Fit a warm-started continuation path along ascending fusionreg (sequential per replicate) |
 | `cross_validation.ipynb` | 80/20 train/test CV across regularization grid |
 | `evaluate.ipynb` | Convergence diagnostics, sparsity, replicate correlations, GE plots, mutation export |
+
+## Fitting strategy
+
+`spike.fitting.strategy` in the active config selects which notebook
+`rule fit_models` runs:
+
+- `"independent"` (default) — each `(replicate, fusionreg)` combination is
+  fit from scratch in parallel, as in every prior release.
+- `"continuation"` — each replicate's models are fit sequentially along the
+  sorted `fusionreg_values` grid, warm-starting `(β, β0, α)` from the
+  previous step. Use this when a strong shift lasso distorts the global
+  epistasis calibration for data-poor conditions — empirically this was
+  the Delta pathology at high `fusionreg` in the independent-fit results.
+  The output `fit_collection.pkl` has the same schema, so downstream rules
+  are unchanged.

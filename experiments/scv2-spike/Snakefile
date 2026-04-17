@@ -42,6 +42,19 @@ output_dir = config.get("output_dir", _yaml_output_dir)
 RESULTS = os.path.join(SPIKE_DIR, output_dir)
 SKIP_CV = _cfg.get("spike", {}).get("skip_cross_validation", False)
 
+# Fitting strategy: "independent" (default) fits each fusionreg from scratch
+# in parallel; "continuation" fits a warm-started path along fusionreg.
+STRATEGY = _cfg.get("spike", {}).get("fitting", {}).get("strategy", "independent")
+if STRATEGY not in ("independent", "continuation"):
+    raise ValueError(
+        f"Unknown spike.fitting.strategy '{STRATEGY}'. "
+        "Use 'independent' or 'continuation'."
+    )
+FIT_NOTEBOOK = os.path.join(
+    NOTEBOOKS,
+    "fit_models_path.ipynb" if STRATEGY == "continuation" else "fit_models.ipynb",
+)
+
 # Relative config path for papermill parameter injection — avoids
 # leaking absolute server paths into executed notebook metadata.
 CONFIG_PATH_REL = os.path.relpath(CONFIG_PATH, SPIKE_DIR)
@@ -89,7 +102,7 @@ rule fit_models:
     input:
         config=CONFIG_PATH,
         func_scores=os.path.join(RESULTS, "training_functional_scores.csv"),
-        notebook=os.path.join(NOTEBOOKS, "fit_models.ipynb"),
+        notebook=FIT_NOTEBOOK,
         common=COMMON,
     output:
         fit_collection=os.path.join(RESULTS, "fit_collection.pkl"),
