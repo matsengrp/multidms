@@ -37,9 +37,9 @@ spike:
   fitting:
     maxiter: 2
     tol: 1.0e-4
-    fusionreg_values: [0.0, 3.2]
-    l2reg: 1.0e-4
-    beta0_ridge: 10
+    fusionreg_values: [0.0, 4.0e-5]
+    l2reg: 0.0
+    beta0_ridge: 1.0e-4
     scale_fusion_by_n: false
     ge_type: "Sigmoid"
     warmstart: false
@@ -51,7 +51,7 @@ spike:
     ge_kwargs: {tol: 1.0e-4, maxiter: 2, maxls: 40, jit: true, verbose: false}
     cal_kwargs: {tol: 1.0e-4, maxiter: 2, maxls: 40, jit: true, verbose: false}
     n_processes: null  # null = auto: min(cpu_count // 2, n_models)
-  lasso_choice: 3.2
+  lasso_choice: 4.0e-5
 
   # Spike protein domain boundaries (for downstream Phase 4 notebooks)
   domain_dict:

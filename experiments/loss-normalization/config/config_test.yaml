@@ -1,0 +1,33 @@
+# Test configuration for the loss normalization experiment.
+# Reduced grid for fast iteration.
+
+seed: 2
+train_frac: 0.8
+
+experiment:
+  data:
+    func_scores: "data/simulated_func_scores.csv"
+    true_effects: "data/simulated_muteffects.csv"
+    subsample_frac: 0.05  # subsample to ~5% for fast test runs
+
+  fitting:
+    maxiter: 2
+    tol: 1.0e-6
+    ge_type: "Sigmoid"
+    warmstart: false
+    beta0_ridge: 0.0
+    delta: 1.0
+    share_alpha: true
+    beta0_init: {h1: 5.0, h2: 0.0}
+    alpha_init: 6.0
+    beta_clip_range: [-10, 10]
+    loss_kwargs: {"δ": 1.0}
+    ge_kwargs: {tol: 1.0e-4, maxiter: 2, maxls: 40, jit: true, verbose: false}
+    cal_kwargs: {tol: 1.0e-4, maxiter: 2, maxls: 40, jit: true, verbose: false}
+    n_processes: null
+
+    # Minimal grid for testing
+    fusionreg_values: [0.0, 4.0e-5]
+    l2reg_values: [0.0, 1.0e-7]
+
+  output_dir: results_test

@@ -325,6 +325,10 @@ def count_loss(
         σ2 = μ + θ * μ**2
         p = μ / σ2
         n = μ**2 / (σ2 - μ)
+        # NOTE: count_loss uses .sum() (total NLL) rather than .mean() because
+        # the total log-likelihood is the natural quantity for count models.
+        # If condition imbalance becomes an issue for count_loss, consider
+        # switching to .mean() here as well.
         result[d] = -jax.scipy.stats.nbinom.logpmf(k, n, p).sum()
     return result
 
@@ -336,20 +340,24 @@ def functional_score_loss(
 ) -> dict[str, Float[Array, ""]]:
     r"""Huber loss on functional scores.
 
+    Returns mean Huber loss per variant for each condition, so that
+    conditions contribute equally to the total objective regardless
+    of variant count.
+
     Args:
         model: Model to evaluate.
         data_sets: Data sets for each condition.
         δ: Huber loss parameter.
 
     Returns:
-        Loss for each condition.
+        Mean loss for each condition.
     """
     score_pred = model.predict_score(data_sets)
     result = {}
     for d in data_sets:
         y = data_sets[d].functional_scores
         f = score_pred[d]
-        result[d] = jaxopt.loss.huber_loss(y, f, δ).sum()
+        result[d] = jaxopt.loss.huber_loss(y, f, δ).mean()
     return result
 
 
@@ -426,10 +434,12 @@ def fit(
         - ``iteration``, ``objective_total_trajectory``,
           ``objective_error_trajectory``, ``loss_trajectory``,
           ``loss_per_variant_trajectory``
-        - Per-condition loss: ``loss_{condition}`` (total Huber loss
-          for that condition) and ``loss_per_variant_{condition}``
-          (normalized by that condition's variant count). Per-condition
-          losses sum to ``loss_trajectory``.
+        - Per-condition loss: ``loss_{condition}`` (mean Huber loss
+          per variant for that condition) and ``loss_per_variant_{condition}``
+          (identical to ``loss_{condition}`` since the loss is already
+          per-variant). Per-condition losses sum to ``loss_trajectory``.
+          ``loss_per_variant_trajectory`` is ``loss_trajectory`` divided
+          by the number of conditions (average per-condition mean loss).
         - Block-level diagnostics for each optimization block
           (``calibration_error``, ``calibration_stepsize``,
           ``calibration_iter_num``, ``beta0_error``, etc.)
@@ -607,7 +617,6 @@ def fit(
     )
 
     # track convergence trajectory
-    n_variants_total = sum(data_sets[d].functional_scores.shape[0] for d in data_sets)
     has_counts = any(data_sets[d].post_counts is not None for d in data_sets)
     trajectory_rows = []
 
@@ -796,11 +805,10 @@ def fit(
                     "objective_total_trajectory": float(obj * scale),
                     "objective_error_trajectory": float(objective_error),
                     "loss_trajectory": loss_total,
-                    "loss_per_variant_trajectory": loss_total / n_variants_total,
+                    "loss_per_variant_trajectory": loss_total / len(data_sets),
                     **{f"loss_{d}": float(per_condition_losses[d]) for d in data_sets},
                     **{
                         f"loss_per_variant_{d}": float(per_condition_losses[d])
-                        / data_sets[d].functional_scores.shape[0]
                         for d in data_sets
                     },
                     "calibration_error": float(state_calibration.error),
