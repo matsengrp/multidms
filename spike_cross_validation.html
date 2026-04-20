@@ -86,7 +86,7 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
 <span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
-<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results-prod-228-per-condition-loss-trajectory&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results-prod-235-times-seen-threshold&quot;</span>
 <br/></pre></div>
 </div>
 </div>
@@ -219,8 +219,8 @@ rep_2: 116,570 train, 29,142 test
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Fitting 14 CV models with n_processes=14
-CV: fit 14 models, 0 failed
+Fitting 18 CV models with n_processes=18
+CV: fit 18 models, 0 failed
 </pre></div></div>
 </div>
 </section>
@@ -284,26 +284,10 @@ rep_2: dropped 5413/29142 test variants with unseen mutations
     <span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;dataset&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;total_loss_&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
 <span class="p">)</span>
 
-<span class="c1"># Normalize loss by sample count</span>
-<span class="n">n_samples</span> <span class="o">=</span> <span class="p">{}</span>
-<span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">train_datasets</span><span class="p">:</span>
-    <span class="n">n_train</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
-        <span class="nb">len</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">variants_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;condition == &#39;</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">))</span>
-        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">conditions</span>
-    <span class="p">)</span>
-    <span class="n">n_samples</span><span class="p">[(</span><span class="n">d</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;training&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="n">n_train</span>
-<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">test_df</span> <span class="ow">in</span> <span class="n">filtered_test</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-    <span class="n">n_test</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
-        <span class="nb">len</span><span class="p">(</span><span class="n">test_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;condition == &#39;</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">))</span>
-        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">test_df</span><span class="p">[</span><span class="s2">&quot;condition&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
-    <span class="p">)</span>
-    <span class="n">n_samples</span><span class="p">[(</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;validation&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="n">n_test</span>
-
-<span class="n">cv_data</span><span class="p">[</span><span class="s2">&quot;n_samples&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cv_data</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
-    <span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="n">n_samples</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;dataset_name&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dataset&quot;</span><span class="p">]),</span> <span class="mi">1</span><span class="p">),</span>
-    <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="n">cv_data</span><span class="p">[</span><span class="s2">&quot;mean_loss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cv_data</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">cv_data</span><span class="p">[</span><span class="s2">&quot;n_samples&quot;</span><span class="p">]</span>
+<span class="c1"># total_loss_{training,validation} are already per-variant averages</span>
+<span class="c1"># (functional_score_loss uses .mean() as of PR #230).</span>
+<span class="c1"># Keep `mean_loss` as an alias for downstream CSV consumers.</span>
+<span class="n">cv_data</span><span class="p">[</span><span class="s2">&quot;mean_loss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cv_data</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">]</span>
 <span class="n">cv_data</span><span class="p">[</span><span class="s2">&quot;fusionreg_cat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cv_data</span><span class="p">[</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
 
 <span class="c1"># Plot</span>
@@ -354,7 +338,7 @@ rep_2: dropped 5413/29142 test variants with unseen mutations
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Saved cross_validation_loss.csv (28 rows)
+Saved cross_validation_loss.csv (36 rows)
 </pre></div></div>
 </div>
 </section>

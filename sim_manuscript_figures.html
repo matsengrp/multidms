@@ -73,6 +73,7 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="kc">None</span>
 </pre></div>
 </div>
 </div>
@@ -82,6 +83,7 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
 <span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results&quot;</span>
 <br/></pre></div>
 </div>
 </div>
@@ -96,7 +98,8 @@
 
 <span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
 <span class="n">sim</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;simulation&quot;</span><span class="p">]</span>
-<span class="n">output_dir</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;output_dir&quot;</span><span class="p">]</span>
+<span class="k">if</span> <span class="n">output_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">output_dir</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;output_dir&quot;</span><span class="p">]</span>
 <span class="n">lasso_choice</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;lasso_choice&quot;</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">)</span>
 
 <span class="c1"># GE parameters for Panel B overlay</span>
@@ -119,7 +122,7 @@
 <div class="highlight"><pre>
 Output dir: results
 Figures dir: results/figures
-Lasso choice: 3.2
+Lasso choice: 8e-05
 </pre></div></div>
 </div>
 <section id="Load-CSV-intermediates">
@@ -172,11 +175,11 @@ Lasso choice: 3.2
 Loaded 7 CSV files:
   simulated_muteffects: 1000 rows, columns: [&#39;mutation&#39;, &#39;beta_h1&#39;, &#39;wt_aa&#39;, &#39;site&#39;, &#39;mut_aa&#39;, &#39;shifted_site&#39;, &#39;shift&#39;, &#39;beta_h2&#39;, &#39;wt_aa_h1&#39;, &#39;wt_aa_h2&#39;, &#39;bundle_mut&#39;]
   simulated_func_scores: 349866 rows, columns: [&#39;library&#39;, &#39;homolog&#39;, &#39;aa_substitutions&#39;, &#39;func_score_type&#39;, &#39;func_score&#39;, &#39;pre_sample&#39;, &#39;func_score_var&#39;, &#39;pre_count&#39;, &#39;post_count&#39;, &#39;pre_count_wt&#39;, &#39;post_count_wt&#39;, &#39;pseudocount&#39;, &#39;n_aa_substitutions&#39;, &#39;variant_class&#39;, &#39;latent_phenotype&#39;]
-  model_vs_truth_beta_shift: 84 rows, columns: [&#39;library&#39;, &#39;measurement_type&#39;, &#39;fusionreg&#39;, &#39;measurement_library&#39;, &#39;parameter&#39;, &#39;corr&#39;, &#39;fusionreg_cat&#39;]
-  fit_sparsity: 84 rows, columns: [&#39;dataset_name&#39;, &#39;fusionreg&#39;, &#39;mut_type&#39;, &#39;mut_param&#39;, &#39;sparsity&#39;, &#39;library&#39;, &#39;library_type&#39;, &#39;measurement_type&#39;, &#39;fusionreg_cat&#39;]
-  library_replicate_correlation: 84 rows, columns: [&#39;mut_param&#39;, &#39;correlation&#39;, &#39;fusionreg&#39;, &#39;measurement_type&#39;, &#39;fusionreg_cat&#39;]
-  model_vs_truth_variant_phenotype: 42 rows, columns: [&#39;library&#39;, &#39;measurement_type&#39;, &#39;fusionreg&#39;, &#39;dataset_name&#39;, &#39;variant_phenotype_corr&#39;, &#39;variant_phenotype_mae&#39;, &#39;fusionreg_cat&#39;]
-  cross_validation_loss: 84 rows, columns: [&#39;fusionreg&#39;, &#39;library&#39;, &#39;measurement_type&#39;, &#39;dataset_name&#39;, &#39;dataset&#39;, &#39;loss&#39;, &#39;lib_dataset&#39;, &#39;n_samples&#39;, &#39;mean_loss&#39;, &#39;fusionreg_cat&#39;]
+  model_vs_truth_beta_shift: 108 rows, columns: [&#39;library&#39;, &#39;measurement_type&#39;, &#39;fusionreg&#39;, &#39;measurement_library&#39;, &#39;parameter&#39;, &#39;corr&#39;, &#39;fusionreg_cat&#39;]
+  fit_sparsity: 108 rows, columns: [&#39;dataset_name&#39;, &#39;fusionreg&#39;, &#39;mut_type&#39;, &#39;mut_param&#39;, &#39;sparsity&#39;, &#39;library&#39;, &#39;library_type&#39;, &#39;measurement_type&#39;, &#39;fusionreg_cat&#39;]
+  library_replicate_correlation: 81 rows, columns: [&#39;mut_param&#39;, &#39;correlation&#39;, &#39;fusionreg&#39;, &#39;measurement_type&#39;, &#39;fusionreg_cat&#39;]
+  model_vs_truth_variant_phenotype: 54 rows, columns: [&#39;library&#39;, &#39;measurement_type&#39;, &#39;fusionreg&#39;, &#39;dataset_name&#39;, &#39;variant_phenotype_corr&#39;, &#39;variant_phenotype_mae&#39;, &#39;fusionreg_cat&#39;]
+  cross_validation_loss: 108 rows, columns: [&#39;fusionreg&#39;, &#39;library&#39;, &#39;measurement_type&#39;, &#39;dataset_name&#39;, &#39;dataset&#39;, &#39;loss&#39;, &#39;lib_dataset&#39;, &#39;n_samples&#39;, &#39;mean_loss&#39;, &#39;fusionreg_cat&#39;]
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
@@ -336,7 +339,7 @@ Loaded 7 CSV files:
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Fusionreg values: [np.float64(0.0), np.float64(0.4), np.float64(0.8), np.float64(1.6), np.float64(3.2), np.float64(6.4), np.float64(12.8)]
+Fusionreg values: [np.float64(0.0), np.float64(5e-06), np.float64(1e-05), np.float64(2e-05), np.float64(4e-05), np.float64(8e-05), np.float64(0.00016), np.float64(0.00032), np.float64(0.00064)]
 WT latent (h1): 5.00
 WT latent (h2): 3.41
 True sparsity: 81.0%
@@ -902,7 +905,7 @@ Saved ground_truth_correlation.pdf  (R^2 = 1.0000)
 <div class="highlight"><pre>
 lasso_weight, sparsity (fraction shift=0)
   lambda=0.0, sparsity=0.00
-  lambda=3.2, sparsity=0.92
+  lambda=8e-05, sparsity=0.90
 Saved sparsity_diagnostic.pdf
 </pre></div></div>
 </div>

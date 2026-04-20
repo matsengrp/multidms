@@ -87,6 +87,7 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="kc">None</span>
 </pre></div>
 </div>
 </div>
@@ -96,6 +97,7 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
 <span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results&quot;</span>
 <br/></pre></div>
 </div>
 </div>
@@ -127,7 +129,8 @@
 <span class="n">lib_uniformity</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;lib_uniformity&quot;</span><span class="p">]</span>
 <span class="n">noise</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;noise&quot;</span><span class="p">]</span>
 <span class="n">bottleneck_variants_per_lib_scalar</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;bottleneck_variants_per_lib_scalar&quot;</span><span class="p">]</span>
-<span class="n">output_dir</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;output_dir&quot;</span><span class="p">]</span>
+<span class="k">if</span> <span class="n">output_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">output_dir</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;output_dir&quot;</span><span class="p">]</span>
 <span class="n">train_frac</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;train_frac&quot;</span><span class="p">]</span>
 
 <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>

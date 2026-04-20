@@ -490,11 +490,13 @@ was below the tolerance used during fitting.</p>
 <dd class="field-odd"><p>One row per iteration with columns for overall objective
 (<code class="docutils literal notranslate"><span class="pre">iteration</span></code>, <code class="docutils literal notranslate"><span class="pre">objective_total_trajectory</span></code>,
 <code class="docutils literal notranslate"><span class="pre">objective_error_trajectory</span></code>, <code class="docutils literal notranslate"><span class="pre">loss_trajectory</span></code>,
-<code class="docutils literal notranslate"><span class="pre">loss_per_variant_trajectory</span></code>), block-level diagnostics
-(e.g. <code class="docutils literal notranslate"><span class="pre">calibration_error</span></code>, <code class="docutils literal notranslate"><span class="pre">beta0_stepsize</span></code>), and
-shared alpha (<code class="docutils literal notranslate"><span class="pre">alpha</span></code>), and per-condition parameters
-(<code class="docutils literal notranslate"><span class="pre">beta0_{cond}</span></code>, <code class="docutils literal notranslate"><span class="pre">sparsity_{cond}</span></code>), and
-<code class="docutils literal notranslate"><span class="pre">theta_{cond}</span></code> when count data is present.</p>
+<code class="docutils literal notranslate"><span class="pre">loss_per_variant_trajectory</span></code>), per-condition loss
+(<code class="docutils literal notranslate"><span class="pre">loss_{cond}</span></code>, <code class="docutils literal notranslate"><span class="pre">loss_per_variant_{cond}</span></code>),
+block-level diagnostics (e.g. <code class="docutils literal notranslate"><span class="pre">calibration_error</span></code>,
+<code class="docutils literal notranslate"><span class="pre">beta0_stepsize</span></code>), shared alpha (<code class="docutils literal notranslate"><span class="pre">alpha</span></code>),
+per-condition parameters (<code class="docutils literal notranslate"><span class="pre">beta0_{cond}</span></code>,
+<code class="docutils literal notranslate"><span class="pre">sparsity_{cond}</span></code>), and <code class="docutils literal notranslate"><span class="pre">theta_{cond}</span></code> when count
+data is present.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>pd.DataFrame</p>

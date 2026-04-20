@@ -74,6 +74,7 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="kc">None</span>
 </pre></div>
 </div>
 </div>
@@ -83,6 +84,7 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
 <span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results&quot;</span>
 <br/></pre></div>
 </div>
 </div>
@@ -93,7 +95,8 @@
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
 <span class="n">sim</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;simulation&quot;</span><span class="p">]</span>
 <span class="n">fit_config</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;fitting&quot;</span><span class="p">]</span>
-<span class="n">output_dir</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;output_dir&quot;</span><span class="p">]</span>
+<span class="k">if</span> <span class="n">output_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">output_dir</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;output_dir&quot;</span><span class="p">]</span>
 
 <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output directory: </span><span class="si">{</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -334,17 +337,19 @@ Created 6 Data objects:
 <div class="highlight"><pre>
 Fitting parameters:
   maxiter: [100]
-  tol: [1e-06]
-  fusionreg: [0.0, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
-  l2reg: [0.0001]
-  beta0_ridge: [1e-05]
+  tol: [0.0001]
+  fusionreg: [0.0, 5e-06, 1e-05, 2e-05, 4e-05, 8e-05, 0.00016, 0.00032, 0.00064]
+  l2reg: [0.0]
+  beta0_ridge: [0.0]
+  scale_fusion_by_n: [False]
   ge_type: [&#39;Sigmoid&#39;]
-  ge_kwargs: [{&#39;tol&#39;: 1e-05, &#39;maxiter&#39;: 1000, &#39;maxls&#39;: 40, &#39;jit&#39;: True, &#39;verbose&#39;: False}]
-  cal_kwargs: [{&#39;tol&#39;: 0.0001, &#39;maxiter&#39;: 1000, &#39;maxls&#39;: 40, &#39;jit&#39;: True, &#39;verbose&#39;: False}]
+  ge_kwargs: [{&#39;tol&#39;: 0.0001, &#39;maxiter&#39;: 100, &#39;maxls&#39;: 40, &#39;jit&#39;: True, &#39;verbose&#39;: False}]
+  cal_kwargs: [{&#39;tol&#39;: 0.0001, &#39;maxiter&#39;: 100, &#39;maxls&#39;: 40, &#39;jit&#39;: True, &#39;verbose&#39;: False}]
   loss_kwargs: [{&#39;δ&#39;: 1.0}]
   warmstart: [False]
   beta0_init: [{&#39;h1&#39;: 5.0, &#39;h2&#39;: 0.0}]
-  alpha_init: [{&#39;h1&#39;: 6.0, &#39;h2&#39;: 6.0}]
+  alpha_init: [6.0]
+  share_alpha: [True]
   beta_clip_range: [(-10, 10)]
 </pre></div></div>
 </div>
@@ -385,8 +390,8 @@ Fitting parameters:
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Fitting 42 models with n_processes=16 (cpus=32)
-Fit 42 models successfully, 0 failed
+Fitting 54 models with n_processes=32 (cpus=64)
+Fit 54 models successfully, 0 failed
 </pre></div></div>
 </div>
 </section>
@@ -423,7 +428,7 @@ Fit 42 models successfully, 0 failed
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Post-processed 42 models
+Post-processed 54 models
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
@@ -442,7 +447,7 @@ Post-processed 42 models
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Saved results/fit_collection.pkl (42 models)
+Saved results/fit_collection.pkl (54 models)
 </pre></div></div>
 </div>
 </section>
@@ -495,335 +500,431 @@ Saved results/fit_collection.pkl (42 models)
       <td>lib_1</td>
       <td>observed_phenotype</td>
       <td>0.0</td>
-      <td>1100</td>
+      <td>786</td>
     </tr>
     <tr>
       <th>1</th>
       <td>lib_1_observed_phenotype_func_score</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.4</td>
-      <td>753</td>
+      <td>0.000005</td>
+      <td>794</td>
     </tr>
     <tr>
       <th>2</th>
       <td>lib_1_observed_phenotype_func_score</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>0.8</td>
-      <td>583</td>
+      <td>0.00001</td>
+      <td>786</td>
     </tr>
     <tr>
       <th>3</th>
       <td>lib_1_observed_phenotype_func_score</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>1.6</td>
-      <td>828</td>
+      <td>0.00002</td>
+      <td>780</td>
     </tr>
     <tr>
       <th>4</th>
       <td>lib_1_observed_phenotype_func_score</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>3.2</td>
-      <td>1579</td>
+      <td>0.00004</td>
+      <td>758</td>
     </tr>
     <tr>
       <th>5</th>
       <td>lib_1_observed_phenotype_func_score</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>6.4</td>
-      <td>1560</td>
+      <td>0.00008</td>
+      <td>750</td>
     </tr>
     <tr>
       <th>6</th>
       <td>lib_1_observed_phenotype_func_score</td>
       <td>lib_1</td>
       <td>observed_phenotype</td>
-      <td>12.8</td>
-      <td>1491</td>
+      <td>0.00016</td>
+      <td>737</td>
     </tr>
     <tr>
       <th>7</th>
-      <td>lib_1_loose_bottle_func_score</td>
+      <td>lib_1_observed_phenotype_func_score</td>
       <td>lib_1</td>
-      <td>loose_bottle</td>
-      <td>0.0</td>
-      <td>1183</td>
+      <td>observed_phenotype</td>
+      <td>0.00032</td>
+      <td>726</td>
     </tr>
     <tr>
       <th>8</th>
-      <td>lib_1_loose_bottle_func_score</td>
+      <td>lib_1_observed_phenotype_func_score</td>
       <td>lib_1</td>
-      <td>loose_bottle</td>
-      <td>0.4</td>
-      <td>829</td>
+      <td>observed_phenotype</td>
+      <td>0.00064</td>
+      <td>711</td>
     </tr>
     <tr>
       <th>9</th>
       <td>lib_1_loose_bottle_func_score</td>
       <td>lib_1</td>
       <td>loose_bottle</td>
-      <td>0.8</td>
-      <td>653</td>
+      <td>0.0</td>
+      <td>367</td>
     </tr>
     <tr>
       <th>10</th>
       <td>lib_1_loose_bottle_func_score</td>
       <td>lib_1</td>
       <td>loose_bottle</td>
-      <td>1.6</td>
-      <td>645</td>
+      <td>0.000005</td>
+      <td>345</td>
     </tr>
     <tr>
       <th>11</th>
       <td>lib_1_loose_bottle_func_score</td>
       <td>lib_1</td>
       <td>loose_bottle</td>
-      <td>3.2</td>
-      <td>1347</td>
+      <td>0.00001</td>
+      <td>337</td>
     </tr>
     <tr>
       <th>12</th>
       <td>lib_1_loose_bottle_func_score</td>
       <td>lib_1</td>
       <td>loose_bottle</td>
-      <td>6.4</td>
-      <td>1520</td>
+      <td>0.00002</td>
+      <td>263</td>
     </tr>
     <tr>
       <th>13</th>
       <td>lib_1_loose_bottle_func_score</td>
       <td>lib_1</td>
       <td>loose_bottle</td>
-      <td>12.8</td>
-      <td>1192</td>
+      <td>0.00004</td>
+      <td>234</td>
     </tr>
     <tr>
       <th>14</th>
-      <td>lib_1_tight_bottle_func_score</td>
+      <td>lib_1_loose_bottle_func_score</td>
       <td>lib_1</td>
-      <td>tight_bottle</td>
-      <td>0.0</td>
-      <td>1012</td>
+      <td>loose_bottle</td>
+      <td>0.00008</td>
+      <td>210</td>
     </tr>
     <tr>
       <th>15</th>
-      <td>lib_1_tight_bottle_func_score</td>
+      <td>lib_1_loose_bottle_func_score</td>
       <td>lib_1</td>
-      <td>tight_bottle</td>
-      <td>0.4</td>
-      <td>761</td>
+      <td>loose_bottle</td>
+      <td>0.00016</td>
+      <td>630</td>
     </tr>
     <tr>
       <th>16</th>
-      <td>lib_1_tight_bottle_func_score</td>
+      <td>lib_1_loose_bottle_func_score</td>
       <td>lib_1</td>
-      <td>tight_bottle</td>
-      <td>0.8</td>
-      <td>487</td>
+      <td>loose_bottle</td>
+      <td>0.00032</td>
+      <td>696</td>
     </tr>
     <tr>
       <th>17</th>
-      <td>lib_1_tight_bottle_func_score</td>
+      <td>lib_1_loose_bottle_func_score</td>
       <td>lib_1</td>
-      <td>tight_bottle</td>
-      <td>1.6</td>
-      <td>433</td>
+      <td>loose_bottle</td>
+      <td>0.00064</td>
+      <td>690</td>
     </tr>
     <tr>
       <th>18</th>
       <td>lib_1_tight_bottle_func_score</td>
       <td>lib_1</td>
       <td>tight_bottle</td>
-      <td>3.2</td>
-      <td>1419</td>
+      <td>0.0</td>
+      <td>236</td>
     </tr>
     <tr>
       <th>19</th>
       <td>lib_1_tight_bottle_func_score</td>
       <td>lib_1</td>
       <td>tight_bottle</td>
-      <td>6.4</td>
-      <td>1390</td>
+      <td>0.000005</td>
+      <td>223</td>
     </tr>
     <tr>
       <th>20</th>
       <td>lib_1_tight_bottle_func_score</td>
       <td>lib_1</td>
       <td>tight_bottle</td>
-      <td>12.8</td>
-      <td>1394</td>
+      <td>0.00001</td>
+      <td>197</td>
     </tr>
     <tr>
       <th>21</th>
-      <td>lib_2_observed_phenotype_func_score</td>
-      <td>lib_2</td>
-      <td>observed_phenotype</td>
-      <td>0.0</td>
-      <td>1189</td>
+      <td>lib_1_tight_bottle_func_score</td>
+      <td>lib_1</td>
+      <td>tight_bottle</td>
+      <td>0.00002</td>
+      <td>168</td>
     </tr>
     <tr>
       <th>22</th>
-      <td>lib_2_observed_phenotype_func_score</td>
-      <td>lib_2</td>
-      <td>observed_phenotype</td>
-      <td>0.4</td>
-      <td>868</td>
+      <td>lib_1_tight_bottle_func_score</td>
+      <td>lib_1</td>
+      <td>tight_bottle</td>
+      <td>0.00004</td>
+      <td>166</td>
     </tr>
     <tr>
       <th>23</th>
-      <td>lib_2_observed_phenotype_func_score</td>
-      <td>lib_2</td>
-      <td>observed_phenotype</td>
-      <td>0.8</td>
-      <td>690</td>
+      <td>lib_1_tight_bottle_func_score</td>
+      <td>lib_1</td>
+      <td>tight_bottle</td>
+      <td>0.00008</td>
+      <td>145</td>
     </tr>
     <tr>
       <th>24</th>
-      <td>lib_2_observed_phenotype_func_score</td>
-      <td>lib_2</td>
-      <td>observed_phenotype</td>
-      <td>1.6</td>
-      <td>829</td>
+      <td>lib_1_tight_bottle_func_score</td>
+      <td>lib_1</td>
+      <td>tight_bottle</td>
+      <td>0.00016</td>
+      <td>134</td>
     </tr>
     <tr>
       <th>25</th>
-      <td>lib_2_observed_phenotype_func_score</td>
-      <td>lib_2</td>
-      <td>observed_phenotype</td>
-      <td>3.2</td>
-      <td>845</td>
+      <td>lib_1_tight_bottle_func_score</td>
+      <td>lib_1</td>
+      <td>tight_bottle</td>
+      <td>0.00032</td>
+      <td>210</td>
     </tr>
     <tr>
       <th>26</th>
-      <td>lib_2_observed_phenotype_func_score</td>
-      <td>lib_2</td>
-      <td>observed_phenotype</td>
-      <td>6.4</td>
-      <td>1208</td>
+      <td>lib_1_tight_bottle_func_score</td>
+      <td>lib_1</td>
+      <td>tight_bottle</td>
+      <td>0.00064</td>
+      <td>611</td>
     </tr>
     <tr>
       <th>27</th>
       <td>lib_2_observed_phenotype_func_score</td>
       <td>lib_2</td>
       <td>observed_phenotype</td>
-      <td>12.8</td>
-      <td>1136</td>
+      <td>0.0</td>
+      <td>787</td>
     </tr>
     <tr>
       <th>28</th>
-      <td>lib_2_loose_bottle_func_score</td>
+      <td>lib_2_observed_phenotype_func_score</td>
       <td>lib_2</td>
-      <td>loose_bottle</td>
-      <td>0.0</td>
-      <td>700</td>
+      <td>observed_phenotype</td>
+      <td>0.000005</td>
+      <td>787</td>
     </tr>
     <tr>
       <th>29</th>
-      <td>lib_2_loose_bottle_func_score</td>
+      <td>lib_2_observed_phenotype_func_score</td>
       <td>lib_2</td>
-      <td>loose_bottle</td>
-      <td>0.4</td>
-      <td>676</td>
+      <td>observed_phenotype</td>
+      <td>0.00001</td>
+      <td>781</td>
     </tr>
     <tr>
       <th>30</th>
-      <td>lib_2_loose_bottle_func_score</td>
+      <td>lib_2_observed_phenotype_func_score</td>
       <td>lib_2</td>
-      <td>loose_bottle</td>
-      <td>0.8</td>
-      <td>605</td>
+      <td>observed_phenotype</td>
+      <td>0.00002</td>
+      <td>769</td>
     </tr>
     <tr>
       <th>31</th>
-      <td>lib_2_loose_bottle_func_score</td>
+      <td>lib_2_observed_phenotype_func_score</td>
       <td>lib_2</td>
-      <td>loose_bottle</td>
-      <td>1.6</td>
-      <td>818</td>
+      <td>observed_phenotype</td>
+      <td>0.00004</td>
+      <td>752</td>
     </tr>
     <tr>
       <th>32</th>
-      <td>lib_2_loose_bottle_func_score</td>
+      <td>lib_2_observed_phenotype_func_score</td>
       <td>lib_2</td>
-      <td>loose_bottle</td>
-      <td>3.2</td>
-      <td>818</td>
+      <td>observed_phenotype</td>
+      <td>0.00008</td>
+      <td>646</td>
     </tr>
     <tr>
       <th>33</th>
-      <td>lib_2_loose_bottle_func_score</td>
+      <td>lib_2_observed_phenotype_func_score</td>
       <td>lib_2</td>
-      <td>loose_bottle</td>
-      <td>6.4</td>
-      <td>825</td>
+      <td>observed_phenotype</td>
+      <td>0.00016</td>
+      <td>635</td>
     </tr>
     <tr>
       <th>34</th>
-      <td>lib_2_loose_bottle_func_score</td>
+      <td>lib_2_observed_phenotype_func_score</td>
       <td>lib_2</td>
-      <td>loose_bottle</td>
-      <td>12.8</td>
-      <td>715</td>
+      <td>observed_phenotype</td>
+      <td>0.00032</td>
+      <td>613</td>
     </tr>
     <tr>
       <th>35</th>
+      <td>lib_2_observed_phenotype_func_score</td>
+      <td>lib_2</td>
+      <td>observed_phenotype</td>
+      <td>0.00064</td>
+      <td>603</td>
+    </tr>
+    <tr>
+      <th>36</th>
+      <td>lib_2_loose_bottle_func_score</td>
+      <td>lib_2</td>
+      <td>loose_bottle</td>
+      <td>0.0</td>
+      <td>339</td>
+    </tr>
+    <tr>
+      <th>37</th>
+      <td>lib_2_loose_bottle_func_score</td>
+      <td>lib_2</td>
+      <td>loose_bottle</td>
+      <td>0.000005</td>
+      <td>319</td>
+    </tr>
+    <tr>
+      <th>38</th>
+      <td>lib_2_loose_bottle_func_score</td>
+      <td>lib_2</td>
+      <td>loose_bottle</td>
+      <td>0.00001</td>
+      <td>295</td>
+    </tr>
+    <tr>
+      <th>39</th>
+      <td>lib_2_loose_bottle_func_score</td>
+      <td>lib_2</td>
+      <td>loose_bottle</td>
+      <td>0.00002</td>
+      <td>256</td>
+    </tr>
+    <tr>
+      <th>40</th>
+      <td>lib_2_loose_bottle_func_score</td>
+      <td>lib_2</td>
+      <td>loose_bottle</td>
+      <td>0.00004</td>
+      <td>230</td>
+    </tr>
+    <tr>
+      <th>41</th>
+      <td>lib_2_loose_bottle_func_score</td>
+      <td>lib_2</td>
+      <td>loose_bottle</td>
+      <td>0.00008</td>
+      <td>184</td>
+    </tr>
+    <tr>
+      <th>42</th>
+      <td>lib_2_loose_bottle_func_score</td>
+      <td>lib_2</td>
+      <td>loose_bottle</td>
+      <td>0.00016</td>
+      <td>517</td>
+    </tr>
+    <tr>
+      <th>43</th>
+      <td>lib_2_loose_bottle_func_score</td>
+      <td>lib_2</td>
+      <td>loose_bottle</td>
+      <td>0.00032</td>
+      <td>465</td>
+    </tr>
+    <tr>
+      <th>44</th>
+      <td>lib_2_loose_bottle_func_score</td>
+      <td>lib_2</td>
+      <td>loose_bottle</td>
+      <td>0.00064</td>
+      <td>451</td>
+    </tr>
+    <tr>
+      <th>45</th>
       <td>lib_2_tight_bottle_func_score</td>
       <td>lib_2</td>
       <td>tight_bottle</td>
       <td>0.0</td>
-      <td>597</td>
+      <td>192</td>
     </tr>
     <tr>
-      <th>36</th>
+      <th>46</th>
       <td>lib_2_tight_bottle_func_score</td>
       <td>lib_2</td>
       <td>tight_bottle</td>
-      <td>0.4</td>
-      <td>341</td>
+      <td>0.000005</td>
+      <td>172</td>
     </tr>
     <tr>
-      <th>37</th>
+      <th>47</th>
       <td>lib_2_tight_bottle_func_score</td>
       <td>lib_2</td>
       <td>tight_bottle</td>
-      <td>0.8</td>
-      <td>297</td>
+      <td>0.00001</td>
+      <td>156</td>
     </tr>
     <tr>
-      <th>38</th>
+      <th>48</th>
       <td>lib_2_tight_bottle_func_score</td>
       <td>lib_2</td>
       <td>tight_bottle</td>
-      <td>1.6</td>
-      <td>262</td>
+      <td>0.00002</td>
+      <td>135</td>
     </tr>
     <tr>
-      <th>39</th>
+      <th>49</th>
       <td>lib_2_tight_bottle_func_score</td>
       <td>lib_2</td>
       <td>tight_bottle</td>
-      <td>3.2</td>
-      <td>465</td>
+      <td>0.00004</td>
+      <td>117</td>
     </tr>
     <tr>
-      <th>40</th>
+      <th>50</th>
       <td>lib_2_tight_bottle_func_score</td>
       <td>lib_2</td>
       <td>tight_bottle</td>
-      <td>6.4</td>
-      <td>459</td>
+      <td>0.00008</td>
+      <td>97</td>
     </tr>
     <tr>
-      <th>41</th>
+      <th>51</th>
       <td>lib_2_tight_bottle_func_score</td>
       <td>lib_2</td>
       <td>tight_bottle</td>
-      <td>12.8</td>
-      <td>439</td>
+      <td>0.00016</td>
+      <td>85</td>
+    </tr>
+    <tr>
+      <th>52</th>
+      <td>lib_2_tight_bottle_func_score</td>
+      <td>lib_2</td>
+      <td>tight_bottle</td>
+      <td>0.00032</td>
+      <td>88</td>
+    </tr>
+    <tr>
+      <th>53</th>
+      <td>lib_2_tight_bottle_func_score</td>
+      <td>lib_2</td>
+      <td>tight_bottle</td>
+      <td>0.00064</td>
+      <td>229</td>
     </tr>
   </tbody>
 </table>

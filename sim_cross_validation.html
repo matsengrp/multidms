@@ -77,7 +77,8 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
-<br/></pre></div>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
 </div>
 </div>
 <div class="nbinput nblast docutils container">
@@ -86,6 +87,7 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
 <span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results&quot;</span>
 <br/></pre></div>
 </div>
 </div>
@@ -99,7 +101,8 @@
 
 <span class="n">seed</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;seed&quot;</span><span class="p">]</span>
 <span class="n">train_frac</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;train_frac&quot;</span><span class="p">]</span>
-<span class="n">output_dir</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;output_dir&quot;</span><span class="p">]</span>
+<span class="k">if</span> <span class="n">output_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">output_dir</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;output_dir&quot;</span><span class="p">]</span>
 <span class="n">lasso_choice</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;lasso_choice&quot;</span><span class="p">]</span>
 
 <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -236,8 +239,8 @@ Created 6 train datasets, 6 test datasets
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Fitting 42 CV models with n_processes=16 (cpus=32)
-CV: fit 42 models, 0 failed
+Fitting 54 CV models with n_processes=32 (cpus=64)
+CV: fit 54 models, 0 failed
 </pre></div></div>
 </div>
 </section>
@@ -432,7 +435,7 @@ lib_2_tight_bottle: dropped 2767/11628 test variants with unseen mutations
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Saved cross_validation_loss.csv (84 rows)
+Saved cross_validation_loss.csv (108 rows)
 </pre></div></div>
 </div>
 </section>

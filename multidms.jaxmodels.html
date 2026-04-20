@@ -277,6 +277,9 @@ in each condition.</p></li>
 <dt class="sig sig-object py" id="multidms.jaxmodels.functional_score_loss">
 <span class="sig-prename descclassname"><span class="pre">multidms.jaxmodels.</span></span><span class="sig-name descname"><span class="pre">functional_score_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#multidms.jaxmodels.Model" title="multidms.jaxmodels.Model"><span class="pre">Model</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_sets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#multidms.jaxmodels.Data" title="multidms.jaxmodels.Data"><span class="pre">multidms.jaxmodels.Data</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">δ</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">jaxtyping.Float</span><span class="p"><span class="pre">[</span></span><span class="pre">jaxlib._jax.Array</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">''</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#multidms.jaxmodels.functional_score_loss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Huber loss on functional scores.</p>
+<p>Returns mean Huber loss per variant for each condition, so that
+conditions contribute equally to the total objective regardless
+of variant count.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -286,7 +289,7 @@ in each condition.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Loss for each condition.</p>
+<dd class="field-even"><p>Mean loss for each condition.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -343,6 +346,12 @@ If False, suppresses all print output.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">iteration</span></code>, <code class="docutils literal notranslate"><span class="pre">objective_total_trajectory</span></code>,
 <code class="docutils literal notranslate"><span class="pre">objective_error_trajectory</span></code>, <code class="docutils literal notranslate"><span class="pre">loss_trajectory</span></code>,
 <code class="docutils literal notranslate"><span class="pre">loss_per_variant_trajectory</span></code></p></li>
+<li><p>Per-condition loss: <code class="docutils literal notranslate"><span class="pre">loss_{condition}</span></code> (mean Huber loss
+per variant for that condition) and <code class="docutils literal notranslate"><span class="pre">loss_per_variant_{condition}</span></code>
+(identical to <code class="docutils literal notranslate"><span class="pre">loss_{condition}</span></code> since the loss is already
+per-variant). Per-condition losses sum to <code class="docutils literal notranslate"><span class="pre">loss_trajectory</span></code>.
+<code class="docutils literal notranslate"><span class="pre">loss_per_variant_trajectory</span></code> is <code class="docutils literal notranslate"><span class="pre">loss_trajectory</span></code> divided
+by the number of conditions (average per-condition mean loss).</p></li>
 <li><p>Block-level diagnostics for each optimization block
 (<code class="docutils literal notranslate"><span class="pre">calibration_error</span></code>, <code class="docutils literal notranslate"><span class="pre">calibration_stepsize</span></code>,
 <code class="docutils literal notranslate"><span class="pre">calibration_iter_num</span></code>, <code class="docutils literal notranslate"><span class="pre">beta0_error</span></code>, etc.)</p></li>
