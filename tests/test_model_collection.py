@@ -999,16 +999,35 @@ class TestFitModelsPath:
             assert jnp.allclose(m_path.params.φ[d].β, m_indep.params.φ[d].β, atol=1e-6)
 
     def test_order_invariance(self, replicate_data):
-        """Shuffling dataset order does not change per-dataset fits."""
+        """Shuffling dataset order does not change per-dataset fits.
+
+        Uses a short 2-step path and asserts no steps failed so that
+        memory pressure (CI runners compile+hold a JAX kernel per step)
+        surfaces as a clear "n_failed > 0" failure rather than as a
+        misleading length mismatch on the merged DataFrame. Clears
+        JAX compilation caches between the two path fits because on
+        memory-constrained runners (~7GB) the per-step kernels can
+        accumulate enough to hit ``LLVM compilation error: Cannot
+        allocate memory`` on the second call.
+        """
+        import jax
         import jax.numpy as jnp
 
         rep1, rep2 = replicate_data
-        _, _, df_ab = fit_models_path(self._path_params([rep1, rep2]))
-        _, _, df_ba = fit_models_path(self._path_params([rep2, rep1]))
+        short_path = {"fusionreg": [0.0, 1e-5]}
+        n_ab, f_ab, df_ab = fit_models_path(
+            self._path_params([rep1, rep2], **short_path)
+        )
+        jax.clear_caches()
+        n_ba, f_ba, df_ba = fit_models_path(
+            self._path_params([rep2, rep1], **short_path)
+        )
+        assert f_ab == 0, f"forward path had {f_ab} step failure(s)"
+        assert f_ba == 0, f"reverse path had {f_ba} step failure(s)"
         for name in ("rep1", "rep2"):
             sub_ab = df_ab[df_ab["dataset_name"] == name].sort_values("fusionreg")
             sub_ba = df_ba[df_ba["dataset_name"] == name].sort_values("fusionreg")
-            assert len(sub_ab) == len(sub_ba) > 0
+            assert len(sub_ab) == len(sub_ba) == len(short_path["fusionreg"])
             for row_ab, row_ba in zip(sub_ab.itertuples(), sub_ba.itertuples()):
                 m_ab = row_ab.model
                 m_ba = row_ba.model
