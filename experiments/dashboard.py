@@ -1,4 +1,9 @@
-"""Interactive marimo dashboard for exploring ModelCollection results."""
+"""Interactive marimo dashboard for exploring ModelCollection results.
+
+Param Correlation and Replicate Scatter tabs support a ``times_seen_threshold``
+slider that filters out mutations unseen in some conditions before the
+correlation is computed.
+"""
 
 import marimo
 
@@ -174,6 +179,18 @@ def _(mo, mc):
     return (scatter_param_dropdown,)
 
 
+@app.cell
+def _(mo):
+    times_seen_threshold_slider = mo.ui.slider(
+        start=0,
+        stop=20,
+        step=1,
+        value=1,
+        label="Min times_seen (per-condition) to include",
+    )
+    return (times_seen_threshold_slider,)
+
+
 # ── D: Tab chart computations ────────────────────────────────────────────
 
 # --- Convergence ---
@@ -222,11 +239,19 @@ def _(mo, mc, mplot, ge_dataset_dropdown, ge_fusionreg_dropdown):
 
 
 @app.cell
-def _(mo, mc):
+def _(mo, mc, times_seen_threshold_slider):
     if len(mc.fit_models["dataset_name"].unique()) < 2:
         correlation_chart = mo.md("Need at least 2 datasets for correlation analysis.")
     else:
-        correlation_chart = mc.mut_param_dataset_correlation()
+        try:
+            correlation_chart = mc.mut_param_dataset_correlation(
+                times_seen_threshold=times_seen_threshold_slider.value,
+            )
+        except Exception as _e:
+            correlation_chart = mo.md(
+                f"Correlation failed (threshold too high?): {_e}. "
+                "Try lowering the threshold slider."
+            )
     return (correlation_chart,)
 
 
@@ -241,6 +266,7 @@ def _(
     datasets,
     scatter_fusionreg_dropdown,
     scatter_param_dropdown,
+    times_seen_threshold_slider,
 ):
     if len(datasets) < 2:
         scatter_chart = mo.md("Need at least 2 datasets for scatter comparison.")
@@ -251,6 +277,7 @@ def _(
         _muts_df = mc.split_apply_combine_muts(
             groupby=("dataset_name", "fusionreg"),
             query=f"fusionreg == {_fr}",
+            times_seen_threshold=times_seen_threshold_slider.value,
         ).reset_index()
 
         d0, d1 = datasets[0], datasets[1]  # noqa: F841 (used in query)
@@ -341,6 +368,7 @@ def _(
     correlation_chart,
     scatter_fusionreg_dropdown,
     scatter_param_dropdown,
+    times_seen_threshold_slider,
     scatter_chart,
     sparsity_chart,
     summary_table,
@@ -360,7 +388,9 @@ def _(
                 ],
                 widths=[1, 3],
             ),
-            "Param Correlation": correlation_chart,
+            "Param Correlation": mo.vstack(
+                [times_seen_threshold_slider, correlation_chart]
+            ),
             "Replicate Scatter": mo.hstack(
                 [
                     scatter_chart,
@@ -368,6 +398,7 @@ def _(
                         [
                             scatter_fusionreg_dropdown,
                             scatter_param_dropdown,
+                            times_seen_threshold_slider,
                         ]
                     ),
                 ],
