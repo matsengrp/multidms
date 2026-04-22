@@ -211,6 +211,19 @@ def all_muts_known(substitutions, known_muts):
     return all(m in known_muts for m in substitutions.split())
 
 
+def _clip_range(value):
+    """Normalize a beta_clip_range YAML value for jaxmodels.fit.
+
+    The config value may be a 2-element list (box constraint), or null / None
+    (no clipping). jaxmodels checks ``if beta_clip_range is not None`` to enable
+    clipping, so None must propagate through unchanged; non-None must be a
+    tuple of length 2.
+    """
+    if value is None:
+        return None
+    return tuple(value)
+
+
 def build_fit_params(fit_config, datasets):
     """Build a standard fitting parameter dict from a config section.
 
@@ -241,7 +254,7 @@ def build_fit_params(fit_config, datasets):
         "beta0_init": [fit_config["beta0_init"]],
         "alpha_init": [fit_config["alpha_init"]],
         "share_alpha": [fit_config.get("share_alpha", True)],
-        "beta_clip_range": [tuple(fit_config["beta_clip_range"])],
+        "beta_clip_range": [_clip_range(fit_config["beta_clip_range"])],
         "dataset": datasets,
     }
 

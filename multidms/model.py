@@ -38,7 +38,8 @@ class Model:
     fusionreg : float
         Fusion regularization strength for shift parameters (default: 0.0).
     beta0_ridge : float
-        Ridge penalty for β0 offsets from reference condition (default: 0.0).
+        Ridge penalty on squared β0, summed across all conditions
+        (reference included; default: 0.0).
 
     Example
     -------

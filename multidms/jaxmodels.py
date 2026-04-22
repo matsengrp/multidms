@@ -361,6 +361,22 @@ def functional_score_loss(
     return result
 
 
+def _beta_ridge_penalty(model: Model, beta0_ridge: Float = 0.0) -> Float:
+    r"""Ridge penalty on squared β0, summed across all conditions.
+
+    Args:
+        model: Model whose β0 parameters are penalized.
+        beta0_ridge: Penalty strength.
+
+    Returns:
+        ``beta0_ridge * sum(model.φ[d].β0 ** 2 for d in model.φ)``.
+    """
+    penalty = 0.0
+    for d in model.φ:
+        penalty += model.φ[d].β0 ** 2
+    return penalty * beta0_ridge
+
+
 def fit(
     data_sets: dict[str, Data],
     reference_condition: str,
@@ -393,7 +409,8 @@ def fit(
         reference_condition: The condition to use as a reference.
         l2reg: L2 regularization strength for mutation effects.
         fusionreg: Fusion (shift lasso) regularization strength.
-        beta0_ridge: Ridge penalty for β0 differences from reference condition.
+        beta0_ridge: Ridge penalty on squared β0, summed across all conditions
+            (reference included).
         scale_fusion_by_n: If True, weight each condition's fusion penalty by
             n_ref / n_d, reducing shrinkage for data-poor conditions.
         block_iters: Number iterations for block coordinate descent.
@@ -468,15 +485,6 @@ def fit(
         for d, w in fusion_weights.items():
             n_d = data_sets[d].functional_scores.shape[0]
             print(f"  {d}: {w:.3f} (n_ref={n_ref}, n_d={n_d})")
-
-    def _beta_ridge_penalty(model: Model, beta0_ridge=0.0) -> Float:
-        r"""Calculate ridge penalty for β0 differences from reference condition."""
-        penalty = 0.0
-        ref_beta0 = model.φ[model.reference_condition].β0
-        for d in model.φ:
-            if d != model.reference_condition:
-                penalty += (model.φ[d].β0 - ref_beta0) ** 2
-        return penalty * beta0_ridge
 
     @jax.jit
     def objective_part(model_part, model_rest, data_sets, scale=1.0, beta0_ridge=0.0):

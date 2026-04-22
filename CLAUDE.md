@@ -80,6 +80,7 @@ User provides a pandas DataFrame with columns for condition, substitutions, and 
 - **Multi-condition modeling**: Conditions share a reference beta vector; non-reference conditions get shift parameters capturing condition-specific effects.
 - **Loss types**: `functional_score_loss` uses per-variant `.mean()` Huber loss so conditions contribute equally regardless of variant count. `count_loss` uses `.sum()` (total NLL). Hyperparameter values are calibrated to the `.mean()` scale. As a consequence, `ModelCollection.fit_models["total_loss_*"]` columns are already per-variant averages (one per condition, plus `"total"` averaged over conditions) — do not divide again by variant count when plotting or you will produce doubly-normalized values.
 - **GE nonlinearity**: `Identity` (linear) or `Sigmoid` (nonlinear global epistasis). Alpha is shared across all conditions to prevent per-condition sigmoid degeneracy.
+- **`beta0_ridge`**: standard ridge on β0 — sums `β0**2` across **all** conditions (reference included). Not a penalty on inter-condition differences, despite the name. See `multidms.jaxmodels._beta_ridge_penalty`.
 - **Plotting separation**: Rendering logic is fully separated from data preparation. Classes own data extraction (`get_*_df`, `_prepare_*_df`); `plot.py` owns chart construction.
 - **Interactive dashboard**: `experiments/dashboard.py` is a marimo app for exploring `ModelCollection` results interactively. Launch with `pixi run dashboard`.
 
@@ -112,6 +113,8 @@ Before launching any remote pipeline:
 7. **Clean up**: Remove local worktree, remote worktree, and tmux session
 
 Convention: `output_dir` is always `results-<profile>-<branch>` (e.g., `results-prod-fix-alpha`).
+
+**`beta_clip_range` in YAML configs**: use a single `null` (scalar) to disable clipping — not `[null, null]`, which deserializes to a 2-tuple of `None`s and crashes at `jnp.clip` argument unpacking.
 
 Never skip step 2. Never leave tmux sessions running after fetching results.
 

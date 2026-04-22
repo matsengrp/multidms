@@ -735,78 +735,114 @@ class TestFitParameters:
             assert jnp.all(jnp.isfinite(model_reg.φ[cond].β))
 
     def test_beta0_ridge_penalty(self, multi_condition_data):
-        """Test beta0_ridge penalty for constraining β0 differences from reference."""
-        # Fit model without beta0_ridge
-        model_no_ridge, _ = jaxmodels.fit(
+        """Test beta0_ridge shrinks β0 magnitudes across all conditions."""
+        kwargs = dict(
             data_sets=multi_condition_data,
             reference_condition="condition1",
             l2reg=0.1,
             fusionreg=0.0,
-            beta0_ridge=0.0,
-            block_iters=5,  # More iterations to see the effect
-            warmstart=False,
-            beta0_init={
-                "condition1": 1.0,
-                "condition2": -1.0,
-            },  # Start with different values
-        )
-
-        # Fit model with moderate beta0_ridge
-        model_moderate_ridge, _ = jaxmodels.fit(
-            data_sets=multi_condition_data,
-            reference_condition="condition1",
-            l2reg=0.1,
-            fusionreg=0.0,
-            beta0_ridge=1.0,
             block_iters=5,
             warmstart=False,
-            beta0_init={"condition1": 1.0, "condition2": -1.0},  # Same starting point
+            beta0_init={"condition1": 1.0, "condition2": -1.0},
         )
+        model_no_ridge, _ = jaxmodels.fit(**kwargs, beta0_ridge=0.0)
+        model_moderate, _ = jaxmodels.fit(**kwargs, beta0_ridge=1.0)
+        model_strong, _ = jaxmodels.fit(**kwargs, beta0_ridge=10.0)
 
-        # Fit model with strong beta0_ridge
-        model_strong_ridge, _ = jaxmodels.fit(
-            data_sets=multi_condition_data,
-            reference_condition="condition1",
-            l2reg=0.1,
-            fusionreg=0.0,
-            beta0_ridge=10.0,
-            block_iters=5,
-            warmstart=False,
-            beta0_init={"condition1": 1.0, "condition2": -1.0},  # Same starting point
-        )
+        def mags(m):
+            return {d: float(jnp.abs(m.φ[d].β0)) for d in m.φ}
 
-        # Calculate β0 differences from reference
-        ref_beta0_no_ridge = model_no_ridge.φ["condition1"].β0
-        ref_beta0_moderate = model_moderate_ridge.φ["condition1"].β0
-        ref_beta0_strong = model_strong_ridge.φ["condition1"].β0
-
-        diff_no_ridge = jnp.abs(model_no_ridge.φ["condition2"].β0 - ref_beta0_no_ridge)
-        diff_moderate = jnp.abs(
-            model_moderate_ridge.φ["condition2"].β0 - ref_beta0_moderate
-        )
-        diff_strong = jnp.abs(model_strong_ridge.φ["condition2"].β0 - ref_beta0_strong)
-
-        # With stronger beta0_ridge, the differences should be smaller
-        # Allow for some tolerance due to optimization
-        assert diff_strong <= diff_moderate + 1e-2, (
-            f"Strong ridge penalty should produce smaller β0 differences: "
-            f"strong={diff_strong}, moderate={diff_moderate}"
-        )
-        assert diff_moderate <= diff_no_ridge + 1e-2, (
-            f"Moderate ridge penalty should produce smaller β0 differences "
-            f"than no ridge: moderate={diff_moderate}, "
-            f"no_ridge={diff_no_ridge}"
-        )
-
-        # All models should converge successfully
-        assert model_no_ridge is not None
-        assert model_moderate_ridge is not None
-        assert model_strong_ridge is not None
+        m0, m1, m2 = mags(model_no_ridge), mags(model_moderate), mags(model_strong)
+        for d in m0:
+            assert m2[d] <= m1[d] + 1e-2, f"{d}: strong={m2[d]}, moderate={m1[d]}"
+            assert m1[d] <= m0[d] + 1e-2, f"{d}: moderate={m1[d]}, no_ridge={m0[d]}"
 
         # All β0 values should be finite
-        for model in [model_no_ridge, model_moderate_ridge, model_strong_ridge]:
+        for model in [model_no_ridge, model_moderate, model_strong]:
             for cond in model.φ:
                 assert jnp.isfinite(model.φ[cond].β0)
+
+    def test_beta_ridge_penalty_gradient(self):
+        """Gradient of beta0_ridge penalty equals 2 * r * β0[d] for each condition."""
+        β0_vals = {"A": 1.5, "B": -0.7, "C": 2.3}
+        n_mut = 4
+        φ = {d: jaxmodels.Latent.zeros(n_mut, β0=v) for d, v in β0_vals.items()}
+        model = jaxmodels.Model(
+            φ=φ,
+            α=jnp.array(1.0),
+            logθ={d: jnp.array(0.0) for d in β0_vals},
+            reference_condition="A",
+            global_epistasis=jaxmodels.Identity(),
+        )
+        r = 0.3
+        grads = jax.grad(jaxmodels._beta_ridge_penalty)(model, r)
+        for d, v in β0_vals.items():
+            expected = 2 * r * v
+            actual = float(grads.φ[d].β0)
+            assert jnp.isclose(
+                actual, expected, atol=1e-6
+            ), f"{d}: grad={actual}, expected={expected}"
+
+    def test_beta_ridge_penalty_label_permutation_invariance(self):
+        """Penalty is invariant under relabeling conditions."""
+        n_mut = 4
+        model1 = jaxmodels.Model(
+            φ={
+                "A": jaxmodels.Latent.zeros(n_mut, β0=1.5),
+                "B": jaxmodels.Latent.zeros(n_mut, β0=-0.7),
+            },
+            α=jnp.array(1.0),
+            logθ={"A": jnp.array(0.0), "B": jnp.array(0.0)},
+            reference_condition="A",
+            global_epistasis=jaxmodels.Identity(),
+        )
+        # Same β0 magnitudes, relabeled: reference is now the one with β0=-0.7.
+        model2 = jaxmodels.Model(
+            φ={
+                "A": jaxmodels.Latent.zeros(n_mut, β0=-0.7),
+                "B": jaxmodels.Latent.zeros(n_mut, β0=1.5),
+            },
+            α=jnp.array(1.0),
+            logθ={"A": jnp.array(0.0), "B": jnp.array(0.0)},
+            reference_condition="B",
+            global_epistasis=jaxmodels.Identity(),
+        )
+        r = 0.5
+        p1 = float(jaxmodels._beta_ridge_penalty(model1, r))
+        p2 = float(jaxmodels._beta_ridge_penalty(model2, r))
+        assert jnp.isclose(p1, p2, atol=1e-6), f"p1={p1}, p2={p2}"
+
+    def test_beta_ridge_penalty_zero_at_origin(self):
+        """Penalty is zero when every β0 is zero, and strictly positive otherwise."""
+        n_mut = 4
+        # All β0 = 0 → penalty exactly 0 for any r.
+        model_origin = jaxmodels.Model(
+            φ={
+                "A": jaxmodels.Latent.zeros(n_mut, β0=0.0),
+                "B": jaxmodels.Latent.zeros(n_mut, β0=0.0),
+                "C": jaxmodels.Latent.zeros(n_mut, β0=0.0),
+            },
+            α=jnp.array(1.0),
+            logθ={d: jnp.array(0.0) for d in ["A", "B", "C"]},
+            reference_condition="A",
+            global_epistasis=jaxmodels.Identity(),
+        )
+        assert float(jaxmodels._beta_ridge_penalty(model_origin, 10.0)) == 0.0
+
+        # Any nonzero β0 → strictly positive penalty for r > 0.
+        model_nonzero = jaxmodels.Model(
+            φ={
+                "A": jaxmodels.Latent.zeros(n_mut, β0=0.0),
+                "B": jaxmodels.Latent.zeros(n_mut, β0=0.5),
+                "C": jaxmodels.Latent.zeros(n_mut, β0=0.0),
+            },
+            α=jnp.array(1.0),
+            logθ={d: jnp.array(0.0) for d in ["A", "B", "C"]},
+            reference_condition="A",
+            global_epistasis=jaxmodels.Identity(),
+        )
+        p = float(jaxmodels._beta_ridge_penalty(model_nonzero, 10.0))
+        assert p == pytest.approx(10.0 * 0.5**2, abs=1e-10)
 
     def test_early_stopping_ignores_inner_convergence(self, multi_condition_data):
         """Test early stopping triggers on objective_error alone.

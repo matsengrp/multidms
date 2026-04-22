@@ -84,7 +84,8 @@ def fit_one_model(
     fusionreg : float
         Fusion (shift lasso) regularization strength.
     beta0_ridge : float
-        Ridge penalty for beta0 differences from reference condition.
+        Ridge penalty on squared β0, summed across all conditions
+        (reference included).
     scale_fusion_by_n : bool
         Weight each condition's fusion penalty by n_ref / n_d.
     loss_type : str

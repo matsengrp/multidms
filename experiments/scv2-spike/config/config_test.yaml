@@ -39,7 +39,7 @@ spike:
     tol: 1.0e-4
     fusionreg_values: [0.0, 4.0e-5]
     l2reg: 0.0
-    beta0_ridge: 1.0e-4
+    beta0_ridge: 0.0  # was 1.0e-4 under old difference-from-reference semantics
     scale_fusion_by_n: false
     ge_type: "Sigmoid"
     warmstart: false
