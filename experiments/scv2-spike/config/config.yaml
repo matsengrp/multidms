@@ -36,11 +36,13 @@ spike:
 
   # Fitting parameters — rescaled for .mean() loss normalization (V0.4.0 anchors)
   fitting:
-    maxiter: 50
-    tol: 1.0e-4
+    # Strategy: "continuation" fits a warm-started path along ascending fusionreg.
+    strategy: "continuation"
+    maxiter: 100
+    tol: 1.0e-5
     fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4]
     l2reg: 0.0
-    beta0_ridge: 0.0
+    beta0_ridge: 1.0e-3
     scale_fusion_by_n: false
     ge_type: "Sigmoid"
     warmstart: false
@@ -49,8 +51,8 @@ spike:
     share_alpha: true
     beta_clip_range: [-10, 10]
     loss_kwargs: {"δ": 1.0}
-    ge_kwargs: {tol: 1.0e-4, maxiter: 50, maxls: 40, jit: true, verbose: false}
-    cal_kwargs: {tol: 1.0e-4, maxiter: 50, maxls: 40, jit: true, verbose: false}
+    ge_kwargs: {tol: 1.0e-5, maxiter: 100, maxls: 40, jit: true, verbose: false}
+    cal_kwargs: {tol: 1.0e-5, maxiter: 100, maxls: 40, jit: true, verbose: false}
     n_processes: null  # null = auto: min(cpu_count // 2, n_models)
   lasso_choice: 4.0e-5
 
