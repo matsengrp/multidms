@@ -9,10 +9,15 @@ from io import StringIO
 
 import multidms
 from multidms.model_collection import (
+    ModelCollection,
+    ModelCollectionFitError,
+    _assert_no_nan,
+    _extract_seed,
+    concat_path_trajectories,
+    fit_models,
+    fit_models_path,
     fit_one_model,
     stack_fit_models,
-    fit_models,
-    ModelCollection,
 )
 
 # ========== Test Data ==========
@@ -824,3 +829,347 @@ class TestDetectPerConditionGroups:
                 "loss_per_variant_trajectory"
                 not in groups["loss_per_variant_per_condition"]
             )
+
+
+# ========== fit_models_path tests ==========
+
+
+_PATH_FIT_KWARGS = dict(
+    ge_type="Identity",
+    l2reg=0.0,
+    beta0_ridge=0.0,
+    maxiter=3,
+    tol=1e-4,
+    warmstart=False,
+)
+
+
+class TestFitModelsPath:
+    """Tests for fit_models_path() and concat_path_trajectories()."""
+
+    @staticmethod
+    def _fusionreg_path():
+        return [0.0, 1e-5, 1e-4]
+
+    def _path_params(self, datasets, **overrides):
+        params = {
+            "dataset": datasets,
+            "fusionreg": list(self._fusionreg_path()),
+            **{k: [v] for k, v in _PATH_FIT_KWARGS.items()},
+        }
+        params.update(overrides)
+        return params
+
+    def test_schema_parity(self, replicate_data):
+        """fit_models_path returns the same column set as fit_models."""
+        rep1, rep2 = replicate_data
+        path_params = self._path_params([rep1, rep2])
+        _, _, path_df = fit_models_path(path_params)
+        _, _, indep_df = fit_models(path_params, failures="tolerate")
+        assert set(path_df.columns) == set(indep_df.columns)
+        expected_rows = 2 * len(self._fusionreg_path())  # datasets × path
+        assert len(path_df) == expected_rows
+
+    def test_extract_seed_round_trip(self, simple_data):
+        """_extract_seed returns exactly the fitted (β, β0, α) of the model."""
+        import jax.numpy as jnp
+
+        # Fit a single model to produce a realistic source.
+        params = {
+            "dataset": [simple_data],
+            "fusionreg": [0.0],
+            **{k: [v] for k, v in _PATH_FIT_KWARGS.items()},
+        }
+        _, _, df = fit_models_path(params)
+        model = df.iloc[0]["model"]
+
+        beta_init, beta0_init, alpha_init = _extract_seed(model)
+        for d in model.data.conditions:
+            assert jnp.array_equal(beta_init[d], model.params.φ[d].β)
+            assert jnp.array_equal(
+                jnp.asarray(beta0_init[d]),
+                jnp.asarray(model.params.φ[d].β0),
+            )
+        # share_alpha=True ⇒ α is a scalar (not a dict)
+        assert not isinstance(alpha_init, dict)
+        assert jnp.array_equal(
+            jnp.asarray(alpha_init),
+            jnp.asarray(model.params.α),
+        )
+
+    def test_path_step_rows_have_no_jax_seed_leakage(self, simple_data):
+        """Path DF is schema-clean: beta/beta0/alpha_init cells are not jax or dict.
+
+        The row returned for path steps k>0 is seeded from the previous
+        model, but the seed *values* must not live in the row — they'd be
+        jax arrays and dicts-of-jax, which break pandas .apply(str),
+        groupby, and pickling round-trips that callers do on fit_models()
+        output. Step-0 rows inherit whatever the user passed (usually
+        None) so they're clean by construction; only steps k>0 are at
+        risk.
+        """
+        params = self._path_params([simple_data])
+        _, _, df = fit_models_path(params)
+        for col in ("beta_init", "beta0_init", "alpha_init"):
+            assert col in df.columns
+            for val in df[col]:
+                assert val is None, (
+                    f"path DF col '{col}' holds non-None value of type "
+                    f"{type(val).__name__}: {val!r}"
+                )
+
+    def test_schema_matches_fit_models_exactly(self, simple_data):
+        """fit_models and fit_models_path produce identical-shape DataFrames.
+
+        "Identical shape" means same columns AND no column of the path
+        DataFrame holds a dict or a jax.Array — the same contract as
+        fit_models output, so a ModelCollection built from either is
+        indistinguishable.
+        """
+        import jax
+
+        params = {
+            "dataset": [simple_data],
+            "fusionreg": [0.0, 1e-5, 1e-4],
+            **{k: [v] for k, v in _PATH_FIT_KWARGS.items()},
+        }
+        _, _, path_df = fit_models_path(params)
+        _, _, indep_df = fit_models(params, failures="tolerate")
+        assert set(path_df.columns) == set(indep_df.columns)
+        for col in path_df.columns:
+            if col == "model":
+                continue
+            for val in path_df[col]:
+                assert not isinstance(val, (dict, jax.Array)), (
+                    f"path DF col '{col}' leaked a {type(val).__name__}: " f"{val!r}"
+                )
+
+    def test_constant_fusionreg_identity(self, simple_data):
+        """Constant-fusionreg path: repeated steps converge to the same point.
+
+        Run each step to a tight tolerance so the first step has already
+        converged by the time step 2 inherits it — further iterations
+        should barely move the parameters.
+        """
+        import jax.numpy as jnp
+
+        params = {
+            "dataset": [simple_data],
+            "fusionreg": [0.0, 0.0, 0.0],
+            "ge_type": ["Identity"],
+            "l2reg": [0.0],
+            "beta0_ridge": [0.0],
+            "maxiter": [200],
+            "tol": [1e-10],
+            "warmstart": [False],
+        }
+        _, _, df = fit_models_path(params)
+        assert len(df) == 3
+        ref = df.iloc[0]["model"]
+        for i in range(1, len(df)):
+            cur = df.iloc[i]["model"]
+            for d in ref.data.conditions:
+                assert jnp.allclose(ref.params.φ[d].β, cur.params.φ[d].β, atol=1e-5)
+                assert jnp.allclose(
+                    jnp.asarray(ref.params.φ[d].β0),
+                    jnp.asarray(cur.params.φ[d].β0),
+                    atol=1e-5,
+                )
+            assert jnp.allclose(
+                jnp.asarray(ref.params.α),
+                jnp.asarray(cur.params.α),
+                atol=1e-5,
+            )
+
+    def test_single_step_matches_fit_models(self, simple_data):
+        """Single-step path reproduces fit_models' single-point output."""
+        import jax.numpy as jnp
+
+        params = {
+            "dataset": [simple_data],
+            "fusionreg": [0.0],
+            **{k: [v] for k, v in _PATH_FIT_KWARGS.items()},
+        }
+        _, _, path_df = fit_models_path(params)
+        _, _, indep_df = fit_models(params, failures="tolerate")
+        assert len(path_df) == len(indep_df) == 1
+        m_path = path_df.iloc[0]["model"]
+        m_indep = indep_df.iloc[0]["model"]
+        for d in m_path.data.conditions:
+            assert jnp.allclose(m_path.params.φ[d].β, m_indep.params.φ[d].β, atol=1e-6)
+
+    def test_order_invariance(self, replicate_data):
+        """Shuffling dataset order does not change per-dataset fits.
+
+        Uses a short 2-step path and asserts no steps failed so that
+        memory pressure (CI runners compile+hold a JAX kernel per step)
+        surfaces as a clear "n_failed > 0" failure rather than as a
+        misleading length mismatch on the merged DataFrame. Clears
+        JAX compilation caches between the two path fits because on
+        memory-constrained runners (~7GB) the per-step kernels can
+        accumulate enough to hit ``LLVM compilation error: Cannot
+        allocate memory`` on the second call.
+        """
+        import jax
+        import jax.numpy as jnp
+
+        rep1, rep2 = replicate_data
+        short_path = {"fusionreg": [0.0, 1e-5]}
+        n_ab, f_ab, df_ab = fit_models_path(
+            self._path_params([rep1, rep2], **short_path)
+        )
+        jax.clear_caches()
+        n_ba, f_ba, df_ba = fit_models_path(
+            self._path_params([rep2, rep1], **short_path)
+        )
+        assert f_ab == 0, f"forward path had {f_ab} step failure(s)"
+        assert f_ba == 0, f"reverse path had {f_ba} step failure(s)"
+        for name in ("rep1", "rep2"):
+            sub_ab = df_ab[df_ab["dataset_name"] == name].sort_values("fusionreg")
+            sub_ba = df_ba[df_ba["dataset_name"] == name].sort_values("fusionreg")
+            assert len(sub_ab) == len(sub_ba) == len(short_path["fusionreg"])
+            for row_ab, row_ba in zip(sub_ab.itertuples(), sub_ba.itertuples()):
+                m_ab = row_ab.model
+                m_ba = row_ba.model
+                for d in m_ab.data.conditions:
+                    assert jnp.allclose(
+                        m_ab.params.φ[d].β, m_ba.params.φ[d].β, atol=1e-6
+                    )
+
+    def test_monotone_sparsity(self, simple_data):
+        """Sparsity is non-decreasing along the fusionreg path (per condition)."""
+        params = self._path_params(
+            [simple_data],
+            fusionreg=[0.0, 1e-4, 1e-3, 1e-2],
+        )
+        _, _, df = fit_models_path(params)
+        df = df.sort_values("fusionreg").reset_index(drop=True)
+        non_ref = [c for c in df.iloc[0]["model"].data.conditions if c != "a"]
+        slack = 1e-8
+        for cond in non_ref:
+            sparsities = [
+                float(
+                    row["model"].convergence_trajectory_df[f"sparsity_{cond}"].iloc[-1]
+                )
+                for _, row in df.iterrows()
+            ]
+            for i in range(1, len(sparsities)):
+                assert sparsities[i] + slack >= sparsities[i - 1], (
+                    f"sparsity dropped at fusionreg={df.loc[i, 'fusionreg']} "
+                    f"for condition {cond}: {sparsities}"
+                )
+
+    def test_nan_guard_raises(self):
+        """_assert_no_nan raises on NaN in β, β0, or α."""
+        import jax.numpy as jnp
+
+        class _FakeLatent:
+            def __init__(self, β, β0):
+                self.β = β
+                self.β0 = β0
+
+        class _FakeParams:
+            def __init__(self, φ, α):
+                self.φ = φ
+                self.α = α
+
+        class _FakeData:
+            def __init__(self, conds):
+                self.conditions = conds
+
+        class _FakeModel:
+            def __init__(self, φ, α, conds):
+                self.params = _FakeParams(φ, α)
+                self.data = _FakeData(conds)
+
+        good = _FakeLatent(jnp.array([0.0, 1.0]), jnp.array(0.0))
+        # β NaN
+        bad_beta = _FakeLatent(jnp.array([jnp.nan, 1.0]), jnp.array(0.0))
+        with pytest.raises(ModelCollectionFitError, match="NaN in β"):
+            _assert_no_nan(
+                _FakeModel({"a": bad_beta, "b": good}, jnp.array(1.0), ["a", "b"])
+            )
+        # β0 NaN
+        bad_b0 = _FakeLatent(jnp.array([0.0]), jnp.array(jnp.nan))
+        with pytest.raises(ModelCollectionFitError, match="NaN in β0"):
+            _assert_no_nan(_FakeModel({"a": bad_b0}, jnp.array(1.0), ["a"]))
+        # α NaN (scalar)
+        with pytest.raises(ModelCollectionFitError, match="NaN in α"):
+            _assert_no_nan(_FakeModel({"a": good}, jnp.array(jnp.nan), ["a"]))
+        # α NaN (dict)
+        with pytest.raises(ModelCollectionFitError, match="NaN in α"):
+            _assert_no_nan(
+                _FakeModel(
+                    {"a": good},
+                    {"a": jnp.array(jnp.nan)},
+                    ["a"],
+                )
+            )
+
+    def test_nonzero_first_step_warns(self, simple_data):
+        """Starting the path at fusionreg > 0 emits a warning."""
+        params = {
+            "dataset": [simple_data],
+            "fusionreg": [1e-5, 1e-4],
+            **{k: [v] for k, v in _PATH_FIT_KWARGS.items()},
+        }
+        with pytest.warns(UserWarning, match="unregularized"):
+            fit_models_path(params)
+
+    def test_verbose_in_params_does_not_collide(self, simple_data):
+        """User-supplied verbose in params must not double-pass.
+
+        fit_models_path takes its own verbose= kwarg for convenience, and
+        fit_one_model also accepts verbose — if a user puts verbose into
+        params, a naïve implementation would pass it twice and raise
+        TypeError. The driver uses setdefault so the user value wins.
+        """
+        params = {
+            "dataset": [simple_data],
+            "fusionreg": [0.0, 1e-5],
+            "verbose": [False],  # user sets it in params
+            **{k: [v] for k, v in _PATH_FIT_KWARGS.items()},
+        }
+        n_fit, n_failed, df = fit_models_path(params)
+        assert n_fit == 2 and n_failed == 0
+
+
+class TestConcatPathTrajectories:
+    """Tests for concat_path_trajectories()."""
+
+    def test_concat_structure(self, simple_data):
+        path_params = {
+            "dataset": [simple_data],
+            "fusionreg": [0.0, 1e-5],
+            **{k: [v] for k, v in _PATH_FIT_KWARGS.items()},
+        }
+        _, _, df = fit_models_path(path_params)
+        long = concat_path_trajectories(df)
+        # Non-empty, and contains expected columns
+        assert len(long) > 0
+        for col in (
+            "path_id",
+            "step_index",
+            "fusionreg",
+            "iteration_within_step",
+            "iteration_global",
+        ):
+            assert col in long.columns
+        # iteration_global is strictly monotone within a path
+        for _, sub in long.groupby("path_id"):
+            glob = sub["iteration_global"].to_numpy()
+            assert all(glob[i] < glob[i + 1] for i in range(len(glob) - 1))
+        # fusionreg is constant within each step_index
+        for (pid, step), sub in long.groupby(["path_id", "step_index"]):
+            assert sub["fusionreg"].nunique() == 1
+        # Row count matches sum of per-step trajectories
+        expected = sum(
+            len(row["model"].convergence_trajectory_df) for _, row in df.iterrows()
+        )
+        assert len(long) == expected
+
+    def test_empty_input_returns_empty_df(self):
+        empty = pd.DataFrame(columns=["dataset_name", "fusionreg", "model"])
+        out = concat_path_trajectories(empty)
+        assert isinstance(out, pd.DataFrame)
+        assert len(out) == 0

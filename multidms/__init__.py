@@ -59,8 +59,20 @@ from binarymap.binarymap import AAS_WITHSTOP_WITHGAP  # noqa: F401
 
 from multidms.data import Data  # noqa: F401
 from multidms.model import Model  # noqa: F401
-from multidms.model_collection import ModelCollection, fit_models  # noqa: F401
+from multidms.model_collection import (  # noqa: F401
+    ModelCollection,
+    concat_path_trajectories,
+    fit_models,
+    fit_models_path,
+)
 from multidms import plot  # noqa: F401
 
 # This lets Sphinx know you want to document foo.foo.Foo as foo.Foo.
-__all__ = ["Data", "Model", "ModelCollection", "fit_models"]
+__all__ = [
+    "Data",
+    "Model",
+    "ModelCollection",
+    "concat_path_trajectories",
+    "fit_models",
+    "fit_models_path",
+]
