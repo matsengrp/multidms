@@ -13,6 +13,7 @@ from multidms.model_collection import (
     ModelCollectionFitError,
     _assert_no_nan,
     _extract_seed,
+    _pairwise_correlation,
     concat_path_trajectories,
     fit_models,
     fit_models_path,
@@ -650,6 +651,30 @@ class TestVisualization:
         assert isinstance(result, tuple)
         assert len(result) == 2
         assert isinstance(result[1], pd.DataFrame)
+
+    def test_pairwise_correlation_two_replicates(self):
+        """Two-replicate group returns the off-diagonal Pearson r (raised to r)."""
+        df = pd.DataFrame(
+            {
+                "rep1": [0.1, 0.2, 0.3, 0.4],
+                "rep2": [0.15, 0.18, 0.32, 0.38],
+            }
+        ).T
+        result_r1 = _pairwise_correlation(df, r=1)
+        result_r2 = _pairwise_correlation(df, r=2)
+        assert np.isclose(result_r1, df.T.corr().iloc[0, 1])
+        assert np.isclose(result_r2, df.T.corr().iloc[0, 1] ** 2)
+
+    def test_pairwise_correlation_one_replicate_returns_nan(self):
+        """1-column groups (one replicate missing) must return NaN, not raise.
+
+        Regression for the IndexError surfaced by sparse shift solutions
+        under continuation fitting, where some (mut_param, x) cells have
+        only one replicate with non-zero entries.
+        """
+        df = pd.DataFrame({"rep1": [0.1, 0.2, 0.3]}).T
+        result = _pairwise_correlation(df, r=1)
+        assert np.isnan(result)
 
     def test_mut_param_dataset_correlation(self, replicate_collection):
         import altair as alt

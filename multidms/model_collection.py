@@ -644,6 +644,37 @@ def concat_path_trajectories(fit_collection_df, groupby_cols=None):
     return out[ordered]
 
 
+def _pairwise_correlation(replicate_params_df, r=1):
+    """Pairwise correlation between two replicates, robust to 1-column groups.
+
+    The mutation pivot used by
+    :meth:`ModelCollection.mut_param_dataset_correlation` can produce
+    1-column groups when one replicate has no surviving entry for a
+    given ``(mut_param, x)`` cell — for example under sparse shift
+    solutions. In that case the pearson correlation is undefined, so
+    we return ``NaN`` rather than letting ``iloc[0, 1]`` raise.
+
+    Parameters
+    ----------
+    replicate_params_df : pd.DataFrame
+        Rows index replicates, columns index mutations (the transposed
+        per-(mut_param, x) slice from the outer pivot).
+    r : int, optional
+        Correlation exponent: 1 for Pearson r, 2 for r-squared.
+        Default is 1.
+
+    Returns
+    -------
+    float
+        ``corr_matrix.iloc[0, 1] ** r`` when both replicates are present,
+        otherwise ``NaN``.
+    """
+    corr_mat = replicate_params_df.T.corr()
+    if corr_mat.shape[1] < 2:
+        return float("nan")
+    return corr_mat.iloc[0, 1] ** r
+
+
 class ModelCollection:
     """
     A class for the comparison and visualization of multiple
@@ -1421,7 +1452,9 @@ class ModelCollection:
                         {
                             "datasets": ",".join(datasets),
                             "mut_param": mut_param,
-                            "correlation": replicate_params_df.T.corr().iloc[0, 1] ** r,
+                            "correlation": _pairwise_correlation(
+                                replicate_params_df, r
+                            ),
                             x: x_i,
                         },
                         index=[0],
