@@ -142,12 +142,16 @@ def _(ModelCollection, fit_collection_df, pd):
     # Build one ModelCollection per (recompute_scale, warmstart) arm so the two
     # replicates inside it pair up via itertools.combinations, then reuse the
     # canonical mut_param_dataset_correlation (model_collection.py).
+    # times_seen_threshold=1 matches the canonical pipeline (evaluate.ipynb,
+    # the dashboard, library_replicate_correlation.csv). Threshold 0 lets
+    # rarely-seen mutations into the Pearson correlation and tanks it — an
+    # artifact, not signal (#246 skeptic pass).
     corr_frames = []
     arm_cols = ["recompute_scale", "warmstart"]
     for (recompute, warm), arm_df in fit_collection_df.groupby(arm_cols):
         mc = ModelCollection(arm_df.reset_index(drop=True))
         _, rep_df = mc.mut_param_dataset_correlation(
-            x="fusionreg", return_data=True, r=1
+            x="fusionreg", times_seen_threshold=1, return_data=True, r=1
         )
         # Headline metric is replicate-SHIFT correlation only (Delta, BA2; BA1 is
         # the reference and has no shift param).
@@ -237,6 +241,53 @@ def _(conv_df, corr_df, mo):
         ]
     )
     return
+
+
+@app.cell
+def _(conv_df, corr_df, mo):
+    # ── Cell 5c: the load-bearing join — is each good-correlation cell actually
+    # CONVERGED? An arm+fusionreg counts as converged only if BOTH replicates
+    # converged. This is what shows that good replicate-shift correlation is
+    # currently only observed in NON-converged fits (#246 decisive fork).
+    conv_arm = (
+        conv_df.groupby(["recompute_scale", "warmstart", "fusionreg"])["converged"]
+        .all()
+        .reset_index()
+        .rename(columns={"converged": "both_reps_converged"})
+    )
+    corr_annot = corr_df.merge(
+        conv_arm, on=["recompute_scale", "warmstart", "fusionreg"], how="left"
+    )
+    corr_annot["arm"] = corr_annot.apply(
+        lambda r: f"scale={'recompute' if r['recompute_scale'] else 'fixed'}, "
+        f"warmstart={'on' if r['warmstart'] else 'off'}",
+        axis=1,
+    )
+    view_cols = [
+        "arm",
+        "fusionreg",
+        "mut_param",
+        "correlation",
+        "both_reps_converged",
+    ]
+    mo.vstack(
+        [
+            mo.md(
+                "### Metric ② annotated with convergence status\n"
+                "If the high-`correlation` rows all have "
+                "`both_reps_converged = False`, then good replicate-shift "
+                "correlation only appears in fits that did NOT converge — "
+                "the central finding."
+            ),
+            mo.ui.table(
+                corr_annot[view_cols].sort_values(
+                    ["fusionreg", "correlation"], ascending=[True, False]
+                ),
+                selection=None,
+            ),
+        ]
+    )
+    return conv_arm, corr_annot, view_cols
 
 
 @app.cell
