@@ -151,6 +151,7 @@ class Model:
     def fit(
         self,
         warmstart: bool = True,
+        recompute_scale: bool = True,
         maxiter: int = 10,
         tol: float = 1e-6,
         beta0_init: dict = None,
@@ -170,6 +171,10 @@ class Model:
         ----------
         warmstart : bool
             Whether to use Ridge regression for parameter initialization (default: True).
+        recompute_scale : bool
+            If True (default), recompute the objective normalizer each outer
+            sweep (current behavior). If False, compute it once after warmstart
+            and hold it constant — the fixed-scale convergence fix (#246).
         maxiter : int
             Maximum number of optimization iterations (default: 10).
         tol : float
@@ -249,6 +254,7 @@ class Model:
             global_epistasis=global_epistasis,
             loss_fn=loss_fn,
             warmstart=warmstart,
+            recompute_scale=recompute_scale,
             beta0_init=beta0_init,
             beta_init=beta_init,
             alpha_init=alpha_init,
