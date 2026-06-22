@@ -117,9 +117,13 @@ def _(SPIKE_DIR, explode_params_dict, fit_models, pickle, rep_data):
             "cal_kwargs": [dict(tol=1e-4, maxiter=50, maxls=40, jit=True)],
             "loss_kwargs": [dict(δ=1.0)],
         }
-        n_models = len(explode_params_dict(params))  # 2*2*3*2 = 24
+        assert len(explode_params_dict(params)) == 24  # 2*2*3*2 factorial
+        # n_processes=1: fit_models spawns workers via get_context("spawn"),
+        # which re-imports the caller as __main__. A marimo notebook (like any
+        # non-__main__-guarded module) would recursively re-execute under spawn,
+        # so run the 24 fits single-process here. Slower but correct in-notebook.
         n_fit, n_failed, fit_collection_df = fit_models(
-            params, n_processes=min(6, n_models), failures="tolerate"
+            params, n_processes=1, failures="tolerate"
         )
         # dict-valued columns → str for groupby compatibility (prod convention).
         for col in fit_collection_df.columns:
