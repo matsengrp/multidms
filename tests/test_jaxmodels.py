@@ -1012,3 +1012,45 @@ class TestRecomputeScale:
         model.fit(maxiter=3, warmstart=False, recompute_scale=False, verbose=False)
         traj = model.convergence_trajectory_df
         assert traj is not None and len(traj) > 0
+
+    def test_fixed_scale_converges_better_than_recompute(self, multi_condition_data):
+        """Fixed-scale drives obj_error far lower than recompute-scale.
+
+        The qualitative analogue of the ablation's
+        ``scale=fixed fr=8e-5 conv=True err=3.9e-07`` cell (vs the
+        ``recompute`` cell that stalled at err≈5e-3 with many objective
+        increases). The exact ``iter=19, err=3.9e-07`` figures were measured
+        on real 3-condition spike data — reproducing them is the notebook's
+        job (#246, Task 5), not a unit test's.
+
+        Relaxed per the plan note (Task 3 Step 2): the 20-mutation /
+        10-variant synthetic fixture is too small to land *below* 1e-6 before
+        the 50-iter cap (fixed-scale reaches ~1.7e-6 here), so we assert the
+        decisive *direction* instead — fixed-scale reaches a small obj_error
+        and is strictly better than recompute-scale on the same fixture.
+        """
+        common = dict(
+            data_sets=multi_condition_data,
+            reference_condition="condition1",
+            l2reg=0.0,
+            fusionreg=8e-5,
+            block_iters=50,
+            block_tol=1e-6,
+            global_epistasis=jaxmodels.Sigmoid(),
+            share_alpha=True,
+            warmstart=False,
+            verbose=False,
+        )
+        _, traj_fixed = jaxmodels.fit(**common, recompute_scale=False)
+        _, traj_recompute = jaxmodels.fit(**common, recompute_scale=True)
+
+        err_fixed = float(traj_fixed["objective_error_trajectory"].iloc[-1])
+        err_recompute = float(traj_recompute["objective_error_trajectory"].iloc[-1])
+
+        # Fixed-scale reaches a small obj_error...
+        assert err_fixed < 1e-3, f"fixed-scale final obj_error {err_fixed} >= 1e-3"
+        # ...and is no worse than recompute-scale (here: orders better).
+        assert err_fixed <= err_recompute, (
+            f"fixed-scale obj_error {err_fixed} worse than recompute "
+            f"{err_recompute}; the convergence fix did not help"
+        )
