@@ -69,6 +69,7 @@ def fit_one_model(
     maxiter=10,
     tol=1e-6,
     warmstart=True,
+    recompute_scale=True,
     beta0_init=None,
     beta_init=None,
     alpha_init=None,
@@ -109,6 +110,9 @@ def fit_one_model(
         Convergence tolerance.
     warmstart : bool
         Whether to use Ridge regression for initialization.
+    recompute_scale : bool
+        If True (default), recompute the objective normalizer each outer
+        sweep. If False, the fixed-scale convergence fix (#246).
     beta0_init, beta_init : dict, optional
         Initial parameter values per condition.
     alpha_init : float or dict, optional
@@ -158,6 +162,7 @@ def fit_one_model(
     start = time.time()
     model.fit(
         warmstart=warmstart,
+        recompute_scale=recompute_scale,
         maxiter=maxiter,
         tol=tol,
         beta0_init=beta0_init,

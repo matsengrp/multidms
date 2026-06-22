@@ -898,7 +898,8 @@ class TestRecomputeScale:
 
     def test_fixed_scale_is_constant_discriminates(self, multi_condition_data):
         """T1: fixed-scale and recompute-scale produce different obj_error
-        sequences, proving the toggle changes loop behavior."""
+        sequences, proving the toggle changes loop behavior.
+        """
         common = dict(
             data_sets=multi_condition_data,
             reference_condition="condition1",
@@ -926,7 +927,8 @@ class TestRecomputeScale:
         """T2: with recompute_scale=False, objective_error on sweep k equals
         the fit()'s actual stopping formula applied to the *previous* sweep's
         scaled objective — NOT |1.0 - obj| (the recompute path's
-        by-construction value where obj_old ≡ 1.0 every sweep)."""
+        by-construction value where obj_old ≡ 1.0 every sweep).
+        """
         model, traj = jaxmodels.fit(
             data_sets=multi_condition_data,
             reference_condition="condition1",
@@ -975,7 +977,8 @@ class TestRecomputeScale:
 
     def test_recompute_scale_default_unchanged(self, multi_condition_data):
         """T3 (regression guard): omitting recompute_scale ≡ passing True.
-        The default path must match the pre-change behavior bit-for-bit."""
+        The default path must match the pre-change behavior bit-for-bit.
+        """
         common = dict(
             data_sets=multi_condition_data,
             reference_condition="condition1",
@@ -989,3 +992,23 @@ class TestRecomputeScale:
         _, traj_explicit_true = jaxmodels.fit(**common, recompute_scale=True)
 
         pd.testing.assert_frame_equal(traj_default, traj_explicit_true)
+
+    def test_recompute_scale_threads_through_model_fit(self):
+        """Integration: recompute_scale reaches jaxmodels via Model.fit on a
+        tiny real-DataFrame Data object.
+        """
+        import multidms
+
+        df = pd.DataFrame(
+            {
+                "condition": ["a", "a", "a", "b", "b", "b"],
+                "aa_substitutions": ["M1A", "M1C", "", "M1A", "G2A", ""],
+                "func_score": [-0.5, -1.0, 0.0, -0.6, -0.3, 0.0],
+            }
+        )
+        data = multidms.Data(df, reference="a", verbose=False)
+        model = multidms.Model(data, ge_type="Sigmoid")
+        # Should accept the kwarg and run without error.
+        model.fit(maxiter=3, warmstart=False, recompute_scale=False, verbose=False)
+        traj = model.convergence_trajectory_df
+        assert traj is not None and len(traj) > 0
