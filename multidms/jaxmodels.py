@@ -378,6 +378,7 @@ def fit(
     ] = functional_score_loss,
     loss_kwargs: dict[str, Any] = dict(δ=1.0),
     warmstart: bool = True,
+    recompute_scale: bool = True,
     beta0_init: dict[str, Float] | None = None,
     beta_init: dict[str, Float[Array, " n_mutations"]] | None = None,
     alpha_init: Float | dict[str, Float] | None = None,
@@ -408,6 +409,12 @@ def fit(
                    If True, performs Ridge regression to initialize parameters.
                    The warmstart values will be overridden by any explicit values
                    provided in beta0_init or beta_init.
+        recompute_scale: If True (default), recompute the objective `scale`
+            normalizer at the start of every outer sweep (current behavior).
+            If False, compute `scale` once after warmstart and hold it
+            constant, so the lasso threshold (fusionreg / scale) is stationary
+            and `objective_error` measures a true relative change in the scaled
+            objective across sweeps. See issue #246.
         beta0_init: Initial β0 (intercept) values for each condition.
                          If None, uses zeros (or warmstart values if warmstart=True).
                          If dict provided, uses those values for specified conditions.
@@ -620,28 +627,55 @@ def fit(
     has_counts = any(data_sets[d].post_counts is not None for d in data_sets)
     trajectory_rows = []
 
+    # When recompute_scale is False, compute the normalizer once here (after
+    # warmstart, near a solution) and hold it constant for the whole fit so the
+    # optimization problem and the lasso threshold (fusionreg / scale) are
+    # stationary, and objective_error measures a true relative change (#246).
+    fixed_scale = None
+    obj_old = 1.0
+    if not recompute_scale:
+        raw_obj0 = float(
+            abs(
+                objective_total(
+                    model,
+                    data_sets,
+                    l2reg=l2reg,
+                    fusionreg=fusionreg,
+                    scale=1.0,
+                    beta0_ridge=beta0_ridge,
+                )
+            )
+        )
+        fixed_scale = raw_obj0 if raw_obj0 > 1e-30 else 1.0
+        obj_old = raw_obj0 / fixed_scale  # scaled initial objective
+
     try:
         for k in range(block_iters):
             if verbose:
                 print(f"iter {k + 1}:")
 
-            # Recompute scale each iteration so the proximal lasso
-            # threshold (fusionreg / scale) stays calibrated as the
-            # model evolves.
-            raw_obj = float(
-                abs(
-                    objective_total(
-                        model,
-                        data_sets,
-                        l2reg=l2reg,
-                        fusionreg=fusionreg,
-                        scale=1.0,
-                        beta0_ridge=beta0_ridge,
+            if recompute_scale:
+                # Recompute scale each iteration so the proximal lasso
+                # threshold (fusionreg / scale) stays calibrated as the
+                # model evolves.
+                raw_obj = float(
+                    abs(
+                        objective_total(
+                            model,
+                            data_sets,
+                            l2reg=l2reg,
+                            fusionreg=fusionreg,
+                            scale=1.0,
+                            beta0_ridge=beta0_ridge,
+                        )
                     )
                 )
-            )
-            scale = raw_obj if raw_obj > 1e-30 else 1.0
-            obj_old = raw_obj / scale  # 1.0 by construction
+                scale = raw_obj if raw_obj > 1e-30 else 1.0
+                obj_old = raw_obj / scale  # 1.0 by construction
+            else:
+                # Fixed scale: obj_old carries the previous sweep's scaled
+                # objective (set at init above, updated at the loop tail).
+                scale = fixed_scale
 
             # calibration block
             model_calibration, model_rest = eqx.partition(
@@ -826,6 +860,12 @@ def fit(
                     **per_condition,
                 }
             )
+
+            # Carry this sweep's scaled objective forward. In the fixed-scale
+            # path this makes next sweep's objective_error a true relative
+            # change; in the recompute path it is overwritten at the top of
+            # the next sweep, so this is harmless there.
+            obj_old = float(obj)
 
             if objective_error < block_tol:
                 if verbose:
