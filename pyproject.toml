@@ -37,8 +37,15 @@ keywords = [
 requires-python = ">=3.9"
 dependencies = [
     "polyclonal",
-    "jax>=0.4.29",
-    "jaxopt",
+    # jax/jaxlib pinned to <0.5 to match jaxopt 0.8.5 (the last, unmaintained
+    # jaxopt release). jax 0.6.x changed the custom_vjp / implicit-diff core,
+    # which makes jaxopt 0.8.5's proximal solver SIGABRT natively (observed on
+    # PR #246 CI under a freshly-resolved jax 0.6.2). main's green CI ran on
+    # jax 0.4.30; this restores that proven-good window and pins the pair so the
+    # unpinned resolver cannot drift jax and jaxlib to mismatched versions.
+    "jax>=0.4.29,<0.5",
+    "jaxlib>=0.4.29,<0.5",
+    "jaxopt==0.8.5",
     "typing_extensions",
     "numpy",
     "pandas>=2.2.0",
