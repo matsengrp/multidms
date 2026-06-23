@@ -291,6 +291,94 @@ def _(conv_df, corr_df, mo):
 
 
 @app.cell
+def _(ModelCollection, fit_collection_df):
+    # ── Cell 5d: one full-factorial ModelCollection, so the dashboard's
+    # canonical plot functions (convergence_trajectory_df + mplot.*) can be
+    # queried per fit exactly as experiments/dashboard.py does. The arm columns
+    # (recompute_scale, warmstart) live alongside dataset_name/fusionreg, so a
+    # single (dataset_name, recompute_scale, warmstart, fusionreg) query picks
+    # out one fit unambiguously.
+    full_mc = ModelCollection(fit_collection_df.reset_index(drop=True))
+    import multidms.plot as mplot
+
+    return full_mc, mplot
+
+
+@app.cell
+def _(fit_collection_df, mo):
+    # ── Cell 5e: GE landscape + convergence trajectory for one selected fit,
+    # using the SAME mplot functions the dashboard renders (so these match the
+    # ge.png / loss-all.png / obj_error_traj.png screenshots pixel-for-pixel).
+    # Reuses the fit_selector dropdown defined in Cell 6.
+    panel_opts = {
+        f"{r['dataset_name']} | scale="
+        f"{'recompute' if r['recompute_scale'] else 'fixed'} | "
+        f"warmstart={'on' if r['warmstart'] else 'off'} | "
+        f"fr={r['fusionreg']:.1e}": i
+        for i, r in fit_collection_df.reset_index(drop=True).iterrows()
+    }
+    panel_selector = mo.ui.dropdown(
+        options=panel_opts, value=list(panel_opts)[0], label="dashboard-figure fit"
+    )
+    panel_selector
+    return panel_opts, panel_selector
+
+
+@app.cell
+def _(fit_collection_df, full_mc, mo, mplot, panel_selector):
+    _row = fit_collection_df.reset_index(drop=True).iloc[panel_selector.value]
+    _ds = _row["dataset_name"]
+    _fr = float(_row["fusionreg"])
+    _rec = bool(_row["recompute_scale"])
+    _warm = bool(_row["warmstart"])
+
+    # Convergence trajectory — the loss-all.png / obj_error_traj.png panel.
+    # Query the full collection down to this one fit (the arm columns make the
+    # match unique even though several fits share a dataset_name + fusionreg).
+    # Interpolate literal values rather than `@`-vars: the .query() runs INSIDE
+    # convergence_trajectory_df (one frame down), so pandas' `@name` lookup
+    # (caller-frame-only) can't see this cell's locals. Literal interpolation
+    # sidesteps the frame problem entirely.
+    _query = (
+        f"dataset_name == {_ds!r} and fusionreg == {_fr} "
+        f"and recompute_scale == {_rec} and warmstart == {_warm}"
+    )
+    _conv_df = full_mc.convergence_trajectory_df(
+        query=_query,
+        id_vars=("dataset_name", "recompute_scale", "warmstart", "fusionreg"),
+    )
+    panel_conv_chart = mplot.convergence_trajectory(
+        _conv_df,
+        id_cols=["dataset_name", "recompute_scale", "warmstart", "fusionreg"],
+    )
+
+    # GE landscape — the ge.png panel (Delta predicted-floor falling below
+    # BA1/BA2). get_ge_landscape_df returns (variants, curve); subsample large
+    # variant tables exactly as the dashboard does.
+    _model = _row["model"]
+    _variants_df, _ge_curve_df = _model.get_ge_landscape_df()
+    _max_points = 5000
+    if len(_variants_df) > _max_points:
+        _variants_df = _variants_df.sample(n=_max_points, random_state=0)
+    panel_ge_chart = mplot.ge_landscape(_variants_df, _ge_curve_df, point_size=20)
+
+    mo.vstack(
+        [
+            mo.md(
+                "### Dashboard figures for the selected fit\n"
+                "These are the canonical `multidms.plot` functions the dashboard "
+                "renders — the **GE landscape** (per the `ge.png` Delta-floor "
+                "screenshot) and the **convergence trajectory** (per `loss-all.png` "
+                "/ `obj_error_traj.png`). Use the dropdown above to sweep the "
+                "factorial."
+            ),
+            mo.hstack([panel_ge_chart, panel_conv_chart]),
+        ]
+    )
+    return panel_conv_chart, panel_ge_chart
+
+
+@app.cell
 def _(fit_collection_df, mo):
     # ── Cell 6: reactive diagnostic — α / β0 drift / predicted floor ──
     diag_opts = {
