@@ -325,20 +325,27 @@ def _(fit_collection_df, mo):
 
 
 @app.cell
-def _(fit_collection_df, full_mc, mo, mplot, panel_selector):
-    _row = fit_collection_df.reset_index(drop=True).iloc[panel_selector.value]
-    _ds = _row["dataset_name"]
-    _fr = float(_row["fusionreg"])
-    _rec = bool(_row["recompute_scale"])
-    _warm = bool(_row["warmstart"])
+def _(fit_collection_df, panel_selector):
+    # Selected fit row, shared by both dashboard-figure panels below so they
+    # stay in sync off the single dropdown. panel_selector.value is the integer
+    # row index stored in panel_opts.
+    sel_row = fit_collection_df.reset_index(drop=True).iloc[panel_selector.value]
+    return (sel_row,)
 
-    # Convergence trajectory — the loss-all.png / obj_error_traj.png panel.
-    # Query the full collection down to this one fit (the arm columns make the
-    # match unique even though several fits share a dataset_name + fusionreg).
+
+@app.cell
+def _(full_mc, mo, mplot, panel_selector, sel_row):
+    # ── Convergence-trajectory panel (loss-all.png / obj_error_traj.png).
+    # In its OWN cell so it always renders, independent of the GE chart's size —
+    # the GE landscape has ~145k variants and previously dragged this small
+    # (50-row) chart down with it when they shared one oversized cell output.
+    _ds = sel_row["dataset_name"]
+    _fr = float(sel_row["fusionreg"])
+    _rec = bool(sel_row["recompute_scale"])
+    _warm = bool(sel_row["warmstart"])
     # Interpolate literal values rather than `@`-vars: the .query() runs INSIDE
     # convergence_trajectory_df (one frame down), so pandas' `@name` lookup
-    # (caller-frame-only) can't see this cell's locals. Literal interpolation
-    # sidesteps the frame problem entirely.
+    # (caller-frame-only) can't see this cell's locals.
     _query = (
         f"dataset_name == {_ds!r} and fusionreg == {_fr} "
         f"and recompute_scale == {_rec} and warmstart == {_warm}"
@@ -351,31 +358,54 @@ def _(fit_collection_df, full_mc, mo, mplot, panel_selector):
         _conv_df,
         id_cols=["dataset_name", "recompute_scale", "warmstart", "fusionreg"],
     )
-
-    # GE landscape — the ge.png panel (Delta predicted-floor falling below
-    # BA1/BA2). get_ge_landscape_df returns (variants, curve); subsample large
-    # variant tables exactly as the dashboard does.
-    _model = _row["model"]
-    _variants_df, _ge_curve_df = _model.get_ge_landscape_df()
-    _max_points = 5000
-    if len(_variants_df) > _max_points:
-        _variants_df = _variants_df.sample(n=_max_points, random_state=0)
-    panel_ge_chart = mplot.ge_landscape(_variants_df, _ge_curve_df, point_size=20)
-
     mo.vstack(
         [
             mo.md(
-                "### Dashboard figures for the selected fit\n"
-                "These are the canonical `multidms.plot` functions the dashboard "
-                "renders — the **GE landscape** (per the `ge.png` Delta-floor "
-                "screenshot) and the **convergence trajectory** (per `loss-all.png` "
-                "/ `obj_error_traj.png`). Use the dropdown above to sweep the "
-                "factorial."
+                f"### Convergence trajectory — {panel_selector.selected_key}\n"
+                "Canonical `mplot.convergence_trajectory` (the `loss-all.png` / "
+                "`obj_error_traj.png` panel). Use the chart's built-in group "
+                "dropdown to switch between overall loss, per-block errors, "
+                "stepsizes, and per-condition parameter traces."
             ),
-            mo.hstack([panel_ge_chart, panel_conv_chart]),
+            panel_conv_chart,
         ]
     )
-    return panel_conv_chart, panel_ge_chart
+    return (panel_conv_chart,)
+
+
+@app.cell
+def _(mo, mplot, panel_selector, sel_row):
+    # ── GE-landscape panel (ge.png — Delta predicted-floor below BA1/BA2).
+    # Downsample HARD: the raw variant table is ~145k rows; even Altair's
+    # default cap is 5k, and a 5k-point inline Vega spec is too heavy for
+    # marimo to render reliably. 2k points preserve the scatter's shape while
+    # keeping the embedded spec small. Stratify by condition so Delta (the
+    # data-poor, scientifically-interesting condition) is never sampled away.
+    _model = sel_row["model"]
+    _variants_df, _ge_curve_df = _model.get_ge_landscape_df()
+    _ge_max_points = 2000
+    if len(_variants_df) > _ge_max_points:
+        # proportional per-condition sample so every condition stays represented
+        # (Delta is data-poor; a flat sample could erase it). groupby().sample()
+        # keeps the `condition` column intact, unlike groupby().apply().
+        _frac = _ge_max_points / len(_variants_df)
+        _variants_df = _variants_df.groupby("condition", group_keys=False).sample(
+            frac=_frac, random_state=0
+        )
+    panel_ge_chart = mplot.ge_landscape(_variants_df, _ge_curve_df, point_size=20)
+    mo.vstack(
+        [
+            mo.md(
+                f"### GE landscape — {panel_selector.selected_key}\n"
+                f"Canonical `mplot.ge_landscape` (the `ge.png` panel), "
+                f"downsampled to ~{_ge_max_points} variants stratified by "
+                "condition. This is where Delta's predicted floor falls below "
+                "BA1/BA2 as fusionreg grows."
+            ),
+            panel_ge_chart,
+        ]
+    )
+    return (panel_ge_chart,)
 
 
 @app.cell
