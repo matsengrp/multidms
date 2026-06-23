@@ -153,3 +153,22 @@ The `recompute_scale` toggle now lives in mainline `jaxmodels.fit()` (default
 `True`, preserving current behavior). Cells 3–7 of the notebook compute both
 metrics, the decisive correlation-vs-fusionreg plot, a reactive
 α / β0 / predicted-floor diagnostic, and the α-bound probe.
+
+### Interactive dashboard figures (per-fit)
+
+Cell 5e renders the **same canonical `multidms.plot` figures the dashboard
+shows**, driven by a fit-selector dropdown that sweeps the 24-cell factorial:
+
+- **GE landscape** (`mplot.ge_landscape`) — the `ge.png` panel: per-variant
+  fitness over the global-epistasis curve `g(φ)`, with per-condition wildtype
+  latent reference lines. This is where Delta's predicted floor visibly falls
+  below BA1/BA2 as fusionreg grows.
+- **Convergence trajectory** (`mplot.convergence_trajectory`) — the
+  `loss-all.png` / `obj_error_traj.png` panel: overall loss, per-block errors,
+  stepsizes, and per-condition parameter traces, switchable via the chart's
+  built-in group dropdown.
+
+Both are the exact functions `experiments/dashboard.py` calls, so the
+notebook's figures match the dashboard pixel-for-pixel. They query the full
+factorial `ModelCollection` per selected fit (the `recompute_scale` /
+`warmstart` arm columns make each `(dataset, fusionreg)` selection unique).
