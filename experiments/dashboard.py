@@ -1,5 +1,9 @@
 """Interactive marimo dashboard for exploring ModelCollection results.
 
+Discovers every ``fit_collection.pkl`` found below the directory the dashboard
+is launched from, so it can explore any fitted ``ModelCollection`` regardless of
+how it was produced (pipeline run or otherwise).
+
 Param Correlation and Replicate Scatter tabs support a ``times_seen_threshold``
 slider that filters out mutations unseen in some conditions before the
 correlation is computed.
@@ -47,13 +51,12 @@ def _():
 
 @app.cell
 def _():
-    import os
     import pickle
     from pathlib import Path
 
     import pandas as pd
 
-    return os, pickle, Path, pd
+    return pickle, Path, pd
 
 
 @app.cell
@@ -62,8 +65,9 @@ def _(mo):
         """
         # multidms Dashboard
 
-        Interactive exploration of `ModelCollection` results from
-        simulation and spike pipelines.
+        Interactive exploration of any `ModelCollection` result. Discovers
+        every `fit_collection.pkl` below the directory the dashboard was
+        launched from.
         """
     )
     return
@@ -82,13 +86,15 @@ def _(Path):
 
 
 @app.cell
-def _(mo, discovered_collections):
+def _(mo, Path, discovered_collections):
     if not discovered_collections:
+        _cwd = Path.cwd()
         mo.stop(
             True,
             mo.md(
-                "**No `fit_collection.pkl` found.** "
-                "Run a pipeline first (`pixi run sim-test`)."
+                f"**No `fit_collection.pkl` found** below the current "
+                f"directory (`{_cwd}`). Launch the dashboard from a directory "
+                f"that contains one, or generate one with `ModelCollection`."
             ),
         )
 
