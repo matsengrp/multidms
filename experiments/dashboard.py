@@ -7,7 +7,32 @@ correlation is computed.
 
 import marimo
 
+from pathlib import Path as _Path
+
 app = marimo.App(width="medium")
+
+
+def _discover_collections(root):
+    """Find every ``fit_collection.pkl`` below ``root``.
+
+    Args:
+        root: Directory to search recursively. Typically the directory the
+            dashboard was launched from (``Path.cwd()``).
+
+    Returns:
+        Ordered mapping of label -> absolute path, one entry per
+        ``fit_collection.pkl`` found anywhere below ``root``. The label is the
+        pkl's parent directory expressed relative to ``root`` (the filename is
+        omitted because every match shares it). Entries are sorted by path for
+        deterministic ordering. No directories are pruned: matches under
+        ``.worktrees/``, ``.pixi/``, etc. are intentionally included.
+    """
+    root = _Path(root)
+    discovered = {}
+    for p in sorted(root.rglob("fit_collection.pkl")):
+        label = str(p.parent.relative_to(root))
+        discovered[label] = p
+    return discovered
 
 
 # ── A: Setup ──────────────────────────────────────────────────────────────
@@ -48,18 +73,10 @@ def _(mo):
 
 
 @app.cell
-def _(Path, os):
-    # Resolve the experiments directory relative to this file
-    _dashboard_dir = Path(os.path.abspath(__file__)).parent
-
-    # Scan for fit_collection.pkl files
-    _pkl_paths = sorted(_dashboard_dir.glob("*/results*/fit_collection.pkl"))
-
-    # Build mapping: display label -> path
-    discovered_collections = {}
-    for p in _pkl_paths:
-        label = f"{p.parent.parent.name}/{p.parent.name}"
-        discovered_collections[label] = p
+def _(Path):
+    # Discover every fit_collection.pkl below the launch directory (cwd),
+    # labeled by parent path relative to cwd. See _discover_collections.
+    discovered_collections = _discover_collections(Path.cwd())
 
     return (discovered_collections,)
 
