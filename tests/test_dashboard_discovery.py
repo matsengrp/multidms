@@ -6,11 +6,13 @@ from experiments.dashboard import _discover_collections
 
 
 def _touch(p: Path) -> None:
+    """Create an empty file at ``p``, making parent directories as needed."""
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_bytes(b"")
 
 
 def test_discovers_nested_pkls_labeled_by_relative_parent(tmp_path):
+    """Pkls at any depth are found and labeled by parent path relative to root."""
     _touch(tmp_path / "experiments" / "sim" / "results-test" / "fit_collection.pkl")
     _touch(tmp_path / "deep" / "a" / "b" / "run1" / "fit_collection.pkl")
 
@@ -27,6 +29,7 @@ def test_discovers_nested_pkls_labeled_by_relative_parent(tmp_path):
 
 
 def test_only_exact_filename_matches(tmp_path):
+    """Only files named exactly ``fit_collection.pkl`` are discovered."""
     _touch(tmp_path / "good" / "fit_collection.pkl")
     _touch(tmp_path / "bad" / "other.pkl")
     _touch(tmp_path / "bad" / "fit_collection.pickle")
@@ -37,6 +40,7 @@ def test_only_exact_filename_matches(tmp_path):
 
 
 def test_no_pruning_includes_dot_dirs(tmp_path):
+    """Matches under dot-directories (.worktrees, .pixi) are not pruned."""
     _touch(tmp_path / ".worktrees" / "x" / "fit_collection.pkl")
     _touch(tmp_path / ".pixi" / "y" / "fit_collection.pkl")
 
@@ -47,10 +51,12 @@ def test_no_pruning_includes_dot_dirs(tmp_path):
 
 
 def test_empty_when_none_present(tmp_path):
+    """An empty mapping is returned when no pkl exists below the root."""
     assert _discover_collections(tmp_path) == {}
 
 
 def test_results_are_sorted_by_path(tmp_path):
+    """Discovered entries are ordered deterministically by path."""
     _touch(tmp_path / "z" / "fit_collection.pkl")
     _touch(tmp_path / "a" / "fit_collection.pkl")
     _touch(tmp_path / "m" / "fit_collection.pkl")
