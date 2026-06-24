@@ -61,7 +61,7 @@ experiments/
 
 ## Interactive Dashboard
 
-An interactive [marimo](https://marimo.io) dashboard is available for exploring `ModelCollection` results. It auto-discovers `fit_collection.pkl` files from pipeline runs and provides tabs for convergence diagnostics, global epistasis landscape, parameter correlation, replicate scatter, and sparsity analysis.
+An interactive [marimo](https://marimo.io) dashboard is available for exploring `ModelCollection` results. It auto-discovers every `fit_collection.pkl` found below the directory it is launched from — pipeline outputs or any other fitted collection — and provides tabs for convergence diagnostics, global epistasis landscape, parameter correlation, replicate scatter, and sparsity analysis.
 
 ```bash
 # Launch the dashboard (read-only mode)
