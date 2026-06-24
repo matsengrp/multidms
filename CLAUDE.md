@@ -82,7 +82,7 @@ User provides a pandas DataFrame with columns for condition, substitutions, and 
 - **Loss types**: `functional_score_loss` uses per-variant `.mean()` Huber loss so conditions contribute equally regardless of variant count. `count_loss` uses `.sum()` (total NLL). Hyperparameter values are calibrated to the `.mean()` scale. As a consequence, `ModelCollection.fit_models["total_loss_*"]` columns are already per-variant averages (one per condition, plus `"total"` averaged over conditions) — do not divide again by variant count when plotting or you will produce doubly-normalized values.
 - **GE nonlinearity**: `Identity` (linear) or `Sigmoid` (nonlinear global epistasis). Alpha is shared across all conditions to prevent per-condition sigmoid degeneracy.
 - **Plotting separation**: Rendering logic is fully separated from data preparation. Classes own data extraction (`get_*_df`, `_prepare_*_df`); `plot.py` owns chart construction.
-- **Interactive dashboard**: `experiments/dashboard.py` is a marimo app for exploring `ModelCollection` results interactively. Launch with `pixi run dashboard`.
+- **Interactive dashboard**: `experiments/dashboard.py` is a marimo app for exploring `ModelCollection` results interactively. It discovers every `fit_collection.pkl` below the directory it is launched from (cwd), so it can explore any fitted collection, not just pipeline outputs. Launch with `pixi run dashboard`.
 
 ## Code Style
 
