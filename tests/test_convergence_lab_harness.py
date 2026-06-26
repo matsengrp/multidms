@@ -98,3 +98,13 @@ def test_basin_metrics_keys_on_failure():
     assert out["converged"] is False
     import math
     assert math.isnan(out["alpha_final"])
+
+
+def test_primary_axis_prefers_fusionreg():
+    cfg = {"sweep": {"l2reg": [0.0], "fusionreg": [0.0, 8e-5]}}
+    assert harness.primary_axis(cfg) == "fusionreg"
+
+
+def test_primary_axis_falls_back_to_first_sweep_key():
+    cfg = {"sweep": {"l2reg": [0.0, 3e-4]}}
+    assert harness.primary_axis(cfg) == "l2reg"

@@ -287,3 +287,100 @@ def run_fits(exploded: list[dict], rep_data: dict) -> pd.DataFrame:
         lambda m: getattr(getattr(m, "data", None), "name", None)
     )
     return fit_df
+
+
+def primary_axis(config: dict) -> str:
+    """The x-axis for the replicate-correlation groupby.
+
+    ``mut_param_dataset_correlation`` groups by ``("dataset_name", x)``; ``x``
+    must be a column on the fits frame (every swept kwarg is). Prefer
+    ``fusionreg`` (the method's natural axis); else the first swept key.
+
+    Args:
+        config: The dict from :func:`load_config` (only ``sweep`` is read).
+
+    Returns:
+        The axis column name.
+    """
+    sweep = config["sweep"]
+    if "fusionreg" in sweep:
+        return "fusionreg"
+    return next(iter(sweep))
+
+
+def compute_corr(fit_df: pd.DataFrame, x: str) -> pd.DataFrame:
+    """Replicate-shift correlation across the primary swept axis.
+
+    Builds a ``ModelCollection`` from the fits and calls
+    ``mut_param_dataset_correlation(x=x, times_seen_threshold=1,
+    return_data=True, r=1)``, then keeps only shift parameters (``mut_param``
+    beginning ``shift_``). Pearson r is computed between the two replicates'
+    per-mutation shift estimates at each value of ``x``. Returns an empty frame
+    if the correlation cannot be computed (e.g. <2 surviving replicates).
+
+    Args:
+        fit_df: ``df_fits`` from :func:`run_fits` (must retain the ``model``
+            column and have ≥2 distinct ``dataset_name`` values).
+        x: The groupby axis from :func:`primary_axis`.
+
+    Returns:
+        ``df_corr`` with columns ``datasets, mut_param, correlation, <x>``
+        (shift params only).
+    """
+    try:
+        mc = ModelCollection(fit_df)
+        _, corr = mc.mut_param_dataset_correlation(
+            x=x, times_seen_threshold=1, return_data=True, r=1
+        )
+    except Exception as exc:
+        print(f"[harness] df_corr unavailable: {type(exc).__name__}: {exc}", flush=True)
+        return pd.DataFrame(columns=["datasets", "mut_param", "correlation", x])
+    return corr[corr["mut_param"].str.startswith("shift_")].reset_index(drop=True)
+
+
+def run(config_path, cache: str) -> Path:
+    """Load config, fit the grid, compute correlations, and pickle results.
+
+    Args:
+        config_path: Path to the grid YAML.
+        cache: Base name for the output pickle (``results/<cache>.pkl``).
+
+    Returns:
+        Path to the written pickle (a dict ``{"df_fits", "df_corr"}``).
+    """
+    config = load_config(config_path)
+    rep_data = load_rep_data()
+    exploded = explode_grid(config)
+    fit_df = run_fits(exploded, rep_data)
+    corr_df = compute_corr(fit_df, primary_axis(config))
+
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    out_path = RESULTS_DIR / f"{cache}.pkl"
+    with open(out_path, "wb") as fh:
+        pickle.dump({"df_fits": fit_df, "df_corr": corr_df}, fh)
+    print(
+        f"[harness] wrote {out_path}  "
+        f"(df_fits={len(fit_df)} rows, df_corr={len(corr_df)} rows)",
+        flush=True,
+    )
+    return out_path
+
+
+def main() -> None:
+    """CLI: ``--config <grid.yaml> --cache <name>``."""
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--config", required=True, help="path to grid YAML")
+    ap.add_argument(
+        "--cache", required=True, help="output base name → results/<cache>.pkl"
+    )
+    args = ap.parse_args()
+    # Resolve a relative --config against the harness dir (so `grids/smoke.yaml`
+    # works regardless of cwd), matching how DATA_CSV is resolved.
+    cfg_path = Path(args.config)
+    if not cfg_path.is_absolute() and not cfg_path.exists():
+        cfg_path = HARNESS_DIR / args.config
+    run(cfg_path, args.cache)
+
+
+if __name__ == "__main__":
+    main()
