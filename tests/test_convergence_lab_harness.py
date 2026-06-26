@@ -83,3 +83,18 @@ def test_load_rep_data_builds_two_reps():
         assert data.name == name
         assert "Omicron_BA1" in data.conditions
         assert "Delta" in data.conditions
+
+
+def test_basin_metrics_keys_on_failure():
+    # A non-model object: every extraction fails → all keys present, NaN/False.
+    out = harness.basin_metrics(object())
+    assert set(out) == {
+        "alpha_final",
+        "beta_l2_norm",
+        "max_abs_phi",
+        "final_obj_err",
+        "converged",
+    }
+    assert out["converged"] is False
+    import math
+    assert math.isnan(out["alpha_final"])

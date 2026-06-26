@@ -173,3 +173,117 @@ def load_rep_data() -> dict[str, multidms.Data]:
             verbose=False,
         )
     return rep_data
+
+
+def basin_metrics(model) -> dict[str, float]:
+    """Per-fit degeneracy diagnostics from a fitted ``multidms.Model``.
+
+    Detects the α/β see-saw: the small-α basin collapses α while β explodes
+    (Σβ² large, max|φ| large). All access is Greek-attribute (``_jax_model.α``,
+    ``_jax_model.φ[c].β``); ``final_obj_err`` comes from the convergence
+    trajectory (it is NOT on the fit Series). Any field that cannot be
+    extracted is ``NaN`` (``converged`` defaults ``False``).
+
+    Args:
+        model: A fitted ``multidms.Model``.
+
+    Returns:
+        ``alpha_final``, ``beta_l2_norm`` (Σ_cond Σ_i β²), ``max_abs_phi``,
+        ``final_obj_err``, ``converged``.
+    """
+    out: dict[str, float] = {
+        "alpha_final": float("nan"),
+        "beta_l2_norm": float("nan"),
+        "max_abs_phi": float("nan"),
+        "final_obj_err": float("nan"),
+        "converged": False,
+    }
+
+    try:
+        jm = model._jax_model
+    except Exception:
+        return out
+
+    try:
+        out["alpha_final"] = float(np.ravel(np.asarray(jm.α))[0])
+    except Exception:
+        pass
+
+    try:
+        out["beta_l2_norm"] = float(
+            sum((np.asarray(jm.φ[c].β) ** 2).sum() for c in jm.φ)
+        )
+    except Exception:
+        pass
+
+    try:
+        vdf = model.get_variants_df(phenotype_as_effect=False)
+        out["max_abs_phi"] = float(
+            np.nanmax(np.abs(vdf["predicted_latent"].to_numpy()))
+        )
+    except Exception:
+        pass
+
+    try:
+        traj = model.convergence_trajectory_df["objective_error_trajectory"]
+        out["final_obj_err"] = float(traj.iloc[-1])
+    except Exception:
+        pass
+
+    try:
+        out["converged"] = bool(model.converged)
+    except Exception:
+        pass
+
+    return out
+
+
+def run_fits(exploded: list[dict], rep_data: dict) -> pd.DataFrame:
+    """Fit every grid cell sequentially and assemble ``df_fits``.
+
+    Each cell's integer ``replicate`` selects the rep's Data; the rest are
+    ``fit_one_model`` kwargs. Failures are tolerated (the cell becomes a
+    ``None`` row, dropped by ``stack_fit_models``, so its basin metrics are
+    absent rather than poisoning the frame). Sequential ``fit_one_model`` is
+    used directly — NOT ``fit_models`` — for simplicity and deterministic
+    ordering.
+
+    Args:
+        exploded: Output of :func:`explode_grid`.
+        rep_data: Output of :func:`load_rep_data`.
+
+    Returns:
+        ``df_fits``: the ``stack_fit_models`` frame plus ``alpha_final``,
+        ``beta_l2_norm``, ``max_abs_phi``, ``final_obj_err``, ``converged``,
+        and ``replicate`` columns. Retains the ``model`` column for Task 4's
+        correlation step.
+    """
+    n = len(exploded)
+    print(f"[harness] fitting {n} models SEQUENTIALLY …", flush=True)
+    results = []
+    t0 = time.time()
+    for i, cell in enumerate(exploded, 1):
+        kw = dict(cell)
+        rep = kw.pop("replicate")
+        dataset = rep_data[f"rep_{rep}"]
+        ft = time.time()
+        try:
+            results.append(fit_one_model(dataset=dataset, **kw))
+            status = "ok"
+        except Exception as exc:
+            results.append(None)
+            status = f"FAILED {type(exc).__name__}"
+        swept = {k: kw.get(k) for k in ("l2reg", "warmstart", "fusionreg")}
+        print(
+            f"  [{i:>2}/{n}] rep_{rep} {swept} -> {time.time() - ft:5.1f}s {status}",
+            flush=True,
+        )
+    print(f"[harness] wall {time.time() - t0:.1f}s", flush=True)
+
+    fit_df = stack_fit_models(results)
+    metrics = fit_df["model"].apply(basin_metrics).apply(pd.Series)
+    fit_df = pd.concat([fit_df.reset_index(drop=True), metrics], axis=1)
+    fit_df["replicate"] = fit_df["model"].apply(
+        lambda m: getattr(getattr(m, "data", None), "name", None)
+    )
+    return fit_df
