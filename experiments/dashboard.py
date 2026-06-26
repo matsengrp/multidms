@@ -1,42 +1,20 @@
 """Interactive marimo dashboard for exploring ModelCollection results.
 
-Discovers every ``fit_collection.pkl`` found below the directory the dashboard
-is launched from, so it can explore any fitted ``ModelCollection`` regardless of
-how it was produced (pipeline run or otherwise).
+Discovers every ``*.pkl`` found below the directory the dashboard is launched
+from, so it can explore any fitted ``ModelCollection`` regardless of how it was
+produced (pipeline run or otherwise). Each pickle is validated lazily when
+selected; non-collection pickles surface a friendly inline error rather than
+crashing the app.
 
-Param Correlation and Replicate Scatter tabs support a ``times_seen_threshold``
-slider that filters out mutations unseen in some conditions before the
-correlation is computed.
+Each interactive tab carries its own selectable fit table so the user can
+switch which model(s) are plotted across the full hyperparameter grid
+(fusionreg, ge_type, l2reg, scale_fusion_by_n, …). The Param Correlation and
+Replicate Scatter tabs additionally support a ``times_seen_threshold`` slider.
 """
 
 import marimo
 
-from pathlib import Path as _Path
-
 app = marimo.App(width="medium")
-
-
-def _discover_collections(root):
-    """Find every ``fit_collection.pkl`` below ``root``.
-
-    Args:
-        root: Directory to search recursively. Typically the directory the
-            dashboard was launched from (``Path.cwd()``).
-
-    Returns:
-        Ordered mapping of label -> absolute path, one entry per
-        ``fit_collection.pkl`` found anywhere below ``root``. The label is the
-        pkl's parent directory expressed relative to ``root`` (the filename is
-        omitted because every match shares it). Entries are sorted by path for
-        deterministic ordering. No directories are pruned: matches under
-        ``.worktrees/``, ``.pixi/``, etc. are intentionally included.
-    """
-    root = _Path(root)
-    discovered = {}
-    for p in sorted(root.rglob("fit_collection.pkl")):
-        label = str(p.parent.relative_to(root))
-        discovered[label] = p
-    return discovered
 
 
 # ── A: Setup ──────────────────────────────────────────────────────────────
@@ -51,12 +29,34 @@ def _():
 
 @app.cell
 def _():
-    import pickle
     from pathlib import Path
 
     import pandas as pd
 
-    return pickle, Path, pd
+    return Path, pd
+
+
+@app.cell
+def _():
+    from experiments.dashboard_helpers import (
+        common_param_columns,
+        constant_summary,
+        discover_pickles,
+        display_table_df,
+        load_collection,
+        merge_two_fits_on_mutation,
+        synthesize_isin_query,
+    )
+
+    return (
+        common_param_columns,
+        constant_summary,
+        discover_pickles,
+        display_table_df,
+        load_collection,
+        merge_two_fits_on_mutation,
+        synthesize_isin_query,
+    )
 
 
 @app.cell
@@ -66,8 +66,8 @@ def _(mo):
         # multidms Dashboard
 
         Interactive exploration of any `ModelCollection` result. Discovers
-        every `fit_collection.pkl` below the directory the dashboard was
-        launched from.
+        every `*.pkl` below the directory the dashboard was launched from;
+        each is validated when you select it.
         """
     )
     return
@@ -77,60 +77,55 @@ def _(mo):
 
 
 @app.cell
-def _(Path):
-    # Discover every fit_collection.pkl below the launch directory (cwd),
-    # labeled by parent path relative to cwd. See _discover_collections.
-    discovered_collections = _discover_collections(Path.cwd())
+def _(Path, discover_pickles, mo):
+    discovered_collections = discover_pickles(Path.cwd())
 
-    return (discovered_collections,)
-
-
-@app.cell
-def _(mo, Path, discovered_collections):
     if not discovered_collections:
         _cwd = Path.cwd()
         mo.stop(
             True,
             mo.md(
-                f"**No `fit_collection.pkl` found** below the current "
-                f"directory (`{_cwd}`). Launch the dashboard from a directory "
-                f"that contains one, or generate one with `ModelCollection`."
+                f"**No `*.pkl` found** below the current directory "
+                f"(`{_cwd}`). Launch the dashboard from a directory that "
+                f"contains a fitted `ModelCollection` pickle."
             ),
         )
 
     pipeline_dropdown = mo.ui.dropdown(
         options=list(discovered_collections.keys()),
         value=list(discovered_collections.keys())[0],
-        label="Pipeline results",
+        label="Pickle",
     )
     pipeline_dropdown
-    return (pipeline_dropdown,)
+    return discovered_collections, pipeline_dropdown
 
 
 @app.cell
-def _(mo, pickle, pipeline_dropdown, discovered_collections):
-    from multidms.model_collection import ModelCollection
-
-    mo.stop(not pipeline_dropdown.value, mo.md("Select a pipeline above."))
+def _(discovered_collections, load_collection, mo, pipeline_dropdown):
+    mo.stop(not pipeline_dropdown.value, mo.md("Select a pickle above."))
 
     _pkl_path = discovered_collections[pipeline_dropdown.value]
-    with open(_pkl_path, "rb") as _f:
-        _loaded = pickle.load(_f)
-
-    if isinstance(_loaded, ModelCollection):
-        mc = _loaded
-    else:
-        mc = ModelCollection(_loaded)
+    mc = None
+    try:
+        mc = load_collection(_pkl_path)
+    except Exception as _e:
+        mo.stop(
+            True,
+            mo.md(
+                f"**Could not load `{pipeline_dropdown.value}` as a "
+                f"`ModelCollection`.** It loaded or coerced with this error:\n\n"
+                f"```\n{_e}\n```\n\n"
+                f"Pick a different pickle above."
+            ),
+        )
 
     _n_models = len(mc.fit_models)
-    datasets = list(mc.fit_models["dataset_name"].unique())
-    fusionregs = [str(f) for f in sorted(mc.fit_models["fusionreg"].unique())]
-
+    _datasets = list(mc.fit_models["dataset_name"].unique())
     mo.md(
-        f"Loaded **{_n_models}** models from `{pipeline_dropdown.value}` "
-        f"| datasets: {datasets} | fusionreg values: {fusionregs}"
+        f"Loaded **{_n_models}** fits from `{pipeline_dropdown.value}` "
+        f"| datasets: {_datasets}"
     )
-    return mc, datasets, fusionregs
+    return (mc,)
 
 
 @app.cell
@@ -140,66 +135,38 @@ def _():
     return (mplot,)
 
 
-# ── C: Tab controls (always available) ───────────────────────────────────
+# ── C: Per-tab fit tables + sliders ──────────────────────────────────────
 
 
 @app.cell
-def _(mo, datasets, fusionregs):
-    conv_dataset_select = mo.ui.multiselect(
-        options=datasets,
-        value=datasets[:2],
-        label="Datasets",
+def _(constant_summary, display_table_df, mc, mo):
+    _const = constant_summary(mc.fit_models)
+    _caption = (
+        "constant across all fits: " + ", ".join(f"{k}={v}" for k, v in _const.items())
+        if _const
+        else "all displayed columns vary across fits"
     )
-    conv_fusionreg_select = mo.ui.multiselect(
-        options=fusionregs,
-        value=fusionregs[:1],
-        label="Fusion reg",
+
+    _table_df = display_table_df(mc.fit_models)
+
+    ge_table = mo.ui.table(_table_df, selection="single", label="GE Landscape fit")
+    conv_table = mo.ui.table(_table_df, selection="multi", label="Convergence fits")
+    sparsity_table = mo.ui.table(_table_df, selection="multi", label="Sparsity fits")
+    corr_table = mo.ui.table(
+        _table_df, selection="multi", label="Correlation fit subset"
     )
-    ge_dataset_dropdown = mo.ui.dropdown(
-        options=datasets,
-        value=datasets[0],
-        label="Dataset",
+    scatter_table = mo.ui.table(
+        _table_df, selection="multi", label="Scatter fits (pick exactly 2)"
     )
-    ge_fusionreg_dropdown = mo.ui.dropdown(
-        options=fusionregs,
-        value=fusionregs[0],
-        label="Fusion reg",
-    )
-    scatter_fusionreg_dropdown = mo.ui.dropdown(
-        options=fusionregs,
-        value=fusionregs[0],
-        label="Fusion reg",
-    )
+    table_caption = mo.md(f"*{_caption}*")
     return (
-        conv_dataset_select,
-        conv_fusionreg_select,
-        ge_dataset_dropdown,
-        ge_fusionreg_dropdown,
-        scatter_fusionreg_dropdown,
+        conv_table,
+        corr_table,
+        ge_table,
+        scatter_table,
+        sparsity_table,
+        table_caption,
     )
-
-
-# Scatter param dropdown depends on the muts columns, so we derive param
-# options from the collection's conditions.
-@app.cell
-def _(mo, mc):
-    _conditions = mc._conditions
-    _param_options = []
-    for c in _conditions:
-        _param_options.append(f"beta_{c}")
-    for c in _conditions:
-        col = f"shift_{c}"
-        # shift columns only exist for non-reference conditions
-        _param_options.append(col)
-    for c in _conditions:
-        _param_options.append(f"predicted_func_score_{c}")
-
-    scatter_param_dropdown = mo.ui.dropdown(
-        options=_param_options,
-        value=_param_options[0],
-        label="Parameter",
-    )
-    return (scatter_param_dropdown,)
 
 
 @app.cell
@@ -220,15 +187,13 @@ def _(mo):
 
 
 @app.cell
-def _(mo, mc, mplot, conv_dataset_select, conv_fusionreg_select):
-    if not conv_dataset_select.value or not conv_fusionreg_select.value:
-        convergence_chart = mo.md(
-            "Select at least one dataset and one fusionreg value."
-        )
+def _(conv_table, mc, mo, mplot, synthesize_isin_query):
+    _sel = conv_table.value  # a DataFrame of selected rows (may be empty)
+    if _sel is None or _sel.empty:
+        convergence_chart = mo.md("Select at least one fit.")
     else:
-        _ds = conv_dataset_select.value
-        _fr = [float(x) for x in conv_fusionreg_select.value]
-        _query = f"dataset_name.isin({_ds}) and fusionreg.isin({_fr})"
+        _idx = list(_sel["_fit_idx"])
+        _query = synthesize_isin_query(mc.fit_models, _idx)
         _conv_df = mc.convergence_trajectory_df(query=_query)
         convergence_chart = mplot.convergence_trajectory(
             _conv_df, id_cols=["dataset_name", "fusionreg"]
@@ -240,15 +205,12 @@ def _(mo, mc, mplot, conv_dataset_select, conv_fusionreg_select):
 
 
 @app.cell
-def _(mo, mc, mplot, ge_dataset_dropdown, ge_fusionreg_dropdown):
-    if not ge_dataset_dropdown.value or not ge_fusionreg_dropdown.value:
-        ge_chart = mo.md("Select a dataset and fusionreg.")
+def _(ge_table, mc, mo, mplot):
+    _sel = ge_table.value  # a DataFrame of selected rows (may be empty)
+    if _sel is None or len(_sel) != 1:
+        ge_chart = mo.md("Select a fit.")
     else:
-        ge_ds = ge_dataset_dropdown.value  # noqa: F841 (used in query)
-        ge_fr = float(ge_fusionreg_dropdown.value)  # noqa: F841 (used in query)
-        _row = mc.fit_models.query(
-            "dataset_name == @ge_ds and fusionreg == @ge_fr"
-        ).iloc[0]
+        _row = mc.fit_models.reset_index(drop=True).iloc[int(_sel["_fit_idx"].iloc[0])]
         _model = _row["model"]
         _variants_df, _ge_curve_df = _model.get_ge_landscape_df()
         _max_points = 5000
@@ -262,18 +224,24 @@ def _(mo, mc, mplot, ge_dataset_dropdown, ge_fusionreg_dropdown):
 
 
 @app.cell
-def _(mo, mc, times_seen_threshold_slider):
-    if len(mc.fit_models["dataset_name"].unique()) < 2:
-        correlation_chart = mo.md("Need at least 2 datasets for correlation analysis.")
+def _(corr_table, mc, mo, synthesize_isin_query, times_seen_threshold_slider):
+    _sel = corr_table.value  # a DataFrame of selected rows (may be empty)
+    _idx = list(_sel["_fit_idx"]) if _sel is not None and not _sel.empty else []
+    _src = mc.fit_models.reset_index(drop=True)
+    _n_datasets = _src.iloc[_idx]["dataset_name"].nunique() if _idx else 0
+    if _n_datasets < 2:
+        correlation_chart = mo.md("Select fits spanning ≥2 datasets.")
     else:
+        _query = synthesize_isin_query(mc.fit_models, _idx)
         try:
             correlation_chart = mc.mut_param_dataset_correlation(
+                query=_query,
                 times_seen_threshold=times_seen_threshold_slider.value,
             )
         except Exception as _e:
             correlation_chart = mo.md(
-                f"Correlation failed (threshold too high?): {_e}. "
-                "Try lowering the threshold slider."
+                f"Correlation failed: {_e}. Try lowering the threshold or "
+                "selecting different fits."
             )
     return (correlation_chart,)
 
@@ -282,46 +250,64 @@ def _(mo, mc, times_seen_threshold_slider):
 
 
 @app.cell
+def _(common_param_columns, mc, mo, scatter_table, times_seen_threshold_slider):
+    _sel = scatter_table.value  # a DataFrame of selected rows (may be empty)
+    if _sel is None or len(_sel) != 2:
+        scatter_param_dropdown = mo.ui.dropdown(options=[], label="Parameter")
+    else:
+        _src = mc.fit_models.reset_index(drop=True)
+        _ia, _ib = int(_sel["_fit_idx"].iloc[0]), int(_sel["_fit_idx"].iloc[1])
+        _muts_a = _src.iloc[_ia]["model"].get_mutations_df(
+            times_seen_threshold=times_seen_threshold_slider.value
+        )
+        _muts_b = _src.iloc[_ib]["model"].get_mutations_df(
+            times_seen_threshold=times_seen_threshold_slider.value
+        )
+        _opts = common_param_columns(_muts_a, _muts_b)
+        scatter_param_dropdown = mo.ui.dropdown(
+            options=_opts,
+            value=_opts[0] if _opts else None,
+            label="Parameter",
+        )
+    scatter_param_dropdown
+    return (scatter_param_dropdown,)
+
+
+@app.cell
 def _(
-    mo,
+    common_param_columns,
     mc,
+    merge_two_fits_on_mutation,
+    mo,
     mplot,
-    datasets,
-    scatter_fusionreg_dropdown,
     scatter_param_dropdown,
+    scatter_table,
     times_seen_threshold_slider,
 ):
-    if len(datasets) < 2:
-        scatter_chart = mo.md("Need at least 2 datasets for scatter comparison.")
+    _sel = scatter_table.value  # a DataFrame of selected rows (may be empty)
+    if _sel is None or len(_sel) != 2:
+        scatter_chart = mo.md("Select exactly 2 fits.")
+    elif scatter_param_dropdown.value is None:
+        scatter_chart = mo.md("Select a parameter to compare.")
     else:
-        _fr = float(scatter_fusionreg_dropdown.value)
-        _param_col = scatter_param_dropdown.value
-
-        _muts_df = mc.split_apply_combine_muts(
-            groupby=("dataset_name", "fusionreg"),
-            query=f"fusionreg == {_fr}",
-            times_seen_threshold=times_seen_threshold_slider.value,
-        ).reset_index()
-
-        d0, d1 = datasets[0], datasets[1]  # noqa: F841 (used in query)
-        _df0 = _muts_df.query("dataset_name == @d0")[["mutation", _param_col]]
-        _df1 = _muts_df.query("dataset_name == @d1")[["mutation", _param_col]]
-
-        _x_label = f"{_param_col} ({d0})"
-        _y_label = f"{_param_col} ({d1})"
-
-        _merged = _df0.merge(
-            _df1, on="mutation", suffixes=(f"_{d0}", f"_{d1}")
-        ).dropna()
-        _x_col = f"{_param_col}_{d0}"
-        _y_col = f"{_param_col}_{d1}"
-
+        _ia, _ib = int(_sel["_fit_idx"].iloc[0]), int(_sel["_fit_idx"].iloc[1])
+        _src = mc.fit_models.reset_index(drop=True)
+        _muts_a = _src.iloc[_ia]["model"].get_mutations_df(
+            times_seen_threshold=times_seen_threshold_slider.value
+        )
+        _muts_b = _src.iloc[_ib]["model"].get_mutations_df(
+            times_seen_threshold=times_seen_threshold_slider.value
+        )
+        _param = scatter_param_dropdown.value
+        _merged, _x_col, _y_col = merge_two_fits_on_mutation(
+            _muts_a, _muts_b, _param, key_a=_ia, key_b=_ib
+        )
         scatter_chart = mplot.replicate_param_scatter(
             _merged,
             x_col=_x_col,
             y_col=_y_col,
-            x_label=_x_label,
-            y_label=_y_label,
+            x_label=f"{_param} (fit {_ia})",
+            y_label=f"{_param} (fit {_ib})",
         )
     return (scatter_chart,)
 
@@ -330,16 +316,17 @@ def _(
 
 
 @app.cell
-def _(mo, mc):
-    _fusionregs = sorted(mc.fit_models["fusionreg"].unique())
-    if len(_fusionregs) <= 1:
-        sparsity_chart = mo.md(
-            "Sparsity plot requires multiple fusionreg values. "
-            "Only one value found in this collection."
-        )
+def _(mc, mo, sparsity_table, synthesize_isin_query):
+    _sel = sparsity_table.value  # a DataFrame of selected rows (may be empty)
+    _idx = list(_sel["_fit_idx"]) if _sel is not None and not _sel.empty else []
+    _src = mc.fit_models.reset_index(drop=True)
+    _n_fr = _src.iloc[_idx]["fusionreg"].nunique() if _idx else 0
+    if _n_fr < 2:
+        sparsity_chart = mo.md("Select fits spanning ≥2 fusionreg values.")
     else:
+        _query = synthesize_isin_query(mc.fit_models, _idx)
         try:
-            sparsity_chart = mc.shift_sparsity()
+            sparsity_chart = mc.shift_sparsity(query=_query)
         except Exception as _e:
             sparsity_chart = mo.md(f"Sparsity chart failed: {_e}")
     return (sparsity_chart,)
@@ -349,7 +336,7 @@ def _(mo, mc):
 
 
 @app.cell
-def _(mo, mc, pd):
+def _(mc, mo, pd):
     _rows = []
     for _, _fit in mc.fit_models.iterrows():
         _model = _fit["model"]
@@ -381,53 +368,43 @@ def _(mo, mc, pd):
 
 @app.cell
 def _(
-    mo,
-    conv_dataset_select,
-    conv_fusionreg_select,
+    conv_table,
     convergence_chart,
-    ge_dataset_dropdown,
-    ge_fusionreg_dropdown,
-    ge_chart,
+    corr_table,
     correlation_chart,
-    scatter_fusionreg_dropdown,
-    scatter_param_dropdown,
-    times_seen_threshold_slider,
+    ge_chart,
+    ge_table,
+    mo,
     scatter_chart,
+    scatter_param_dropdown,
+    scatter_table,
     sparsity_chart,
+    sparsity_table,
     summary_table,
+    table_caption,
+    times_seen_threshold_slider,
 ):
     mo.ui.tabs(
         {
-            "Convergence": mo.vstack(
+            "Convergence": mo.vstack([table_caption, conv_table, convergence_chart]),
+            "GE Landscape": mo.vstack([table_caption, ge_table, ge_chart]),
+            "Param Correlation": mo.vstack(
                 [
-                    mo.hstack([conv_dataset_select, conv_fusionreg_select]),
-                    convergence_chart,
+                    table_caption,
+                    corr_table,
+                    times_seen_threshold_slider,
+                    correlation_chart,
                 ]
             ),
-            "GE Landscape": mo.hstack(
+            "Replicate Scatter": mo.vstack(
                 [
-                    mo.vstack([ge_dataset_dropdown, ge_fusionreg_dropdown]),
-                    ge_chart,
-                ],
-                widths=[1, 3],
-            ),
-            "Param Correlation": mo.vstack(
-                [times_seen_threshold_slider, correlation_chart]
-            ),
-            "Replicate Scatter": mo.hstack(
-                [
+                    table_caption,
+                    scatter_table,
+                    mo.hstack([scatter_param_dropdown, times_seen_threshold_slider]),
                     scatter_chart,
-                    mo.vstack(
-                        [
-                            scatter_fusionreg_dropdown,
-                            scatter_param_dropdown,
-                            times_seen_threshold_slider,
-                        ]
-                    ),
-                ],
-                widths=[3, 1],
+                ]
             ),
-            "Sparsity": sparsity_chart,
+            "Sparsity": mo.vstack([table_caption, sparsity_table, sparsity_chart]),
             "Summary": summary_table,
         },
         lazy=True,
