@@ -1,0 +1,75 @@
+"""Unit tests for the convergence-lab harness (issue #253)."""
+
+import sys
+from pathlib import Path
+
+import pytest
+import yaml
+
+# The harness lives under experiments/, not on the package path; import by path.
+HARNESS_DIR = Path(__file__).parent.parent / "experiments" / "convergence-lab"
+sys.path.insert(0, str(HARNESS_DIR))
+
+import harness  # noqa: E402
+
+
+def _write_yaml(tmp_path, body):
+    p = tmp_path / "grid.yaml"
+    p.write_text(yaml.safe_dump(body))
+    return p
+
+
+def test_load_config_defaults_replicates(tmp_path):
+    cfg = harness.load_config(
+        _write_yaml(tmp_path, {"sweep": {"l2reg": [0.0, 3e-4]}})
+    )
+    assert cfg["replicates"] == [1, 2]
+    assert cfg["sweep"] == {"l2reg": [0.0, 3e-4]}
+    assert cfg["fixed"] == {}
+
+
+def test_load_config_rejects_unknown_sweep_key(tmp_path):
+    with pytest.raises(ValueError, match="not_a_kwarg"):
+        harness.load_config(
+            _write_yaml(tmp_path, {"sweep": {"not_a_kwarg": [1, 2]}})
+        )
+
+
+def test_load_config_rejects_unknown_fixed_key(tmp_path):
+    with pytest.raises(ValueError, match="bogus"):
+        harness.load_config(
+            _write_yaml(
+                tmp_path,
+                {"sweep": {"l2reg": [0.0]}, "fixed": {"bogus": True}},
+            )
+        )
+
+
+def test_load_config_rejects_dataset_key(tmp_path):
+    with pytest.raises(ValueError, match="dataset"):
+        harness.load_config(
+            _write_yaml(tmp_path, {"sweep": {"dataset": [1]}})
+        )
+
+
+def test_load_config_requires_sweep(tmp_path):
+    with pytest.raises(ValueError, match="sweep"):
+        harness.load_config(_write_yaml(tmp_path, {"fixed": {"warmstart": True}}))
+
+
+def test_explode_grid_cartesian_with_replicates(tmp_path):
+    cfg = harness.load_config(
+        _write_yaml(
+            tmp_path,
+            {
+                "sweep": {"l2reg": [0.0, 3e-4]},
+                "fixed": {"warmstart": True},
+                "replicates": [1, 2],
+            },
+        )
+    )
+    exploded = harness.explode_grid(cfg)
+    assert len(exploded) == 4  # 2 l2reg × 2 replicates
+    assert all(d["warmstart"] is True for d in exploded)
+    assert {d["replicate"] for d in exploded} == {1, 2}
+    assert {d["l2reg"] for d in exploded} == {0.0, 3e-4}
