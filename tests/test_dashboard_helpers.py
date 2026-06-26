@@ -11,6 +11,7 @@ from experiments.dashboard_helpers import (
     display_table_df,
     load_collection,
     selectable_columns,
+    synthesize_isin_query,
     varying_columns,
 )
 
@@ -133,3 +134,30 @@ def test_display_table_df_shape_and_rounding():
     assert 0.1235 in set(df["fusionreg"].round(4))
     # one row per fit, indices 0..2
     assert list(df["_fit_idx"]) == [0, 1, 2]
+
+
+def test_synthesize_query_uses_unrounded_values():
+    """Query is built from full-precision floats and round-trips selection."""
+    fm = _fit_models_fixture()
+    # select rows 0 and 1 (dataset A, fusionreg 0.0 and 0.123456)
+    q = synthesize_isin_query(fm, [0, 1])
+    selected = fm.reset_index(drop=True).query(q)
+    assert set(selected.index) == {0, 1}
+    # un-rounded float present verbatim (not 0.1235)
+    assert "0.123456" in q
+
+
+def test_synthesize_query_isin_idiom_and_dataset_membership():
+    """The query uses ``.isin(...)`` and constrains dataset membership."""
+    fm = _fit_models_fixture()
+    q = synthesize_isin_query(fm, [0, 2])  # datasets A and B
+    selected = fm.reset_index(drop=True).query(q)
+    assert set(selected["dataset_name"]) == {"A", "B"}
+    assert ".isin(" in q
+
+
+def test_synthesize_query_all_rows_returns_all():
+    """Selecting every fit yields a query that returns every fit."""
+    fm = _fit_models_fixture()
+    q = synthesize_isin_query(fm, [0, 1, 2])
+    assert len(fm.reset_index(drop=True).query(q)) == 3

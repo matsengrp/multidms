@@ -157,3 +157,42 @@ def display_table_df(fit_models, *, round_to=4):
         if pd.api.types.is_float_dtype(out[c]):
             out[c] = out[c].round(round_to)
     return out
+
+
+def synthesize_isin_query(fit_models, fit_indices, *, key_columns=None):
+    """Build a pandas query string selecting the given fits by membership.
+
+    The query is built from the **un-rounded** source values in
+    ``fit_models`` (never the rounded display values), using ``.isin([...])``
+    membership so it generalizes the existing
+    ``dataset_name.isin([...]) and fusionreg.isin([...])`` idiom in the
+    dashboard. The clause for each key column lists the distinct values the
+    selected fits take on that column.
+
+    Args:
+        fit_models: A ``ModelCollection.fit_models`` DataFrame.
+        fit_indices: Positional row indices (``_fit_idx`` values) of the
+            selected fits.
+        key_columns: Columns to constrain. Defaults to ``dataset_name`` plus
+            the varying columns (excluding ``converged``, an outcome rather
+            than a selector).
+
+    Returns:
+        A pandas query string. Caller passes it to ``fit_models.query(...)``
+        or to a method that forwards ``query=`` to ``split_apply_combine``.
+    """
+    df = fit_models.reset_index(drop=True)
+    selected = df.loc[list(fit_indices)]
+    if key_columns is None:
+        key_columns = ["dataset_name"] + [
+            c for c in varying_columns(fit_models) if c != "converged"
+        ]
+        # de-dup while preserving order
+        seen = set()
+        key_columns = [c for c in key_columns if not (c in seen or seen.add(c))]
+
+    clauses = []
+    for col in key_columns:
+        values = list(dict.fromkeys(selected[col].tolist()))  # unique, ordered
+        clauses.append(f"{col}.isin({values!r})")
+    return " and ".join(clauses)
