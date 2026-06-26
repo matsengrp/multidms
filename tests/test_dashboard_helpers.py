@@ -6,10 +6,12 @@ import pandas as pd
 import pytest
 
 from experiments.dashboard_helpers import (
+    common_param_columns,
     constant_summary,
     discover_pickles,
     display_table_df,
     load_collection,
+    merge_two_fits_on_mutation,
     selectable_columns,
     synthesize_isin_query,
     varying_columns,
@@ -161,3 +163,37 @@ def test_synthesize_query_all_rows_returns_all():
     fm = _fit_models_fixture()
     q = synthesize_isin_query(fm, [0, 1, 2])
     assert len(fm.reset_index(drop=True).query(q)) == 3
+
+
+def test_common_param_columns_intersection_numeric_only():
+    """Only numeric columns present in both fits are returned."""
+    a = pd.DataFrame(
+        {"mutation": ["M1A"], "beta_x": [1.0], "shift_y": [2.0], "label": ["z"]}
+    )
+    b = pd.DataFrame(
+        {"mutation": ["M1A"], "beta_x": [3.0], "predicted_func_score_x": [4.0]}
+    )
+    cols = common_param_columns(a, b)
+    assert cols == ["beta_x"]  # only numeric column in both, mutation excluded
+
+
+def test_merge_two_fits_suffixes_by_fit_key_not_dataset():
+    """Same-named columns are suffixed by fit key, not by dataset name."""
+    # Both fits are the SAME dataset/condition -> identical column name.
+    a = pd.DataFrame({"mutation": ["M1A", "M2B"], "beta_x": [1.0, 2.0]})
+    b = pd.DataFrame({"mutation": ["M1A", "M2B"], "beta_x": [10.0, 20.0]})
+    merged, x_col, y_col = merge_two_fits_on_mutation(a, b, "beta_x", key_a=0, key_b=1)
+    assert x_col == "beta_x_0"
+    assert y_col == "beta_x_1"
+    assert list(merged[x_col]) == [1.0, 2.0]
+    assert list(merged[y_col]) == [10.0, 20.0]
+
+
+def test_merge_drops_nan_rows():
+    """Rows with a NaN in either fit are dropped from the merge."""
+    import numpy as np
+
+    a = pd.DataFrame({"mutation": ["M1A", "M2B"], "beta_x": [1.0, np.nan]})
+    b = pd.DataFrame({"mutation": ["M1A", "M2B"], "beta_x": [10.0, 20.0]})
+    merged, _, _ = merge_two_fits_on_mutation(a, b, "beta_x", key_a=0, key_b=1)
+    assert len(merged) == 1

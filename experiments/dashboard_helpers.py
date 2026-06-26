@@ -196,3 +196,61 @@ def synthesize_isin_query(fit_models, fit_indices, *, key_columns=None):
         values = list(dict.fromkeys(selected[col].tolist()))  # unique, ordered
         clauses.append(f"{col}.isin({values!r})")
     return " and ".join(clauses)
+
+
+def common_param_columns(muts_a, muts_b):
+    """Numeric mutation-parameter columns present in both fits.
+
+    Computes the intersection of the two fits' numeric columns (e.g.
+    ``beta_<cond>``, ``shift_<cond>``, ``predicted_func_score_<cond>``),
+    excluding ``mutation``. This is derived from the actual fit output rather
+    than from the private ``ModelCollection._conditions`` attribute (which
+    hand-rolls names and wrongly assumes ``shift_<cond>`` for every
+    condition).
+
+    Args:
+        muts_a: Mutation DataFrame for the first fit.
+        muts_b: Mutation DataFrame for the second fit.
+
+    Returns:
+        Sorted list of column names common to both and numeric in both.
+    """
+    num_a = {
+        c
+        for c in muts_a.columns
+        if c != "mutation" and pd.api.types.is_numeric_dtype(muts_a[c])
+    }
+    num_b = {
+        c
+        for c in muts_b.columns
+        if c != "mutation" and pd.api.types.is_numeric_dtype(muts_b[c])
+    }
+    return sorted(num_a & num_b)
+
+
+def merge_two_fits_on_mutation(muts_a, muts_b, param_col, *, key_a, key_b):
+    """Inner-merge two fits on ``mutation`` for one parameter column.
+
+    Both fits expose the parameter under the *same* column name, so the merge
+    suffixes by a fit-distinguishing key (``key_a``/``key_b``) rather than by
+    dataset name — comparing two fits of the *same* dataset at different
+    hyperparameters is an intended case, and dataset-name suffixes would
+    collide.
+
+    Args:
+        muts_a: Mutation DataFrame for the first (x-axis) fit.
+        muts_b: Mutation DataFrame for the second (y-axis) fit.
+        param_col: The shared parameter column to compare.
+        key_a: Distinguishing key for the first fit (e.g. its ``_fit_idx``).
+        key_b: Distinguishing key for the second fit.
+
+    Returns:
+        Tuple ``(merged_df, x_col, y_col)`` with NaN rows dropped, where
+        ``x_col = f"{param_col}_{key_a}"`` and ``y_col = f"{param_col}_{key_b}"``.
+    """
+    left = muts_a[["mutation", param_col]]
+    right = muts_b[["mutation", param_col]]
+    merged = left.merge(
+        right, on="mutation", suffixes=(f"_{key_a}", f"_{key_b}")
+    ).dropna()
+    return merged, f"{param_col}_{key_a}", f"{param_col}_{key_b}"
