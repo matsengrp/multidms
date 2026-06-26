@@ -143,3 +143,33 @@ def explode_grid(config: dict) -> list[dict]:
     for cell in exploded:
         cell.update(config["fixed"])
     return exploded
+
+
+def load_rep_data() -> dict[str, multidms.Data]:
+    """Build one ``multidms.Data`` per replicate from the prod spike CSV.
+
+    Mirrors the pipeline ``fit_models.ipynb``: aggregate ``func_score`` by
+    ``(condition, aa_substitutions)`` with ``.mean()`` within each replicate,
+    then construct a ``multidms.Data`` with the gap-inclusive alphabet.
+
+    Returns:
+        Mapping ``"rep_<n>" -> multidms.Data`` (reference = ``Omicron_BA1``).
+    """
+    raw = pd.read_csv(DATA_CSV).fillna({"aa_substitutions": ""})
+    rep_data: dict[str, multidms.Data] = {}
+    for rep in sorted(raw["replicate"].unique()):
+        df_rep = raw[raw["replicate"] == rep]
+        df_agg = (
+            df_rep.groupby(["condition", "aa_substitutions"], dropna=False)
+            .agg({"func_score": "mean"})
+            .reset_index()
+        )
+        rep_data[f"rep_{rep}"] = multidms.Data(
+            df_agg,
+            alphabet=multidms.AAS_WITHSTOP_WITHGAP,
+            reference=REF,
+            assert_site_integrity=False,
+            name=f"rep_{rep}",
+            verbose=False,
+        )
+    return rep_data

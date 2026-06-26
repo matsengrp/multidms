@@ -73,3 +73,13 @@ def test_explode_grid_cartesian_with_replicates(tmp_path):
     assert all(d["warmstart"] is True for d in exploded)
     assert {d["replicate"] for d in exploded} == {1, 2}
     assert {d["l2reg"] for d in exploded} == {0.0, 3e-4}
+
+
+@pytest.mark.slow
+def test_load_rep_data_builds_two_reps():
+    rep_data = harness.load_rep_data()
+    assert set(rep_data) == {"rep_1", "rep_2"}
+    for name, data in rep_data.items():
+        assert data.name == name
+        assert "Omicron_BA1" in data.conditions
+        assert "Delta" in data.conditions
