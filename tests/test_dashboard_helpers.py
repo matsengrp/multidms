@@ -197,3 +197,29 @@ def test_merge_drops_nan_rows():
     b = pd.DataFrame({"mutation": ["M1A", "M2B"], "beta_x": [10.0, 20.0]})
     merged, _, _ = merge_two_fits_on_mutation(a, b, "beta_x", key_a=0, key_b=1)
     assert len(merged) == 1
+
+
+def _muts_indexed_by_mutation():
+    """Mimic ``Model.get_mutations_df()``: mutation is the index, not a col."""
+    df = pd.DataFrame(
+        {"mutation": ["M1A", "M2B"], "beta_x": [1.0, 2.0], "shift_y": [3.0, 4.0]}
+    )
+    return df.set_index("mutation")
+
+
+def test_merge_handles_mutation_as_index():
+    """``get_mutations_df`` returns mutation as the index; merge must cope."""
+    a = _muts_indexed_by_mutation()
+    b = _muts_indexed_by_mutation()
+    assert "mutation" not in a.columns  # guard: index, not column
+    merged, x_col, y_col = merge_two_fits_on_mutation(a, b, "beta_x", key_a=7, key_b=9)
+    assert x_col == "beta_x_7"
+    assert y_col == "beta_x_9"
+    assert list(merged[x_col]) == [1.0, 2.0]
+
+
+def test_common_param_columns_handles_mutation_as_index():
+    """Common-param detection also works when mutation is the index."""
+    a = _muts_indexed_by_mutation()
+    b = _muts_indexed_by_mutation()
+    assert common_param_columns(a, b) == ["beta_x", "shift_y"]

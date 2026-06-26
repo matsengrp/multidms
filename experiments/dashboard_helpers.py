@@ -198,6 +198,28 @@ def synthesize_isin_query(fit_models, fit_indices, *, key_columns=None):
     return " and ".join(clauses)
 
 
+def _with_mutation_column(muts):
+    """Return ``muts`` with ``mutation`` as a column, not the index.
+
+    ``Model.get_mutations_df()`` returns the mutation string as the DataFrame
+    *index* (``index.name == "mutation"``), whereas some callers materialize it
+    as a column. Normalize to a column so downstream merges are agnostic to
+    which form the caller passed.
+
+    Args:
+        muts: A per-fit mutation DataFrame.
+
+    Returns:
+        A DataFrame guaranteed to have a ``mutation`` column. The input is not
+        mutated.
+    """
+    if "mutation" in muts.columns:
+        return muts
+    if muts.index.name == "mutation":
+        return muts.reset_index()
+    return muts
+
+
 def common_param_columns(muts_a, muts_b):
     """Numeric mutation-parameter columns present in both fits.
 
@@ -215,6 +237,8 @@ def common_param_columns(muts_a, muts_b):
     Returns:
         Sorted list of column names common to both and numeric in both.
     """
+    muts_a = _with_mutation_column(muts_a)
+    muts_b = _with_mutation_column(muts_b)
     num_a = {
         c
         for c in muts_a.columns
@@ -248,8 +272,8 @@ def merge_two_fits_on_mutation(muts_a, muts_b, param_col, *, key_a, key_b):
         Tuple ``(merged_df, x_col, y_col)`` with NaN rows dropped, where
         ``x_col = f"{param_col}_{key_a}"`` and ``y_col = f"{param_col}_{key_b}"``.
     """
-    left = muts_a[["mutation", param_col]]
-    right = muts_b[["mutation", param_col]]
+    left = _with_mutation_column(muts_a)[["mutation", param_col]]
+    right = _with_mutation_column(muts_b)[["mutation", param_col]]
     merged = left.merge(
         right, on="mutation", suffixes=(f"_{key_a}", f"_{key_b}")
     ).dropna()
