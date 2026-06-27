@@ -33,8 +33,19 @@ directory run `pixi run dashboard` (it discovers `*.pkl` below cwd).
 - **L2 knee near `3e-4`**; double-ended degeneracy: β explodes at `l2reg=0`,
   β collapses + α explodes at `l2reg ≥ 1e-3`.
 - **`recompute_scale=False`** (the fixed-scale objective normalizer) converges.
-- **`fit_models` parallelism**: to be settled by `diagnostics/parallelism_probe.py`
-  (see its verdict appended here once run). The harness ships sequential regardless.
+- **`fit_models` parallelism — settled** (`diagnostics/parallelism_probe.py`):
+  `n_processes=2` (the real spawn path) ran the full data-size × l2reg staircase
+  with **zero hangs**, at `l2reg=0` AND `l2reg=3e-4`. The l2reg-deadlock theory is
+  **refuted**. The original local hangs were the **execution context** — marimo
+  cells / `/tmp` scripts spawn workers without a clean `if __name__ ==
+  "__main__"` guard, so each child re-runs module-level code on import. A
+  properly-guarded script runs the identical spawn path cleanly.
+- **Dataset duplication is real but harmless** (measured): each spawn worker
+  carries its own dataset copy, so `n_processes=2` peaks **~0.9–1.9 GB above**
+  the `n_processes=1` in-process baseline, and the gap **grows with data size**
+  (+0.9 GB tiny → +1.9 GB full). But peak RSS at the full dataset is ~4.9 GB
+  against ~13 GB free — duplication never exhausts RAM. Memory was NOT the cause
+  of the hangs. The harness ships sequential anyway (simpler, deterministic).
 
 ## Run log
 
@@ -45,3 +56,9 @@ df_fits/df_corr showed, the conclusion, the next step.)
   df_fits (4 fits, ~185s/fit, wall 740s): at l2reg=0.0 -> alpha 7.4-8.2, Sigma-beta^2 36,785-40,371 (beta EXPLODED); at l2reg=3e-4 -> alpha 36-40, Sigma-beta^2 438-626 (beta collapsed, alpha exploded). All 4 converged=False (final_obj_err ~4-6e-6 at l2reg=0, ~3e-4 at l2reg=3e-4).
   df_corr (replicate-shift Pearson r): shift_Delta r=0.47 (l2reg=0) / 0.33 (3e-4); shift_Omicron_BA2 r=0.37 (l2reg=0) / 0.53 (3e-4).
   Conclusion: harness reproduces the double-ended L2 degeneracy + sub-convergence locally in ~12 min. Even warmstart=True + recompute_scale=False shows beta-explosion at l2reg=0. Next: sweep warmstart True/False at fixed l2reg to isolate the see-saw; widen l2reg ladder around the 3e-4 knee.
+
+- 2026-06-27 | diagnostics/parallelism_probe.py --baseline | two-axis staircase (data-size tiny/small/medium/full × l2reg [0.0, 3e-4]), n_processes=2 spawn vs n_processes=1 in-process, cheap iters (block maxiter=6 / inner 8), per-step peak RSS sampled.
+  np=2 (spawn): 8/8 PASS, ZERO hangs. Wall 9-36s/step. Peak RSS climbs with data size: l2reg=0 -> 3690/3798/3956/4907 MB (tiny/small/medium/full); l2reg=3e-4 -> 4012/4225/4510/4687 MB (l2reg>0 costs ~+300-500 MB).
+  np=1 (in-process baseline, l2reg=0): tiny/small/medium/full -> 2754/2674/2662/3048 MB. (Baseline truncated after l2reg=0 by an operator kill; the l2reg=0 column is sufficient for the spawn-vs-in-process comparison.)
+  Spawn overhead = np2 - np1 at l2reg=0: +936/+1124/+1294/+1859 MB — grows with data size, the signature of per-worker dataset duplication. But 4.9 GB peak << ~13 GB free.
+  Conclusion: fit_models parallelism does NOT hang (l2reg-deadlock theory refuted); dataset duplication is real (~1 GB/worker) but never exhausts RAM. The original local hangs were the marimo/`/tmp` no-__main__-guard execution context. Next: none for parallelism — settled. Harness stays sequential by choice.
