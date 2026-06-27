@@ -102,6 +102,64 @@ def test_basin_metrics_keys_on_failure():
     assert math.isnan(out["alpha_final"])
 
 
+def test_run_fits_drops_failed_fit_and_continues(monkeypatch):
+    """One failing fit is dropped (not appended as None) and the grid survives.
+
+    ``stack_fit_models`` calls ``.to_frame()`` on each element and does NOT skip
+    ``None`` — so ``run_fits`` must filter failures before stacking, else a
+    single failed fit aborts the whole grid. This pins that contract without
+    real fitting by faking fit_one_model / stack_fit_models / basin_metrics.
+    """
+    import pandas as pd
+
+    def fake_fit_one_model(dataset, **kw):
+        # Fail exactly the l2reg=0.0 cell; succeed otherwise.
+        if kw.get("l2reg") == 0.0:
+            raise ValueError("boom")
+        return pd.Series({"l2reg": kw.get("l2reg"), "model": object()})
+
+    monkeypatch.setattr(harness, "fit_one_model", fake_fit_one_model)
+    monkeypatch.setattr(
+        harness,
+        "stack_fit_models",
+        lambda lst: pd.concat([s.to_frame().T for s in lst], ignore_index=True),
+    )
+    monkeypatch.setattr(
+        harness,
+        "basin_metrics",
+        lambda m: {
+            "alpha_final": 1.0,
+            "beta_l2_norm": 1.0,
+            "max_abs_phi": 1.0,
+            "final_obj_err": 1.0,
+            "converged": True,
+        },
+    )
+
+    exploded = [
+        {"l2reg": 0.0, "replicate": 1},  # will fail
+        {"l2reg": 3e-4, "replicate": 1},  # will succeed
+    ]
+    rep_data = {"rep_1": object()}
+    df = harness.run_fits(exploded, rep_data)
+    # Only the surviving fit remains; the failed one was dropped, not None-rowed.
+    assert len(df) == 1
+    assert df["l2reg"].tolist() == [3e-4]
+
+
+def test_run_fits_all_failures_raises(monkeypatch):
+    """When every fit fails, run_fits raises RuntimeError (not a concat crash)."""
+
+    def always_fail(dataset, **kw):
+        raise ValueError("boom")
+
+    monkeypatch.setattr(harness, "fit_one_model", always_fail)
+    exploded = [{"l2reg": 0.0, "replicate": 1}]
+    rep_data = {"rep_1": object()}
+    with pytest.raises(RuntimeError, match="all fits failed"):
+        harness.run_fits(exploded, rep_data)
+
+
 def test_primary_axis_prefers_fusionreg():
     """primary_axis returns fusionreg when it is among the swept keys."""
     cfg = {"sweep": {"l2reg": [0.0], "fusionreg": [0.0, 8e-5]}}

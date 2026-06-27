@@ -242,11 +242,12 @@ def run_fits(exploded: list[dict], rep_data: dict) -> pd.DataFrame:
     """Fit every grid cell sequentially and assemble ``df_fits``.
 
     Each cell's integer ``replicate`` selects the rep's Data; the rest are
-    ``fit_one_model`` kwargs. Failures are tolerated (the cell becomes a
-    ``None`` row, dropped by ``stack_fit_models``, so its basin metrics are
-    absent rather than poisoning the frame). Sequential ``fit_one_model`` is
-    used directly — NOT ``fit_models`` — for simplicity and deterministic
-    ordering.
+    ``fit_one_model`` kwargs. Failures are tolerated: a failed cell is dropped
+    here (``stack_fit_models`` does NOT skip ``None`` — it would raise — so the
+    harness filters them out before stacking), and the grid continues. A failed
+    fit therefore contributes no row rather than poisoning the frame; if every
+    fit fails, a ``RuntimeError`` is raised. Sequential ``fit_one_model`` is used
+    directly — NOT ``fit_models`` — for simplicity and deterministic ordering.
 
     Args:
         exploded: Output of :func:`explode_grid`.
@@ -280,7 +281,18 @@ def run_fits(exploded: list[dict], rep_data: dict) -> pd.DataFrame:
         )
     print(f"[harness] wall {time.time() - t0:.1f}s", flush=True)
 
-    fit_df = stack_fit_models(results)
+    # stack_fit_models does NOT tolerate None (it calls .to_frame() on each
+    # element); drop failed fits here so one failure does not abort the grid.
+    ok = [r for r in results if r is not None]
+    n_failed = len(results) - len(ok)
+    if n_failed:
+        print(
+            f"[harness] {n_failed}/{len(results)} fit(s) failed and were dropped",
+            flush=True,
+        )
+    if not ok:
+        raise RuntimeError("[harness] all fits failed — nothing to stack")
+    fit_df = stack_fit_models(ok)
     metrics = fit_df["model"].apply(basin_metrics).apply(pd.Series)
     fit_df = pd.concat([fit_df.reset_index(drop=True), metrics], axis=1)
     fit_df["replicate"] = fit_df["model"].apply(
