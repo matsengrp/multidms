@@ -130,8 +130,12 @@ testpaths = ["tests", "multidms"]
 python_files = ["test_*.py", "*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+# Deselect slow tests by default: they load real-data artifacts (e.g. the
+# gitignored scv2-spike CSV) that are not present in CI. Run them locally with
+# `pytest -m slow` when the data is available.
+addopts = "-m 'not slow'"
 markers = [
-    "slow: marks tests that load real data or fit models (deselect with '-m \"not slow\"')",
+    "slow: marks tests that load real data or fit models (run with '-m slow')",
 ]
 
 [tool.bumpver]
