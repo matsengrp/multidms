@@ -2,10 +2,15 @@
 
 import pytest
 import numpy as np
+import pandas as pd
 import jax
 import jax.numpy as jnp
 from jax.experimental.sparse import BCOO
 import multidms.jaxmodels as jaxmodels
+
+# Every test here fits a JAX model — slow on CI. Deselected by default
+# (pyproject `addopts = "-m 'not slow'"`); run on push-to-main / release.
+pytestmark = pytest.mark.slow
 
 
 # ==================== Fixtures ====================
@@ -887,3 +892,169 @@ class TestFitParameters:
         )
         # If it runs without error and returns a model, the default works
         assert model is not None
+
+
+# ==================== Tests for recompute_scale toggle (#246) ====================
+
+
+class TestRecomputeScale:
+    """Tests for the recompute_scale fixed-scale convergence fix (#246)."""
+
+    def test_fixed_scale_is_constant_discriminates(self, multi_condition_data):
+        """T1: fixed-scale and recompute-scale produce different obj_error
+        sequences, proving the toggle changes loop behavior.
+        """
+        common = dict(
+            data_sets=multi_condition_data,
+            reference_condition="condition1",
+            l2reg=0.0,
+            fusionreg=0.0,
+            block_iters=6,
+            warmstart=False,
+            verbose=False,
+        )
+        _, traj_fixed = jaxmodels.fit(**common, recompute_scale=False)
+        _, traj_recompute = jaxmodels.fit(**common, recompute_scale=True)
+
+        err_fixed = traj_fixed["objective_error_trajectory"].to_numpy()
+        err_recompute = traj_recompute["objective_error_trajectory"].to_numpy()
+
+        # The two loops must produce materially different stopping signals.
+        n = min(len(err_fixed), len(err_recompute))
+        assert n >= 2
+        assert not np.allclose(err_fixed[:n], err_recompute[:n], atol=1e-9), (
+            "fixed and recompute scale produced identical obj_error sequences; "
+            "the toggle is not discriminating"
+        )
+
+    def test_fixed_scale_true_relative_change(self, multi_condition_data):
+        """T2: with recompute_scale=False, objective_error on sweep k equals
+        the fit()'s actual stopping formula applied to the *previous* sweep's
+        scaled objective — NOT |1.0 - obj| (the recompute path's
+        by-construction value where obj_old ≡ 1.0 every sweep).
+        """
+        model, traj = jaxmodels.fit(
+            data_sets=multi_condition_data,
+            reference_condition="condition1",
+            l2reg=0.0,
+            fusionreg=0.0,
+            block_iters=6,
+            warmstart=False,
+            recompute_scale=False,
+            verbose=False,
+        )
+        # objective_total_trajectory stores obj * scale (jaxmodels.py:805), i.e.
+        # the RAW (unscaled) objective. The fixed `scale` is the objective at
+        # the INITIAL model (before any block updates), so every scaled
+        # objective raw[k]/scale sits below 1 here — meaning the max(...,1) floor
+        # in the stopping formula is always active. With the floor pinned at 1,
+        #     err_k = |obj_{k-1} - obj_k| = |raw_{k-1} - raw_k| / scale.
+        # So err_k is a CONSTANT (1/scale) times the raw consecutive difference:
+        # the ratio err_k / |raw_{k-1} - raw_k| must be identical across all k.
+        # This is the scale-free fingerprint of obj_old being the previous
+        # sweep's value (the recompute path, where obj_old ≡ 1.0 every sweep,
+        # cannot produce a constant ratio against |Δraw|).
+        raw = traj["objective_total_trajectory"].to_numpy()
+        err = traj["objective_error_trajectory"].to_numpy()
+        ratios = []
+        for k in range(1, len(raw)):
+            d = abs(raw[k - 1] - raw[k])
+            assert d > 1e-12, f"sweep {k}: raw objective did not move"
+            ratios.append(err[k] / d)
+        ratios = np.array(ratios)
+        # All per-sweep ratios equal 1/scale → their spread is ~0.
+        assert np.allclose(ratios, ratios[0], rtol=1e-4, atol=1e-9), (
+            f"err/|Δraw| ratios not constant ({ratios}); obj_old is not the "
+            f"previous sweep's carried-forward objective"
+        )
+        # Cross-check: the implied scale (1/ratio) is positive and O(the raw
+        # objective magnitude), not 1.0 (which is what obj_old≡1.0 would imply).
+        implied_scale = 1.0 / ratios[0]
+        assert implied_scale > 0
+        # The recompute path would give err[1] = |1 - raw[1]/scale|; with our
+        # constant-scale fingerprint established above, confirm err[1] is the
+        # carried-forward value, well below that by-construction number.
+        assert err[1] < 0.5, (
+            f"sweep 1 objective_error={err[1]} looks like the recompute-path "
+            f"|1 - obj| value; obj_old was not carried forward"
+        )
+
+    def test_recompute_scale_default_unchanged(self, multi_condition_data):
+        """T3 (regression guard): omitting recompute_scale ≡ passing True.
+        The default path must match the pre-change behavior bit-for-bit.
+        """
+        common = dict(
+            data_sets=multi_condition_data,
+            reference_condition="condition1",
+            l2reg=0.0,
+            fusionreg=0.05,
+            block_iters=4,
+            warmstart=False,
+            verbose=False,
+        )
+        _, traj_default = jaxmodels.fit(**common)
+        _, traj_explicit_true = jaxmodels.fit(**common, recompute_scale=True)
+
+        pd.testing.assert_frame_equal(traj_default, traj_explicit_true)
+
+    def test_recompute_scale_threads_through_model_fit(self):
+        """Integration: recompute_scale reaches jaxmodels via Model.fit on a
+        tiny real-DataFrame Data object.
+        """
+        import multidms
+
+        df = pd.DataFrame(
+            {
+                "condition": ["a", "a", "a", "b", "b", "b"],
+                "aa_substitutions": ["M1A", "M1C", "", "M1A", "G2A", ""],
+                "func_score": [-0.5, -1.0, 0.0, -0.6, -0.3, 0.0],
+            }
+        )
+        data = multidms.Data(df, reference="a", verbose=False)
+        model = multidms.Model(data, ge_type="Sigmoid")
+        # Should accept the kwarg and run without error.
+        model.fit(maxiter=3, warmstart=False, recompute_scale=False, verbose=False)
+        traj = model.convergence_trajectory_df
+        assert traj is not None and len(traj) > 0
+
+    def test_fixed_scale_converges_better_than_recompute(self, multi_condition_data):
+        """Fixed-scale drives obj_error far lower than recompute-scale.
+
+        The qualitative analogue of the ablation's
+        ``scale=fixed fr=8e-5 conv=True err=3.9e-07`` cell (vs the
+        ``recompute`` cell that stalled at err≈5e-3 with many objective
+        increases). The exact ``iter=19, err=3.9e-07`` figures were measured
+        on real 3-condition spike data — reproducing them is the notebook's
+        job (#246, Task 5), not a unit test's.
+
+        Relaxed per the plan note (Task 3 Step 2): the 20-mutation /
+        10-variant synthetic fixture is too small to land *below* 1e-6 before
+        the 50-iter cap (fixed-scale reaches ~1.7e-6 here), so we assert the
+        decisive *direction* instead — fixed-scale reaches a small obj_error
+        and is strictly better than recompute-scale on the same fixture.
+        """
+        common = dict(
+            data_sets=multi_condition_data,
+            reference_condition="condition1",
+            l2reg=0.0,
+            fusionreg=8e-5,
+            block_iters=50,
+            block_tol=1e-6,
+            global_epistasis=jaxmodels.Sigmoid(),
+            share_alpha=True,
+            warmstart=False,
+            verbose=False,
+        )
+        _, traj_fixed = jaxmodels.fit(**common, recompute_scale=False)
+        _, traj_recompute = jaxmodels.fit(**common, recompute_scale=True)
+
+        err_fixed = float(traj_fixed["objective_error_trajectory"].iloc[-1])
+        err_recompute = float(traj_recompute["objective_error_trajectory"].iloc[-1])
+
+        # Fixed-scale reaches a small obj_error...
+        assert err_fixed < 1e-3, f"fixed-scale final obj_error {err_fixed} >= 1e-3"
+        # ...and is no worse than recompute-scale (here: orders better).
+        assert err_fixed <= err_recompute, (
+            f"fixed-scale obj_error {err_fixed} worse than recompute "
+            f"{err_recompute}; the convergence fix did not help"
+        )

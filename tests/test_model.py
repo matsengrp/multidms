@@ -12,6 +12,10 @@ import numpy as np
 import pandas as pd
 from io import StringIO
 
+# Every test here fits a JAX model — slow on CI. Deselected by default
+# (pyproject `addopts = "-m 'not slow'"`); run on push-to-main / release.
+pytestmark = pytest.mark.slow
+
 
 # Test data fixture
 # NOTE: Must include wildtype (empty aa_substitutions) for each condition

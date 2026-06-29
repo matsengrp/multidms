@@ -69,6 +69,7 @@ def fit_one_model(
     maxiter=10,
     tol=1e-6,
     warmstart=True,
+    recompute_scale=True,
     beta0_init=None,
     beta_init=None,
     alpha_init=None,
@@ -109,6 +110,9 @@ def fit_one_model(
         Convergence tolerance.
     warmstart : bool
         Whether to use Ridge regression for initialization.
+    recompute_scale : bool
+        If True (default), recompute the objective normalizer each outer
+        sweep. If False, the fixed-scale convergence fix (#246).
     beta0_init, beta_init : dict, optional
         Initial parameter values per condition.
     alpha_init : float or dict, optional
@@ -158,6 +162,7 @@ def fit_one_model(
     start = time.time()
     model.fit(
         warmstart=warmstart,
+        recompute_scale=recompute_scale,
         maxiter=maxiter,
         tol=tol,
         beta0_init=beta0_init,
@@ -294,6 +299,22 @@ def fit_models(
       ``ThreadPoolExecutor``, one model per GPU at a time.
     - **CPU mode** (``n_processes``): Spawn independent processes
       via ``multiprocessing.Pool`` with the ``spawn`` context.
+
+    .. warning::
+        **CPU parallelism (``n_processes > 1``) requires a guarded entry
+        point.** The ``spawn`` start context re-imports the program in each
+        worker process, so the call to ``fit_models`` MUST be reachable only
+        under an ``if __name__ == "__main__":`` guard (in a script) or inside
+        a function the worker does not re-execute on import. Calling it at the
+        module top level — including from a bare marimo cell or an unguarded
+        ``/tmp`` script — makes every worker re-run the module's top-level code
+        as it imports it, which manifests as an apparent hang (workers spinning
+        on re-execution, the parent's result queue never filling) rather than a
+        clean error. This is a property of ``multiprocessing`` ``spawn``, not of
+        this package: a properly-guarded script runs the identical spawn path
+        cleanly. Each worker also rebuilds its own copy of every ``Data`` it
+        fits, so peak memory grows with both ``n_processes`` and dataset size;
+        size ``n_processes`` to the host's free RAM, not just its core count.
 
     Parameters
     ----------

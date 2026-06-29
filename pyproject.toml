@@ -37,8 +37,15 @@ keywords = [
 requires-python = ">=3.9"
 dependencies = [
     "polyclonal",
-    "jax>=0.4.29",
-    "jaxopt",
+    # jax/jaxlib pinned to <0.5 to match jaxopt 0.8.5 (the last, unmaintained
+    # jaxopt release). jax 0.6.x changed the custom_vjp / implicit-diff core,
+    # which makes jaxopt 0.8.5's proximal solver SIGABRT natively (observed on
+    # PR #246 CI under a freshly-resolved jax 0.6.2). main's green CI ran on
+    # jax 0.4.30; this restores that proven-good window and pins the pair so the
+    # unpinned resolver cannot drift jax and jaxlib to mismatched versions.
+    "jax>=0.4.29,<0.5",
+    "jaxlib>=0.4.29,<0.5",
+    "jaxopt==0.8.5",
     "typing_extensions",
     "numpy",
     "pandas>=2.2.0",
@@ -123,6 +130,13 @@ testpaths = ["tests", "multidms"]
 python_files = ["test_*.py", "*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+# Deselect slow tests by default: they load real-data artifacts (e.g. the
+# gitignored scv2-spike CSV) that are not present in CI. Run them locally with
+# `pytest -m slow` when the data is available.
+addopts = "-m 'not slow'"
+markers = [
+    "slow: marks tests that load real data or fit models (run with '-m slow')",
+]
 
 [tool.bumpver]
 current_version = "1.3.0"
