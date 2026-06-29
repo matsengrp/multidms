@@ -72,11 +72,43 @@ def test_load_collection_wraps_fit_models_shaped_object(tmp_path, monkeypatch):
     assert captured["wrapped"] == not_a_collection
 
 
+def test_load_collection_passes_through_existing_collection(tmp_path, monkeypatch):
+    """An already-``ModelCollection`` pickle is returned unchanged, not re-wrapped."""
+    import experiments.dashboard_helpers as helpers
+
+    constructed = {"n": 0}
+
+    class _StubMC:
+        """Stand-in collection that counts constructor calls."""
+
+        def __init__(self, loaded=None):
+            constructed["n"] += 1
+
+    monkeypatch.setattr(helpers, "ModelCollection", _StubMC)
+
+    already = _StubMC()  # one construction here; none expected in load_collection
+    assert constructed["n"] == 1
+
+    # Stub the unpickling step so we don't depend on the (unpicklable) local
+    # class round-tripping through the pickle module; load_collection's branch
+    # logic is what's under test, not pickle itself.
+    p = tmp_path / "mc.pkl"
+    p.write_bytes(b"ignored")
+    monkeypatch.setattr(helpers.pickle, "load", lambda _f: already)
+
+    result = load_collection(p)
+
+    assert result is already  # passthrough: same instance, returned unchanged
+    assert constructed["n"] == 1  # no NEW _StubMC built inside load_collection
+
+
 def test_load_collection_raises_on_garbage(tmp_path):
     """A non-pickle file raises so the caller can show a friendly error."""
+    import pickle
+
     p = tmp_path / "bad.pkl"
     p.write_bytes(b"not a pickle at all")
-    with pytest.raises(Exception):
+    with pytest.raises((pickle.UnpicklingError, EOFError)):
         load_collection(p)
 
 
@@ -91,6 +123,7 @@ def _fit_models_fixture():
             "ge_kwargs": [{"k": 1}, {"k": 1}, {"k": 1}],  # excluded (object)
             "beta_init": [object(), object(), object()],  # excluded (_init)
             "total_loss_training": [[1, 2], [1, 2], [1, 2]],  # excluded
+            "total_loss_validation": [0.1, 0.2, 0.3],  # excluded (_loss_validation)
             "model": [object(), object(), object()],  # excluded (model)
         }
     )
@@ -103,6 +136,9 @@ def test_selectable_columns_drops_model_and_bookkeeping():
     assert "ge_kwargs" not in cols
     assert "beta_init" not in cols
     assert "total_loss_training" not in cols
+    # validation loss is the sibling of training loss; both must be dropped so
+    # they don't clutter the selector table after add_eval_loss() was called.
+    assert "total_loss_validation" not in cols
     assert {"dataset_name", "fusionreg", "l2reg", "converged"} <= set(cols)
 
 
@@ -132,8 +168,10 @@ def test_display_table_df_shape_and_rounding():
     assert "_fit_idx" in df.columns
     assert "model" not in df.columns
     assert "l2reg" not in df.columns  # constant -> hidden
-    # rounding: 0.123456 -> 0.1235
-    assert 0.1235 in set(df["fusionreg"].round(4))
+    # rounding is applied to the STORED value (assert on the cell directly, not
+    # on a re-rounded copy, so an unrounded implementation would fail here).
+    assert df["fusionreg"].iloc[1] == pytest.approx(0.1235)
+    assert df["fusionreg"].iloc[1] != pytest.approx(0.123456)
     # one row per fit, indices 0..2
     assert list(df["_fit_idx"]) == [0, 1, 2]
 

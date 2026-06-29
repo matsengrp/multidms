@@ -8,6 +8,7 @@ cells (marimo only exposes names a cell imports or that an ancestor cell
 returns).
 """
 
+import pickle
 from pathlib import Path
 
 import pandas as pd
@@ -17,7 +18,10 @@ from multidms.model_collection import ModelCollection
 #: Columns excluded from any fit table because ``mo.ui.table`` cannot render
 #: them (model objects, dict/object bookkeeping cells, per-row noise).
 EXCLUDED_TABLE_COLUMNS = ("model",)
-EXCLUDED_TABLE_SUFFIXES = ("_loss_training", "_init", "_kwargs")
+# ``_loss_validation`` is the sibling of ``_loss_training`` written by
+# ``ModelCollection.add_eval_loss()``; both are per-condition loss bookkeeping
+# (see ``model_collection.loss_df``) and neither belongs in the selector table.
+EXCLUDED_TABLE_SUFFIXES = ("_loss_training", "_loss_validation", "_init", "_kwargs")
 
 
 def discover_pickles(root):
@@ -58,8 +62,6 @@ def load_collection(path):
             ``ModelCollection`` constructor (the caller renders a friendly
             inline error instead of crashing).
     """
-    import pickle
-
     with open(path, "rb") as f:
         loaded = pickle.load(f)
     if isinstance(loaded, ModelCollection):
@@ -188,8 +190,7 @@ def synthesize_isin_query(fit_models, fit_indices, *, key_columns=None):
             c for c in varying_columns(fit_models) if c != "converged"
         ]
         # de-dup while preserving order
-        seen = set()
-        key_columns = [c for c in key_columns if not (c in seen or seen.add(c))]
+        key_columns = list(dict.fromkeys(key_columns))
 
     clauses = []
     for col in key_columns:

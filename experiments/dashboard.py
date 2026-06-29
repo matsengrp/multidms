@@ -282,7 +282,6 @@ def _(common_param_columns, mc, mo, scatter_table, times_seen_threshold_slider):
 
 @app.cell
 def _(
-    common_param_columns,
     mc,
     merge_two_fits_on_mutation,
     mo,
