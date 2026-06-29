@@ -38,7 +38,14 @@ def _():
 
 @app.cell
 def _():
-    from experiments.dashboard_helpers import (
+    # marimo always puts the notebook's own directory (``experiments/``) on
+    # ``sys.path``, so the sibling helper module is importable as a top-level
+    # module regardless of the directory the dashboard was launched from.
+    # Do NOT use ``from experiments.dashboard_helpers import ...`` — that only
+    # resolves when the repo root happens to be on the path (i.e. launched
+    # from the repo root), which breaks the core use case of launching from
+    # an arbitrary results directory below cwd.
+    from dashboard_helpers import (
         common_param_columns,
         constant_summary,
         discover_pickles,
