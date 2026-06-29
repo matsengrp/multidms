@@ -8,6 +8,10 @@ import jax.numpy as jnp
 from jax.experimental.sparse import BCOO
 import multidms.jaxmodels as jaxmodels
 
+# Every test here fits a JAX model — slow on CI. Deselected by default
+# (pyproject `addopts = "-m 'not slow'"`); run on push-to-main / release.
+pytestmark = pytest.mark.slow
+
 
 # ==================== Fixtures ====================
 

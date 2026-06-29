@@ -18,7 +18,10 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: [3.9, "3.10", 3.11]  # quoted 3.10 needed due to this bug: https://github.com/actions/runner/issues/1989
+        # 3.10 dropped to keep CI fast: 3.9 is the declared floor
+        # (requires-python >=3.9, used by the publish job) and 3.11 the newest
+        # tested, so the supported boundaries are covered.
+        python-version: [3.9, 3.11]
 
     steps:
       - name: Checkout 🛎️
@@ -51,6 +54,17 @@ jobs:
           jupyter: false
           version: "~= 23.3.0" # this is the version that ships with the vs code extension, currently
 
-      - name: Test
+      # On pull requests, run only the fast tests + doctests (the default
+      # `-m 'not slow'` from pyproject deselects the JAX model-fitting suites,
+      # which dominate wall time). On push-to-main and release, run the full
+      # suite (`-m ''` re-includes the slow tests) so nothing merges to main or
+      # ships without full coverage.
+      - name: Test (fast — pull requests)
+        if: ${{ github.event_name == 'pull_request' }}
         run: |
           pytest --doctest-modules multidms tests
+
+      - name: Test (full — push / release)
+        if: ${{ github.event_name != 'pull_request' }}
+        run: |
+          pytest --doctest-modules multidms tests -m ""

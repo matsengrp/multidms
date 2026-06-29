@@ -20,6 +20,11 @@ from multidms.model_collection import (
     stack_fit_models,
 )
 
+# Nearly every test here fits a JAX model (directly or via fixtures) — slow on
+# CI. Deselected by default (pyproject `addopts = "-m 'not slow'"`); run on
+# push-to-main / release.
+pytestmark = pytest.mark.slow
+
 # ========== Test Data ==========
 
 TEST_FUNC_SCORES = pd.read_csv(
