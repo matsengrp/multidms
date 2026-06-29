@@ -1,11 +1,23 @@
-r"""Convergence-lab harness (#253): config-driven sequential model fitting.
+r"""Convergence-lab harness (#253): config-driven parallel model fitting.
 
 Reads a grid YAML (a ``sweep:`` Cartesian product + optional ``fixed:``
-overrides + optional ``replicates:``), fits each cell sequentially via
-``multidms.model_collection.fit_one_model`` (NOT ``fit_models`` — kept
-sequential for simplicity), extracts per-fit basin diagnostics into
-``df_fits``, computes replicate-shift correlations into ``df_corr``, and
-pickles ``{"df_fits": ..., "df_corr": ...}`` to ``results/<cache>.pkl``.
+overrides + optional ``replicates:``), fits every cell in parallel via
+``multidms.model_collection.fit_models`` (``n_processes`` spawn workers),
+and pickles the raw fit-collection DataFrame to
+``results/<cache>/fit_collection.pkl``.
+
+The output is a *true* ``fit_collection.pkl`` — the same
+``stack_fit_models`` frame the scv2-spike pipeline writes — so the marimo
+dashboard discovers it directly (it ``rglob``s ``fit_collection.pkl`` below
+cwd) and all downstream analysis, including replicate-shift correlation, is
+done on the fly from a ``ModelCollection`` built over the frame. The harness
+only fits; it computes no derived metrics.
+
+CPU parallelism uses ``multiprocessing`` ``spawn``, which re-imports this
+module in every worker. That is safe here because the fitting is reachable
+only under the ``if __name__ == "__main__":`` guard at the bottom — see the
+warning on ``multidms.model_collection.fit_models``. ``--n-processes``
+selects worker count (default: all but one core, capped at the grid size).
 
 The runner owns the constant scv2-spike data; configs carry only swept
 knobs and fixed overrides. See ``README.md`` in this directory.
@@ -14,6 +26,8 @@ Usage::
 
     pixi run python experiments/convergence-lab/harness.py \\
         --config grids/smoke.yaml --cache smoke
+    pixi run python experiments/convergence-lab/harness.py \\
+        --config grids/smoke.yaml --cache smoke --n-processes 4
 """
 
 from __future__ import annotations
@@ -30,23 +44,18 @@ os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("MKL_NUM_THREADS", "1")
 os.environ.setdefault("JAX_PLATFORM_NAME", "cpu")
 
-import pickle  # noqa: E402,F401 — used in later tasks (persist results)
-import time  # noqa: E402,F401 — used in later tasks (timing)
+import pickle  # noqa: E402
+import time  # noqa: E402
 import warnings  # noqa: E402
 from pathlib import Path  # noqa: E402
 
-import numpy as np  # noqa: E402,F401 — used in later tasks (corr)
-import pandas as pd  # noqa: E402,F401 — used in later tasks (df_fits)
+import pandas as pd  # noqa: E402
 import yaml  # noqa: E402
 
 warnings.filterwarnings("ignore")
 
-import multidms  # noqa: E402,F401 — used in later tasks (Data)
-from multidms.model_collection import (  # noqa: E402
-    ModelCollection,  # noqa: F401 — used in later tasks
-    fit_one_model,  # noqa: F401 — used in later tasks
-    stack_fit_models,  # noqa: F401 — used in later tasks
-)
+import multidms  # noqa: E402
+from multidms.model_collection import fit_models  # noqa: E402
 from multidms.utils import explode_params_dict  # noqa: E402
 
 # --- Constant data the runner owns (resolved relative to this file) ----------
@@ -175,215 +184,142 @@ def load_rep_data() -> dict[str, multidms.Data]:
     return rep_data
 
 
-def basin_metrics(model) -> dict[str, float]:
-    """Per-fit degeneracy diagnostics from a fitted ``multidms.Model``.
+def build_params(exploded: list[dict], rep_data: dict) -> dict:
+    """Turn exploded grid cells into a ``fit_models`` ``params`` dict.
 
-    Detects the α/β see-saw: the small-α basin collapses α while β explodes
-    (Σβ² large, max|φ| large). All access is Greek-attribute (``_jax_model.α``,
-    ``_jax_model.φ[c].β``); ``final_obj_err`` comes from the convergence
-    trajectory (it is NOT on the fit Series). Any field that cannot be
-    extracted is ``NaN`` (``converged`` defaults ``False``).
-
-    Args:
-        model: A fitted ``multidms.Model``.
-
-    Returns:
-        ``alpha_final``, ``beta_l2_norm`` (Σ_cond Σ_i β²), ``max_abs_phi``,
-        ``final_obj_err``, ``converged``.
-    """
-    out: dict[str, float] = {
-        "alpha_final": float("nan"),
-        "beta_l2_norm": float("nan"),
-        "max_abs_phi": float("nan"),
-        "final_obj_err": float("nan"),
-        "converged": False,
-    }
-
-    try:
-        jm = model._jax_model
-    except Exception:
-        return out
-
-    try:
-        out["alpha_final"] = float(np.ravel(np.asarray(jm.α))[0])
-    except Exception:
-        pass
-
-    try:
-        out["beta_l2_norm"] = float(
-            sum((np.asarray(jm.φ[c].β) ** 2).sum() for c in jm.φ)
-        )
-    except Exception:
-        pass
-
-    try:
-        vdf = model.get_variants_df(phenotype_as_effect=False)
-        out["max_abs_phi"] = float(
-            np.nanmax(np.abs(vdf["predicted_latent"].to_numpy()))
-        )
-    except Exception:
-        pass
-
-    try:
-        traj = model.convergence_trajectory_df["objective_error_trajectory"]
-        out["final_obj_err"] = float(traj.iloc[-1])
-    except Exception:
-        pass
-
-    try:
-        out["converged"] = bool(model.converged)
-    except Exception:
-        pass
-
-    return out
-
-
-def run_fits(exploded: list[dict], rep_data: dict) -> pd.DataFrame:
-    """Fit every grid cell sequentially and assemble ``df_fits``.
-
-    Each cell's integer ``replicate`` selects the rep's Data; the rest are
-    ``fit_one_model`` kwargs. Failures are tolerated: a failed cell is dropped
-    here (``stack_fit_models`` does NOT skip ``None`` — it would raise — so the
-    harness filters them out before stacking), and the grid continues. A failed
-    fit therefore contributes no row rather than poisoning the frame; if every
-    fit fails, a ``RuntimeError`` is raised. Sequential ``fit_one_model`` is used
-    directly — NOT ``fit_models`` — for simplicity and deterministic ordering.
+    ``fit_models`` takes a ``params`` dict whose every value is a list and
+    crosses them internally. Each exploded cell already carries an integer
+    ``replicate`` (which selects a Data) plus its fit kwargs; this maps the
+    replicate to the rep's Data object and collects each kwarg's distinct
+    values into a list, so ``fit_models`` reproduces exactly the cells in
+    ``exploded``.
 
     Args:
-        exploded: Output of :func:`explode_grid`.
-        rep_data: Output of :func:`load_rep_data`.
+        exploded: Output of :func:`explode_grid` (sweep × replicates × fixed).
+        rep_data: Output of :func:`load_rep_data` (``"rep_<n>" -> Data``).
 
     Returns:
-        ``df_fits``: the ``stack_fit_models`` frame plus ``alpha_final``,
-        ``beta_l2_norm``, ``max_abs_phi``, ``final_obj_err``, ``converged``,
-        and ``replicate`` columns. Retains the ``model`` column for Task 4's
-        correlation step.
+        A ``params`` dict for :func:`multidms.model_collection.fit_models`:
+        ``dataset`` is the list of Data objects, every other key the sorted
+        distinct values seen across cells (singletons stay singleton lists).
     """
-    n = len(exploded)
-    print(f"[harness] fitting {n} models SEQUENTIALLY …", flush=True)
-    results = []
+    reps = sorted({c["replicate"] for c in exploded})
+    datasets = [rep_data[f"rep_{rep}"] for rep in reps]
+    params: dict = {"dataset": datasets}
+    for cell in exploded:
+        for key, val in cell.items():
+            if key == "replicate":
+                continue
+            params.setdefault(key, [])
+            if val not in params[key]:
+                params[key].append(val)
+    return params
+
+
+def run_fits(params: dict, n_processes: int) -> pd.DataFrame:
+    """Fit the whole grid in parallel via ``fit_models`` and return the frame.
+
+    Delegates to :func:`multidms.model_collection.fit_models`, which explodes
+    ``params`` (``dataset`` × swept kwargs), fits each combination in a
+    ``spawn`` worker pool (``n_processes`` workers), and stacks the results.
+    Failures are tolerated (``failures="tolerate"``): a failed fit is dropped
+    and the grid continues, so one bad cell does not poison the run; if every
+    fit fails, ``fit_models`` raises ``ModelCollectionFitError``.
+
+    This MUST be reached only under the module's ``if __name__ ==
+    "__main__":`` guard — ``spawn`` re-imports this module in every worker.
+
+    Args:
+        params: Output of :func:`build_params`.
+        n_processes: Worker count passed to ``fit_models`` (>= 1; 1 runs
+            in-process with no pool).
+
+    Returns:
+        The raw ``stack_fit_models`` fit-collection DataFrame (one row per
+        fit, the ``model`` column plus the fit kwargs and ``dataset_name``).
+        This is a *true* ``fit_collection.pkl`` — no derived metrics.
+    """
+    from math import prod
+
+    n = len(params["dataset"]) * prod(
+        len(v) for k, v in params.items() if k != "dataset"
+    )
+    print(f"[harness] fitting {n} models with n_processes={n_processes} …", flush=True)
     t0 = time.time()
-    for i, cell in enumerate(exploded, 1):
-        kw = dict(cell)
-        rep = kw.pop("replicate")
-        dataset = rep_data[f"rep_{rep}"]
-        ft = time.time()
-        try:
-            results.append(fit_one_model(dataset=dataset, **kw))
-            status = "ok"
-        except Exception as exc:
-            results.append(None)
-            status = f"FAILED {type(exc).__name__}"
-        swept = {k: kw.get(k) for k in ("l2reg", "warmstart", "fusionreg")}
-        print(
-            f"  [{i:>2}/{n}] rep_{rep} {swept} -> {time.time() - ft:5.1f}s {status}",
-            flush=True,
-        )
-    print(f"[harness] wall {time.time() - t0:.1f}s", flush=True)
-
-    # stack_fit_models does NOT tolerate None (it calls .to_frame() on each
-    # element); drop failed fits here so one failure does not abort the grid.
-    ok = [r for r in results if r is not None]
-    n_failed = len(results) - len(ok)
-    if n_failed:
-        print(
-            f"[harness] {n_failed}/{len(results)} fit(s) failed and were dropped",
-            flush=True,
-        )
-    if not ok:
-        raise RuntimeError("[harness] all fits failed — nothing to stack")
-    fit_df = stack_fit_models(ok)
-    metrics = fit_df["model"].apply(basin_metrics).apply(pd.Series)
-    fit_df = pd.concat([fit_df.reset_index(drop=True), metrics], axis=1)
-    fit_df["replicate"] = fit_df["model"].apply(
-        lambda m: getattr(getattr(m, "data", None), "name", None)
+    n_fit, n_failed, fit_df = fit_models(
+        params, n_processes=n_processes, failures="tolerate"
+    )
+    print(
+        f"[harness] wall {time.time() - t0:.1f}s — {n_fit} fit, {n_failed} failed",
+        flush=True,
     )
     return fit_df
 
 
-def primary_axis(config: dict) -> str:
-    """The x-axis for the replicate-correlation groupby.
+def default_n_processes(grid_size: int) -> int:
+    """Worker count to use when ``--n-processes`` is not given.
 
-    ``mut_param_dataset_correlation`` groups by ``("dataset_name", x)``; ``x``
-    must be a column on the fits frame (every swept kwarg is). Prefer
-    ``fusionreg`` (the method's natural axis); else the first swept key.
-
-    Args:
-        config: The dict from :func:`load_config` (only ``sweep`` is read).
-
-    Returns:
-        The axis column name.
-    """
-    sweep = config["sweep"]
-    if "fusionreg" in sweep:
-        return "fusionreg"
-    return next(iter(sweep))
-
-
-def compute_corr(fit_df: pd.DataFrame, x: str) -> pd.DataFrame:
-    """Replicate-shift correlation across the primary swept axis.
-
-    Builds a ``ModelCollection`` from the fits and calls
-    ``mut_param_dataset_correlation(x=x, times_seen_threshold=1,
-    return_data=True, r=1)``, then keeps only shift parameters (``mut_param``
-    beginning ``shift_``). Pearson r is computed between the two replicates'
-    per-mutation shift estimates at each value of ``x``. Returns an empty frame
-    if the correlation cannot be computed (e.g. <2 surviving replicates).
+    All but one CPU core (leave one for the OS / parent), never more than the
+    number of fits (extra workers would idle), and at least 1.
 
     Args:
-        fit_df: ``df_fits`` from :func:`run_fits` (must retain the ``model``
-            column and have ≥2 distinct ``dataset_name`` values).
-        x: The groupby axis from :func:`primary_axis`.
+        grid_size: Number of fits in the exploded grid.
 
     Returns:
-        ``df_corr`` with columns ``datasets, mut_param, correlation, <x>``
-        (shift params only).
+        The default worker count.
     """
-    try:
-        mc = ModelCollection(fit_df)
-        _, corr = mc.mut_param_dataset_correlation(
-            x=x, times_seen_threshold=1, return_data=True, r=1
-        )
-    except Exception as exc:
-        print(f"[harness] df_corr unavailable: {type(exc).__name__}: {exc}", flush=True)
-        return pd.DataFrame(columns=["datasets", "mut_param", "correlation", x])
-    return corr[corr["mut_param"].str.startswith("shift_")].reset_index(drop=True)
+    cores = os.cpu_count() or 1
+    return max(1, min(grid_size, cores - 1))
 
 
-def run(config_path, cache: str) -> Path:
-    """Load config, fit the grid, compute correlations, and pickle results.
+def run(config_path, cache: str, n_processes: int | None = None) -> Path:
+    """Load config, fit the grid in parallel, and pickle the fit collection.
+
+    Writes ``results/<cache>/fit_collection.pkl`` — the raw fit-collection
+    DataFrame, the same schema the scv2-spike pipeline writes. The marimo
+    dashboard discovers it by name; build a ``ModelCollection`` over it for
+    any downstream analysis (correlation, basin diagnostics, plots).
 
     Args:
         config_path: Path to the grid YAML.
-        cache: Base name for the output pickle (``results/<cache>.pkl``).
+        cache: Subdirectory name under ``results/`` to hold the pickle.
+        n_processes: Worker count; ``None`` → :func:`default_n_processes`.
 
     Returns:
-        Path to the written pickle (a dict ``{"df_fits", "df_corr"}``).
+        Path to the written ``fit_collection.pkl``.
     """
     config = load_config(config_path)
     rep_data = load_rep_data()
     exploded = explode_grid(config)
-    fit_df = run_fits(exploded, rep_data)
-    corr_df = compute_corr(fit_df, primary_axis(config))
+    if n_processes is None:
+        n_processes = default_n_processes(len(exploded))
+    params = build_params(exploded, rep_data)
+    fit_df = run_fits(params, n_processes)
 
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = RESULTS_DIR / f"{cache}.pkl"
+    out_dir = RESULTS_DIR / cache
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "fit_collection.pkl"
     with open(out_path, "wb") as fh:
-        pickle.dump({"df_fits": fit_df, "df_corr": corr_df}, fh)
-    print(
-        f"[harness] wrote {out_path}  "
-        f"(df_fits={len(fit_df)} rows, df_corr={len(corr_df)} rows)",
-        flush=True,
-    )
+        pickle.dump(fit_df, fh)
+    print(f"[harness] wrote {out_path}  ({len(fit_df)} fits)", flush=True)
     return out_path
 
 
 def main() -> None:
-    """CLI: ``--config <grid.yaml> --cache <name>``."""
+    """CLI: ``--config <grid.yaml> --cache <name> [--n-processes N]``."""
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--config", required=True, help="path to grid YAML")
     ap.add_argument(
-        "--cache", required=True, help="output base name → results/<cache>.pkl"
+        "--cache",
+        required=True,
+        help="output subdir → results/<cache>/fit_collection.pkl",
+    )
+    ap.add_argument(
+        "--n-processes",
+        type=int,
+        default=None,
+        help="parallel worker count (default: all but one core, capped at "
+        "the grid size)",
     )
     args = ap.parse_args()
     # Resolve a relative --config against the harness dir (so `grids/smoke.yaml`
@@ -391,7 +327,7 @@ def main() -> None:
     cfg_path = Path(args.config)
     if not cfg_path.is_absolute() and not cfg_path.exists():
         cfg_path = HARNESS_DIR / args.config
-    run(cfg_path, args.cache)
+    run(cfg_path, args.cache, args.n_processes)
 
 
 if __name__ == "__main__":

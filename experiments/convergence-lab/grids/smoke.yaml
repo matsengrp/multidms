@@ -1,5 +1,5 @@
 # Smoke grid — the harness's worked example and "did I break it" check.
-# 2 l2reg × 2 replicates = 4 fits, capped iters (~40s/fit → ~3 min total).
+# 2 l2reg × 2 replicates = 4 fits, fit in parallel (capped iters).
 sweep:
   l2reg: [0.0, 3.0e-4]   # below and at the L2 knee
 fixed:
