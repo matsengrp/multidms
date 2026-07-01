@@ -726,6 +726,7 @@ def convergence_trajectory(
     *,
     x="iteration",
     id_cols=None,
+    tooltip_cols=None,
     trajectory_groups=None,
     init_group="loss",
     log_y=True,
@@ -755,6 +756,12 @@ def convergence_trajectory(
         ``['dataset_name', 'fusionreg']``). Each unique combination
         gets a distinct line style. If None, no model identity
         distinction is made.
+    tooltip_cols : list of str or None
+        Extra columns to carry into the hover tooltip (e.g.
+        ``['dataset_name', 'fusionreg']``). Any name present in ``df`` and
+        not already in ``id_cols`` is preserved through the melt and shown
+        on hover. These do NOT contribute to line identity (``model_id``);
+        grouping is determined by ``id_cols`` alone.
     trajectory_groups : dict or None
         Mapping from group name to list of column names. If None,
         auto-detected from the DataFrame using canonical groupings
@@ -808,12 +815,21 @@ def convergence_trajectory(
     # Build id columns
     if id_cols is None:
         id_cols = []
-    keep_cols = [x] + id_cols + value_cols
+
+    # Extra columns to preserve for tooltips only (not for line identity).
+    if tooltip_cols is None:
+        tooltip_cols = []
+    extra_tooltip_cols = [
+        c for c in tooltip_cols if c in df.columns and c not in id_cols
+    ]
+
+    melt_id_vars = [x] + id_cols + extra_tooltip_cols
+    keep_cols = melt_id_vars + value_cols
     keep_cols = [c for c in keep_cols if c in df.columns]
 
     # Melt to long form
     long_df = df[keep_cols].melt(
-        id_vars=[x] + id_cols,
+        id_vars=[c for c in melt_id_vars if c in df.columns],
         value_vars=[c for c in value_cols if c in df.columns],
         var_name="metric",
         value_name="value",
@@ -854,6 +870,8 @@ def convergence_trajectory(
     ]
     if id_cols:
         tooltip_fields.append(alt.Tooltip("model_id:N", title="model"))
+    for col in extra_tooltip_cols:
+        tooltip_fields.append(alt.Tooltip(f"{col}:N"))
 
     base = alt.Chart(long_df).transform_filter(group_selector)
 
