@@ -194,16 +194,17 @@ def _(mo):
 
 
 @app.cell
-def _(conv_table, mc, mo, mplot, synthesize_isin_query):
+def _(conv_table, mc, mo, mplot):
     _sel = conv_table.value  # a DataFrame of selected rows (may be empty)
     if _sel is None or _sel.empty:
         convergence_chart = mo.md("Select at least one fit.")
     else:
         _idx = list(_sel["_fit_idx"])
-        _query = synthesize_isin_query(mc.fit_models, _idx)
-        _conv_df = mc.convergence_trajectory_df(query=_query)
+        _conv_df = mc.convergence_trajectory_df(fit_indices=_idx)
         convergence_chart = mplot.convergence_trajectory(
-            _conv_df, id_cols=["dataset_name", "fusionreg"]
+            _conv_df,
+            id_cols=["_fit_idx"],
+            tooltip_cols=["dataset_name", "fusionreg"],
         )
     return (convergence_chart,)
 
