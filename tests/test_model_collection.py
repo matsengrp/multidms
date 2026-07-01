@@ -624,6 +624,20 @@ class TestConvergenceTrajectoryDf:
         df = collection.convergence_trajectory_df(query="fusionreg == 0.0")
         assert all(df["fusionreg"] == 0.0)
 
+    def test_fit_indices_selection_stamps_fit_idx(self, collection):
+        idx = [0, 1]
+        df = collection.convergence_trajectory_df(fit_indices=idx)
+        assert "_fit_idx" in df.columns
+        assert set(df["_fit_idx"].unique()) == set(idx)
+        # one contiguous block per selected fit (no interleaving of indices)
+        assert df["_fit_idx"].nunique() == len(idx)
+
+    def test_fit_indices_and_query_mutually_exclusive(self, collection):
+        with pytest.raises(ValueError):
+            collection.convergence_trajectory_df(
+                query="fusionreg == 0.0", fit_indices=[0]
+            )
+
 
 # ========== Visualization smoke tests ==========
 
