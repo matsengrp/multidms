@@ -45,6 +45,17 @@ directory run `pixi run dashboard` (it discovers `fit_collection.pkl` below cwd)
   equally well, so noise decides which one each replicate lands in.
 - **L2 knee near `3e-4`**; double-ended degeneracy: β explodes at `l2reg=0`,
   β collapses + α explodes at `l2reg ≥ 1e-3`.
+- **A small `l2reg>0` tames the β-explosion across the whole prod fusion axis**
+  (measured, #256, `cache=l2-fusion`): at `l2reg=0` Σβ² sits at ~16–19k for
+  *every* `fusionreg` (0 → 6.4e-4); `l2reg=1e-4` collapses it ~25× into the
+  healthy 350–840 band and `3e-4` further to ~190–300, both holding at the
+  prod-max `fusionreg=6.4e-4`. `1e-4` is the working weight (α ~20–25); `3e-4`
+  over-regularizes toward the see-saw's collapse end (α ~30–40). **Strong
+  fusion is reproducibility-rescued only once β is penalized:** at `l2reg=0`
+  the `6.4e-4` column collapses `shift_Delta` replicate-r to 0.09, but at
+  `l2reg=1e-4` strong fusion *lifts* `shift_Omicron_BA2` r to 0.80 — the
+  data-poor-condition distortion the path-fitter targets is itself a symptom
+  of the unpenalized β-explosion.
 - **`recompute_scale=False`** (the fixed-scale objective normalizer) converges.
 - **`fit_models` parallelism — settled** (`diagnostics/parallelism_probe.py`):
   `n_processes=2` (the real spawn path) ran the full data-size × l2reg staircase
@@ -66,6 +77,11 @@ directory run `pixi run dashboard` (it discovers `fit_collection.pkl` below cwd)
 (Append one entry per harness run: date, cache name, config swept, what the
 fit collection showed — basin diagnostics and replicate correlation computed
 downstream from a ModelCollection — the conclusion, the next step.)
+
+- 2026-06-30 | cache=l2-fusion | sweep: l2reg [0.0, 1e-4, 3e-4] × fusionreg [0.0, 4e-5, 6.4e-4], 2 reps (18 fits), warmstart=True, recompute_scale=False, share_alpha=True, Sigmoid, maxiter=25. Independent fitting (#256). Wall 1138s at n_processes=4 (local, Apple M4 Max). Downstream numbers from diagnostics/l2_fusion_report.py.
+  Basin diagnostics (Σβ², α per cell): at l2reg=0.0 → Σβ² 16,181–19,222, α 5.9–8.2 (β EXPLODED at EVERY fusionreg, incl. 6.4e-4). l2reg=1e-4 → Σβ² 554–841, α 19.5–24.6 (β tamed ~25× into the healthy 350–1400 band, holds across all fusion). l2reg=3e-4 → Σβ² 188–298, α 30.5–40.4 (β tamed further but α climbing toward the see-saw collapse end). All 18 converged=False, but final_obj_err is tiny (4e-6 at l2reg=0 to ~7e-4 at l2reg>0) — maxiter=25 truncation, not a pathology; β-magnitude and r are trustworthy, the binary flag is not.
+  Replicate-shift Pearson r (per l2reg slice, across fusionreg 0/4e-5/6.4e-4): l2reg=0 → shift_Delta 0.45/0.50/0.09, shift_Omicron_BA2 0.26/0.43/0.20 (strong fusion COLLAPSES shift_Delta at l2reg=0 — the unpenalized-β regime). l2reg=1e-4 → shift_Delta 0.47/0.45/0.33, shift_Omicron_BA2 0.37/0.43/0.80 (strong fusion now LIFTS shift_Omicron_BA2 to 0.80). l2reg=3e-4 → shift_Delta 0.40/0.37/0.41, shift_Omicron_BA2 0.43/0.49/0.76.
+  Conclusion: a small l2reg>0 SOLVES the β-explosion across the entire prod fusion axis; l2reg=1e-4 is the working weight (β healthy, α not yet over-driven). The data-poor-condition distortion under strong fusion is itself a symptom of the unpenalized explosion — once β is penalized, strong fusion rescues rather than wrecks replicate-r (shift_Omicron_BA2 0.20→0.80 at fusionreg=6.4e-4). Standing findings updated (L2-knee finding extended to 2-D). Next: maxiter sweep at l2reg=1e-4 to convert the tiny-but-nonzero final_obj_err into converged=True; optionally a continuation-path comparison along fusionreg at l2reg=1e-4 (separate experiment — independent fitting already suffices to tame β).
 
 - 2026-06-26 | cache=smoke | sweep: l2reg [0.0, 3e-4], warmstart=True, recompute_scale=False, fusionreg=0.0, Sigmoid, maxiter=25.
   df_fits (4 fits, ~185s/fit, wall 740s): at l2reg=0.0 -> alpha 7.4-8.2, Sigma-beta^2 36,785-40,371 (beta EXPLODED); at l2reg=3e-4 -> alpha 36-40, Sigma-beta^2 438-626 (beta collapsed, alpha exploded). All 4 converged=False (final_obj_err ~4-6e-6 at l2reg=0, ~3e-4 at l2reg=3e-4).
