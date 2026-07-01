@@ -983,32 +983,47 @@ class ModelCollection:
         self,
         query=None,
         id_vars=("dataset_name", "fusionreg"),
+        fit_indices=None,
     ):
         """
-        Combine the converence trajectory dataframes of
-        all fits in the queried collection.
-        """
-        queried_fits = (
-            self.fit_models.query(query) if query is not None else self.fit_models
-        )
-        if len(queried_fits) == 0:
-            raise ValueError("invalid query, no fits returned")
+        Combine the convergence trajectory dataframes of the selected fits.
 
-        if not all([var in queried_fits.columns for var in id_vars]):
+        Fits are selected either by ``query`` (a pandas query string over
+        ``fit_models``) or by ``fit_indices`` (positional row indices into
+        ``fit_models.reset_index(drop=True)``); the two are mutually
+        exclusive. When ``fit_indices`` is given, each fit's trajectory block
+        is stamped with a ``_fit_idx`` column equal to that fit's positional
+        index, giving a stable one-per-fit identifier for plotting.
+        """
+        if query is not None and fit_indices is not None:
+            raise ValueError("pass at most one of query= or fit_indices=")
+
+        if fit_indices is not None:
+            indices = list(fit_indices)
+            selected = self.fit_models.reset_index(drop=True).iloc[indices]
+        else:
+            indices = None
+            selected = (
+                self.fit_models.query(query) if query is not None else self.fit_models
+            )
+
+        if len(selected) == 0:
+            raise ValueError("invalid selection, no fits returned")
+
+        if not all([var in selected.columns for var in id_vars]):
             raise ValueError(f"invalid {id_vars=}")
 
-        convergence_trajectory_data = my_concat(
-            [
-                (
-                    fit.model.convergence_trajectory_df.assign(
-                        **{key: fit[key] for key in id_vars}
-                    )
-                )
-                for _, fit in queried_fits.iterrows()
-            ]
-        )
+        rows = list(selected.iterrows())
+        blocks = []
+        for i, (_, fit) in enumerate(rows):
+            block = fit.model.convergence_trajectory_df.assign(
+                **{key: fit[key] for key in id_vars}
+            )
+            if indices is not None:
+                block = block.assign(_fit_idx=indices[i])
+            blocks.append(block)
 
-        return convergence_trajectory_data
+        return my_concat(blocks)
 
     def plot_convergence_trajectory(
         self,

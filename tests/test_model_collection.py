@@ -624,6 +624,20 @@ class TestConvergenceTrajectoryDf:
         df = collection.convergence_trajectory_df(query="fusionreg == 0.0")
         assert all(df["fusionreg"] == 0.0)
 
+    def test_fit_indices_selection_stamps_fit_idx(self, collection):
+        idx = [0, 1]
+        df = collection.convergence_trajectory_df(fit_indices=idx)
+        assert "_fit_idx" in df.columns
+        assert set(df["_fit_idx"].unique()) == set(idx)
+        # one contiguous block per selected fit (no interleaving of indices)
+        assert df["_fit_idx"].nunique() == len(idx)
+
+    def test_fit_indices_and_query_mutually_exclusive(self, collection):
+        with pytest.raises(ValueError):
+            collection.convergence_trajectory_df(
+                query="fusionreg == 0.0", fit_indices=[0]
+            )
+
 
 # ========== Visualization smoke tests ==========
 
@@ -684,6 +698,28 @@ class TestVisualization:
         assert isinstance(chart, (alt.Chart, alt.LayerChart))
         # Verify chart produces a valid Vega-Lite spec
         chart.to_dict()
+
+    def test_convergence_trajectory_groups_by_fit_idx(self, collection):
+        """One line per selected fit; tooltip cols survive but don't group."""
+        import multidms.plot
+
+        idx = [0, 1]
+        df = collection.convergence_trajectory_df(fit_indices=idx)
+        chart = multidms.plot.convergence_trajectory(
+            df,
+            id_cols=["_fit_idx"],
+            tooltip_cols=["dataset_name", "fusionreg"],
+        )
+        chart.to_dict()  # valid spec
+
+        # The top-level chart.data carries the melted long_df for both
+        # log_y=True (LayerChart) and log_y=False (plain Chart). Assert the
+        # tooltip columns survived and that model_id has exactly one distinct
+        # value per selected fit (the fix: N selected fits => N lines).
+        data = chart.data
+        assert "dataset_name" in data.columns
+        assert "fusionreg" in data.columns
+        assert data["model_id"].nunique() == len(idx)
 
     def test_plot_convergence_trajectory_standalone(self, collection):
         """Test the standalone plot.convergence_trajectory function."""
