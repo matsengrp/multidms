@@ -45,15 +45,42 @@ def test_matches_any_pkl_extension(tmp_path):
     }
 
 
-def test_no_pruning_includes_dot_dirs(tmp_path):
-    """Matches under dot-directories (.worktrees, .pixi) are not pruned."""
-    _touch(tmp_path / ".worktrees" / "x" / "fit_collection.pkl")
-    _touch(tmp_path / ".pixi" / "y" / "a.pkl")
+def test_prunes_dot_hidden_dirs(tmp_path):
+    """Matches under a dot-hidden directory component are pruned.
+
+    Stray or duplicate collections buried in hidden trees (``.worktrees``,
+    ``.pixi``, ``.git``, a nested ``.hidden``) must not pollute the picker,
+    while visible directories such as ``results/`` are kept. A dot in the
+    *filename* does not prune — only directory components count.
+    """
+    _touch(tmp_path / ".worktrees" / "x" / "fit_collection.pkl")  # pruned
+    _touch(tmp_path / ".pixi" / "y" / "a.pkl")  # pruned
+    _touch(tmp_path / ".git" / "g.pkl")  # pruned
+    _touch(tmp_path / "sub" / ".hidden" / "c.pkl")  # pruned (nested)
+    _touch(tmp_path / "results" / "run1" / "fit_collection.pkl")  # kept
+    _touch(tmp_path / "top.pkl")  # kept
 
     found = discover_pickles(tmp_path)
 
-    assert ".worktrees/x/fit_collection.pkl" in found
-    assert ".pixi/y/a.pkl" in found
+    assert set(found.keys()) == {
+        "results/run1/fit_collection.pkl",
+        "top.pkl",
+    }
+
+
+def test_dot_hidden_root_keeps_visible_descendants(tmp_path):
+    """Only components *below* root are tested, so a dot-hidden root works.
+
+    When the dashboard is launched from inside a ``.worktrees`` checkout,
+    ``root`` itself lives under a dot-hidden directory; pickles in its
+    visible subdirectories must still be discovered.
+    """
+    root = tmp_path / ".worktrees" / "258-x"
+    _touch(root / "results" / "f.pkl")
+
+    found = discover_pickles(root)
+
+    assert set(found.keys()) == {"results/f.pkl"}
 
 
 def test_empty_when_none_present(tmp_path):

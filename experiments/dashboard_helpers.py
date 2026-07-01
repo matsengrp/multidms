@@ -25,24 +25,35 @@ EXCLUDED_TABLE_SUFFIXES = ("_loss_training", "_loss_validation", "_init", "_kwar
 
 
 def discover_pickles(root):
-    """Find every ``*.pkl`` below ``root``.
+    """Find every ``*.pkl`` below ``root``, skipping dot-hidden paths.
+
+    Any match whose path *relative to* ``root`` contains a dot-prefixed
+    directory component (e.g. ``.worktrees/``, ``.git/``, ``.pixi/``) is
+    pruned, so stray or duplicate collections buried in hidden trees do
+    not pollute the picker. Only components *below* ``root`` are tested:
+    ``root`` may itself sit inside a dot-hidden directory (e.g. when the
+    dashboard is launched from within a ``.worktrees`` checkout) without
+    suppressing everything beneath it. A dot in the *filename* does not
+    prune — only directory components count. Visible directories,
+    including ``results/``, are kept.
 
     Args:
         root: Directory searched recursively (typically ``Path.cwd()``).
 
     Returns:
         Ordered mapping of ``label -> absolute Path``, one entry per
-        ``*.pkl`` found anywhere below ``root``. ``label`` is the pickle's
-        path relative to ``root`` *including the filename* (filenames now
-        differ between matches). Entries are sorted by path. No directories
-        are pruned: matches under ``.worktrees/``, ``.pixi/``, ``results/``
-        etc. are intentionally included.
+        ``*.pkl`` found below ``root`` outside any dot-hidden directory.
+        ``label`` is the pickle's path relative to ``root`` *including
+        the filename* (filenames may differ between matches). Entries are
+        sorted by path.
     """
     root = Path(root)
     discovered = {}
     for p in sorted(root.rglob("*.pkl")):
-        label = str(p.relative_to(root))
-        discovered[label] = p
+        rel = p.relative_to(root)
+        if any(part.startswith(".") for part in rel.parent.parts):
+            continue
+        discovered[str(rel)] = p
     return discovered
 
 

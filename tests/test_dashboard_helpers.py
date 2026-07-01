@@ -34,13 +34,17 @@ def test_discover_pickles_finds_all_pkls_labeled_by_relative_path(tmp_path):
         assert str(path.relative_to(tmp_path)) == label
 
 
-def test_discover_pickles_includes_dot_dirs_and_is_sorted(tmp_path):
-    """Dot-directory matches are kept and entries are sorted by path."""
+def test_discover_pickles_is_sorted(tmp_path):
+    """Discovered entries are ordered deterministically by path.
+
+    Dot-hidden pruning is covered in ``test_dashboard_discovery.py``;
+    this only guards the sort order of the kept, visible entries.
+    """
     _touch(tmp_path / "z.pkl")
-    _touch(tmp_path / ".worktrees" / "x" / "m.pkl")
     _touch(tmp_path / "a.pkl")
+    _touch(tmp_path / "m" / "n.pkl")
     found = discover_pickles(tmp_path)
-    assert list(found.keys()) == [".worktrees/x/m.pkl", "a.pkl", "z.pkl"]
+    assert list(found.keys()) == ["a.pkl", "m/n.pkl", "z.pkl"]
 
 
 def test_discover_pickles_empty_when_none(tmp_path):
