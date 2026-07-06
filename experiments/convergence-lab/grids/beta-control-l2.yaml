@@ -1,0 +1,16 @@
+# Phase 1 (#263) — β-control head-to-head, L2 arm.
+# 3 fusionreg × 2 reps = 6 fits. l2reg=1e-4 (#256 working weight), no clip.
+sweep:
+  fusionreg: [0.0, 4.0e-5, 6.4e-4]
+fixed:
+  beta_clip_range: null
+  l2reg: 1.0e-4
+  warmstart: false
+  recompute_scale: false
+  share_alpha: true
+  ge_type: Sigmoid
+  maxiter: 100
+  tol: 1.0e-6
+  ge_kwargs:  {tol: 1.0e-4, maxiter: 20, maxls: 40, jit: true}
+  cal_kwargs: {tol: 1.0e-4, maxiter: 20, maxls: 40, jit: true}
+replicates: [1, 2]
