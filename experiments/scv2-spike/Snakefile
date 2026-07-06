@@ -31,7 +31,10 @@ if profile == "test":
 elif profile == "experimental":
     CONFIG_PATH = os.path.join(SPIKE_DIR, "config", "config_experimental.yaml")
 else:
-    CONFIG_PATH = os.path.join(SPIKE_DIR, "config", "config.yaml")
+    # Prod: honor an optional `configname` override (--config configname=…);
+    # defaults to "config" so existing prod runs are unaffected.
+    _name = config.get("configname", "config")
+    CONFIG_PATH = os.path.join(SPIKE_DIR, "config", f"{_name}.yaml")
 
 # Read output_dir from the YAML config so test profiles can isolate results
 with open(CONFIG_PATH) as _f:

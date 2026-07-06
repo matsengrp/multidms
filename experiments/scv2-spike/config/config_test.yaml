@@ -40,6 +40,7 @@ spike:
     strategy: "continuation"
     maxiter: 2
     tol: 1.0e-4
+    recompute_scale: true
     fusionreg_values: [0.0, 4.0e-5]
     l2reg: 0.0
     beta0_ridge: 1.0e-4

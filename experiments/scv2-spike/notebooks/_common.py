@@ -186,6 +186,7 @@ def build_fit_params(fit_config, datasets):
     return {
         "maxiter": [fit_config["maxiter"]],
         "tol": [fit_config["tol"]],
+        "recompute_scale": [fit_config["recompute_scale"]],
         "fusionreg": fit_config["fusionreg_values"],
         "l2reg": [fit_config["l2reg"]],
         "beta0_ridge": [fit_config["beta0_ridge"]],

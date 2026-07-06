@@ -40,6 +40,7 @@ spike:
     strategy: "independent"
     maxiter: 20
     tol: 1.0e-4
+    recompute_scale: true
     fusionreg_values: [0.0, 1.0e-5, 4.0e-5, 1.6e-4]
     l2reg: 0.0
     beta0_ridge: 1.0e-4
