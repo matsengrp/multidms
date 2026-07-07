@@ -1116,6 +1116,95 @@ def test_get_ge_landscape_df_custom_curve_points(fitted_simple_model):
     assert len(ge_curve) == 50
 
 
+def test_get_ge_landscape_df_space_fitness_matches_default(fitted_simple_model):
+    """space='fitness' is byte-for-byte identical to the default call."""
+    v_default, c_default = fitted_simple_model.get_ge_landscape_df()
+    v_fitness, c_fitness = fitted_simple_model.get_ge_landscape_df(space="fitness")
+
+    pd.testing.assert_frame_equal(v_default, v_fitness)
+    pd.testing.assert_frame_equal(c_default, c_fitness)
+    assert list(c_fitness.columns) == ["predicted_latent", "ge_curve_value"]
+
+
+def test_get_ge_landscape_df_func_score_schema(fitted_simple_model):
+    """space='func_score' returns a long-form per-condition curve df."""
+    variants_df, curve_df = fitted_simple_model.get_ge_landscape_df(space="func_score")
+    assert set(curve_df.columns) == {
+        "condition",
+        "predicted_latent",
+        "func_score_curve_value",
+    }
+    n_conditions = len(fitted_simple_model.data.conditions)
+    assert len(curve_df) == n_conditions * 200  # default n_curve_points
+    # variants_df still carries wildtype_latent for the renderer's WT rules
+    assert "wildtype_latent" in variants_df.columns
+
+
+def test_get_ge_landscape_df_func_score_custom_points(fitted_simple_model):
+    """n_curve_points controls per-condition point count in func_score mode."""
+    _, curve_df = fitted_simple_model.get_ge_landscape_df(
+        space="func_score", n_curve_points=50
+    )
+    n_conditions = len(fitted_simple_model.data.conditions)
+    assert len(curve_df) == n_conditions * 50
+    for condition in fitted_simple_model.data.conditions:
+        assert len(curve_df[curve_df["condition"] == condition]) == 50
+
+
+def test_get_ge_landscape_df_invalid_space(fitted_simple_model):
+    """An unknown space value raises a ValueError naming the options."""
+    with pytest.raises(ValueError, match="fitness.*func_score|func_score.*fitness"):
+        fitted_simple_model.get_ge_landscape_df(space="bogus")
+
+
+def test_func_score_curve_reconstructs_variant_scores(fitted_simple_model):
+    """Curve formula at each variant's own φ reproduces predicted_func_score.
+
+    Evaluates α·(g(φ_i) − g(φ_wt)) at each variant's exact latent value and
+    checks it matches that variant's predicted_func_score. Catches a wrong α
+    application or a missing/incorrect g_wt subtraction — which the anchor
+    test cannot.
+    """
+    import jax.numpy as jnp
+
+    variants_df = fitted_simple_model.get_variants_df()
+    wt_latent = fitted_simple_model.wildtype_latent
+    _α = fitted_simple_model._jax_model.α
+    g = fitted_simple_model._jax_model.global_epistasis
+
+    for condition in fitted_simple_model.data.conditions:
+        sub = variants_df[variants_df["condition"] == condition]
+        α = float(_α[condition] if isinstance(_α, dict) else _α)
+        g_wt = float(g(jnp.array(wt_latent[condition])))
+        φ = jnp.array(sub["predicted_latent"].to_numpy())
+        expected = α * (np.array(g(φ)) - g_wt)
+        assert np.allclose(expected, sub["predicted_func_score"].to_numpy(), atol=1e-5)
+
+
+def test_func_score_curves_differ_across_conditions(fitted_simple_model):
+    """Conditions with different φ_wt produce different curves."""
+    _, curve_df = fitted_simple_model.get_ge_landscape_df(space="func_score")
+    conditions = list(fitted_simple_model.data.conditions)
+    assert len(conditions) >= 2
+    a = curve_df[curve_df["condition"] == conditions[0]][
+        "func_score_curve_value"
+    ].to_numpy()
+    b = curve_df[curve_df["condition"] == conditions[1]][
+        "func_score_curve_value"
+    ].to_numpy()
+    assert not np.allclose(a, b)
+
+
+def test_func_score_curve_monotonic_increasing(fitted_simple_model):
+    """Each condition's curve is monotonically increasing in φ (Sigmoid, α>0)."""
+    _, curve_df = fitted_simple_model.get_ge_landscape_df(space="func_score")
+    for condition in fitted_simple_model.data.conditions:
+        vals = curve_df[curve_df["condition"] == condition][
+            "func_score_curve_value"
+        ].to_numpy()
+        assert np.all(np.diff(vals) >= -1e-8)
+
+
 # ==================== ge_landscape Plot Tests ====================
 
 
@@ -1145,3 +1234,57 @@ def test_plot_ge_landscape_convenience(fitted_simple_model):
 
     chart = fitted_simple_model.plot_ge_landscape()
     assert isinstance(chart, alt.LayerChart)
+
+
+def test_ge_landscape_plot_func_score_space(fitted_simple_model):
+    """ge_landscape renders in func_score space and returns a LayerChart."""
+    import altair as alt
+    import multidms.plot as mplt
+
+    variants_df, curve_df = fitted_simple_model.get_ge_landscape_df(space="func_score")
+    chart = mplt.ge_landscape(variants_df, curve_df, space="func_score")
+    assert isinstance(chart, alt.LayerChart)
+
+
+def test_ge_landscape_func_score_scatters_measured_by_default(fitted_simple_model):
+    """func_score mode scatters MEASURED func_score, not the prediction.
+
+    The prediction is the curve itself (predicted_func_score equals the
+    per-condition curve at each variant's latent), so the informative scatter
+    is the measured func_score; its vertical offset from the curve is the
+    residual. Guards against defaulting the scatter back to
+    predicted_func_score, which would stipple dots onto the curve.
+    """
+    import multidms.plot as mplt
+
+    variants_df, curve_df = fitted_simple_model.get_ge_landscape_df(space="func_score")
+    spec = mplt.ge_landscape(variants_df, curve_df, space="func_score").to_dict()
+    y_fields = [
+        layer.get("encoding", {}).get("y", {}).get("field") for layer in spec["layer"]
+    ]
+    assert "func_score" in y_fields
+    assert "func_score_curve_value" in y_fields
+    # measured scatter must NOT default to the model prediction
+    assert "predicted_func_score" not in y_fields
+
+
+def test_plot_ge_landscape_func_score_convenience(fitted_simple_model):
+    """Model.plot_ge_landscape(space='func_score') binds the func_score curve.
+
+    The wrapper must call get_ge_landscape_df(space='func_score') so the curve
+    layer's data actually carries ``func_score_curve_value``. We inspect the
+    serialized spec's shared datasets (Altair stores layer data by reference
+    under top-level ``datasets``) to confirm the column is present — a wrapper
+    that passed a fitness-space df would bind only ``ge_curve_value``.
+    """
+    import altair as alt
+
+    chart = fitted_simple_model.plot_ge_landscape(space="func_score")
+    assert isinstance(chart, alt.LayerChart)
+
+    spec = chart.to_dict()
+    all_columns = set()
+    for rows in spec.get("datasets", {}).values():
+        for row in rows:
+            all_columns.update(row.keys())
+    assert "func_score_curve_value" in all_columns
