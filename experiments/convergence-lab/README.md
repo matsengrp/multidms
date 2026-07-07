@@ -67,6 +67,23 @@ directory run `pixi run dashboard` (it discovers `fit_collection.pkl` below cwd)
   keeps α·φ bounded — "large Σβ²" only signals an explosion when the fit *also*
   fails to converge (as at l2reg=0 in #256). The epic's downstream phases inherit
   the clip bound.
+- **A free (per-condition) α deepens Delta's functional-score floor toward the
+  true −3.5** (measured, #273, `cache=273-free-alpha`): sweeping
+  `share_alpha` True/False across `fusionreg [0, 4e-5, 1.6e-4, 6.4e-4]` at PR
+  270's exact fitting block (`warmstart=false`, `l2reg=0`, `recompute_scale=false`,
+  Sigmoid, inner blocks maxiter=10/maxls=10, outer tol=1e-5/maxiter=50). Delta's
+  predicted floor = `−α_Delta · sigmoid(φ_wt,Delta)` (the low asymptote of
+  `α·(g(φ)−g(φ_wt))` as φ→−∞). At the prod-strength `fusionreg=6.4e-4`, freeing α
+  lets Delta take its **own** α (5.2, decoupled from BA1's 17.8 / BA2's 14.4)
+  and drops Delta's floor from **−2.16 (shared) → −3.09 (free)** — most of the
+  way to the true −3.5, where the shared α is pinned by the other two conditions.
+  Counter-intuitively the deeper floor comes with a *smaller* Delta α: freeing α
+  lets the Delta latent push φ_wt more positive so `−α·sigmoid(φ_wt)` deepens.
+  The effect grows with fusion (floor gap free−shared: −0.15 at fusionreg=0,
+  −0.93 at 6.4e-4). BA1/BA2 floors barely move. All 16 fits hit maxiter=50
+  (0/16 converged, same as PR 270's 0/18 at tol=1e-6 — the looser tol=1e-5
+  didn't buy convergence), but obj_err is tiny (≤3e-4), so the α/floor numbers
+  are trustworthy while the binary flag is not.
 - **`recompute_scale=False`** (the fixed-scale objective normalizer) converges.
 - **`fit_models` parallelism — settled** (`diagnostics/parallelism_probe.py`):
   `n_processes=2` (the real spawn path) ran the full data-size × l2reg staircase
@@ -88,6 +105,11 @@ directory run `pixi run dashboard` (it discovers `fit_collection.pkl` below cwd)
 (Append one entry per harness run: date, cache name, config swept, what the
 fit collection showed — basin diagnostics and replicate correlation computed
 downstream from a ModelCollection — the conclusion, the next step.)
+
+- 2026-07-07 | cache=273-free-alpha | sweep: share_alpha [True, False] × fusionreg [0.0, 4e-5, 1.6e-4, 6.4e-4], 2 reps (16 fits), PR 270 fitting block verbatim (warmstart=False, recompute_scale=False, l2reg=0, Sigmoid, alpha_init=6, beta_clip [-10,10], inner ge/cal_kwargs maxiter=10/maxls=10/tol=1e-4) + 3 deltas from PR 270 (outer tol 1e-6→1e-5, 4-point fusionreg, share_alpha swept). Independent fitting (#273). Wall 718s at n_processes=13 (local, Apple M4 Max). Numbers computed inline from a ModelCollection over the frame (dashboard-only exploration; no committed analysis code). Delta floor = −α_Delta·sigmoid(φ_wt,Delta), the low asymptote of α·(g(φ)−g(φ_wt)) as φ→−∞ (analytic and model-GE-at-φ=−1e4 evaluations agreed to 0.0e0).
+  Delta α + floor (mean over reps), shared vs free, across fusionreg 0 / 4e-5 / 1.6e-4 / 6.4e-4: SHARED α → α 16.8/17.0/14.8/13.5, floor −5.08/−4.69/−3.22/−2.16. FREE α → Delta's own α 16.8/18.1/12.9/5.2 (decoupled from BA1 17.8 / BA2 14.4 at 6.4e-4), floor −5.24/−4.82/−3.45/−3.09. At the prod-strength fusionreg=6.4e-4 freeing α drops Delta's floor from −2.16 → −3.09 (gap −0.93), most of the way to the true −3.5 that the shared α (pinned by BA1/BA2) cannot reach. Effect grows with fusion (floor gap free−shared −0.15 at fr=0 → −0.93 at fr=6.4e-4); BA1/BA2 floors barely move. Counter-intuitively the deeper floor comes with a *smaller* Delta α — freeing α lets the Delta latent push φ_wt more positive so −α·sigmoid(φ_wt) deepens.
+  Convergence: 0/16 converged (all hit maxiter=50), same as PR 270's 0/18 at tol=1e-6 — the looser tol=1e-5 did NOT buy convergence. But obj_err ≤3e-4 (range 5.9e-5–3.0e-4), so the α/floor numbers are trustworthy; the binary flag is not (same maxiter-truncation pattern as the l2-fusion / smoke runs).
+  Conclusion: CONFIRMS the PR 270 hypothesis — the single shared α is the reason Delta under-fits its low tail. A per-condition α lets Delta decouple and pull its floor toward the true −3.5, with the effect concentrated at strong fusion (exactly where PR 270 saw the −2.5 shortfall). Standing findings updated (new free-α floor finding). Next: confirm on the full scv2-spike pipeline (share_alpha=false prod run) that the deeper floor holds against held-out data and does not reintroduce the per-condition sigmoid degeneracy the shared-α default guards against; optionally pair with a small l2reg>0 (the β-explosion tamer) since this run sits in the l2reg=0 regime.
 
 - 2026-07-06 | cache=beta-control-clip + beta-control-l2 | Phase 1 (#263), EPIC #262. sweep: arm {clip[-10,10], l2reg=1e-4} × fusionreg [0.0, 4e-5, 6.4e-4], 2 reps (12 fits). Base regime: cold-start (warmstart=false), recompute_scale=false, share_alpha=true, Sigmoid, maxiter=100 (ceiling), tol=1e-6. Independent fitting. Local (M4 Max). Downstream from diagnostics/beta_control_report.py.
   Basin diagnostics (Σβ², α per cell): clip arm → Σβ² 110,597–180,962, α 2.96–3.39, **all 6 converged=True** (final_obj_err 6e-8–9e-7). l2 arm → Σβ² 221–300, α 52.5–58.8, all 6 converged=False (final_obj_err 8e-5 at fusionreg=0 rising to ~2.8e-4 at 6.4e-4). This is the α/β see-saw in the open: clip caps φ so α stays low (~3) and the fit converges cleanly despite a large Σβ²; l2 collapses β and drives α to ~55, and it never reaches tol=1e-6. Large clip-Σβ² is NOT an explosion — α·φ is bounded by the clip and the objective converges (contrast #256's l2reg=0 Σβ²~16–19k which did NOT converge to tol).
