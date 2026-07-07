@@ -1253,8 +1253,22 @@ def test_ge_landscape_plot_func_score_space(fitted_simple_model):
 
 
 def test_plot_ge_landscape_func_score_convenience(fitted_simple_model):
-    """Model.plot_ge_landscape(space='func_score') returns a LayerChart."""
+    """Model.plot_ge_landscape(space='func_score') binds the func_score curve.
+
+    The wrapper must call get_ge_landscape_df(space='func_score') so the curve
+    layer's data actually carries ``func_score_curve_value``. We inspect the
+    serialized spec's shared datasets (Altair stores layer data by reference
+    under top-level ``datasets``) to confirm the column is present — a wrapper
+    that passed a fitness-space df would bind only ``ge_curve_value``.
+    """
     import altair as alt
 
     chart = fitted_simple_model.plot_ge_landscape(space="func_score")
     assert isinstance(chart, alt.LayerChart)
+
+    spec = chart.to_dict()
+    all_columns = set()
+    for rows in spec.get("datasets", {}).values():
+        for row in rows:
+            all_columns.update(row.keys())
+    assert "func_score_curve_value" in all_columns

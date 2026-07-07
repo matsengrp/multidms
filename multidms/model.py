@@ -841,7 +841,7 @@ class Model:
         func_score_curve = pd.concat(curve_rows, ignore_index=True)
         return variants_df, func_score_curve
 
-    def plot_ge_landscape(self, n_curve_points=200, **kwargs):
+    def plot_ge_landscape(self, n_curve_points=200, space="fitness", **kwargs):
         """Plot the global epistasis landscape.
 
         Convenience wrapper that calls :meth:`get_ge_landscape_df` and
@@ -850,7 +850,12 @@ class Model:
         Parameters
         ----------
         n_curve_points : int
-            Number of points for the ``g(φ)`` curve grid. Default 200.
+            Number of points for the curve grid. Default 200.
+        space : str
+            ``"fitness"`` (default) plots the shared ``g(φ)`` curve;
+            ``"func_score"`` plots one predicted-functional-score curve per
+            condition. Passed to both :meth:`get_ge_landscape_df` and
+            :func:`multidms.plot.ge_landscape`.
         **kwargs
             Passed to :func:`multidms.plot.ge_landscape`.
 
@@ -861,10 +866,10 @@ class Model:
         """
         import multidms.plot
 
-        variants_df, ge_curve_df = self.get_ge_landscape_df(
-            n_curve_points=n_curve_points
+        variants_df, curve_df = self.get_ge_landscape_df(
+            n_curve_points=n_curve_points, space=space
         )
-        return multidms.plot.ge_landscape(variants_df, ge_curve_df, **kwargs)
+        return multidms.plot.ge_landscape(variants_df, curve_df, space=space, **kwargs)
 
     def get_ge_curve(
         self,
