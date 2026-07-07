@@ -1116,6 +1116,49 @@ def test_get_ge_landscape_df_custom_curve_points(fitted_simple_model):
     assert len(ge_curve) == 50
 
 
+def test_get_ge_landscape_df_space_fitness_matches_default(fitted_simple_model):
+    """space='fitness' is byte-for-byte identical to the default call."""
+    v_default, c_default = fitted_simple_model.get_ge_landscape_df()
+    v_fitness, c_fitness = fitted_simple_model.get_ge_landscape_df(space="fitness")
+
+    pd.testing.assert_frame_equal(v_default, v_fitness)
+    pd.testing.assert_frame_equal(c_default, c_fitness)
+    assert list(c_fitness.columns) == ["predicted_latent", "ge_curve_value"]
+
+
+def test_get_ge_landscape_df_func_score_schema(fitted_simple_model):
+    """space='func_score' returns a long-form per-condition curve df."""
+    variants_df, curve_df = fitted_simple_model.get_ge_landscape_df(
+        space="func_score"
+    )
+    assert set(curve_df.columns) == {
+        "condition",
+        "predicted_latent",
+        "func_score_curve_value",
+    }
+    n_conditions = len(fitted_simple_model.data.conditions)
+    assert len(curve_df) == n_conditions * 200  # default n_curve_points
+    # variants_df still carries wildtype_latent for the renderer's WT rules
+    assert "wildtype_latent" in variants_df.columns
+
+
+def test_get_ge_landscape_df_func_score_custom_points(fitted_simple_model):
+    """n_curve_points controls per-condition point count in func_score mode."""
+    _, curve_df = fitted_simple_model.get_ge_landscape_df(
+        space="func_score", n_curve_points=50
+    )
+    n_conditions = len(fitted_simple_model.data.conditions)
+    assert len(curve_df) == n_conditions * 50
+    for condition in fitted_simple_model.data.conditions:
+        assert len(curve_df[curve_df["condition"] == condition]) == 50
+
+
+def test_get_ge_landscape_df_invalid_space(fitted_simple_model):
+    """An unknown space value raises a ValueError naming the options."""
+    with pytest.raises(ValueError, match="fitness.*func_score|func_score.*fitness"):
+        fitted_simple_model.get_ge_landscape_df(space="bogus")
+
+
 # ==================== ge_landscape Plot Tests ====================
 
 

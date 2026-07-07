@@ -749,53 +749,97 @@ class Model:
     def get_ge_landscape_df(
         self,
         n_curve_points: int = 200,
+        space: str = "fitness",
     ) -> tuple:
         """Get data for plotting the global epistasis landscape.
 
-        Returns a tuple of (variants_df, ge_curve_df). The variants DataFrame
+        Returns a tuple of ``(variants_df, curve_df)``. ``variants_df``
         contains per-variant latent phenotype and fitness columns from
         :meth:`get_variants_df`, plus a ``wildtype_latent`` column for
-        reference-line plotting. The curve DataFrame contains the global
-        epistasis function evaluated over the observed latent phenotype range.
+        reference-line plotting. The curve DataFrame depends on ``space``.
 
         Parameters
         ----------
         n_curve_points : int
-            Number of points for the ``g(φ)`` curve grid.
+            Number of points for the curve grid.
+        space : str
+            Which landscape to build. ``"fitness"`` (default) returns the
+            shared global-epistasis curve ``g(φ)``. ``"func_score"`` returns
+            one predicted-functional-score curve per condition,
+            ``α · (g(φ) − g(φ_wt))``.
 
         Returns
         -------
         tuple[pd.DataFrame, pd.DataFrame]
-            ``(variants_df, ge_curve_df)`` where:
+            ``(variants_df, curve_df)`` where:
 
             - ``variants_df`` has all columns from :meth:`get_variants_df`
               plus ``wildtype_latent``.
-            - ``ge_curve_df`` has columns ``predicted_latent`` and
-              ``ge_curve_value``.
+            - For ``space="fitness"``: ``curve_df`` has columns
+              ``predicted_latent`` and ``ge_curve_value``.
+            - For ``space="func_score"``: ``curve_df`` is long-form with
+              columns ``condition``, ``predicted_latent``, and
+              ``func_score_curve_value`` (``n_conditions × n_curve_points``
+              rows).
         """
+        if space not in ("fitness", "func_score"):
+            raise ValueError(
+                f"space must be 'fitness' or 'func_score', got {space!r}"
+            )
+
         variants_df = self.get_variants_df()
 
-        # Compute ge curve spanning the observed latent range
+        # Shared global latent grid (computed once, spans ALL conditions)
         φ_min = variants_df["predicted_latent"].min()
         φ_max = variants_df["predicted_latent"].max()
         margin = (φ_max - φ_min) * 0.05
-        ge_curve = self.get_ge_curve(
-            grid_min=float(φ_min - margin),
-            grid_max=float(φ_max + margin),
-            n_points=n_curve_points,
-        )
-        ge_curve = ge_curve.rename(
-            columns={
-                "latent": "predicted_latent",
-                "observed": "ge_curve_value",
-            }
-        )
+        grid_min = float(φ_min - margin)
+        grid_max = float(φ_max + margin)
 
-        # Add wildtype latent to variants_df for reference lines
+        # Add wildtype latent to variants_df for reference lines (both modes)
         wt_latent = self.wildtype_latent
         variants_df["wildtype_latent"] = variants_df["condition"].map(wt_latent)
 
-        return variants_df, ge_curve
+        if space == "fitness":
+            ge_curve = self.get_ge_curve(
+                grid_min=grid_min,
+                grid_max=grid_max,
+                n_points=n_curve_points,
+            )
+            ge_curve = ge_curve.rename(
+                columns={
+                    "latent": "predicted_latent",
+                    "observed": "ge_curve_value",
+                }
+            )
+            return variants_df, ge_curve
+
+        # space == "func_score": one curve per condition
+        import jax.numpy as jnp
+
+        grid = jnp.linspace(grid_min, grid_max, n_curve_points)
+        g_grid = np.array(self._jax_model.global_epistasis(grid))
+        grid_np = np.array(grid)
+
+        _α = self._jax_model.α
+        curve_rows = []
+        for condition in self._data.conditions:
+            α = float(_α[condition] if isinstance(_α, dict) else _α)
+            g_wt = float(
+                self._jax_model.global_epistasis(jnp.array(wt_latent[condition]))
+            )
+            curve_vals = α * (g_grid - g_wt)
+            curve_rows.append(
+                pd.DataFrame(
+                    {
+                        "condition": condition,
+                        "predicted_latent": grid_np,
+                        "func_score_curve_value": curve_vals,
+                    }
+                )
+            )
+        func_score_curve = pd.concat(curve_rows, ignore_index=True)
+        return variants_df, func_score_curve
 
     def plot_ge_landscape(self, n_curve_points=200, **kwargs):
         """Plot the global epistasis landscape.
