@@ -1159,6 +1159,56 @@ def test_get_ge_landscape_df_invalid_space(fitted_simple_model):
         fitted_simple_model.get_ge_landscape_df(space="bogus")
 
 
+def test_func_score_curve_reconstructs_variant_scores(fitted_simple_model):
+    """Curve formula at each variant's own φ reproduces predicted_func_score.
+
+    Evaluates α·(g(φ_i) − g(φ_wt)) at each variant's exact latent value and
+    checks it matches that variant's predicted_func_score. Catches a wrong α
+    application or a missing/incorrect g_wt subtraction — which the anchor
+    test cannot.
+    """
+    import jax.numpy as jnp
+
+    variants_df = fitted_simple_model.get_variants_df()
+    wt_latent = fitted_simple_model.wildtype_latent
+    _α = fitted_simple_model._jax_model.α
+    g = fitted_simple_model._jax_model.global_epistasis
+
+    for condition in fitted_simple_model.data.conditions:
+        sub = variants_df[variants_df["condition"] == condition]
+        α = float(_α[condition] if isinstance(_α, dict) else _α)
+        g_wt = float(g(jnp.array(wt_latent[condition])))
+        φ = jnp.array(sub["predicted_latent"].to_numpy())
+        expected = α * (np.array(g(φ)) - g_wt)
+        assert np.allclose(
+            expected, sub["predicted_func_score"].to_numpy(), atol=1e-5
+        )
+
+
+def test_func_score_curves_differ_across_conditions(fitted_simple_model):
+    """Conditions with different φ_wt produce different curves."""
+    _, curve_df = fitted_simple_model.get_ge_landscape_df(space="func_score")
+    conditions = list(fitted_simple_model.data.conditions)
+    assert len(conditions) >= 2
+    a = curve_df[curve_df["condition"] == conditions[0]][
+        "func_score_curve_value"
+    ].to_numpy()
+    b = curve_df[curve_df["condition"] == conditions[1]][
+        "func_score_curve_value"
+    ].to_numpy()
+    assert not np.allclose(a, b)
+
+
+def test_func_score_curve_monotonic_increasing(fitted_simple_model):
+    """Each condition's curve is monotonically increasing in φ (Sigmoid, α>0)."""
+    _, curve_df = fitted_simple_model.get_ge_landscape_df(space="func_score")
+    for condition in fitted_simple_model.data.conditions:
+        vals = curve_df[curve_df["condition"] == condition][
+            "func_score_curve_value"
+        ].to_numpy()
+        assert np.all(np.diff(vals) >= -1e-8)
+
+
 # ==================== ge_landscape Plot Tests ====================
 
 
