@@ -1350,7 +1350,7 @@ def func_score_boxplot(variants_df, *, width=400, height=300):
 def ge_landscape(
     variants_df,
     ge_curve_df,
-    fitness_col="measured_fitness",
+    fitness_col=None,
     color_by="condition",
     point_size=5,
     point_opacity=0.3,
@@ -1358,6 +1358,7 @@ def ge_landscape(
     curve_width=3,
     width=500,
     height=400,
+    space="fitness",
 ):
     """Plot the global epistasis landscape.
 
@@ -1373,12 +1374,16 @@ def ge_landscape(
         ``condition``, ``wildtype_latent``, and ``fitness_col``.
         Typically from :meth:`Model.get_ge_landscape_df`.
     ge_curve_df : pandas.DataFrame
-        Global epistasis curve with columns ``predicted_latent``
-        and ``ge_curve_value``.
+        Curve DataFrame. For ``space="fitness"`` it has columns
+        ``predicted_latent`` and ``ge_curve_value``; for
+        ``space="func_score"`` it is long-form with ``condition``,
+        ``predicted_latent`` and ``func_score_curve_value``.
         Typically from :meth:`Model.get_ge_landscape_df`.
-    fitness_col : str
-        Which fitness column to plot on the y-axis: ``'measured_fitness'``
-        or ``'predicted_fitness'``. Default is ``'measured_fitness'``.
+    fitness_col : str, optional
+        Which variant column to plot on the y-axis. When ``None`` (the
+        default), resolves per ``space``: ``'measured_fitness'`` for
+        ``space="fitness"`` and ``'predicted_func_score'`` for
+        ``space="func_score"``.
     color_by : str
         Column to color scatter points by. Default is ``'condition'``.
     point_size : float
@@ -1393,6 +1398,11 @@ def ge_landscape(
         Chart width in pixels. Default is 500.
     height : int
         Chart height in pixels. Default is 400.
+    space : str
+        ``"fitness"`` (default) draws the single shared ``g(φ)`` curve on
+        ``ge_curve_value``. ``"func_score"`` draws one condition-colored
+        curve per condition on ``func_score_curve_value`` and labels the
+        y-axis "Functional score".
 
     Returns
     -------
@@ -1400,6 +1410,16 @@ def ge_landscape(
         Altair layered chart with scatter, curve, and wildtype reference
         lines.
     """
+    if space not in ("fitness", "func_score"):
+        raise ValueError(
+            f"space must be 'fitness' or 'func_score', got {space!r}"
+        )
+    if fitness_col is None:
+        fitness_col = (
+            "predicted_func_score" if space == "func_score" else "measured_fitness"
+        )
+    y_title = "Functional score" if space == "func_score" else "Fitness"
+
     # Interactive legend selection to toggle conditions
     selection = alt.selection_point(fields=[color_by], bind="legend")
 
@@ -1412,7 +1432,7 @@ def ge_landscape(
                 "predicted_latent:Q",
                 title="Predicted latent phenotype (φ)",
             ),
-            y=alt.Y(f"{fitness_col}:Q", title="Fitness"),
+            y=alt.Y(f"{fitness_col}:Q", title=y_title),
             color=alt.Color(f"{color_by}:N"),
             opacity=alt.condition(
                 selection,
@@ -1423,15 +1443,28 @@ def ge_landscape(
         .add_params(selection)
     )
 
-    # Curve layer: g(φ)
-    curve = (
-        alt.Chart(ge_curve_df)
-        .mark_line(color=curve_color, strokeWidth=curve_width)
-        .encode(
-            x="predicted_latent:Q",
-            y=alt.Y("ge_curve_value:Q"),
+    # Curve layer
+    if space == "func_score":
+        # one line per condition from α·(g(φ) − g(φ_wt))
+        curve = (
+            alt.Chart(ge_curve_df)
+            .mark_line(strokeWidth=curve_width)
+            .encode(
+                x="predicted_latent:Q",
+                y=alt.Y("func_score_curve_value:Q", title=y_title),
+                color=alt.Color(f"{color_by}:N"),
+                detail=alt.Detail(f"{color_by}:N"),
+            )
         )
-    )
+    else:
+        curve = (
+            alt.Chart(ge_curve_df)
+            .mark_line(color=curve_color, strokeWidth=curve_width)
+            .encode(
+                x="predicted_latent:Q",
+                y=alt.Y("ge_curve_value:Q"),
+            )
+        )
 
     # WT reference lines
     wt_data = (

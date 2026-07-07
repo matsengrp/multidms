@@ -1238,3 +1238,23 @@ def test_plot_ge_landscape_convenience(fitted_simple_model):
 
     chart = fitted_simple_model.plot_ge_landscape()
     assert isinstance(chart, alt.LayerChart)
+
+
+def test_ge_landscape_plot_func_score_space(fitted_simple_model):
+    """ge_landscape renders in func_score space and returns a LayerChart."""
+    import altair as alt
+    import multidms.plot as mplt
+
+    variants_df, curve_df = fitted_simple_model.get_ge_landscape_df(
+        space="func_score"
+    )
+    chart = mplt.ge_landscape(variants_df, curve_df, space="func_score")
+    assert isinstance(chart, alt.LayerChart)
+
+
+def test_plot_ge_landscape_func_score_convenience(fitted_simple_model):
+    """Model.plot_ge_landscape(space='func_score') returns a LayerChart."""
+    import altair as alt
+
+    chart = fitted_simple_model.plot_ge_landscape(space="func_score")
+    assert isinstance(chart, alt.LayerChart)
