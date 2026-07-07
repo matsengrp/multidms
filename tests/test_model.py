@@ -1246,6 +1246,28 @@ def test_ge_landscape_plot_func_score_space(fitted_simple_model):
     assert isinstance(chart, alt.LayerChart)
 
 
+def test_ge_landscape_func_score_scatters_measured_by_default(fitted_simple_model):
+    """func_score mode scatters MEASURED func_score, not the prediction.
+
+    The prediction is the curve itself (predicted_func_score equals the
+    per-condition curve at each variant's latent), so the informative scatter
+    is the measured func_score; its vertical offset from the curve is the
+    residual. Guards against defaulting the scatter back to
+    predicted_func_score, which would stipple dots onto the curve.
+    """
+    import multidms.plot as mplt
+
+    variants_df, curve_df = fitted_simple_model.get_ge_landscape_df(space="func_score")
+    spec = mplt.ge_landscape(variants_df, curve_df, space="func_score").to_dict()
+    y_fields = [
+        layer.get("encoding", {}).get("y", {}).get("field") for layer in spec["layer"]
+    ]
+    assert "func_score" in y_fields
+    assert "func_score_curve_value" in y_fields
+    # measured scatter must NOT default to the model prediction
+    assert "predicted_func_score" not in y_fields
+
+
 def test_plot_ge_landscape_func_score_convenience(fitted_simple_model):
     """Model.plot_ge_landscape(space='func_score') binds the func_score curve.
 

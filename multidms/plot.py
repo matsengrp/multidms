@@ -1380,10 +1380,14 @@ def ge_landscape(
         ``predicted_latent`` and ``func_score_curve_value``.
         Typically from :meth:`Model.get_ge_landscape_df`.
     fitness_col : str, optional
-        Which variant column to plot on the y-axis. When ``None`` (the
-        default), resolves per ``space``: ``'measured_fitness'`` for
-        ``space="fitness"`` and ``'predicted_func_score'`` for
-        ``space="func_score"``.
+        Which variant column to scatter on the y-axis. When ``None`` (the
+        default), resolves to the *measured* observation for each space:
+        ``'measured_fitness'`` for ``space="fitness"`` and ``'func_score'``
+        for ``space="func_score"``. The model's prediction is the curve
+        itself (``predicted_func_score`` equals the per-condition curve
+        evaluated at each variant's latent), so the scatter shows measured
+        data and the curve shows the fit; the vertical gap is the residual.
+        Pass ``'predicted_func_score'`` explicitly to overlay predictions.
     color_by : str
         Column to color scatter points by. Default is ``'condition'``.
     point_size : float
@@ -1413,9 +1417,11 @@ def ge_landscape(
     if space not in ("fitness", "func_score"):
         raise ValueError(f"space must be 'fitness' or 'func_score', got {space!r}")
     if fitness_col is None:
-        fitness_col = (
-            "predicted_func_score" if space == "func_score" else "measured_fitness"
-        )
+        # Default to the *measured* observation in each space, so the scatter
+        # shows data (not model predictions) against the fitted curve:
+        #   fitness    -> measured_fitness  (observed, in g(φ) space)
+        #   func_score -> func_score        (observed functional score)
+        fitness_col = "func_score" if space == "func_score" else "measured_fitness"
     y_title = "Functional score" if space == "func_score" else "Fitness"
 
     # Interactive legend selection to toggle conditions
