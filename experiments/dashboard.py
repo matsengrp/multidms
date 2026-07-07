@@ -220,11 +220,33 @@ def _(ge_table, mc, mo, mplot):
     else:
         _row = mc.fit_models.reset_index(drop=True).iloc[int(_sel["_fit_idx"].iloc[0])]
         _model = _row["model"]
-        _variants_df, _ge_curve_df = _model.get_ge_landscape_df()
         _max_points = 5000
-        if len(_variants_df) > _max_points:
-            _variants_df = _variants_df.sample(n=_max_points, random_state=0)
-        ge_chart = mplot.ge_landscape(_variants_df, _ge_curve_df, point_size=20)
+
+        def _sampled_variants(_vdf):
+            if len(_vdf) > _max_points:
+                return _vdf.sample(n=_max_points, random_state=0)
+            return _vdf
+
+        _v_fit, _curve_fit = _model.get_ge_landscape_df(space="fitness")
+        _fit_chart = mplot.ge_landscape(
+            _sampled_variants(_v_fit), _curve_fit, space="fitness", point_size=20
+        )
+
+        _v_fs, _curve_fs = _model.get_ge_landscape_df(space="func_score")
+        _fs_chart = mplot.ge_landscape(
+            _sampled_variants(_v_fs), _curve_fs, space="func_score", point_size=20
+        )
+
+        ge_chart = mo.vstack(
+            [
+                mo.md("**Fitness space** — g(φ)"),
+                _fit_chart,
+                mo.md(
+                    "**Functional-score space** — " "α·(g(φ) − g(φ_wt)), per condition"
+                ),
+                _fs_chart,
+            ]
+        )
     return (ge_chart,)
 
 

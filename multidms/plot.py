@@ -1411,9 +1411,7 @@ def ge_landscape(
         lines.
     """
     if space not in ("fitness", "func_score"):
-        raise ValueError(
-            f"space must be 'fitness' or 'func_score', got {space!r}"
-        )
+        raise ValueError(f"space must be 'fitness' or 'func_score', got {space!r}")
     if fitness_col is None:
         fitness_col = (
             "predicted_func_score" if space == "func_score" else "measured_fitness"

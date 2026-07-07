@@ -1128,9 +1128,7 @@ def test_get_ge_landscape_df_space_fitness_matches_default(fitted_simple_model):
 
 def test_get_ge_landscape_df_func_score_schema(fitted_simple_model):
     """space='func_score' returns a long-form per-condition curve df."""
-    variants_df, curve_df = fitted_simple_model.get_ge_landscape_df(
-        space="func_score"
-    )
+    variants_df, curve_df = fitted_simple_model.get_ge_landscape_df(space="func_score")
     assert set(curve_df.columns) == {
         "condition",
         "predicted_latent",
@@ -1180,9 +1178,7 @@ def test_func_score_curve_reconstructs_variant_scores(fitted_simple_model):
         g_wt = float(g(jnp.array(wt_latent[condition])))
         φ = jnp.array(sub["predicted_latent"].to_numpy())
         expected = α * (np.array(g(φ)) - g_wt)
-        assert np.allclose(
-            expected, sub["predicted_func_score"].to_numpy(), atol=1e-5
-        )
+        assert np.allclose(expected, sub["predicted_func_score"].to_numpy(), atol=1e-5)
 
 
 def test_func_score_curves_differ_across_conditions(fitted_simple_model):
@@ -1245,9 +1241,7 @@ def test_ge_landscape_plot_func_score_space(fitted_simple_model):
     import altair as alt
     import multidms.plot as mplt
 
-    variants_df, curve_df = fitted_simple_model.get_ge_landscape_df(
-        space="func_score"
-    )
+    variants_df, curve_df = fitted_simple_model.get_ge_landscape_df(space="func_score")
     chart = mplt.ge_landscape(variants_df, curve_df, space="func_score")
     assert isinstance(chart, alt.LayerChart)
 

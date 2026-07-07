@@ -783,9 +783,7 @@ class Model:
               rows).
         """
         if space not in ("fitness", "func_score"):
-            raise ValueError(
-                f"space must be 'fitness' or 'func_score', got {space!r}"
-            )
+            raise ValueError(f"space must be 'fitness' or 'func_score', got {space!r}")
 
         variants_df = self.get_variants_df()
 
