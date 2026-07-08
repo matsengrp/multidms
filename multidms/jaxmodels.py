@@ -226,9 +226,7 @@ class OutputActivation(eqx.Module, abc.ABC):
     r"""Activation applied to the model's predicted functional score."""
 
     @abc.abstractmethod
-    def __call__(
-        self, y: Float[Array, " n_variants"]
-    ) -> Float[Array, " n_variants"]:
+    def __call__(self, y: Float[Array, " n_variants"]) -> Float[Array, " n_variants"]:
         r"""Apply the output activation.
 
         Args:
@@ -242,9 +240,7 @@ class OutputActivation(eqx.Module, abc.ABC):
 class IdentityOutput(OutputActivation):
     r"""Pass-through output activation (no floor). The default."""
 
-    def __call__(
-        self, y: Float[Array, " n_variants"]
-    ) -> Float[Array, " n_variants"]:
+    def __call__(self, y: Float[Array, " n_variants"]) -> Float[Array, " n_variants"]:
         r"""Return input unchanged."""
         return y
 
@@ -268,9 +264,7 @@ class Softplus(OutputActivation):
     lower_bound: float = -3.5
     hinge_scale: float = 0.1
 
-    def __call__(
-        self, y: Float[Array, " n_variants"]
-    ) -> Float[Array, " n_variants"]:
+    def __call__(self, y: Float[Array, " n_variants"]) -> Float[Array, " n_variants"]:
         r"""Apply the softplus floor."""
         lb, λ = self.lower_bound, self.hinge_scale
         return λ * jnp.logaddexp(0.0, (y - lb) / λ) + lb
@@ -461,6 +455,8 @@ def fit(
         cal_kwargs: Keyword arguments for the experimental calibration
                     parameter optimizer.
         global_epistasis: Global epistasis model.
+        output_activation: Output activation applied to predicted functional
+            scores. Defaults to :class:`IdentityOutput` (no floor).
         loss_fn: Loss function.
         loss_kwargs: Keyword arguments for the loss function.
         warmstart: Whether to use Ridge regression warmstart (default: True).
