@@ -84,25 +84,37 @@ directory run `pixi run dashboard` (it discovers `fit_collection.pkl` below cwd)
   (0/16 converged, same as PR 270's 0/18 at tol=1e-6 — the looser tol=1e-5
   didn't buy convergence), but obj_err is tiny (≤3e-4), so the α/floor numbers
   are trustworthy while the binary flag is not.
-- **Softplus output floor perturbs the fit everywhere; hard-truncates the
-  weak-fusion runaway but relies on an α shift at prod** (measured, #277, matched
-  in-harness A/B, `cache=277-softplus-floor` ON vs `277-softplus-floor-off` OFF):
-  with `output_floor=-3.5` (hinge 0.1) fixed on and share_alpha=true, the fitted
-  shared α lands a consistent **+3.8…+4.5 higher ON than OFF** across all four
-  fusion cells (+29% at prod, 13.47→17.36) — the floor is inside `predict_score`
-  so it changes the optimization at every strength, not just the deep-tail cells.
-  Two regimes: at weak fusion (0…1.6e-4) the shared-α sigmoid drives Delta's
-  *pre-activation* floor to −15…−17 (past the biological −3.5) and the softplus
-  **hard-truncates it to exactly −3.5**; at prod fusion (6.4e-4) the raw floor only
-  reaches −2.96 so the hinge itself clips almost nothing (−2.96→−2.94), but the
-  OFF→ON floor still deepens −2.16→−2.94 driven by the higher fitted α, not the
-  hinge. **Complementary with free-α (#274), opposite regimes**: free-α *deepens*
-  the under-shooting prod floor (−2.16→−3.09) by selectively decoupling Delta's α;
-  the softplus is a **blunt clip** (floors all three conditions) that mainly caps
-  the over-shooting weak-fusion tail and does **not**, on its own, pull the prod
-  floor to −3.5. Ships **default-off** (`output_floor=None`); turning it on is a
-  per-experiment choice. The OFF control reproduced #274's separately-fit column
-  exactly, confirming the fit is deterministic and the A/B fair.
+- **Softplus floor × free-α is a complementary 2×2 — only BOTH together floor the
+  prod tail to the biological −3.5** (measured, #277, full in-harness 2×2:
+  `cache=277-softplus-floor{,-off}` share_alpha=true, `…-freealpha` /
+  `…-off-freealpha` share_alpha=false; `output_floor=-3.5` hinge 0.1 vs null;
+  4 fusion × 2 reps each = 32 fits, 0 failed; Delta floor computed two ways —
+  analytic `t(−α·g(φ_wt))` and model composition at φ=−1e4 — agreed to 0.0e0 on
+  all 32). Delta floor (mean over 2 reps):
+  ```
+  fusionreg    free-OFF  free-ON   shared-OFF  shared-ON
+  0.0           -5.24    -3.50      -5.09       -3.50
+  4e-5          -4.82    -3.50      -4.69       -3.50
+  1.6e-4        -3.45    -3.50      -3.22       -3.50
+  6.4e-4(prod)  -3.09    -3.50      -2.16       -2.95
+  ```
+  The **softplus is a blunt clip**: it hard-truncates the *pre-activation* floor to
+  −3.5 wherever that raw floor overshoots the hinge. At weak fusion (0…1.6e-4) both
+  α regimes drive Delta's pre-activation floor to −11…−16 (far past −3.5), so ON
+  pins every one of those cells to exactly −3.5. The floor is inside `predict_score`
+  (which the loss uses), so turning it on also perturbs the fit everywhere — fitted
+  α lands consistently higher ON than OFF in both regimes. **Free-α** does the
+  opposite thing: it *deepens the pre-activation floor selectively* by letting
+  Delta's own α decouple (Delta α at prod: shared 13.47 → free **5.23** OFF), which
+  by itself takes the OFF prod floor −2.16 → −3.09. **The prod cell is the whole
+  point:** softplus-alone gets −2.16 → −2.95 (α-driven, raw floor only −2.96 so the
+  hinge barely bites); free-α-alone gets −2.16 → −3.09; **both together** are the
+  *only* arm that reaches **−3.50** at prod, because free-α pushes the
+  pre-activation floor (−4.80) past the hinge, which then clamps it. The two levers
+  attack opposite regimes and compose at prod — neither alone floors the prod tail;
+  together they do. Ships **default-off** (`output_floor=None`); the shared-α OFF
+  control reproduced #274's separately-fit column to the last decimal, confirming
+  determinism and a fair baseline.
 - **`recompute_scale=False`** (the fixed-scale objective normalizer) converges.
 - **`fit_models` parallelism — settled** (`diagnostics/parallelism_probe.py`):
   `n_processes=2` (the real spawn path) ran the full data-size × l2reg staircase
@@ -144,7 +156,17 @@ downstream from a ModelCollection — the conclusion, the next step.)
     | 4.0e-5 | −4.69 | −3.50 | +1.19 | 17.01 | 21.34 | +4.32 | −15.75 | yes |
     | 1.6e-4 | −3.22 | −3.50 | −0.28 | 14.76 | 19.24 | +4.48 | −16.43 | yes |
     | 6.4e-4 | −2.16 | −2.94 | −0.79 | 13.47 | 17.36 | +3.90 | −2.96 | no |
-  Conclusion: the softplus perturbs the FIT at every fusion strength — fitted shared α is a consistent +3.8…+4.5 higher ON than OFF (+29% at prod), and because the floor is inside predict_score (which the loss uses) this is a real optimization effect, not fit-to-fit noise. Two regimes: at weak fusion (0…1.6e-4) the shared-α sigmoid drives Delta's raw pre-activation floor to −15…−17 (far past the biological −3.5) and the softplus HARD-TRUNCATES it to exactly −3.5 (the assay detection floor); at prod fusion (6.4e-4) the raw floor only reaches −2.96 so the hinge itself clips almost nothing (−2.96→−2.94), but the OFF→ON floor still deepens −2.16→−2.94 driven by the genuinely higher fitted α the floor induced, not by the hinge biting. vs #274 free-α (which DEEPENS the under-shooting prod floor −2.16→−3.09 by selectively decoupling Delta's α): the softplus is a BLUNT clip that floors all three conditions and mainly bites the over-shooting weak-fusion tail — it does NOT pull the prod floor to −3.5 on its own. Complementary, opposite regimes. Convergence: pkl carries no converged/final_obj_err column (computed downstream); #274 saw 0/16 at these tols; all 16 fits completed, floor introduced no failures. Next: for a floored prod recommendation, pair the softplus with free-α or l2reg>0 (softplus alone does not fix the prod under-fit); counts-path floor deferred to a separate stub.
+  Conclusion: the softplus perturbs the FIT at every fusion strength — fitted shared α is a consistent +3.8…+4.5 higher ON than OFF (+29% at prod), and because the floor is inside predict_score (which the loss uses) this is a real optimization effect, not fit-to-fit noise. Two regimes: at weak fusion (0…1.6e-4) the shared-α sigmoid drives Delta's raw pre-activation floor to −15…−17 (far past the biological −3.5) and the softplus HARD-TRUNCATES it to exactly −3.5 (the assay detection floor); at prod fusion (6.4e-4) the raw floor only reaches −2.96 so the hinge itself clips almost nothing (−2.96→−2.94), but the OFF→ON floor still deepens −2.16→−2.94 driven by the genuinely higher fitted α the floor induced, not by the hinge biting. vs #274 free-α (which DEEPENS the under-shooting prod floor −2.16→−3.09 by selectively decoupling Delta's α): the softplus is a BLUNT clip that floors all three conditions and mainly bites the over-shooting weak-fusion tail — it does NOT pull the prod floor to −3.5 on its own. Complementary, opposite regimes. Convergence: pkl carries no converged/final_obj_err column (computed downstream); #274 saw 0/16 at these tols; all 16 fits completed, floor introduced no failures. Next: for a floored prod recommendation, pair the softplus with free-α or l2reg>0 (softplus alone does not fix the prod under-fit); counts-path floor deferred to a separate stub. [SUPERSEDED 2026-07-08 by the free-α arm below — the "pair with free-α" recommendation is now measured directly, not inferred cross-PR.]
+
+- 2026-07-08 | cache=277-softplus-floor-freealpha (ON) + 277-softplus-floor-off-freealpha (OFF control) | The MISSING free-α arm of the 2×2. Same 8-cell grid as the 2026-07-07 shared-α pair but share_alpha=FALSE (the #274 free-α regime, per-condition α) — fit twice, output_floor=-3.5 vs null. 16 fits, 0 failed; wall 1309s (ON) + 1912s (OFF) at n_processes=1. **Ran serial (n_processes=1) deliberately:** the free-α grids deadlocked under the spawn pool (`n_processes=8`) — all 8 workers went to 0% CPU with a shared multiprocessing pipe_handle after a worker re-spawned, a spawn-under-JAX race the heavier free-α compilation widened; serial fits the identical models with no pool. All 16 verified genuinely free-α (per-condition α dict on the fitted model, not shared scalar). Delta floor computed two ways (analytic + model φ=−1e4) — agreed to 0.0e0 on all evals.
+  Full 2×2 Delta floor + Delta's own α (mean over 2 reps):
+    | fusionreg | free OFF floor | free ON floor | shared OFF floor | shared ON floor | free OFF α_Δ | free ON α_Δ | shared α (OFF/ON) |
+    |---|---|---|---|---|---|---|---|
+    | 0.0 | −5.24 | −3.50 | −5.09 | −3.50 | 17.37 | 19.16 | 16.81/20.61 |
+    | 4.0e-5 | −4.82 | −3.50 | −4.69 | −3.50 | 18.07 | 21.20 | 17.01/21.34 |
+    | 1.6e-4 | −3.45 | −3.50 | −3.22 | −3.50 | 12.85 | 17.54 | 14.76/19.24 |
+    | 6.4e-4 | −3.09 | −3.50 | −2.16 | −2.95 | 5.23 | 11.00 | 13.47/17.36 |
+  Conclusion: the two levers are complementary and compose AT PROD. Free-α *deepens the pre-activation floor selectively* — Delta's α at prod drops shared-13.47 → free-5.23 (OFF), taking the OFF prod floor −2.16 → −3.09 with no clip. The softplus is a *blunt clip* to −3.5 wherever the raw pre-activation floor overshoots the hinge. At prod: softplus-alone −2.16→−2.95 (raw floor only −2.96, hinge barely bites, α-driven); free-α-alone −2.16→−3.09; **BOTH together −2.16→−3.50** — the only arm reaching the biological floor at prod, because free-α's deeper −4.80 pre-activation floor now exceeds the hinge and gets clamped. At weak fusion (0…1.6e-4) both α regimes overshoot to −11…−16 pre-activation, so ON pins every cell to exactly −3.5 regardless of share_alpha. This directly measures (not infers) the 2026-07-07 "pair softplus with free-α for a floored prod recommendation" next-step: confirmed — neither lever alone floors the prod tail, together they do. Standing finding rewritten to the 2×2. Next: none for this experiment; the softplus × free-α interaction is settled. Counts-path floor still deferred to stub #276.
 
 - 2026-06-30 | cache=l2-fusion | sweep: l2reg [0.0, 1e-4, 3e-4] × fusionreg [0.0, 4e-5, 6.4e-4], 2 reps (18 fits), warmstart=True, recompute_scale=False, share_alpha=True, Sigmoid, maxiter=25. Independent fitting (#256). Wall 1138s at n_processes=4 (local, Apple M4 Max). Downstream numbers from diagnostics/l2_fusion_report.py.
   Basin diagnostics (Σβ², α per cell): at l2reg=0.0 → Σβ² 16,181–19,222, α 5.9–8.2 (β EXPLODED at EVERY fusionreg, incl. 6.4e-4). l2reg=1e-4 → Σβ² 554–841, α 19.5–24.6 (β tamed ~25× into the healthy 350–1400 band, holds across all fusion). l2reg=3e-4 → Σβ² 188–298, α 30.5–40.4 (β tamed further but α climbing toward the see-saw collapse end). All 18 converged=False, but final_obj_err is tiny (4e-6 at l2reg=0 to ~7e-4 at l2reg>0) — maxiter=25 truncation, not a pathology; β-magnitude and r are trustworthy, the binary flag is not.
