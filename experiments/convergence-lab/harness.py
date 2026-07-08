@@ -78,6 +78,8 @@ VALID_KWARGS = frozenset(
         "fusionreg",
         "beta0_ridge",
         "scale_fusion_by_n",
+        "output_floor",
+        "output_floor_hinge",
         "loss_type",
         "maxiter",
         "tol",

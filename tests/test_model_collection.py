@@ -1214,3 +1214,39 @@ class TestConcatPathTrajectories:
         out = concat_path_trajectories(empty)
         assert isinstance(out, pd.DataFrame)
         assert len(out) == 0
+
+
+def test_fit_one_model_output_floor_is_live(simple_data):
+    """output_floor passed to fit_one_model actually CHANGES predict_score.
+
+    Guards the silent-swallow trap: fit_one_model's **kwargs would absorb
+    output_floor without error if it weren't threaded into Model(...), yielding
+    softplus-OFF numbers mislabeled as ON. A pure `> -3.5` check cannot catch
+    that (it holds for the swallowed case too); a difference check can.
+    """
+    import jax.numpy as jnp
+    from multidms.model_collection import fit_one_model
+
+    off = fit_one_model(
+        dataset=simple_data, ge_type="Sigmoid", maxiter=5, output_floor=None
+    )
+    on = fit_one_model(
+        dataset=simple_data, ge_type="Sigmoid", maxiter=5, output_floor=-3.5
+    )
+    # Bookkeeping records the value.
+    assert on["output_floor"] == -3.5
+    assert off["output_floor"] is None
+
+    m_off, m_on = off["model"], on["model"]
+    p_off = m_off._jax_model.predict_score(m_off._jax_data_sets)
+    p_on = m_on._jax_model.predict_score(m_on._jax_data_sets)
+
+    # The floor must CHANGE at least one condition's predictions. If it were
+    # swallowed by **kwargs, both fits are identical and this fails — the trap
+    # is caught.
+    differs = any(not jnp.array_equal(p_off[c], p_on[c]) for c in p_off)
+    assert differs, "output_floor was swallowed — predictions unchanged"
+
+    # And the floored predictions never fall below the soft bound.
+    for c in p_on:
+        assert (p_on[c] >= -3.5).all()
