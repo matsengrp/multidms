@@ -317,6 +317,66 @@ class TestOutputActivation:
         # At the hinge, value = l + λ·log2, so larger λ → larger offset above l
         assert float(wide(y)) > float(sharp(y))
 
+    def _fitted_params(self, model):
+        """Extract (α, per-condition β) as concrete arrays for comparison."""
+        α = model.α
+        βs = {d: model.φ[d].β for d in model.φ}
+        return α, βs
+
+    def test_fit_merge_safety_default_is_fieldfree(self, multi_condition_data):
+        """Default (arg omitted) fit == explicit IdentityOutput fit, bitwise.
+
+        Guards spec's merge-safety invariant: the new static field must not
+        shift equinox partitioning or the optimizer. Compares fitted α, β, and
+        predict_score outputs via jnp.array_equal.
+        """
+        common = dict(reference_condition="condition1", block_iters=5)
+        # Arm 1: output_activation argument OMITTED (the main-era code path).
+        m_omitted, _ = jaxmodels.fit(data_sets=multi_condition_data, **common)
+        # Arm 2: explicit IdentityOutput.
+        m_explicit, _ = jaxmodels.fit(
+            data_sets=multi_condition_data,
+            output_activation=jaxmodels.IdentityOutput(),
+            **common,
+        )
+        α1, β1 = self._fitted_params(m_omitted)
+        α2, β2 = self._fitted_params(m_explicit)
+        # α may be a scalar or a dict depending on share_alpha; handle both.
+        if isinstance(α1, dict):
+            for d in α1:
+                assert jnp.array_equal(α1[d], α2[d])
+        else:
+            assert jnp.array_equal(α1, α2)
+        for d in β1:
+            assert jnp.array_equal(β1[d], β2[d])
+        p1 = m_omitted.predict_score(multi_condition_data)
+        p2 = m_explicit.predict_score(multi_condition_data)
+        for d in p1:
+            assert jnp.array_equal(p1[d], p2[d])
+
+    def test_fit_softplus_changes_predictions(self, multi_condition_data):
+        """A Softplus fit produces DIFFERENT predict_score than the default fit.
+
+        Positive control: proves the floor is actually wired into predict_score
+        (not inert). Complements the merge-safety test above.
+        """
+        common = dict(reference_condition="condition1", block_iters=5)
+        m_off, _ = jaxmodels.fit(data_sets=multi_condition_data, **common)
+        m_on, _ = jaxmodels.fit(
+            data_sets=multi_condition_data,
+            output_activation=jaxmodels.Softplus(lower_bound=0.0, hinge_scale=0.1),
+            **common,
+        )
+        # lower_bound=0.0 forces a visible change even on this small toy data
+        # (many toy scores sit below 0), so the ON/OFF predictions must differ.
+        p_off = m_off.predict_score(multi_condition_data)
+        p_on = m_on.predict_score(multi_condition_data)
+        differs = any(not jnp.array_equal(p_off[d], p_on[d]) for d in p_off)
+        assert differs, "Softplus floor did not change predict_score — not wired"
+        # And the floored predictions never fall below the (soft) bound.
+        for d in p_on:
+            assert jnp.all(p_on[d] >= 0.0)
+
 
 # ==================== Tests for Model fitting with beta clipping ====================
 
