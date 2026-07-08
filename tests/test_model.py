@@ -1288,3 +1288,32 @@ def test_plot_ge_landscape_func_score_convenience(fitted_simple_model):
         for row in rows:
             all_columns.update(row.keys())
     assert "func_score_curve_value" in all_columns
+
+
+def test_output_floor_toggle(simple_data):
+    """output_floor=-3.5 is advertised in repr/str; default (None) is not.
+
+    Also exercises the validation path and confirms a floored model fits.
+    """
+    m_off = multidms.Model(simple_data, ge_type="Sigmoid")
+    m_off.fit(maxiter=3, warmstart=False)
+    m_on = multidms.Model(simple_data, ge_type="Sigmoid", output_floor=-3.5)
+    m_on.fit(maxiter=3, warmstart=False)
+
+    # Default off: neither repr nor str advertises a floor.
+    assert "output_floor" not in repr(m_off)
+    assert "output_floor" not in str(m_off)
+    # On: both advertise the floor and its value.
+    assert "output_floor" in repr(m_on)
+    assert "-3.5" in repr(m_on)
+    assert "output_floor" in str(m_on)
+
+
+def test_output_floor_validation(simple_data):
+    """output_floor must be None/float; output_floor_hinge a positive float."""
+    with pytest.raises(ValueError, match="output_floor"):
+        multidms.Model(simple_data, output_floor="not-a-number")
+    with pytest.raises(ValueError, match="output_floor_hinge"):
+        multidms.Model(simple_data, output_floor=-3.5, output_floor_hinge=0.0)
+    with pytest.raises(ValueError, match="output_floor_hinge"):
+        multidms.Model(simple_data, output_floor=-3.5, output_floor_hinge=-1.0)
