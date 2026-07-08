@@ -222,6 +222,60 @@ class Sigmoid(GlobalEpistasis):
         return jax.scipy.special.expit(x)
 
 
+class OutputActivation(eqx.Module, abc.ABC):
+    r"""Activation applied to the model's predicted functional score."""
+
+    @abc.abstractmethod
+    def __call__(
+        self, y: Float[Array, " n_variants"]
+    ) -> Float[Array, " n_variants"]:
+        r"""Apply the output activation.
+
+        Args:
+            y: The pre-activation predicted functional score.
+
+        Returns:
+            The activated functional score.
+        """
+
+
+class IdentityOutput(OutputActivation):
+    r"""Pass-through output activation (no floor). The default."""
+
+    def __call__(
+        self, y: Float[Array, " n_variants"]
+    ) -> Float[Array, " n_variants"]:
+        r"""Return input unchanged."""
+        return y
+
+
+class Softplus(OutputActivation):
+    r"""Smooth differentiable lower floor on the predicted functional score.
+
+    Reproduces the manuscript-era ``biophysical.py::softplus_activation``:
+
+    .. math::
+
+        t(y) = \lambda \cdot \log\!\left(1 + e^{(y - l)/\lambda}\right) + l
+
+    where :math:`l` is ``lower_bound`` and :math:`\lambda` is ``hinge_scale``.
+    For :math:`y \gg l` it is approximately the identity; for :math:`y \ll l`
+    it flattens toward :math:`l` (from above; :math:`t(y) > l` for all finite
+    :math:`y`). The floor is *soft* — at :math:`y = l`,
+    :math:`t = l + \lambda\log 2`, not exactly :math:`l`.
+    """
+
+    lower_bound: float = -3.5
+    hinge_scale: float = 0.1
+
+    def __call__(
+        self, y: Float[Array, " n_variants"]
+    ) -> Float[Array, " n_variants"]:
+        r"""Apply the softplus floor."""
+        lb, λ = self.lower_bound, self.hinge_scale
+        return λ * jnp.logaddexp(0.0, (y - lb) / λ) + lb
+
+
 class Model(eqx.Module):
     r"""Model DMS data."""
 

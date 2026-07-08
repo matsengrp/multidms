@@ -259,6 +259,65 @@ class TestGlobalEpistasis:
         assert y[2] < y[0]  # sigmoid(-1) < sigmoid(0)
 
 
+# ==================== Tests for Output Activation ====================
+
+
+class TestOutputActivation:
+    """Tests for the softplus output-activation floor (issue #277)."""
+
+    def test_identity_output_passthrough(self):
+        """IdentityOutput returns its input unchanged."""
+        act = jaxmodels.IdentityOutput()
+        y = jnp.array([-5.0, -3.5, 0.0, 2.0, 100.0])
+        assert jnp.array_equal(act(y), y)
+
+    def test_softplus_asymptotics(self):
+        """Softplus ≈ identity well above l, → l from above well below l.
+
+        Note the floor is soft in exact arithmetic (t(y) > l for all finite y),
+        but in floating point the ``exp((y-l)/λ)`` term underflows to 0 once y is
+        more than ~36λ below l, so t(y) == l exactly there. The meaningful
+        invariants are therefore: t(y) never dips *below* l, and t(y) is strictly
+        above l within the transition region (a few λ of the bound).
+        """
+        act = jaxmodels.Softplus(lower_bound=-3.5, hinge_scale=0.1)
+        # Well above the floor: t(y) ≈ y
+        high = jnp.array([0.0, 2.0, 10.0])
+        assert jnp.allclose(act(high), high, atol=1e-3)
+        # Well below the floor: t(y) → l from above; never below l
+        low = jnp.array([-10.0, -20.0, -100.0])
+        out_low = act(low)
+        assert jnp.allclose(out_low, -3.5, atol=1e-3)
+        assert jnp.all(out_low >= -3.5)
+        # Strictly above l in the transition region (before float underflow)
+        near = jnp.array([-3.6, -3.5, 0.0, 50.0])
+        assert jnp.all(act(near) > -3.5)
+
+    def test_softplus_known_answer_at_hinge(self):
+        """At y = l, t(l) = l + λ·log(2) exactly."""
+        act = jaxmodels.Softplus(lower_bound=-3.5, hinge_scale=0.1)
+        expected = -3.5 + 0.1 * jnp.log(2.0)
+        np.testing.assert_allclose(act(jnp.array(-3.5)), expected, rtol=1e-6)
+
+    def test_softplus_gradient_is_sigmoid(self):
+        """d/dy t(y) = sigmoid((y-l)/λ): 0.5 at y=l, →1 above, →0 below."""
+        act = jaxmodels.Softplus(lower_bound=-3.5, hinge_scale=0.1)
+        grad = jax.grad(lambda y: act(y).sum())
+        # At the hinge, slope is 0.5
+        np.testing.assert_allclose(grad(jnp.array(-3.5)), 0.5, rtol=1e-5)
+        # Far above → 1, far below → 0
+        np.testing.assert_allclose(grad(jnp.array(10.0)), 1.0, atol=1e-4)
+        np.testing.assert_allclose(grad(jnp.array(-20.0)), 0.0, atol=1e-4)
+
+    def test_softplus_hinge_scale_controls_ramp(self):
+        """A smaller hinge_scale makes the transition sharper at the hinge value."""
+        y = jnp.array(-3.5)  # the hinge point for lower_bound=-3.5
+        sharp = jaxmodels.Softplus(lower_bound=-3.5, hinge_scale=0.01)
+        wide = jaxmodels.Softplus(lower_bound=-3.5, hinge_scale=1.0)
+        # At the hinge, value = l + λ·log2, so larger λ → larger offset above l
+        assert float(wide(y)) > float(sharp(y))
+
+
 # ==================== Tests for Model fitting with beta clipping ====================
 
 
