@@ -156,14 +156,40 @@ def _(constant_summary, display_table_df, mc, mo):
 
     _table_df = display_table_df(mc.fit_models)
 
-    ge_table = mo.ui.table(_table_df, selection="single", label="GE Landscape fit")
-    conv_table = mo.ui.table(_table_df, selection="multi", label="Convergence fits")
-    sparsity_table = mo.ui.table(_table_df, selection="multi", label="Sparsity fits")
+    ge_table = mo.ui.table(
+        _table_df,
+        selection="single",
+        label="GE Landscape fit",
+        page_size=100,
+        show_column_summaries=False,
+    )
+    conv_table = mo.ui.table(
+        _table_df,
+        selection="multi",
+        label="Convergence fits",
+        page_size=100,
+        show_column_summaries=False,
+    )
+    sparsity_table = mo.ui.table(
+        _table_df,
+        selection="multi",
+        label="Sparsity fits",
+        page_size=100,
+        show_column_summaries=False,
+    )
     corr_table = mo.ui.table(
-        _table_df, selection="multi", label="Correlation fit subset"
+        _table_df,
+        selection="multi",
+        label="Correlation fit subset",
+        page_size=100,
+        show_column_summaries=False,
     )
     scatter_table = mo.ui.table(
-        _table_df, selection="multi", label="Scatter fits (pick exactly 2)"
+        _table_df,
+        selection="multi",
+        label="Scatter fits (pick exactly 2)",
+        page_size=100,
+        show_column_summaries=False,
     )
     table_caption = mo.md(f"*{_caption}*")
     return (
