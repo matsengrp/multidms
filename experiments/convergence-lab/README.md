@@ -56,6 +56,17 @@ directory run `pixi run dashboard` (it discovers `fit_collection.pkl` below cwd)
   `l2reg=1e-4` strong fusion *lifts* `shift_Omicron_BA2` r to 0.80 — the
   data-poor-condition distortion the path-fitter targets is itself a symptom
   of the unpenalized β-explosion.
+- **β-bound choice — settled** (#263, Phase 1): head-to-head at cold-start /
+  recompute_scale=false / tol=1e-6, **`beta_clip_range=[-10,10]` wins** the
+  tri-criteria race against `l2reg=1e-4`. Clip is the *only* arm that converges
+  to tol=1e-6 (6/6, with 4/6 crossings in the epic's 20–50-iter band); l2 never
+  reaches tol (sentinel 101 on all 6). Clip keeps α~3 (healthy) while l2's α
+  blows up to ~55 (the see-saw's collapse end). Clip's strong-fusion
+  shift_Omicron_BA2 replicate-r reaches 0.81 vs l2's 0.66. Note the twist: clip
+  wins with a *large* Σβ² (~110k–181k) that is harmless because the hard φ-cap
+  keeps α·φ bounded — "large Σβ²" only signals an explosion when the fit *also*
+  fails to converge (as at l2reg=0 in #256). The epic's downstream phases inherit
+  the clip bound.
 - **`recompute_scale=False`** (the fixed-scale objective normalizer) converges.
 - **`fit_models` parallelism — settled** (`diagnostics/parallelism_probe.py`):
   `n_processes=2` (the real spawn path) ran the full data-size × l2reg staircase
@@ -77,6 +88,12 @@ directory run `pixi run dashboard` (it discovers `fit_collection.pkl` below cwd)
 (Append one entry per harness run: date, cache name, config swept, what the
 fit collection showed — basin diagnostics and replicate correlation computed
 downstream from a ModelCollection — the conclusion, the next step.)
+
+- 2026-07-06 | cache=beta-control-clip + beta-control-l2 | Phase 1 (#263), EPIC #262. sweep: arm {clip[-10,10], l2reg=1e-4} × fusionreg [0.0, 4e-5, 6.4e-4], 2 reps (12 fits). Base regime: cold-start (warmstart=false), recompute_scale=false, share_alpha=true, Sigmoid, maxiter=100 (ceiling), tol=1e-6. Independent fitting. Local (M4 Max). Downstream from diagnostics/beta_control_report.py.
+  Basin diagnostics (Σβ², α per cell): clip arm → Σβ² 110,597–180,962, α 2.96–3.39, **all 6 converged=True** (final_obj_err 6e-8–9e-7). l2 arm → Σβ² 221–300, α 52.5–58.8, all 6 converged=False (final_obj_err 8e-5 at fusionreg=0 rising to ~2.8e-4 at 6.4e-4). This is the α/β see-saw in the open: clip caps φ so α stays low (~3) and the fit converges cleanly despite a large Σβ²; l2 collapses β and drives α to ~55, and it never reaches tol=1e-6. Large clip-Σβ² is NOT an explosion — α·φ is bounded by the clip and the objective converges (contrast #256's l2reg=0 Σβ²~16–19k which did NOT converge to tol).
+  maxiter each needs (outer iters to cross tol=1e-6 / 1e-4): clip → 1e-6 at {fusionreg=0: 60,26 · 4e-5: 30,39 · 6.4e-4: 55,13}, 1e-4 at 6–8 iters everywhere (4/6 of the 1e-6 crossings land in the epic's 20–50 band, the other two at 13 and 60). l2 → 1e-6 NEVER crossed (sentinel 101 on all 6); 1e-4 crossed only at fusionreg=0 (iter 88/89) and never at fusionreg≥4e-5 (101). The clip arm is the ONLY arm that reaches tol=1e-6, and it does so cheaply.
+  Replicate-shift Pearson r (shift_* rows, per arm, across fusionreg 0/4e-5/6.4e-4): clip → shift_Delta 0.49/0.46/0.59, shift_Omicron_BA2 0.38/0.56/0.81. l2 → shift_Delta 0.49/0.44/0.49, shift_Omicron_BA2 0.33/0.36/0.66. Strong fusion RESCUES the data-poor shift_Omicron_BA2 under both arms, but clip lifts it higher (0.81 vs 0.66) and also lifts shift_Delta at prod-max fusion (0.59 vs 0.49) — clip dominates the reproducibility criterion at every fusion strength.
+  Conclusion (tri-criteria — speed × basin health × rising reproducibility): **clip[-10,10] wins, decisively and on all three axes.** Speed: clip is the only arm that converges to tol=1e-6 (l2 never does), landing 4/6 fits in the 20–50 band. Basin health: clip keeps α~3 (healthy) while l2's α blows up to ~55 (the see-saw's collapse end) — the low Σβ² of l2 is the symptom, not the cure. Reproducibility: clip's strong-fusion shift_Omicron_BA2 r reaches 0.81 vs l2's 0.66. This overturns the gauge argument's tie-break expectation (it predicted clip would win, but on a *healthier Σβ²* — instead clip wins with a *large* Σβ² held harmless by the hard φ-cap). **The epic's downstream phases (#264 recompute_scale, #265 warmstart) inherit `beta_clip_range=[-10,10]` as the β-bound.** Next: Phase 2 / #264 — vary recompute_scale at the clip bound.
 
 - 2026-06-30 | cache=l2-fusion | sweep: l2reg [0.0, 1e-4, 3e-4] × fusionreg [0.0, 4e-5, 6.4e-4], 2 reps (18 fits), warmstart=True, recompute_scale=False, share_alpha=True, Sigmoid, maxiter=25. Independent fitting (#256). Wall 1138s at n_processes=4 (local, Apple M4 Max). Downstream numbers from diagnostics/l2_fusion_report.py.
   Basin diagnostics (Σβ², α per cell): at l2reg=0.0 → Σβ² 16,181–19,222, α 5.9–8.2 (β EXPLODED at EVERY fusionreg, incl. 6.4e-4). l2reg=1e-4 → Σβ² 554–841, α 19.5–24.6 (β tamed ~25× into the healthy 350–1400 band, holds across all fusion). l2reg=3e-4 → Σβ² 188–298, α 30.5–40.4 (β tamed further but α climbing toward the see-saw collapse end). All 18 converged=False, but final_obj_err is tiny (4e-6 at l2reg=0 to ~7e-4 at l2reg>0) — maxiter=25 truncation, not a pathology; β-magnitude and r are trustworthy, the binary flag is not.
