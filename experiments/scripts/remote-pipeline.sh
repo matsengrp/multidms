@@ -99,11 +99,19 @@ if ssh "$host" "tmux has-session -t ${TMUX_SESSION} 2>/dev/null"; then
     exit 1
 fi
 
+# Extract optional configname override (prod-only; selects a custom config file)
+CONFIGNAME=""
+for ov in "${OVERRIDES[@]+${OVERRIDES[@]}}"; do
+    case "$ov" in
+        configname=*) CONFIGNAME="$ov" ;;
+    esac
+done
+
 # Build profile config arg (empty for prod)
 if [ "$PROFILE" = "test" ]; then
     CONFIG_ARGS="profile=test output_dir=${OUTPUT_DIR}"
 else
-    CONFIG_ARGS="output_dir=${OUTPUT_DIR}"
+    CONFIG_ARGS="output_dir=${OUTPUT_DIR}${CONFIGNAME:+ ${CONFIGNAME}}"
 fi
 
 # Build the remote command: pixi install, then snakemake with output_dir override

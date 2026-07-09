@@ -1,11 +1,21 @@
-# Experimental configuration for fast iteration (~30 min on remote server).
-# Full data, reduced fusionreg grid, lower maxiter, no cross-validation.
+# recompute_scale=False run with a raised OUTER maxiter (50 -> 200).
+# Identical to config_recompute_false.yaml in every other respect. The
+# original run (#270) hit maxiter=50 on all 18 fits (0/18 converged, all
+# still descending at outer objective_error ~1e-4), so this simply gives
+# the outer loop more iterations to reach the tol=1e-6 bar.
+#
+# Only delta vs config_recompute_false.yaml:
+#   fitting.maxiter (outer): 50 -> 200
+# Everything else (recompute_scale: false, outer tol 1e-6, inner
+# ge/cal_kwargs 10/10, 9-point fusionreg grid, independent strategy) is
+# unchanged, so the comparison isolates the outer-iteration effect.
+# See issue #268 / PR #270.
 
 seed: 4
 train_frac: 0.8
 
 spike:
-  output_dir: results_experimental
+  output_dir: results
   reference: "Omicron_BA1"
   experiment_conditions: ["Delta", "Omicron_BA1", "Omicron_BA2"]
   replicate_1_experiments: ["Delta-2", "Omicron_BA1-2", "Omicron_BA2-1"]
@@ -16,7 +26,7 @@ spike:
 
   # Filtering thresholds
   pre_count_threshold: 100
-  post_count_threshold: 1
+  post_count_threshold: 0
   max_subs: 10
   func_score_clip: [-3.5, 2.5]
   pseudocount: 0.5
@@ -33,17 +43,14 @@ spike:
     Omicron_BA1: "BA.1"
     Omicron_BA2: "BA.2"
 
-  # Fitting parameters — reduced for fast iteration
+  # Fitting parameters — recompute_scale=False, OUTER maxiter raised to 200
   fitting:
-    # Strategy: "independent" fits each fusionreg from scratch (parallel);
-    # "continuation" fits a warm-started path along ascending fusionreg.
-    strategy: "independent"
-    maxiter: 20
-    tol: 1.0e-4
-    recompute_scale: true
-    fusionreg_values: [0.0, 1.0e-5, 4.0e-5, 1.6e-4]
+    maxiter: 200
+    tol: 1.0e-6
+    recompute_scale: false
+    fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4]
     l2reg: 0.0
-    beta0_ridge: 1.0e-4
+    beta0_ridge: 0.0
     scale_fusion_by_n: false
     ge_type: "Sigmoid"
     warmstart: false
@@ -52,13 +59,10 @@ spike:
     share_alpha: true
     beta_clip_range: [-10, 10]
     loss_kwargs: {"δ": 1.0}
-    ge_kwargs: {tol: 1.0e-4, maxiter: 20, maxls: 40, jit: true, verbose: false}
-    cal_kwargs: {tol: 1.0e-4, maxiter: 20, maxls: 40, jit: true, verbose: false}
+    ge_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 10, jit: true, verbose: false}
+    cal_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 10, jit: true, verbose: false}
     n_processes: null  # null = auto: min(cpu_count // 2, n_models)
   lasso_choice: 4.0e-5
-
-  # Optional pipeline steps
-  skip_cross_validation: true
 
   # Spike protein domain boundaries (for downstream Phase 4 notebooks)
   domain_dict:
