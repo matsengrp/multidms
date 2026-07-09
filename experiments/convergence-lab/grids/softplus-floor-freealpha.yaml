@@ -1,0 +1,26 @@
+# softplus-floor × FREE-α, floor ON (#277) — the missing free-α arm of the 2×2.
+# #274 (Free-Alpha) is defined by share_alpha=false; this grid runs the softplus
+# floor (lower_bound=-3.5) ON in that regime so the softplus × share_alpha
+# interaction is measured in ONE harness rather than quoted cross-PR.
+# fusionreg [0, 4e-5, 1.6e-4, 6.4e-4] × 2 reps = 8 fits.
+sweep:
+  fusionreg: [0.0, 4.0e-5, 1.6e-4, 6.4e-4]      # same 4-point axis as #274
+fixed:
+  output_floor: -3.5                            # THE new lever — on for every cell
+  share_alpha: false                            # #274 free-α condition (per-condition α)
+  # --- #274 free-alpha.yaml fixed block, VERBATIM (= PR 270 recompute-false) ---
+  warmstart: false
+  recompute_scale: false
+  ge_type: Sigmoid
+  l2reg: 0.0
+  beta0_ridge: 0.0
+  scale_fusion_by_n: false
+  alpha_init: 6.0
+  beta0_init: {Omicron_BA1: 0.0, Delta: 0.0, Omicron_BA2: 0.0}
+  beta_clip_range: [-10, 10]
+  loss_kwargs: {δ: 1.0}
+  maxiter: 50                                   # outer block cap
+  tol: 1.0e-5                                   # outer tol (loosened from PR 270's 1e-6)
+  ge_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 10, jit: true, verbose: false}
+  cal_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 10, jit: true, verbose: false}
+replicates: [1, 2]

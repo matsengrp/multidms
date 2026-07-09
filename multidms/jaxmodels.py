@@ -222,6 +222,54 @@ class Sigmoid(GlobalEpistasis):
         return jax.scipy.special.expit(x)
 
 
+class OutputActivation(eqx.Module, abc.ABC):
+    r"""Activation applied to the model's predicted functional score."""
+
+    @abc.abstractmethod
+    def __call__(self, y: Float[Array, " n_variants"]) -> Float[Array, " n_variants"]:
+        r"""Apply the output activation.
+
+        Args:
+            y: The pre-activation predicted functional score.
+
+        Returns:
+            The activated functional score.
+        """
+
+
+class IdentityOutput(OutputActivation):
+    r"""Pass-through output activation (no floor). The default."""
+
+    def __call__(self, y: Float[Array, " n_variants"]) -> Float[Array, " n_variants"]:
+        r"""Return input unchanged."""
+        return y
+
+
+class Softplus(OutputActivation):
+    r"""Smooth differentiable lower floor on the predicted functional score.
+
+    Reproduces the manuscript-era ``biophysical.py::softplus_activation``:
+
+    .. math::
+
+        t(y) = \lambda \cdot \log\!\left(1 + e^{(y - l)/\lambda}\right) + l
+
+    where :math:`l` is ``lower_bound`` and :math:`\lambda` is ``hinge_scale``.
+    For :math:`y \gg l` it is approximately the identity; for :math:`y \ll l`
+    it flattens toward :math:`l` (from above; :math:`t(y) > l` for all finite
+    :math:`y`). The floor is *soft* — at :math:`y = l`,
+    :math:`t = l + \lambda\log 2`, not exactly :math:`l`.
+    """
+
+    lower_bound: float = -3.5
+    hinge_scale: float = 0.1
+
+    def __call__(self, y: Float[Array, " n_variants"]) -> Float[Array, " n_variants"]:
+        r"""Apply the softplus floor."""
+        lb, λ = self.lower_bound, self.hinge_scale
+        return λ * jnp.logaddexp(0.0, (y - lb) / λ) + lb
+
+
 class Model(eqx.Module):
     r"""Model DMS data."""
 
@@ -234,6 +282,9 @@ class Model(eqx.Module):
     reference_condition: str = eqx.field(static=True)
     """The condition to use as a reference."""
     global_epistasis: GlobalEpistasis = eqx.field(default=Identity(), static=True)
+    output_activation: OutputActivation = eqx.field(
+        default=IdentityOutput(), static=True
+    )
 
     def predict_score(
         self,
@@ -252,8 +303,8 @@ class Model(eqx.Module):
             α = self.α[d] if α_is_dict else self.α
             X = data_sets[d].X
             x_wt = data_sets[d].x_wt
-            result[d] = α * (
-                self.global_epistasis(φ(X)) - self.global_epistasis(φ(x_wt))
+            result[d] = self.output_activation(
+                α * (self.global_epistasis(φ(X)) - self.global_epistasis(φ(x_wt)))
             )
         return result
 
@@ -373,6 +424,7 @@ def fit(
     ge_kwargs: dict[str, Any] = dict(),
     cal_kwargs: dict[str, Any] = dict(),
     global_epistasis: GlobalEpistasis = Identity(),
+    output_activation: OutputActivation = IdentityOutput(),
     loss_fn: Callable[
         [Model, dict[str, Data]], dict[str, Float[Array, ""]]
     ] = functional_score_loss,
@@ -403,6 +455,8 @@ def fit(
         cal_kwargs: Keyword arguments for the experimental calibration
                     parameter optimizer.
         global_epistasis: Global epistasis model.
+        output_activation: Output activation applied to predicted functional
+            scores. Defaults to :class:`IdentityOutput` (no floor).
         loss_fn: Loss function.
         loss_kwargs: Keyword arguments for the loss function.
         warmstart: Whether to use Ridge regression warmstart (default: True).
@@ -562,6 +616,7 @@ def fit(
         logθ=True,
         reference_condition=reference_condition,
         global_epistasis=global_epistasis,
+        output_activation=output_activation,
     )
     filter_spec_β0 = Model(
         φ={d: Latent(β0=True, β=False) for d in data_sets},
@@ -569,6 +624,7 @@ def fit(
         logθ=False,
         reference_condition=reference_condition,
         global_epistasis=global_epistasis,
+        output_activation=output_activation,
     )
 
     # initialize latent models with independent control over each parameter
@@ -621,6 +677,7 @@ def fit(
         logθ={d: jnp.array(0.0) for d in data_sets},
         reference_condition=reference_condition,
         global_epistasis=global_epistasis,
+        output_activation=output_activation,
     )
 
     # track convergence trajectory

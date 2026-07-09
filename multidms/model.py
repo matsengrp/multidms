@@ -66,6 +66,8 @@ class Model:
         fusionreg: float = 0.0,
         beta0_ridge: float = 0.0,
         scale_fusion_by_n: bool = False,
+        output_floor: float | None = None,
+        output_floor_hinge: float = 0.1,
     ):
         """Initialize Model with data and hyperparameters."""
         # Validate inputs
@@ -76,6 +78,15 @@ class Model:
             )
         if ge_type not in ["Identity", "Sigmoid"]:
             raise ValueError(f"ge_type must be 'Identity' or 'Sigmoid', got {ge_type}")
+        if output_floor is not None and not isinstance(output_floor, (int, float)):
+            raise ValueError(
+                f"output_floor must be None or a float, got {output_floor!r}"
+            )
+        if not isinstance(output_floor_hinge, (int, float)) or output_floor_hinge <= 0:
+            raise ValueError(
+                f"output_floor_hinge must be a positive float, got "
+                f"{output_floor_hinge!r}"
+            )
 
         # Store configuration
         self._data = data
@@ -85,6 +96,8 @@ class Model:
         self._fusionreg = fusionreg
         self._beta0_ridge = beta0_ridge
         self._scale_fusion_by_n = scale_fusion_by_n
+        self._output_floor = output_floor
+        self._output_floor_hinge = output_floor_hinge
 
         # Will be populated by fit()
         self._jax_model = None
@@ -228,6 +241,15 @@ class Model:
         else:
             raise ValueError(f"Unknown ge_type: {self._ge_type}")
 
+        # Set up output activation (softplus floor, default off)
+        if self._output_floor is None:
+            output_activation = jaxmodels.IdentityOutput()
+        else:
+            output_activation = jaxmodels.Softplus(
+                lower_bound=self._output_floor,
+                hinge_scale=self._output_floor_hinge,
+            )
+
         # Set up loss function
         if self._loss_type == "functional_score_loss":
             loss_fn = jaxmodels.functional_score_loss
@@ -252,6 +274,7 @@ class Model:
             block_iters=maxiter,
             block_tol=tol,
             global_epistasis=global_epistasis,
+            output_activation=output_activation,
             loss_fn=loss_fn,
             warmstart=warmstart,
             recompute_scale=recompute_scale,
@@ -925,14 +948,28 @@ class Model:
 
     def __repr__(self):
         """String representation."""
-        return f"Model(ge_type='{self._ge_type}', loss_type='{self._loss_type}')"
+        floor = (
+            f", output_floor={self._output_floor}"
+            if self._output_floor is not None
+            else ""
+        )
+        return (
+            f"Model(ge_type='{self._ge_type}', "
+            f"loss_type='{self._loss_type}'{floor})"
+        )
 
     def __str__(self):
         """Detailed string representation."""
         fitted = "fitted" if self._jax_model is not None else "not fitted"
+        floor_line = (
+            f"  output_floor: {self._output_floor}\n"
+            if self._output_floor is not None
+            else ""
+        )
         return (
             f"Model\n"
             f"  ge_type: {self._ge_type}\n"
+            f"{floor_line}"
             f"  loss_type: {self._loss_type}\n"
             f"  l2reg: {self._l2reg}\n"
             f"  fusionreg: {self._fusionreg}\n"

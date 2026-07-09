@@ -65,6 +65,8 @@ def fit_one_model(
     fusionreg=0.0,
     beta0_ridge=0.0,
     scale_fusion_by_n=False,
+    output_floor=None,
+    output_floor_hinge=0.1,
     loss_type="functional_score_loss",
     maxiter=10,
     tol=1e-6,
@@ -102,6 +104,13 @@ def fit_one_model(
         Ridge penalty for beta0 differences from reference condition.
     scale_fusion_by_n : bool
         Weight each condition's fusion penalty by n_ref / n_d.
+    output_floor : float or None
+        Softplus output-activation lower bound. ``None`` (default) disables
+        the floor (identity output). A float sets the floor at that value
+        (e.g. ``-3.5``), softly hinging predicted functional scores from above.
+    output_floor_hinge : float
+        Softplus ramp width (``hinge_scale``). Only meaningful when
+        ``output_floor`` is set. Default ``0.1``.
     loss_type : str
         Loss function: ``'functional_score_loss'`` or ``'count_loss'``.
     maxiter : int
@@ -147,6 +156,8 @@ def fit_one_model(
         fusionreg=fusionreg,
         beta0_ridge=beta0_ridge,
         scale_fusion_by_n=scale_fusion_by_n,
+        output_floor=output_floor,
+        output_floor_hinge=output_floor_hinge,
         loss_type=loss_type,
     )
 
