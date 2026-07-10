@@ -116,6 +116,23 @@ directory run `pixi run dashboard` (it discovers `fit_collection.pkl` below cwd)
   control reproduced #274's separately-fit column to the last decimal, confirming
   determinism and a fair baseline.
 - **`recompute_scale=False`** (the fixed-scale objective normalizer) converges.
+- **Inner optimizer maxiter is the dominant convergence lever; `recompute_scale=False`
+  + inner maxiter=100 is the only 100%-converging cell** (measured, 2026-07-10,
+  `cache=maxiter-scan`, 48 fits = ge/cal `maxiter` {1,10,100} × `recompute_scale`
+  {False,True} × fusionreg [0, 4e-5, 1.6e-4, 6.4e-4] × 2 reps, else #277's
+  softplus-off block verbatim: cold-start, l2reg=0, Sigmoid, α_init=6,
+  clip[-10,10], outer maxiter=50/tol=1e-5). Convergence rises monotonically with
+  inner maxiter and is 0 at maxiter=1: **maxiter=1 → 0/16, maxiter=10 → 3/16,
+  maxiter=100 → 12/16.** At maxiter=1 the optimizer barely moves (α≈init 6.1,
+  Σβ²≈0.4 — essentially unfit); at maxiter=100 the converged fits land in the
+  large-Σβ²/low-α clip basin the #263 finding calls healthy (α~4-6, Σβ²~60k–124k
+  harmless under the φ-clip). **`recompute_scale=False` dominates `True` at
+  maxiter=100 on both axes: 8/8 vs 4/8 converged AND 3.6× faster (mean fit_time
+  788s vs 2808s).** So the fixed-scale objective isn't just convergent — it's the
+  cheap, reliably-convergent one, and the inner cap must be ≥~100 to actually
+  reach tol. NOTE: run serial or a *small* pool for heavy inner-maxiter grids —
+  the m100 level deadlocked under the 16-worker spawn pool (collapsed to one
+  process); `n_processes=4` ran clean (4 workers ~100% CPU each).
 - **`fit_models` parallelism — settled** (`diagnostics/parallelism_probe.py`):
   `n_processes=2` (the real spawn path) ran the full data-size × l2reg staircase
   with **zero hangs**, at `l2reg=0` AND `l2reg=3e-4`. The l2reg-deadlock theory is
@@ -136,6 +153,19 @@ directory run `pixi run dashboard` (it discovers `fit_collection.pkl` below cwd)
 (Append one entry per harness run: date, cache name, config swept, what the
 fit collection showed — basin diagnostics and replicate correlation computed
 downstream from a ModelCollection — the conclusion, the next step.)
+
+- 2026-07-10 | cache=maxiter-scan | sweep: ge/cal_kwargs `maxiter` {1, 10, 100} (COUPLED — ge and cal move together) × `recompute_scale` {False, True} × fusionreg [0.0, 4e-5, 1.6e-4, 6.4e-4], 2 reps = 48 fits. Else #277 softplus-floor-off.yaml fixed block VERBATIM (cold-start warmstart=False, output_floor=null, share_alpha=true, Sigmoid, l2reg=0, alpha_init=6, beta_clip_range=[-10,10], loss δ=1, outer maxiter=50/tol=1e-5, inner maxls=10/tol=1e-4). Configs: grids/maxiter-scan-m{1,10,100}.yaml (three configs because the harness Cartesian-products every sweep axis — ge_kwargs and cal_kwargs listed together would 3×3-cross to 9, not the 3 coupled cells; one config per level then `pd.concat` the three fit_collection.pkl). Ran REMOTE on orca04 (64-core, scouted idle) — source tree rsync'd to HEAD 9121748 (GitHub unreachable from orca04 via the 1Password-gated forwarded agent, so no remote git fetch; the one required data CSV, gitignored, rsync'd explicitly). m1/m10 fit at n_processes=16 (wall 154s / 639s, 16 fit 0 failed each); **m100 deadlocked under the 16-worker spawn pool** (collapsed to a single limping process, ~46 min no output — the documented spawn-under-JAX race, widened by the heavier 100-iter compile) → rerun at **n_processes=4**, which ran clean (4 workers ~100% CPU each), wall 9049s (2h31m), 16 fit 0 failed. Downstream basin/convergence computed inline from the combined frame.
+  Convergence rate + basin (α, Σβ² of ref-condition β, mean fit_time) per (ge/cal maxiter × recompute_scale):
+    | maxiter | recompute | converged | α | Σβ² | fit_time |
+    |---|---|---|---|---|---|
+    | 1 | False | 0/8 | 6.13 | 0.4 | 132s |
+    | 1 | True | 0/8 | 6.13 | 0.4 | 137s |
+    | 10 | False | 0/8 | 15.5 | 4,096 | 550s |
+    | 10 | True | 3/8 | 11.9 | 7,641 | 558s |
+    | 100 | False | **8/8** | 5.59 | 60,959 | 788s |
+    | 100 | True | 4/8 | 4.31 | 124,271 | 2,808s |
+  Convergence rises monotonically with inner maxiter (0/16 → 3/16 → 12/16 over 1/10/100). At maxiter=1 the optimizer barely moves off init (α≈6.1=alpha_init, Σβ²≈0.4 — essentially unfit, so its "0/8 not converged" is trivial, not pathological). At maxiter=100 the converged fits sit in the large-Σβ²/low-α clip basin the #263 finding calls HEALTHY (α~4-6, Σβ² 60k–124k held harmless by the [-10,10] φ-clip — "large Σβ²" only signals explosion when the fit ALSO fails to converge).
+  Conclusion: the inner optimizer cap is the DOMINANT convergence lever here — it must be ≥~100 to reach the outer tol=1e-5 at all; 1 and 10 are simply too few inner steps. And `recompute_scale=False` (fixed-scale objective) dominates `True` at maxiter=100 on BOTH axes: 8/8 vs 4/8 converged AND 3.6× faster (788s vs 2808s). This sharpens the terse standing "recompute_scale=False converges" into a quantified 2-D result and confirms the fixed-scale objective is the cheap, reliably-convergent one. Standing findings updated. Next: with 100% convergence now reachable (recompute=False, inner maxiter=100), re-run the reproducibility criterion (replicate-shift Pearson r via ModelCollection.mut_param_dataset_correlation) on this converged cell to check the α/β-basin choice is stable replicate-to-replicate now that fits actually reach tol; also record the n_processes=4 (not 16) requirement for heavy-maxiter grids in the harness docs.
 
 - 2026-07-07 | cache=273-free-alpha | sweep: share_alpha [True, False] × fusionreg [0.0, 4e-5, 1.6e-4, 6.4e-4], 2 reps (16 fits), PR 270 fitting block verbatim (warmstart=False, recompute_scale=False, l2reg=0, Sigmoid, alpha_init=6, beta_clip [-10,10], inner ge/cal_kwargs maxiter=10/maxls=10/tol=1e-4) + 3 deltas from PR 270 (outer tol 1e-6→1e-5, 4-point fusionreg, share_alpha swept). Independent fitting (#273). Wall 718s at n_processes=13 (local, Apple M4 Max). Numbers computed inline from a ModelCollection over the frame (dashboard-only exploration; no committed analysis code). Delta floor = −α_Delta·sigmoid(φ_wt,Delta), the low asymptote of α·(g(φ)−g(φ_wt)) as φ→−∞ (analytic and model-GE-at-φ=−1e4 evaluations agreed to 0.0e0).
   Delta α + floor (mean over reps), shared vs free, across fusionreg 0 / 4e-5 / 1.6e-4 / 6.4e-4: SHARED α → α 16.8/17.0/14.8/13.5, floor −5.08/−4.69/−3.22/−2.16. FREE α → Delta's own α 16.8/18.1/12.9/5.2 (decoupled from BA1 17.8 / BA2 14.4 at 6.4e-4), floor −5.24/−4.82/−3.45/−3.09. At the prod-strength fusionreg=6.4e-4 freeing α drops Delta's floor from −2.16 → −3.09 (gap −0.93), most of the way to the true −3.5 that the shared α (pinned by BA1/BA2) cannot reach. Effect grows with fusion (floor gap free−shared −0.15 at fr=0 → −0.93 at fr=6.4e-4); BA1/BA2 floors barely move. Counter-intuitively the deeper floor comes with a *smaller* Delta α — freeing α lets the Delta latent push φ_wt more positive so −α·sigmoid(φ_wt) deepens.
