@@ -91,6 +91,60 @@ def test_convergence_table_reports_a_degenerate_rate_honestly():
     assert out["median_obj_err"].notna().all(), "fallback must survive a 0/n rate"
 
 
+def test_shift_corr_pivot_keeps_only_shift_rows():
+    """shift_corr_pivot drops beta_*/predicted_* and pivots shift_* by fusionreg.
+
+    The real correlation frame carries a row per mutation-parameter type; #284's
+    reproducibility criterion is the shift_* rows only. Synthetic — always runs.
+    """
+    import beta0_ridge_l2_report as rpt
+
+    corr = pd.DataFrame(
+        [
+            {
+                "datasets": "rep_1,rep_2",
+                "mut_param": mp,
+                "correlation": 0.5,
+                "fusionreg": f,
+                "beta0_ridge": 1e-4,
+                "l2reg": 1e-8,
+            }
+            for mp in (
+                "beta_Delta",
+                "shift_Delta",
+                "predicted_func_score_Delta",
+                "shift_Omicron_BA2",
+            )
+            for f in (0.0, 6.4e-4)
+        ]
+    )
+    out = rpt.shift_corr_pivot(corr)
+    assert len(out) == 2, "only shift_Delta and shift_Omicron_BA2 survive"
+    assert set(out["mut_param"]) == {"shift_Delta", "shift_Omicron_BA2"}
+    for col in (0.0, 6.4e-4):
+        assert col in out.columns, f"fusionreg {col} should be a pivoted column"
+
+
+def test_shift_corr_pivot_handles_empty_input():
+    """An empty or shift-less correlation frame yields an empty pivot, not a raise."""
+    import beta0_ridge_l2_report as rpt
+
+    assert not len(rpt.shift_corr_pivot(pd.DataFrame()))
+    beta_only = pd.DataFrame(
+        [
+            {
+                "datasets": "rep_1,rep_2",
+                "mut_param": "beta_Delta",
+                "correlation": 0.5,
+                "fusionreg": 0.0,
+                "beta0_ridge": 1e-4,
+                "l2reg": 1e-8,
+            }
+        ]
+    )
+    assert not len(rpt.shift_corr_pivot(beta_only))
+
+
 @pytest.mark.skipif(
     _sample_pickle() is None,
     reason="needs a sample fit_collection.pkl (set BETA0_RIDGE_TEST_PKL)",

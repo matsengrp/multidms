@@ -186,23 +186,58 @@ def replicate_corr_table(frame: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(out, ignore_index=True) if out else pd.DataFrame()
 
 
-def _load(cache: str) -> pd.DataFrame:
+def shift_corr_pivot(corr: pd.DataFrame) -> pd.DataFrame:
+    """The ``shift_*`` rows of :func:`replicate_corr_table`, pivoted by fusionreg.
+
+    ``mut_param_dataset_correlation`` returns a row per mutation-parameter type
+    (``beta_*``, ``shift_*``, ``predicted_func_score_*``). The #284
+    reproducibility criterion is the **shift** rows specifically — the
+    condition-vs-reference parameters the fusion lasso penalizes. Note there is
+    no ``shift_Omicron_BA1``: it is the reference condition and carries no shift
+    parameters, so only ``shift_Delta`` and ``shift_Omicron_BA2`` exist.
+
+    Args:
+        corr: Output of :func:`replicate_corr_table`.
+
+    Returns:
+        A ``(beta0_ridge, l2reg, mut_param)`` × ``fusionreg`` pivot of Pearson
+        r, or an empty frame if ``corr`` carries no ``shift_*`` rows.
+    """
+    if not len(corr):
+        return pd.DataFrame()
+    shifts = corr[corr["mut_param"].str.startswith("shift_")]
+    if not len(shifts):
+        return pd.DataFrame()
+    return shifts.pivot_table(
+        index=["beta0_ridge", "l2reg", "mut_param"],
+        columns="fusionreg",
+        values="correlation",
+    ).reset_index()
+
+
+def _load(cache: str, results_dir: Path | None = None) -> pd.DataFrame:
     """Load one cache's fit-collection frame.
 
     Args:
-        cache: Subdir under ``results/`` holding ``fit_collection.pkl``.
+        cache: Subdir under the results dir holding ``fit_collection.pkl``.
+        results_dir: Directory holding the caches. ``None`` → the harness's
+            own ``RESULTS_DIR``, which resolves relative to *this file*. That
+            default is wrong when the script runs from a worktree: ``results/``
+            is gitignored and materializes only in the canonical clone, so pass
+            ``--results-dir`` there.
 
     Returns:
         The raw fit-collection DataFrame.
     """
-    pkl = harness.RESULTS_DIR / cache / "fit_collection.pkl"
+    base = results_dir if results_dir is not None else harness.RESULTS_DIR
+    pkl = Path(base) / cache / "fit_collection.pkl"
     frame = pickle.load(open(pkl, "rb"))
     size_gb = pkl.stat().st_size / 1e9
     print(f"[report] loaded {len(frame)} fits from {pkl} ({size_gb:.1f} GB)")
     return frame
 
 
-def _report(cache: str, label: str) -> None:
+def _report(cache: str, label: str, results_dir: Path | None = None) -> None:
     """Load one cache, print its tables, and drop the frame before returning.
 
     Loads inside the call rather than taking a frame, so the caller never holds
@@ -211,18 +246,22 @@ def _report(cache: str, label: str) -> None:
     ~0.7 GB, so holding both would peak near 7 GB for no reason.
 
     Args:
-        cache: Subdir under ``results/`` holding ``fit_collection.pkl``.
+        cache: Subdir under the results dir holding ``fit_collection.pkl``.
         label: Human-readable name for the section headers.
+        results_dir: Passed through to :func:`_load`.
     """
-    frame = _load(cache)
+    frame = _load(cache, results_dir)
     basin = basin_table(frame)
     with pd.option_context("display.width", 200, "display.max_rows", 100):
         print(f"\n=== [{label}] convergence + basin per (beta0_ridge, l2reg) ===")
         print(convergence_table(basin).to_string(index=False))
         print(f"\n=== [{label}] basin diagnostics (per fit) ===")
         print(basin.to_string(index=False))
-        print(f"\n=== [{label}] replicate-shift Pearson r (per cell slice) ===")
         corr = replicate_corr_table(frame)
+        print(f"\n=== [{label}] replicate-SHIFT Pearson r — the #284 criterion ===")
+        pivot = shift_corr_pivot(corr)
+        print(pivot.to_string(index=False) if len(pivot) else "(no shift_* rows)")
+        print(f"\n=== [{label}] all mut_param correlations (per cell slice) ===")
         print(corr.to_string(index=False) if len(corr) else "(no ≥2-dataset slice)")
 
     # Drop the collection (and its fitted models) before the caller loads the
@@ -246,11 +285,21 @@ def main() -> None:
         help="optional (0,0) baseline cache to report alongside "
         "(e.g. 277-softplus-floor-off)",
     )
+    ap.add_argument(
+        "--results-dir",
+        default=None,
+        type=Path,
+        help="directory holding the caches (default: the harness's results/, "
+        "resolved next to harness.py). results/ is gitignored and exists only "
+        "in the canonical clone, so pass this when running from a worktree.",
+    )
     args = ap.parse_args()
 
-    _report(args.cache, args.cache)
+    _report(args.cache, args.cache, args.results_dir)
     if args.baseline_cache:
-        _report(args.baseline_cache, f"BASELINE {args.baseline_cache}")
+        _report(
+            args.baseline_cache, f"BASELINE {args.baseline_cache}", args.results_dir
+        )
 
 
 if __name__ == "__main__":
