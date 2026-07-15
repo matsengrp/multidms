@@ -241,9 +241,11 @@ def _report(cache: str, label: str, results_dir: Path | None = None) -> None:
     """Load one cache, print its tables, and drop the frame before returning.
 
     Loads inside the call rather than taking a frame, so the caller never holds
-    two collections at once. These pickles carry the fitted models themselves at
-    a measured ~88 MB/fit — the 72-fit scan is ~6.3 GB and the 8-fit baseline
-    ~0.7 GB, so holding both would peak near 7 GB for no reason.
+    two collections at once. These pickles carry the fitted models themselves:
+    ~88 MB/fit on disk but a measured **~213 MB/fit resident**, so the 72-fit
+    scan alone peaks near 15 GB. Holding the baseline alongside it would add
+    ~1.7 GB alongside for no reason, and on a 39 GB laptop that headroom is
+    worth keeping.
 
     Args:
         cache: Subdir under the results dir holding ``fit_collection.pkl``.
