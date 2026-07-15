@@ -1,0 +1,8 @@
+parameter,value
+alpha,7.4
+reference_condition,Omicron_BA1
+global_epistasis,Sigmoid
+output_activation,IdentityOutput
+huber_delta,1.0
+theta_scale_source,7.4
+theta_bias_calibrated,-2.969711315167855
