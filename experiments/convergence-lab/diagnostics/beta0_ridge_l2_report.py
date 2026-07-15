@@ -144,7 +144,7 @@ def replicate_corr_table(frame: pd.DataFrame) -> pd.DataFrame:
     """Replicate-shift Pearson r across fusionreg, per ``(beta0_ridge, l2reg)``.
 
     ``mut_param_dataset_correlation`` forwards to ``split_apply_combine_muts``
-    with ``groupby=("dataset_name", x)`` (``model_collection.py:1443-1445``) and
+    with ``groupby=("dataset_name", x)`` (``model_collection.py:1444``) and
     mean-collapses every other column (``aggregate_func="mean"``). On this
     72-fit frame each ``(rep, fusionreg)`` group holds 9 fits (3 ``beta0_ridge``
     × 3 ``l2reg``), so the BARE call would average away the two axes under test

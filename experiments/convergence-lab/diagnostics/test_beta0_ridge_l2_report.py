@@ -91,6 +91,47 @@ def test_convergence_table_reports_a_degenerate_rate_honestly():
     assert out["median_obj_err"].notna().all(), "fallback must survive a 0/n rate"
 
 
+def test_basin_table_sort_order_without_a_pickle(monkeypatch):
+    """basin_table sorts beta0_ridge-outermost — checked without a fit collection.
+
+    The pickle-backed sort test skips on a fresh checkout (results/ is
+    gitignored), so the sort contract would go unverified exactly where it is
+    most likely to regress. Stub the per-row extraction to cover the ordering on
+    synthetic rows, which is all the sort itself depends on.
+    """
+    import beta0_ridge_l2_report as rpt
+
+    rows = [
+        {
+            "beta0_ridge": b,
+            "l2reg": l2,
+            "fusionreg": f,
+            "dataset_name": d,
+            "sum_beta_sq": 1.0,
+            "alpha": 1.0,
+            "converged": False,
+            "final_obj_err": 1e-4,
+        }
+        # Deliberately shuffled relative to the expected sort order.
+        for b in (1e-2, 1e-4)
+        for l2 in (1e-6, 1e-8)
+        for f in (6.4e-4, 0.0)
+        for d in ("rep_2", "rep_1")
+    ]
+    frame = pd.DataFrame(rows)
+    monkeypatch.setattr(
+        rpt, "basin_row_with_ridge", lambda fit: dict(fit), raising=True
+    )
+
+    table = rpt.basin_table(frame)
+    keys = ["beta0_ridge", "l2reg", "fusionreg", "dataset_name"]
+    assert table[keys].values.tolist() == (
+        frame.sort_values(keys).reset_index(drop=True)[keys].values.tolist()
+    )
+    # The outermost key really is beta0_ridge, not l2reg (the prior art's order).
+    assert table["beta0_ridge"].is_monotonic_increasing
+
+
 def test_shift_corr_pivot_keeps_only_shift_rows():
     """shift_corr_pivot drops beta_*/predicted_* and pivots shift_* by fusionreg.
 
