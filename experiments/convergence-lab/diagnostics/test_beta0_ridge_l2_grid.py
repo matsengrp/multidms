@@ -5,6 +5,7 @@ report tests, which need a fit collection). Guards the two things the #284
 acceptance criteria pin: the cell count and the inherited clip bound.
 """
 
+import math
 import os
 import sys
 from pathlib import Path
@@ -46,6 +47,31 @@ def test_grid_inherits_the_clip_bound():
     assert config["fixed"]["output_floor"] is None
     assert config["fixed"]["share_alpha"] is True
     assert config["fixed"]["recompute_scale"] is False
+
+
+def test_build_params_preserves_both_new_axes():
+    """The swept axes survive build_params' distinct-value collapse.
+
+    ``explode_grid`` proving 72 cells is not enough: ``build_params`` re-collects
+    each kwarg's distinct values into a list for ``fit_models`` to re-cross
+    (``harness.py:210-218``), and that collapse is what actually reaches the
+    fitter. A float axis that collapsed wrong would silently shrink the grid.
+    """
+    import harness
+
+    config = harness.load_config(GRID)
+    cells = harness.explode_grid(config)
+    params = harness.build_params(cells, {"rep_1": "DATA1", "rep_2": "DATA2"})
+
+    assert params["beta0_ridge"] == [1.0e-4, 1.0e-3, 1.0e-2]
+    assert params["l2reg"] == [1.0e-8, 1.0e-7, 1.0e-6]
+    assert params["fusionreg"] == [0.0, 4.0e-5, 1.6e-4, 6.4e-4]
+    assert len(params["dataset"]) == 2
+
+    n_fits = len(params["dataset"]) * math.prod(
+        len(v) for k, v in params.items() if k != "dataset"
+    )
+    assert n_fits == 72, f"fit_models would fit {n_fits}, not 72"
 
 
 def test_grid_matches_the_baseline_fixed_block():
