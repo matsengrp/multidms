@@ -1,0 +1,36 @@
+# beta0_ridge × sub-knee l2reg scan (#284) — does a whisper of L2 (three-to-four
+# orders below the measured ~3e-4 knee) or a nonzero beta0_ridge buy convergence
+# or replicate reproducibility ON TOP OF the settled beta_clip_range=[-10,10]
+# bound (#263)? Baseline = the separately-fit (l2reg=0, beta0_ridge=0) cache
+# `277-softplus-floor-off`, whose fixed block this inherits VERBATIM except for
+# the two axes below moving fixed: -> sweep:.
+#
+# NOTE beta0_ridge does NOT penalize the intercepts — it penalizes each
+# non-reference condition's β0 DIFFERENCE from the reference, (β0_d − β0_ref)²
+# (jaxmodels.py:533-540). It is an L2 shift-shrinkage, structurally parallel to
+# fusionreg's L1 on the β shift — hence crossing both axes here. Its penalty is
+# also exactly 0 at initialization (beta0_init pins all three conditions to 0.0)
+# and only bites as the β0s separate during fitting.
+#
+# 4 fusionreg × 3 beta0_ridge × 3 l2reg × 2 reps = 72 fits.
+sweep:
+  fusionreg: [0.0, 4.0e-5, 1.6e-4, 6.4e-4]      # same 4-point axis as #274/#277
+  beta0_ridge: [1.0e-4, 1.0e-3, 1.0e-2]         # NEW axis — never swept in this lab
+  l2reg: [1.0e-8, 1.0e-7, 1.0e-6]               # NEW axis — all sub-knee (knee ~3e-4)
+fixed:
+  output_floor: null                            # OFF — matches the baseline cache
+  share_alpha: true                             # #274 baseline (shared-α) condition
+  # --- softplus-floor-off.yaml fixed block, VERBATIM minus the two swept axes ---
+  warmstart: false
+  recompute_scale: false
+  ge_type: Sigmoid
+  scale_fusion_by_n: false
+  alpha_init: 6.0
+  beta0_init: {Omicron_BA1: 0.0, Delta: 0.0, Omicron_BA2: 0.0}
+  beta_clip_range: [-10, 10]                    # settled β-bound (#263) — inherited
+  loss_kwargs: {δ: 1.0}
+  maxiter: 50                                   # outer block cap
+  tol: 1.0e-5                                   # outer tol
+  ge_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 10, jit: true, verbose: false}
+  cal_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 10, jit: true, verbose: false}
+replicates: [1, 2]
