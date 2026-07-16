@@ -44,7 +44,36 @@ directory run `pixi run dashboard` (it discovers `fit_collection.pkl` below cwd)
   stays bounded and Huber loss barely moves). Two near-degenerate basins fit
   equally well, so noise decides which one each replicate lands in.
 - **L2 knee near `3e-4`**; double-ended degeneracy: β explodes at `l2reg=0`,
-  β collapses + α explodes at `l2reg ≥ 1e-3`.
+  β collapses + α explodes at `l2reg ≥ 1e-3`. **Below the knee, L2 is inert
+  against an active clip** (measured, #284, `cache=beta0-ridge-l2-scan`):
+  `l2reg` at 1e-8/1e-7/1e-6 — three-to-four orders under the knee — moves
+  nothing on top of `beta_clip_range=[-10,10]` across a 72-fit grid. Σβ² 0.96–1.01×
+  and α 1.00–1.11× vs the `l2reg=0` baseline, replicate-shift r within ±0.007,
+  all far under the pre-registered 2× / 0.05 effect thresholds. The clip is the
+  binding constraint on β; a whisper of L2 underneath it is a no-op. (The knee
+  is where L2 *starts* to bite — this pins the other end of that statement.)
+- **A nonzero `beta0_ridge` (1e-4…1e-2) is also inert at this fixed block**
+  (measured, #284, same grid — the axis's first sweep in this lab). **What it
+  penalizes matters and is easy to get wrong:** `_beta_ridge_penalty`
+  (`jaxmodels.py:533-540`) is NOT an intercept ridge — it penalizes each
+  non-reference condition's β0 *difference from the reference*,
+  `beta0_ridge · Σ_{d≠ref}(β0_d − β0_ref)²`, never the reference's own β0. So it
+  is an **L2 shift-shrinkage on the intercepts**, structurally parallel to
+  `fusionreg`'s L1 on the β shift — cross the two and read its effect *within*
+  each fusionreg level, never marginalized. Its penalty is also **exactly 0 at
+  initialization** wherever `beta0_init` pins all conditions to the same value
+  (as every grid here does), and only bites as the β0s separate. Effect at
+  1e-4…1e-2: α rises **monotonically** (16.1 → 16.5 → 17.5) and shift_Delta r at
+  fusionreg=0 lifts 0.594 → 0.617, so the penalty genuinely touches the optimum —
+  but every move is 1-2 orders below the effect thresholds. It is too weak to
+  matter here, not structurally dead; a stronger axis was not tested.
+- **Caveat on both of the above — they were measured where convergence was
+  already 0/8.** #284's baseline is 0/8 converged at inner maxiter=10, so that
+  grid could not have detected a convergence *gain* from any regularizer. The
+  defensible claim is *"regularization cannot rescue convergence at an
+  inadequate inner cap"*, NOT *"these regularizers are inert"* in general. #285
+  re-runs the same axes at inner maxiter=100 (the only 100%-converging cell
+  known) to separate the two.
 - **A small `l2reg>0` tames the β-explosion across the whole prod fusion axis**
   (measured, #256, `cache=l2-fusion`): at `l2reg=0` Σβ² sits at ~16–19k for
   *every* `fusionreg` (0 → 6.4e-4); `l2reg=1e-4` collapses it ~25× into the
@@ -153,6 +182,36 @@ directory run `pixi run dashboard` (it discovers `fit_collection.pkl` below cwd)
 (Append one entry per harness run: date, cache name, config swept, what the
 fit collection showed — basin diagnostics and replicate correlation computed
 downstream from a ModelCollection — the conclusion, the next step.)
+
+- 2026-07-15 | cache=beta0-ridge-l2-scan | **(#284)** sweep: `beta0_ridge` [1e-4, 1e-3, 1e-2] × `l2reg` [1e-8, 1e-7, 1e-6] × fusionreg [0.0, 4e-5, 1.6e-4, 6.4e-4], 2 reps = **72 fits**. Else `softplus-floor-off.yaml`'s fixed block VERBATIM (cold-start warmstart=false, recompute_scale=false, output_floor=null, share_alpha=true, Sigmoid, alpha_init=6, `beta_clip_range=[-10,10]` — the settled #263 bound, INHERITED not swept — `beta0_init` pins all three β0 to 0.0, scale_fusion_by_n=false, loss δ=1, outer maxiter=50/tol=1e-5, inner ge/cal maxiter=10/maxls=10/tol=1e-4), so the grid is a one-knob-at-a-time delta from its baseline (asserted in `diagnostics/test_beta0_ridge_l2_grid.py`, not eyeballed). Config: `grids/beta0-ridge-l2-scan.yaml`. Ran REMOTE on orca04 (64-core, 1.5 TB RAM, scouted idle at 0.3% CPU; GitHub reachable this time, so a real git clone at branch HEAD — no rsync fallback needed) at **n_processes=16**, wall **3320.1s (55m), 72 fit / 0 failed** (39,950s CPU-time in 3,320s wall = 12× speedup; the m100 16-worker deadlock does NOT reproduce at this grid's light inner maxiter=10 block). Downstream from `diagnostics/beta0_ridge_l2_report.py --cache beta0-ridge-l2-scan --baseline-cache 277-softplus-floor-off`.
+  **What `beta0_ridge` actually penalizes — NOT the intercepts.** `_beta_ridge_penalty` (jaxmodels.py:533-540) penalizes each non-reference condition's β0 *difference from the reference*, `beta0_ridge · Σ_{d≠ref}(β0_d − β0_ref)²`; the reference's own β0 is never touched. It is an **L2 shift-shrinkage on the intercepts**, structurally parallel to `fusionreg`'s **L1 shift penalty on the β** (`fusionreg · Σ|β_d − β_ref|`, jaxmodels.py:568-577) — hence crossing the two, and hence reading the effect WITHIN each fusionreg level rather than marginalized over it. Note the inherited `beta0_init` starts all three β0 identical at 0.0, so the penalty is **exactly 0 at initialization** and only bites as the β0s separate.
+  **Baseline computed here, not quoted — it existed nowhere.** The 277-softplus-floor-off entry says "pkl carries no converged/final_obj_err column", and the 0/16 it cites is #273's *different* free-alpha grid. Computed from the 8-fit pickle with the same report: **0/8 converged, median final_obj_err 2.29e-4, α 16.1, Σβ² 4191**. Baseline replicate-shift r — shift_Delta 0.594/0.571/0.604/0.498, shift_Omicron_BA2 0.382/0.482/0.619/0.767 across fusionreg 0/4e-5/1.6e-4/6.4e-4.
+  Convergence + basin per (beta0_ridge, l2reg), **n=8 per cell** (4 fusionreg × 2 reps); the baseline row is n=8 for its whole cache:
+    | beta0_ridge | l2reg | converged | median obj_err | α | Σβ² |
+    |---|---|---|---|---|---|
+    | *(baseline 0)* | *0* | *0/8* | *2.29e-4* | *16.1* | *4191* |
+    | 1e-4 | 1e-8 | 0/8 | 2.20e-4 | 16.1 | 4190 |
+    | 1e-4 | 1e-7 | 0/8 | 2.15e-4 | 16.1 | 4180 |
+    | 1e-4 | 1e-6 | 0/8 | 1.74e-4 | 16.3 | 4020 |
+    | 1e-3 | 1e-8 | 0/8 | 2.19e-4 | 16.5 | 4220 |
+    | 1e-3 | 1e-7 | 0/8 | 2.13e-4 | 16.5 | 4210 |
+    | 1e-3 | 1e-6 | 0/8 | 1.76e-4 | 16.7 | 4060 |
+    | 1e-2 | 1e-8 | 0/8 | 2.16e-4 | 17.5 | 4220 |
+    | 1e-2 | 1e-7 | 0/8 | 2.23e-4 | 17.6 | 4200 |
+    | 1e-2 | 1e-6 | 0/8 | 1.96e-4 | 17.8 | 4060 |
+  Replicate-shift Pearson r (rep_1 vs rep_2, `shift_*` rows only — there is no shift_Omicron_BA1, the reference carries no shift parameters), per cell across fusionreg. **Computed by slicing `mut_param_dataset_correlation` with `query=` per cell:** the bare call groups by (dataset_name, fusionreg) and mean-collapses everything else (model_collection.py:1444/787), which on this 72-fit frame would average the 9 (beta0_ridge, l2reg) fits per group — averaging away the two axes under test. Every cell reproduces the baseline column to ±0.02:
+    | beta0_ridge | mut_param | fr=0 | fr=4e-5 | fr=1.6e-4 | fr=6.4e-4 |
+    |---|---|---|---|---|---|
+    | 1e-4 | shift_Delta | 0.595 | 0.571 | 0.604 | 0.498 |
+    | 1e-3 | shift_Delta | 0.600 | 0.577 | 0.606 | 0.493 |
+    | 1e-2 | shift_Delta | 0.617 | 0.589 | 0.606 | 0.486 |
+    | 1e-4 | shift_Omicron_BA2 | 0.382 | 0.482 | 0.619 | 0.767 |
+    | 1e-3 | shift_Omicron_BA2 | 0.383 | 0.484 | 0.619 | 0.768 |
+    | 1e-2 | shift_Omicron_BA2 | 0.393 | 0.487 | 0.619 | 0.769 |
+    (l2reg collapsed above — it moves nothing; the three l2 levels agree to ±0.003 within every beta0_ridge row.)
+  **Adjudicated against #284's pre-registered thresholds** — an effect required ANY of: ≥1/8 converged where the baseline is 0/8; median final_obj_err ≥2× baseline; median shift-r moving ≥0.05; or α/Σβ² ≥2× at matched fusionreg. **Result: FLAT on all four, in all 9 cells.** Convergence 0/8 everywhere (primary DEGENERATE — 0.0 vs 0.0 discriminates nothing, so the pre-registered obj_err fallback adjudicates); obj_err ratios 0.76–0.97× (max deviation 24%, threshold 100%); α 1.00–1.11×, Σβ² 0.96–1.01×; shift-r deltas −0.006…+0.007 (threshold 0.05, so the largest is 7× under).
+  Conclusion: **NULL — neither a sub-knee `l2reg` (1e-8…1e-6) nor a nonzero `beta0_ridge` (1e-4…1e-2) buys convergence or reproducibility on top of the settled clip bound.** This CONFIRMS and sharpens the standing L2 finding: the ~3e-4 knee is real, and three-to-four orders below it the penalty is simply inert against an active `beta_clip_range=[-10,10]`, which is already the binding constraint on β. The axes are not *quite* dead, though, and the directions are informative: α rises **monotonically** with beta0_ridge (16.1 → 16.5 → 17.5 at fixed l2reg) and Σβ² dips ~4% at l2reg=1e-6, so both penalties do touch the optimum — they are 1-2 orders of magnitude too weak to move it. **The honest limit of this result:** convergence was 0/8 at the baseline BEFORE the scan began, so this grid could never have detected a convergence *gain* — it can only say the regularizers did not rescue a fit that the inner cap had already pinned. Per the 2026-07-10 maxiter-scan, the inner cap is the dominant convergence lever (0/16 → 3/16 → 12/16 over inner maxiter 1/10/100), and this grid inherits the middle-of-the-road maxiter=10. So the defensible claim is *"regularization cannot rescue convergence at an inadequate inner cap"* — NOT *"these regularizers are inert"* in general.
+  Next: **#285** (stub, blocked-by #284) re-runs these exact axes at inner maxiter=100 — the only 100%-converging cell known — which is what separates those two claims. Budget ~11h naive (m100 was 2h31m for 16 fits) and **do not reuse n_processes=16** (m100 deadlocked under it; use 4). A maxiter=100 `(0,0)` baseline does not exist yet and must be fit. Standing findings: the L2-knee finding is sharpened below; no finding is overturned.
 
 - 2026-07-10 | cache=maxiter-scan | sweep: ge/cal_kwargs `maxiter` {1, 10, 100} (COUPLED — ge and cal move together) × `recompute_scale` {False, True} × fusionreg [0.0, 4e-5, 1.6e-4, 6.4e-4], 2 reps = 48 fits. Else #277 softplus-floor-off.yaml fixed block VERBATIM (cold-start warmstart=False, output_floor=null, share_alpha=true, Sigmoid, l2reg=0, alpha_init=6, beta_clip_range=[-10,10], loss δ=1, outer maxiter=50/tol=1e-5, inner maxls=10/tol=1e-4). Configs: grids/maxiter-scan-m{1,10,100}.yaml (three configs because the harness Cartesian-products every sweep axis — ge_kwargs and cal_kwargs listed together would 3×3-cross to 9, not the 3 coupled cells; one config per level then `pd.concat` the three fit_collection.pkl). Ran REMOTE on orca04 (64-core, scouted idle) — source tree rsync'd to HEAD 9121748 (GitHub unreachable from orca04 via the 1Password-gated forwarded agent, so no remote git fetch; the one required data CSV, gitignored, rsync'd explicitly). m1/m10 fit at n_processes=16 (wall 154s / 639s, 16 fit 0 failed each); **m100 deadlocked under the 16-worker spawn pool** (collapsed to a single limping process, ~46 min no output — the documented spawn-under-JAX race, widened by the heavier 100-iter compile) → rerun at **n_processes=4**, which ran clean (4 workers ~100% CPU each), wall 9049s (2h31m), 16 fit 0 failed. Downstream basin/convergence computed inline from the combined frame.
   Convergence rate + basin (α, Σβ² of ref-condition β, mean fit_time) per (ge/cal maxiter × recompute_scale):
