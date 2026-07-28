@@ -55,10 +55,13 @@ jobs:
           version: "~= 23.3.0" # this is the version that ships with the vs code extension, currently
 
       # On pull requests, run only the fast tests + doctests (the default
-      # `-m 'not slow'` from pyproject deselects the JAX model-fitting suites,
-      # which dominate wall time). On push-to-main and release, run the full
-      # suite (`-m ''` re-includes the slow tests) so nothing merges to main or
-      # ships without full coverage.
+      # marker filter from pyproject deselects the JAX model-fitting suites,
+      # which dominate wall time). On push-to-main and release, re-include the
+      # slow tests so nothing merges to main or ships without full coverage.
+      #
+      # Note the full run excludes `needs_local_data` rather than clearing the
+      # filter with `-m ""`: those tests read gitignored pipeline outputs that
+      # no runner has, so clearing the filter fails CI by design.
       - name: Test (fast — pull requests)
         if: ${{ github.event_name == 'pull_request' }}
         run: |
@@ -67,4 +70,4 @@ jobs:
       - name: Test (full — push / release)
         if: ${{ github.event_name != 'pull_request' }}
         run: |
-          pytest --doctest-modules multidms tests -m ""
+          pytest --doctest-modules multidms tests -m "not needs_local_data"

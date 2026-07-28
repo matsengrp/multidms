@@ -1,5 +1,6 @@
 .beads
 
+
 **archive/
 
 # pixi
@@ -18,7 +19,7 @@ docs/multidms*rst
 
 experiments/scv2-spike/results_test/
 experiments/simulation/results_test/
-experiments/*/results-*/
+experiments/*/results*
 
 # marimo notebook scratch cache (autosave snapshots)
 __marimo__/

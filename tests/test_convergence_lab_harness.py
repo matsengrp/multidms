@@ -76,9 +76,13 @@ def test_explode_grid_cartesian_with_replicates(tmp_path):
     assert {d["l2reg"] for d in exploded} == {0.0, 3e-4}
 
 
-@pytest.mark.slow
+@pytest.mark.needs_local_data
 def test_load_rep_data_builds_two_reps():
-    """load_rep_data builds rep_1/rep_2 Data with the expected conditions."""
+    """load_rep_data builds rep_1/rep_2 Data with the expected conditions.
+
+    Reads the gitignored prod spike CSV, so this runs only where the pipeline
+    has been run locally.
+    """
     rep_data = harness.load_rep_data()
     assert set(rep_data) == {"rep_1", "rep_2"}
     for name, data in rep_data.items():

@@ -130,12 +130,16 @@ testpaths = ["tests", "multidms"]
 python_files = ["test_*.py", "*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-# Deselect slow tests by default: they load real-data artifacts (e.g. the
-# gitignored scv2-spike CSV) that are not present in CI. Run them locally with
-# `pytest -m slow` when the data is available.
-addopts = "-m 'not slow'"
+# Deselect slow tests by default so the common local run stays fast; CI's
+# push-to-main job re-includes them with `-m 'not needs_local_data'`.
+# `needs_local_data` is always deselected, on every runner and by default: those
+# tests read gitignored pipeline outputs under experiments/*/results*, which
+# exist only on a machine that has run the pipeline. Run them there explicitly
+# with `pytest -m needs_local_data`.
+addopts = "-m 'not slow and not needs_local_data'"
 markers = [
-    "slow: marks tests that load real data or fit models (run with '-m slow')",
+    "slow: marks tests that fit models and so are slow (run with '-m slow')",
+    "needs_local_data: marks tests reading gitignored pipeline outputs; never runs in CI",
 ]
 
 [tool.bumpver]
