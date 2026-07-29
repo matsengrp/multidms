@@ -81,3 +81,83 @@ def test_missing_downstream_file_raises(load_config, section, tmp_path):
     fit = _write(tmp_path, "fit.yaml", {section: {}})
     with pytest.raises(FileNotFoundError):
         load_config(fit, str(tmp_path / "nope.yaml"))
+
+
+SIM_VARIANTS = ["config", "config_test"]
+SPIKE_VARIANTS = [
+    "config",
+    "config_test",
+    "config_experimental",
+    "config_recompute_false",
+    "config_recompute_false_test",
+    "config_recompute_false_maxiter200",
+]
+SPIKE_DOWNSTREAM_KEYS = {
+    "lasso_choice",
+    "condition_colors",
+    "condition_titles",
+    "domain_dict",
+}
+
+VARIANTS = [("simulation", SIM_DIR, n) for n in SIM_VARIANTS] + [
+    ("spike", SPIKE_DIR, n) for n in SPIKE_VARIANTS
+]
+
+
+def _section_keys(path, section):
+    with open(path) as f:
+        return set((yaml.safe_load(f) or {}).get(section, {}))
+
+
+@pytest.mark.parametrize("section,pipeline_dir,name", VARIANTS)
+def test_every_variant_has_a_downstream_sibling(section, pipeline_dir, name):
+    """Every config variant in both pipelines has a downstream sibling."""
+    config_dir = os.path.join(pipeline_dir, "config")
+    assert os.path.exists(os.path.join(config_dir, f"{name}.yaml"))
+    assert os.path.exists(os.path.join(config_dir, f"{name}_downstream.yaml"))
+
+
+@pytest.mark.parametrize("section,pipeline_dir,name", VARIANTS)
+def test_downstream_keys_left_the_fit_tier(section, pipeline_dir, name):
+    """No downstream key remains in any fit-tier config."""
+    config_dir = os.path.join(pipeline_dir, "config")
+    expected = {"lasso_choice"} if section == "simulation" else SPIKE_DOWNSTREAM_KEYS
+    fit_keys = _section_keys(os.path.join(config_dir, f"{name}.yaml"), section)
+    leftover = fit_keys & expected
+    assert not leftover, f"{name}.yaml still holds {sorted(leftover)}"
+
+
+@pytest.mark.parametrize("section,pipeline_dir,name", VARIANTS)
+def test_tiers_merge_without_collision(section, pipeline_dir, name):
+    """Every variant's two tiers merge cleanly and expose lasso_choice."""
+    load_config = (
+        SIM_COMMON.load_config if section == "simulation" else SPIKE_COMMON.load_config
+    )
+    config_dir = os.path.join(pipeline_dir, "config")
+    merged = load_config(
+        os.path.join(config_dir, f"{name}.yaml"),
+        os.path.join(config_dir, f"{name}_downstream.yaml"),
+    )
+    assert "lasso_choice" in merged[section]
+
+
+def test_simulation_downstream_tier_holds_only_lasso_choice():
+    """Simulation's downstream tier is lasso_choice alone — it has no cosmetics."""
+    config_dir = os.path.join(SIM_DIR, "config")
+    for name in SIM_VARIANTS:
+        with open(os.path.join(config_dir, f"{name}_downstream.yaml")) as f:
+            payload = yaml.safe_load(f)
+        assert set(payload) == {"simulation"}
+        assert set(payload["simulation"]) == {"lasso_choice"}
+
+
+def test_fit_tier_retains_keys_the_notebook_scan_cannot_see():
+    """Snakefile-read and helper-read keys must stay in the fit tier."""
+    config_dir = os.path.join(SPIKE_DIR, "config")
+    experimental = _section_keys(
+        os.path.join(config_dir, "config_experimental.yaml"), "spike"
+    )
+    assert "skip_cross_validation" in experimental
+    prod = _section_keys(os.path.join(config_dir, "config.yaml"), "spike")
+    assert "data_url" in prod
+    assert "output_dir" in prod

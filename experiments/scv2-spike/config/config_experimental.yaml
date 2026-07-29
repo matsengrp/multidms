@@ -23,16 +23,6 @@ spike:
   do_truncate_nonsense: true
   subsample_frac: null  # null = use all data
 
-  # Display
-  condition_colors:
-    Delta: "#F97306"
-    Omicron_BA1: "#BFBFBF"
-    Omicron_BA2: "#9400D3"
-  condition_titles:
-    Delta: "Delta"
-    Omicron_BA1: "BA.1"
-    Omicron_BA2: "BA.2"
-
   # Fitting parameters — reduced for fast iteration
   fitting:
     # Strategy: "independent" fits each fusionreg from scratch (parallel);
@@ -55,20 +45,5 @@ spike:
     ge_kwargs: {tol: 1.0e-4, maxiter: 20, maxls: 40, jit: true, verbose: false}
     cal_kwargs: {tol: 1.0e-4, maxiter: 20, maxls: 40, jit: true, verbose: false}
     n_processes: null  # null = auto: min(cpu_count // 2, n_models)
-  lasso_choice: 4.0e-5
-
   # Optional pipeline steps
   skip_cross_validation: true
-
-  # Spike protein domain boundaries (for downstream Phase 4 notebooks)
-  domain_dict:
-    NTD: [13, 293]
-    RBD: [330, 528]
-    SD1: [528, 590]
-    SD2: [590, 685]
-    FP: [815, 834]
-    HR1: [907, 985]
-    CH: [985, 1035]
-    CD: [1075, 1162]
-    HR2: [1162, 1211]
-    TM: [1211, 1234]
