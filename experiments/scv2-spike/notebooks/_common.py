@@ -8,21 +8,66 @@ import requests
 import yaml
 
 
-def load_config(config_path):
-    """Load a pipeline configuration YAML file.
+def load_config(config_path, downstream_config_path=None):
+    """Load a pipeline configuration YAML, optionally merging a downstream tier.
+
+    The spike config is split by dependency tier: the fit tier holds
+    everything the expensive model fit depends on, and the downstream tier
+    holds keys read only by evaluation and plotting. Splitting them keeps a
+    downstream edit from invalidating the cached fit.
 
     Parameters
     ----------
     config_path : str
-        Path to the YAML config file.
+        Path to the fit-tier YAML config file.
+    downstream_config_path : str or None
+        Path to the downstream-tier YAML. When None, only the fit tier is
+        loaded and the returned dict is exactly the file's contents.
 
     Returns
     -------
     dict
-        Configuration dictionary.
+        Configuration dictionary. When both tiers are given, they are merged
+        one level deep: top-level keys, and keys inside each shared top-level
+        mapping.
+
+    Raises
+    ------
+    ValueError
+        If any key is present in both tiers. A collision is always a bug in
+        the split, and resolving it silently would let a stale fit-tier value
+        shadow the downstream one.
     """
     with open(config_path) as f:
         config = yaml.safe_load(f)
+
+    if downstream_config_path is None:
+        return config
+
+    with open(downstream_config_path) as f:
+        downstream = yaml.safe_load(f) or {}
+
+    for key, value in downstream.items():
+        if key not in config:
+            config[key] = value
+            continue
+        if isinstance(config[key], dict) and isinstance(value, dict):
+            overlap = set(config[key]) & set(value)
+            if overlap:
+                raise ValueError(
+                    f"Key(s) {sorted(overlap)} appear in both the fit tier "
+                    f"({config_path}) and the downstream tier "
+                    f"({downstream_config_path}) under '{key}'. Each key must "
+                    "live in exactly one tier."
+                )
+            config[key].update(value)
+        else:
+            raise ValueError(
+                f"Key '{key}' appears in both the fit tier ({config_path}) "
+                f"and the downstream tier ({downstream_config_path}). Each "
+                "key must live in exactly one tier."
+            )
+
     return config
 
 
