@@ -53,8 +53,41 @@ snakemake -s experiments/scv2-spike/Snakefile --config profile=test -j4
 
 | File | Description |
 |------|-------------|
-| `config.yaml` | Production profile — manuscript defaults from `profile_beta0_zero_l2reg_10x` |
+| `config.yaml` | Production profile — fit tier |
+| `config_downstream.yaml` | Production profile — downstream tier |
 | `config_test.yaml` | Test profile — 10% subsample, 2 fusionreg values, 20 iterations |
+| `config_test_downstream.yaml` | Test profile — downstream tier |
+
+Every config variant has a matching `<name>_downstream.yaml` sibling. See
+**Configuration tiers** below for which keys live where and why it matters.
+
+## Configuration tiers
+
+The config is split by dependency tier so that a downstream-only edit cannot
+invalidate the expensive model fit:
+
+| File | Holds | Do edits invalidate the fit? |
+|------|-------|------------------------------|
+| `config.yaml` | `seed`, `train_frac`, data sourcing and filtering, the `fitting:` block, `reference`, `output_dir`, `skip_cross_validation`, experiment/condition membership | **Yes** |
+| `config_downstream.yaml` | `lasso_choice`, `condition_colors`, `condition_titles`, `domain_dict` | **No** |
+
+Snakemake reruns a job when an `input:` file's mtime changes, not when its
+content changes. Before the split, every rule declared the single config as an
+input, so editing `lasso_choice` — a key the fit never reads — forced a
+multi-hour refit that recomputed a byte-identical `fit_collection.pkl`. Even
+`touch config.yaml` was enough.
+
+Now only `rule evaluate` declares `config_downstream.yaml` as an `input:`.
+`prepare_data` and `cross_validation` read it too (for plot labels), but
+receive its **path via `params:`** — Snakemake does not rerun on `params:`
+changes, so a color edit cannot reach the fit.
+
+> Do not "tidy" this by adding `downstream_config` to the `input:` block of
+> `prepare_data`, `cross_validation`, or `fit_models`. That would silently
+> restore the defect. See issue #287.
+
+Retuning the chosen lasso weight, changing a plot color, or adding a
+downstream analysis therefore reuses the cached `fit_collection.pkl`.
 
 ### Source notebooks (in `notebooks/`)
 

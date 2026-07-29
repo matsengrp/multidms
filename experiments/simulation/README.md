@@ -79,5 +79,33 @@ snakemake -s experiments/simulation/Snakefile --config profile=test -j4
 
 ## Configuration
 
-- **Production**: `config/config.yaml` — manuscript defaults (genelength=50, 4 fusionreg values, maxiter=100)
+- **Production**: `config/config.yaml` — manuscript defaults (genelength=50, 9 fusionreg values, maxiter=100)
 - **Test**: `config/config_test.yaml` — reduced parameters (genelength=10, 2 fusionreg values, maxiter=20)
+
+Each has a matching `<name>_downstream.yaml` sibling.
+
+### Configuration tiers
+
+The config is split by dependency tier so that a downstream-only edit cannot
+invalidate the expensive model fit:
+
+| File | Holds | Do edits invalidate the fit? |
+|------|-------|------------------------------|
+| `config.yaml` | `seed`, `train_frac`, the simulation parameters, the `fitting:` block, `output_dir` | **Yes** |
+| `config_downstream.yaml` | `lasso_choice` (only) | **No** |
+
+Snakemake reruns a job when an `input:` file's mtime changes, not when its
+content changes. Before the split, every rule declared the single config as an
+input, so editing `lasso_choice` — a key the fit never reads — forced a full
+refit that recomputed a byte-identical `fit_collection.pkl`.
+
+Now only `rule evaluate` and `rule manuscript_figures` declare
+`config_downstream.yaml` as an `input:`. `simulate_data`, `fit_models`, and
+`cross_validation` do not reference it at all.
+
+> Do not "tidy" this by adding `downstream_config` to the `input:` block of
+> `simulate_data`, `fit_models`, or `cross_validation`. That would silently
+> restore the defect. See issue #287.
+
+Unlike spike, simulation's downstream tier holds `lasso_choice` alone — this
+pipeline has no `condition_colors`, `condition_titles`, or `domain_dict`.
