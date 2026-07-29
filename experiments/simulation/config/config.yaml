@@ -31,8 +31,8 @@ simulation:
     maxiter: 100
     tol: 1.0e-4
     fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4]
-    l2reg: 0.0
-    beta0_ridge: 0.0
+    l2reg: 1.0e-6
+    beta0_ridge: 0.01
     ge_type: "Sigmoid"
     warmstart: false
     beta0_init: {h1: 5.0, h2: 0.0}
