@@ -36,6 +36,12 @@ else:
     _name = config.get("configname", "config")
     CONFIG_PATH = os.path.join(SPIKE_DIR, "config", f"{_name}.yaml")
 
+# Downstream tier: derived from whatever path the profile/configname logic
+# resolved, so the `configname` override keeps working with no new machinery.
+# Declared as an input ONLY on the evaluate rule, so editing it cannot
+# invalidate the cached fit. See issue #287.
+DOWNSTREAM_CONFIG_PATH = CONFIG_PATH.replace(".yaml", "_downstream.yaml")
+
 # Read output_dir from the YAML config so test profiles can isolate results
 with open(CONFIG_PATH) as _f:
     _cfg = yaml.safe_load(_f)
@@ -61,6 +67,7 @@ FIT_NOTEBOOK = os.path.join(
 # Relative config path for papermill parameter injection — avoids
 # leaking absolute server paths into executed notebook metadata.
 CONFIG_PATH_REL = os.path.relpath(CONFIG_PATH, SPIKE_DIR)
+DOWNSTREAM_CONFIG_PATH_REL = os.path.relpath(DOWNSTREAM_CONFIG_PATH, SPIKE_DIR)
 
 # Build target list — cross-validation is optional
 _all_targets = [
@@ -79,6 +86,12 @@ rule all:
         _all_targets,
 
 
+# NOTE: prepare_data and cross_validation read the downstream config for
+# labeling only (condition_colors / condition_titles), and receive its path
+# via params: — deliberately NOT via input:. Snakemake reruns on input: mtime
+# but not on params: changes, so this is what keeps a plot-color edit from
+# invalidating fit_collection.pkl. Do not "fix" this by adding
+# downstream_config to input:. See issue #287.
 rule prepare_data:
     input:
         config=CONFIG_PATH,
@@ -89,12 +102,14 @@ rule prepare_data:
         executed_notebook=os.path.join(RESULTS, "prepare_data.ipynb"),
     params:
         config_path=CONFIG_PATH_REL,
+        downstream_config_path=DOWNSTREAM_CONFIG_PATH_REL,
         output_dir=output_dir,
         cwd=SPIKE_DIR,
     shell:
         """
         papermill "{input.notebook}" "{output.executed_notebook}" \
             -p config_path "{params.config_path}" \
+            -p downstream_config_path "{params.downstream_config_path}" \
             -p output_dir "{params.output_dir}" \
             --cwd "{params.cwd}" \
         && jupyter trust "{output.executed_notebook}"
@@ -135,12 +150,14 @@ rule cross_validation:
         executed_notebook=os.path.join(RESULTS, "cross_validation.ipynb"),
     params:
         config_path=CONFIG_PATH_REL,
+        downstream_config_path=DOWNSTREAM_CONFIG_PATH_REL,
         output_dir=output_dir,
         cwd=SPIKE_DIR,
     shell:
         """
         papermill "{input.notebook}" "{output.executed_notebook}" \
             -p config_path "{params.config_path}" \
+            -p downstream_config_path "{params.downstream_config_path}" \
             -p output_dir "{params.output_dir}" \
             --cwd "{params.cwd}" \
         && jupyter trust "{output.executed_notebook}"
@@ -150,6 +167,7 @@ rule cross_validation:
 rule evaluate:
     input:
         config=CONFIG_PATH,
+        downstream_config=DOWNSTREAM_CONFIG_PATH,
         fit_collection=os.path.join(RESULTS, "fit_collection.pkl"),
         func_scores=os.path.join(RESULTS, "training_functional_scores.csv"),
         notebook=os.path.join(NOTEBOOKS, "evaluate.ipynb"),
@@ -164,12 +182,14 @@ rule evaluate:
         executed_notebook=os.path.join(RESULTS, "evaluate.ipynb"),
     params:
         config_path=CONFIG_PATH_REL,
+        downstream_config_path=DOWNSTREAM_CONFIG_PATH_REL,
         output_dir=output_dir,
         cwd=SPIKE_DIR,
     shell:
         """
         papermill "{input.notebook}" "{output.executed_notebook}" \
             -p config_path "{params.config_path}" \
+            -p downstream_config_path "{params.downstream_config_path}" \
             -p output_dir "{params.output_dir}" \
             --cwd "{params.cwd}" \
         && jupyter trust "{output.executed_notebook}"
