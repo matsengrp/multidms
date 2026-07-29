@@ -71,11 +71,12 @@ invalidate the expensive model fit:
 | `config.yaml` | `seed`, `train_frac`, data sourcing and filtering, the `fitting:` block, `reference`, `output_dir`, `skip_cross_validation`, experiment/condition membership | **Yes** |
 | `config_downstream.yaml` | `lasso_choice`, `condition_colors`, `condition_titles`, `domain_dict` | **No** |
 
-Snakemake reruns a job when an `input:` file's mtime changes, not when its
-content changes. Before the split, every rule declared the single config as an
-input, so editing `lasso_choice` — a key the fit never reads — forced a
-multi-hour refit that recomputed a byte-identical `fit_collection.pkl`. Even
-`touch config.yaml` was enough.
+Snakemake reruns a job when an `input:` file changes, but not when a `params:`
+value changes. (Snakemake 9.21 detects that change by hashing file content, not
+by comparing mtimes — so a bare `touch` does not trigger a rerun.) Before the
+split, every rule declared the single config as an input, so editing
+`lasso_choice` — a key the fit never reads — forced a multi-hour refit that
+recomputed a byte-identical `fit_collection.pkl`.
 
 Now only `rule evaluate` declares `config_downstream.yaml` as an `input:`.
 `prepare_data` and `cross_validation` read it too (for plot labels), but

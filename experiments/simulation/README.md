@@ -94,10 +94,12 @@ invalidate the expensive model fit:
 | `config.yaml` | `seed`, `train_frac`, the simulation parameters, the `fitting:` block, `output_dir` | **Yes** |
 | `config_downstream.yaml` | `lasso_choice` (only) | **No** |
 
-Snakemake reruns a job when an `input:` file's mtime changes, not when its
-content changes. Before the split, every rule declared the single config as an
-input, so editing `lasso_choice` — a key the fit never reads — forced a full
-refit that recomputed a byte-identical `fit_collection.pkl`.
+Snakemake reruns a job when an `input:` file changes, but not when a `params:`
+value changes. (Snakemake 9.21 detects that change by hashing file content, not
+by comparing mtimes — so a bare `touch` does not trigger a rerun.) Before the
+split, every rule declared the single config as an input, so editing
+`lasso_choice` — a key the fit never reads — forced a full refit that recomputed
+a byte-identical `fit_collection.pkl`.
 
 Now only `rule evaluate` and `rule manuscript_figures` declare
 `config_downstream.yaml` as an `input:`. `simulate_data`, `fit_models`, and
