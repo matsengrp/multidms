@@ -84,6 +84,7 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+<span class="n">downstream_config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config_downstream.yaml&quot;</span>
 <span class="n">output_dir</span> <span class="o">=</span> <span class="kc">None</span>
 </pre></div>
 </div>
@@ -94,7 +95,8 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
 <span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
-<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results-prod-235-times-seen-threshold&quot;</span>
+<span class="n">downstream_config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config_downstream.yaml&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results-prod-287-config-tier-split&quot;</span>
 <br/></pre></div>
 </div>
 </div>
@@ -102,7 +104,7 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">,</span> <span class="n">downstream_config_path</span><span class="p">)</span>
 <span class="n">spike</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;spike&quot;</span><span class="p">]</span>
 <span class="n">seed</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;seed&quot;</span><span class="p">]</span>
 
@@ -634,7 +636,7 @@ No subsampling (production profile)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Saved results-prod-235-times-seen-threshold/training_functional_scores.csv
+Saved results-prod-287-config-tier-split/training_functional_scores.csv
   303,007 variants
   Conditions: [&#39;Delta&#39;, &#39;Omicron_BA1&#39;, &#39;Omicron_BA2&#39;]
   Replicates: [&#39;1&#39;, &#39;2&#39;]

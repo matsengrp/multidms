@@ -87,7 +87,7 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
 <span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
-<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results-prod-287-config-tier-split&quot;</span>
 <br/></pre></div>
 </div>
 </div>
@@ -103,7 +103,6 @@
 <span class="n">train_frac</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;train_frac&quot;</span><span class="p">]</span>
 <span class="k">if</span> <span class="n">output_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">output_dir</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;output_dir&quot;</span><span class="p">]</span>
-<span class="n">lasso_choice</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;lasso_choice&quot;</span><span class="p">]</span>
 
 <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output directory: </span><span class="si">{</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -115,7 +114,7 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Output directory: results
+Output directory: results-prod-287-config-tier-split
 </pre></div></div>
 </div>
 <section id="Load-functional-scores">
@@ -239,7 +238,7 @@ Created 6 train datasets, 6 test datasets
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Fitting 54 CV models with n_processes=32 (cpus=64)
+Fitting 54 CV models with n_processes=6 (cpus=64)
 CV: fit 54 models, 0 failed
 </pre></div></div>
 </div>
@@ -336,28 +335,10 @@ lib_2_tight_bottle: dropped 2767/11628 test variants with unseen mutations
     <span class="p">)</span>
 <span class="p">)</span>
 
-<span class="c1"># Normalize loss by sample count so train/validation are comparable</span>
-<span class="n">n_samples</span> <span class="o">=</span> <span class="p">{}</span>
-<span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">train_datasets</span><span class="p">:</span>
-    <span class="n">n_train_variants</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
-        <span class="nb">len</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">variants_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;condition == &#39;</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">))</span>
-        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">conditions</span>
-    <span class="p">)</span>
-    <span class="n">n_samples</span><span class="p">[(</span><span class="n">d</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;training&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="n">n_train_variants</span>
-<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">test_df</span> <span class="ow">in</span> <span class="n">filtered_test</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-    <span class="n">n_test_variants</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
-        <span class="nb">len</span><span class="p">(</span><span class="n">test_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;condition == &#39;</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">))</span>
-        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">test_df</span><span class="p">[</span><span class="s2">&quot;condition&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
-    <span class="p">)</span>
-    <span class="n">n_samples</span><span class="p">[(</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;validation&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="n">n_test_variants</span>
-
-<span class="n">cv_data</span><span class="p">[</span><span class="s2">&quot;n_samples&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cv_data</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
-    <span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="n">n_samples</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-        <span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;dataset_name&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;dataset&quot;</span><span class="p">]),</span> <span class="mi">1</span>
-    <span class="p">),</span>
-    <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="n">cv_data</span><span class="p">[</span><span class="s2">&quot;mean_loss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cv_data</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">cv_data</span><span class="p">[</span><span class="s2">&quot;n_samples&quot;</span><span class="p">]</span>
+<span class="c1"># total_loss_{training,validation} are already per-variant averages</span>
+<span class="c1"># (functional_score_loss uses .mean() as of PR #230).</span>
+<span class="c1"># Keep `mean_loss` as an alias for downstream CSV consumers.</span>
+<span class="n">cv_data</span><span class="p">[</span><span class="s2">&quot;mean_loss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cv_data</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">]</span>
 
 <span class="c1"># Convert fusionreg to categorical string for x-axis</span>
 <span class="n">cv_data</span><span class="p">[</span><span class="s2">&quot;fusionreg_cat&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cv_data</span><span class="p">[</span><span class="s2">&quot;fusionreg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>

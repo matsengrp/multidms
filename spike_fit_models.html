@@ -86,7 +86,7 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
 <span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
-<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results-prod-235-times-seen-threshold&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results-prod-287-config-tier-split&quot;</span>
 <br/></pre></div>
 </div>
 </div>
@@ -183,15 +183,16 @@ rep_2: 145,712 variants, conditions=(&#39;Delta&#39;, &#39;Omicron_BA1&#39;, &#3
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Fitting parameters:
-  maxiter: [50]
+  maxiter: [200]
   tol: [0.0001]
+  recompute_scale: [True]
   fusionreg: [0.0, 5e-06, 1e-05, 2e-05, 4e-05, 8e-05, 0.00016, 0.00032, 0.00064]
-  l2reg: [0.0]
-  beta0_ridge: [0.0]
+  l2reg: [1e-06]
+  beta0_ridge: [0.01]
   scale_fusion_by_n: [False]
   ge_type: [&#39;Sigmoid&#39;]
-  ge_kwargs: [{&#39;tol&#39;: 0.0001, &#39;maxiter&#39;: 50, &#39;maxls&#39;: 40, &#39;jit&#39;: True, &#39;verbose&#39;: False}]
-  cal_kwargs: [{&#39;tol&#39;: 0.0001, &#39;maxiter&#39;: 50, &#39;maxls&#39;: 40, &#39;jit&#39;: True, &#39;verbose&#39;: False}]
+  ge_kwargs: [{&#39;tol&#39;: 0.0001, &#39;maxiter&#39;: 10, &#39;maxls&#39;: 40, &#39;jit&#39;: True, &#39;verbose&#39;: False}]
+  cal_kwargs: [{&#39;tol&#39;: 0.0001, &#39;maxiter&#39;: 10, &#39;maxls&#39;: 40, &#39;jit&#39;: True, &#39;verbose&#39;: False}]
   loss_kwargs: [{&#39;δ&#39;: 1.0}]
   warmstart: [False]
   beta0_init: [{&#39;Omicron_BA1&#39;: 0.0, &#39;Delta&#39;: 0.0, &#39;Omicron_BA2&#39;: 0.0}]
@@ -233,7 +234,7 @@ Fitting parameters:
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Fitting 18 models with n_processes=18 (cpus=64)
+Fitting 18 models with n_processes=6 (cpus=64)
 Fit 18 models successfully, 0 failed
 </pre></div></div>
 </div>
@@ -256,7 +257,7 @@ Fit 18 models successfully, 0 failed
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Saved results-prod-235-times-seen-threshold/fit_collection.pkl (18 models)
+Saved results-prod-287-config-tier-split/fit_collection.pkl (18 models)
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
@@ -302,109 +303,109 @@ Saved results-prod-235-times-seen-threshold/fit_collection.pkl (18 models)
       <th>0</th>
       <td>rep_1</td>
       <td>0.0</td>
-      <td>296</td>
+      <td>1032</td>
     </tr>
     <tr>
       <th>1</th>
       <td>rep_1</td>
       <td>0.000005</td>
-      <td>181</td>
+      <td>937</td>
     </tr>
     <tr>
       <th>2</th>
       <td>rep_1</td>
       <td>0.00001</td>
-      <td>148</td>
+      <td>1113</td>
     </tr>
     <tr>
       <th>3</th>
       <td>rep_1</td>
       <td>0.00002</td>
-      <td>132</td>
+      <td>1134</td>
     </tr>
     <tr>
       <th>4</th>
       <td>rep_1</td>
       <td>0.00004</td>
-      <td>122</td>
+      <td>572</td>
     </tr>
     <tr>
       <th>5</th>
       <td>rep_1</td>
       <td>0.00008</td>
-      <td>108</td>
+      <td>427</td>
     </tr>
     <tr>
       <th>6</th>
       <td>rep_1</td>
       <td>0.00016</td>
-      <td>253</td>
+      <td>464</td>
     </tr>
     <tr>
       <th>7</th>
       <td>rep_1</td>
       <td>0.00032</td>
-      <td>243</td>
+      <td>506</td>
     </tr>
     <tr>
       <th>8</th>
       <td>rep_1</td>
       <td>0.00064</td>
-      <td>233</td>
+      <td>562</td>
     </tr>
     <tr>
       <th>9</th>
       <td>rep_2</td>
       <td>0.0</td>
-      <td>290</td>
+      <td>1008</td>
     </tr>
     <tr>
       <th>10</th>
       <td>rep_2</td>
       <td>0.000005</td>
-      <td>215</td>
+      <td>954</td>
     </tr>
     <tr>
       <th>11</th>
       <td>rep_2</td>
       <td>0.00001</td>
-      <td>184</td>
+      <td>1256</td>
     </tr>
     <tr>
       <th>12</th>
       <td>rep_2</td>
       <td>0.00002</td>
-      <td>167</td>
+      <td>993</td>
     </tr>
     <tr>
       <th>13</th>
       <td>rep_2</td>
       <td>0.00004</td>
-      <td>113</td>
+      <td>525</td>
     </tr>
     <tr>
       <th>14</th>
       <td>rep_2</td>
       <td>0.00008</td>
-      <td>92</td>
+      <td>337</td>
     </tr>
     <tr>
       <th>15</th>
       <td>rep_2</td>
       <td>0.00016</td>
-      <td>259</td>
+      <td>391</td>
     </tr>
     <tr>
       <th>16</th>
       <td>rep_2</td>
       <td>0.00032</td>
-      <td>238</td>
+      <td>525</td>
     </tr>
     <tr>
       <th>17</th>
       <td>rep_2</td>
       <td>0.00064</td>
-      <td>227</td>
+      <td>492</td>
     </tr>
   </tbody>
 </table>

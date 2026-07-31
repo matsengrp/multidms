@@ -73,6 +73,7 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+<span class="n">downstream_config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config_downstream.yaml&quot;</span>
 <span class="n">output_dir</span> <span class="o">=</span> <span class="kc">None</span>
 </pre></div>
 </div>
@@ -83,7 +84,8 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
 <span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
-<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results&quot;</span>
+<span class="n">downstream_config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config_downstream.yaml&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results-prod-287-config-tier-split&quot;</span>
 <br/></pre></div>
 </div>
 </div>
@@ -96,11 +98,11 @@
 <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;notebooks&quot;</span><span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">_common</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_config</span>
 
-<span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+<span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">,</span> <span class="n">downstream_config_path</span><span class="p">)</span>
 <span class="n">sim</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;simulation&quot;</span><span class="p">]</span>
 <span class="k">if</span> <span class="n">output_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">output_dir</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;output_dir&quot;</span><span class="p">]</span>
-<span class="n">lasso_choice</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;lasso_choice&quot;</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">)</span>
+<span class="n">lasso_choice</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;lasso_choice&quot;</span><span class="p">]</span>
 
 <span class="c1"># GE parameters for Panel B overlay</span>
 <span class="n">wt_latent</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="s2">&quot;wt_latent&quot;</span><span class="p">]</span>
@@ -120,8 +122,8 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Output dir: results
-Figures dir: results/figures
+Output dir: results-prod-287-config-tier-split
+Figures dir: results-prod-287-config-tier-split/figures
 Lasso choice: 8e-05
 </pre></div></div>
 </div>
@@ -179,7 +181,7 @@ Loaded 7 CSV files:
   fit_sparsity: 108 rows, columns: [&#39;dataset_name&#39;, &#39;fusionreg&#39;, &#39;mut_type&#39;, &#39;mut_param&#39;, &#39;sparsity&#39;, &#39;library&#39;, &#39;library_type&#39;, &#39;measurement_type&#39;, &#39;fusionreg_cat&#39;]
   library_replicate_correlation: 81 rows, columns: [&#39;mut_param&#39;, &#39;correlation&#39;, &#39;fusionreg&#39;, &#39;measurement_type&#39;, &#39;fusionreg_cat&#39;]
   model_vs_truth_variant_phenotype: 54 rows, columns: [&#39;library&#39;, &#39;measurement_type&#39;, &#39;fusionreg&#39;, &#39;dataset_name&#39;, &#39;variant_phenotype_corr&#39;, &#39;variant_phenotype_mae&#39;, &#39;fusionreg_cat&#39;]
-  cross_validation_loss: 108 rows, columns: [&#39;fusionreg&#39;, &#39;library&#39;, &#39;measurement_type&#39;, &#39;dataset_name&#39;, &#39;dataset&#39;, &#39;loss&#39;, &#39;lib_dataset&#39;, &#39;n_samples&#39;, &#39;mean_loss&#39;, &#39;fusionreg_cat&#39;]
+  cross_validation_loss: 108 rows, columns: [&#39;fusionreg&#39;, &#39;library&#39;, &#39;measurement_type&#39;, &#39;dataset_name&#39;, &#39;dataset&#39;, &#39;loss&#39;, &#39;lib_dataset&#39;, &#39;mean_loss&#39;, &#39;fusionreg_cat&#39;]
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
@@ -670,7 +672,7 @@ True sparsity: 81.0%
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Saved results/figures/main_figure.pdf
+Saved results-prod-287-config-tier-split/figures/main_figure.pdf
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -790,7 +792,7 @@ Saved results/figures/main_figure.pdf
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Saved ground_truth_correlation.pdf  (R^2 = 1.0000)
+Saved ground_truth_correlation.pdf  (R^2 = 0.9941)
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -905,7 +907,7 @@ Saved ground_truth_correlation.pdf  (R^2 = 1.0000)
 <div class="highlight"><pre>
 lasso_weight, sparsity (fraction shift=0)
   lambda=0.0, sparsity=0.00
-  lambda=8e-05, sparsity=0.90
+  lambda=8e-05, sparsity=0.78
 Saved sparsity_diagnostic.pdf
 </pre></div></div>
 </div>

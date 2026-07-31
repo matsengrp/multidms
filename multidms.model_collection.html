@@ -38,6 +38,19 @@
 <h1>model_collection<a class="headerlink" href="#model-collection" title="Permalink to this heading">¶</a></h1>
 <p>Contains the <a class="reference internal" href="#multidms.model_collection.ModelCollection" title="multidms.model_collection.ModelCollection"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelCollection</span></code></a> class, which takes a collection of models
 and merges the results for comparison and visualization.</p>
+<p>Two fitting strategies are provided:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#multidms.model_collection.fit_models" title="multidms.model_collection.fit_models"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_models()</span></code></a> fits each <code class="docutils literal notranslate"><span class="pre">(dataset,</span> <span class="pre">hyperparameter)</span></code> combination
+independently in parallel (across CPU processes or GPU devices).</p></li>
+<li><p><a class="reference internal" href="#multidms.model_collection.fit_models_path" title="multidms.model_collection.fit_models_path"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_models_path()</span></code></a> fits the same combinations sequentially along an
+ascending <code class="docutils literal notranslate"><span class="pre">fusionreg</span></code> axis, warm-starting each step from the previous
+fit’s <code class="docutils literal notranslate"><span class="pre">(β,</span> <span class="pre">β0,</span> <span class="pre">α)</span></code>. Use this when a strong shift lasso distorts the
+global-epistasis calibration for data-poor conditions under independent
+fitting — starting at the unregularized solution keeps each step in the
+basin of the previous one as the lasso is tightened.</p></li>
+</ul>
+<p>Both return the same DataFrame schema, so either output can be passed to
+<a class="reference internal" href="#multidms.model_collection.ModelCollection" title="multidms.model_collection.ModelCollection"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelCollection</span></code></a> unchanged.</p>
 </section>
 <dl class="py exception">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollectionFitError">
@@ -48,7 +61,7 @@ and merges the results for comparison and visualization.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="multidms.model_collection.fit_one_model">
-<span class="sig-prename descclassname"><span class="pre">multidms.model_collection.</span></span><span class="sig-name descname"><span class="pre">fit_one_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ge_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Sigmoid'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l2reg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fusionreg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta0_ridge</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_fusion_by_n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'functional_score_loss'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warmstart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta0_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">share_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta_clip_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ge_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cal_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.fit_one_model" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">multidms.model_collection.</span></span><span class="sig-name descname"><span class="pre">fit_one_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ge_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Sigmoid'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l2reg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fusionreg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta0_ridge</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_fusion_by_n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_floor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_floor_hinge</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'functional_score_loss'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warmstart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recompute_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta0_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">share_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta_clip_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ge_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cal_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.fit_one_model" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fit a single multidms model to a dataset.</p>
 <p>This is a wrapper around Model construction and fitting that saves
 all hyperparameters for bookkeeping. Used by <a class="reference internal" href="#multidms.model_collection.fit_models" title="multidms.model_collection.fit_models"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_models()</span></code></a> for
@@ -62,10 +75,17 @@ parallel fitting across parameter sweeps.</p>
 <li><p><strong>fusionreg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Fusion (shift lasso) regularization strength.</p></li>
 <li><p><strong>beta0_ridge</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Ridge penalty for beta0 differences from reference condition.</p></li>
 <li><p><strong>scale_fusion_by_n</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Weight each condition’s fusion penalty by n_ref / n_d.</p></li>
+<li><p><strong>output_floor</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>None</em>) – Softplus output-activation lower bound. <code class="docutils literal notranslate"><span class="pre">None</span></code> (default) disables
+the floor (identity output). A float sets the floor at that value
+(e.g. <code class="docutils literal notranslate"><span class="pre">-3.5</span></code>), softly hinging predicted functional scores from above.</p></li>
+<li><p><strong>output_floor_hinge</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Softplus ramp width (<code class="docutils literal notranslate"><span class="pre">hinge_scale</span></code>). Only meaningful when
+<code class="docutils literal notranslate"><span class="pre">output_floor</span></code> is set. Default <code class="docutils literal notranslate"><span class="pre">0.1</span></code>.</p></li>
 <li><p><strong>loss_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Loss function: <code class="docutils literal notranslate"><span class="pre">'functional_score_loss'</span></code> or <code class="docutils literal notranslate"><span class="pre">'count_loss'</span></code>.</p></li>
 <li><p><strong>maxiter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Maximum block coordinate descent iterations.</p></li>
 <li><p><strong>tol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Convergence tolerance.</p></li>
 <li><p><strong>warmstart</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Whether to use Ridge regression for initialization.</p></li>
+<li><p><strong>recompute_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True (default), recompute the objective normalizer each outer
+sweep. If False, the fixed-scale convergence fix (#246).</p></li>
 <li><p><strong>beta0_init</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – Initial parameter values per condition.</p></li>
 <li><p><strong>beta_init</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – Initial parameter values per condition.</p></li>
 <li><p><strong>alpha_init</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>, </em><em>optional</em>) – Initial α scaling value (float for all, dict for per-condition).</p></li>
@@ -84,7 +104,7 @@ and the associated parameters used for the fit, including
 <code class="docutils literal notranslate"><span class="pre">'dataset_name'</span></code> and <code class="docutils literal notranslate"><span class="pre">'fit_time'</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.Series</span></code></a></p>
+<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.Series</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -115,6 +135,23 @@ specified GPUs using <code class="docutils literal notranslate"><span class="pre
 <li><p><strong>CPU mode</strong> (<code class="docutils literal notranslate"><span class="pre">n_processes</span></code>): Spawn independent processes
 via <code class="docutils literal notranslate"><span class="pre">multiprocessing.Pool</span></code> with the <code class="docutils literal notranslate"><span class="pre">spawn</span></code> context.</p></li>
 </ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><strong>CPU parallelism (``n_processes &gt; 1``) requires a guarded entry
+point.</strong> The <code class="docutils literal notranslate"><span class="pre">spawn</span></code> start context re-imports the program in each
+worker process, so the call to <code class="docutils literal notranslate"><span class="pre">fit_models</span></code> MUST be reachable only
+under an <code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">__name__</span> <span class="pre">==</span> <span class="pre">&quot;__main__&quot;:</span></code> guard (in a script) or inside
+a function the worker does not re-execute on import. Calling it at the
+module top level — including from a bare marimo cell or an unguarded
+<code class="docutils literal notranslate"><span class="pre">/tmp</span></code> script — makes every worker re-run the module’s top-level code
+as it imports it, which manifests as an apparent hang (workers spinning
+on re-execution, the parent’s result queue never filling) rather than a
+clean error. This is a property of <code class="docutils literal notranslate"><span class="pre">multiprocessing</span></code> <code class="docutils literal notranslate"><span class="pre">spawn</span></code>, not of
+this package: a properly-guarded script runs the identical spawn path
+cleanly. Each worker also rebuilds its own copy of every <code class="docutils literal notranslate"><span class="pre">Data</span></code> it
+fits, so peak memory grows with both <code class="docutils literal notranslate"><span class="pre">n_processes</span></code> and dataset size;
+size <code class="docutils literal notranslate"><span class="pre">n_processes</span></code> to the host’s free RAM, not just its core count.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -170,6 +207,82 @@ comparison and visualization.</p>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="multidms.model_collection.fit_models_path">
+<span class="sig-prename descclassname"><span class="pre">multidms.model_collection.</span></span><span class="sig-name descname"><span class="pre">fit_models_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.fit_models_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit a continuation path of models along ascending <code class="docutils literal notranslate"><span class="pre">fusionreg</span></code>.</p>
+<p>For every combination of the non-<code class="docutils literal notranslate"><span class="pre">fusionreg</span></code> hyperparameters, fit a
+sequence of models in order of increasing <code class="docutils literal notranslate"><span class="pre">fusionreg</span></code>, warm-starting
+each step from the previous step’s fitted <code class="docutils literal notranslate"><span class="pre">(β,</span> <span class="pre">β0,</span> <span class="pre">α)</span></code>. The first
+step of each path is a normal <a class="reference internal" href="#multidms.model_collection.fit_one_model" title="multidms.model_collection.fit_one_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_one_model()</span></code></a> call and honours
+<code class="docutils literal notranslate"><span class="pre">warmstart</span></code> as passed; subsequent steps set <code class="docutils literal notranslate"><span class="pre">warmstart=False</span></code> and
+seed explicitly from the previous fit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Same shape as the <code class="docutils literal notranslate"><span class="pre">params</span></code> dict accepted by <a class="reference internal" href="#multidms.model_collection.fit_models" title="multidms.model_collection.fit_models"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_models()</span></code></a>.
+The value at key <code class="docutils literal notranslate"><span class="pre">&quot;fusionreg&quot;</span></code> is treated as the path axis and
+is sorted ascending internally; all other list-valued keys are
+Cartesian-producted over as in <a class="reference internal" href="#multidms.model_collection.fit_models" title="multidms.model_collection.fit_models"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_models()</span></code></a>.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, print the hyperparameters of each step before fitting.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple matching <a class="reference internal" href="#multidms.model_collection.fit_models" title="multidms.model_collection.fit_models"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_models()</span></code></a>. <code class="docutils literal notranslate"><span class="pre">fit_collection_df</span></code> has one
+row per successfully fit step and the same column schema as
+<a class="reference internal" href="#multidms.model_collection.fit_models" title="multidms.model_collection.fit_models"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_models()</span></code></a>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(n_fit, n_failed, fit_collection_df)</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Failure handling is step-local. If step <em>k</em> of a combo fails, steps
+0..*k*−1 are kept and steps <em>k</em>..end of that combo are skipped;
+other combos continue independently. A step is considered a failure
+if <a class="reference internal" href="#multidms.model_collection.fit_one_model" title="multidms.model_collection.fit_one_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_one_model()</span></code></a> raises, or if the fitted parameters contain
+any NaN (caught by <code class="xref py py-func docutils literal notranslate"><span class="pre">_assert_no_nan()</span></code> so that NaNs cannot seed a
+downstream step).</p></li>
+<li><p>If the smallest <code class="docutils literal notranslate"><span class="pre">fusionreg</span></code> in the path is non-zero, a warning is
+emitted — the physical motivation for continuation is to start from
+the unregularized problem.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="multidms.model_collection.concat_path_trajectories">
+<span class="sig-prename descclassname"><span class="pre">multidms.model_collection.</span></span><span class="sig-name descname"><span class="pre">concat_path_trajectories</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fit_collection_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groupby_cols</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.concat_path_trajectories" title="Permalink to this definition">¶</a></dt>
+<dd><p>Concatenate per-step convergence trajectories within each path.</p>
+<p>Each row of <code class="docutils literal notranslate"><span class="pre">fit_collection_df</span></code> (the output of <a class="reference internal" href="#multidms.model_collection.fit_models_path" title="multidms.model_collection.fit_models_path"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_models_path()</span></code></a>)
+carries a fitted <a class="reference internal" href="multidms.html#multidms.Model" title="multidms.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">multidms.Model</span></code></a> whose
+<code class="docutils literal notranslate"><span class="pre">convergence_trajectory_df</span></code> describes only its own step. This helper
+stitches the per-step trajectories within each path into a single long
+DataFrame, tagged with <code class="docutils literal notranslate"><span class="pre">fusionreg</span></code>, <code class="docutils literal notranslate"><span class="pre">step_index</span></code>, and a running
+global iteration counter, so a whole path can be plotted on one axis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fit_collection_df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.5)"><em>pandas.DataFrame</em></a>) – Output of <a class="reference internal" href="#multidms.model_collection.fit_models_path" title="multidms.model_collection.fit_models_path"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_models_path()</span></code></a>. Must contain a <code class="docutils literal notranslate"><span class="pre">model</span></code> column
+and a <code class="docutils literal notranslate"><span class="pre">fusionreg</span></code> column.</p></li>
+<li><p><strong>groupby_cols</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Columns that identify a path. When <code class="docutils literal notranslate"><span class="pre">None</span></code> (default), every
+column is used except <code class="docutils literal notranslate"><span class="pre">fusionreg</span></code>, <code class="docutils literal notranslate"><span class="pre">model</span></code>, <code class="docutils literal notranslate"><span class="pre">fit_time</span></code>,
+<code class="docutils literal notranslate"><span class="pre">beta0_init</span></code>, <code class="docutils literal notranslate"><span class="pre">beta_init</span></code>, and <code class="docutils literal notranslate"><span class="pre">alpha_init</span></code> — the latter
+three change between path steps by construction.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Long-form trajectory with <code class="docutils literal notranslate"><span class="pre">path_id</span></code>, <code class="docutils literal notranslate"><span class="pre">step_index</span></code>,
+<code class="docutils literal notranslate"><span class="pre">fusionreg</span></code>, <code class="docutils literal notranslate"><span class="pre">iteration_within_step</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">iteration_global</span></code> columns, followed by the columns carried
+from each step’s <code class="docutils literal notranslate"><span class="pre">convergence_trajectory_df</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.5)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">multidms.model_collection.</span></span><span class="sig-name descname"><span class="pre">ModelCollection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fit_models</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection" title="Permalink to this definition">¶</a></dt>
@@ -185,13 +298,13 @@ the collection of models, and the resulting dataframe is passed to the
 constructor of this class.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>fit_models</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – A dataframe containing the fit attributes and pickled model objects
+<dd class="field-odd"><p><strong>fit_models</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – A dataframe containing the fit attributes and pickled model objects
 as returned by <cite>multidms.model_collection.fit_models</cite>.</p>
 </dd>
 </dl>
 <dl class="py property">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.site_map_union">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">site_map_union</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.model_collection.ModelCollection.site_map_union" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">site_map_union</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.5)"><span class="pre">DataFrame</span></a></em><a class="headerlink" href="#multidms.model_collection.ModelCollection.site_map_union" title="Permalink to this definition">¶</a></dt>
 <dd><p>The union of all site maps of all datasets used for fitting.</p>
 </dd></dl>
 
@@ -254,7 +367,7 @@ method docstring for details.</p></li>
 <dd class="field-even"><p>A dataframe containing the aggregated mutational parameter values</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
+<dd class="field-odd"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -299,9 +412,14 @@ before formatting the loss dataframe. The default is None.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="multidms.model_collection.ModelCollection.convergence_trajectory_df">
-<span class="sig-name descname"><span class="pre">convergence_trajectory_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id_vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('dataset_name',</span> <span class="pre">'fusionreg')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.convergence_trajectory_df" title="Permalink to this definition">¶</a></dt>
-<dd><p>Combine the converence trajectory dataframes of
-all fits in the queried collection.</p>
+<span class="sig-name descname"><span class="pre">convergence_trajectory_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id_vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('dataset_name',</span> <span class="pre">'fusionreg')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fit_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.model_collection.ModelCollection.convergence_trajectory_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combine the convergence trajectory dataframes of the selected fits.</p>
+<p>Fits are selected either by <code class="docutils literal notranslate"><span class="pre">query</span></code> (a pandas query string over
+<code class="docutils literal notranslate"><span class="pre">fit_models</span></code>) or by <code class="docutils literal notranslate"><span class="pre">fit_indices</span></code> (positional row indices into
+<code class="docutils literal notranslate"><span class="pre">fit_models.reset_index(drop=True)</span></code>); the two are mutually
+exclusive. When <code class="docutils literal notranslate"><span class="pre">fit_indices</span></code> is given, each fit’s trajectory block
+is stamped with a <code class="docutils literal notranslate"><span class="pre">_fit_idx</span></code> column equal to that fit’s positional
+index, giving a stable one-per-fit identifier for plotting.</p>
 </dd></dl>
 
 <dl class="py method">

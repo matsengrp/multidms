@@ -76,6 +76,7 @@
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
+<span class="n">downstream_config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config_downstream.yaml&quot;</span>
 <span class="n">output_dir</span> <span class="o">=</span> <span class="kc">None</span>
 </pre></div>
 </div>
@@ -86,7 +87,8 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
 <span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
-<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results-prod-235-times-seen-threshold&quot;</span>
+<span class="n">downstream_config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config_downstream.yaml&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results-prod-287-config-tier-split&quot;</span>
 <br/></pre></div>
 </div>
 </div>
@@ -94,7 +96,7 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">load_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">,</span> <span class="n">downstream_config_path</span><span class="p">)</span>
 <span class="n">spike</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;spike&quot;</span><span class="p">]</span>
 <span class="n">fit_config</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;fitting&quot;</span><span class="p">]</span>
 <span class="n">reference</span> <span class="o">=</span> <span class="n">spike</span><span class="p">[</span><span class="s2">&quot;reference&quot;</span><span class="p">]</span>
@@ -219,7 +221,7 @@ rep_2: 116,570 train, 29,142 test
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Fitting 18 CV models with n_processes=18
+Fitting 18 CV models with n_processes=6
 CV: fit 18 models, 0 failed
 </pre></div></div>
 </div>
