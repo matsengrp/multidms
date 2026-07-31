@@ -114,3 +114,56 @@ downstream analysis therefore reuses the cached `fit_collection.pkl`.
   the Delta pathology at high `fusionreg` in the independent-fit results.
   The output `fit_collection.pkl` has the same schema, so downstream rules
   are unchanged.
+
+> **The Delta pathology is substantially an under-convergence artifact.**
+> It was characterized when prod ran `maxiter: 50`. Raising the outer
+> `maxiter` to 200 (and lowering the inner `ge_kwargs`/`cal_kwargs` maxiter
+> to 10) removes most of it under the *independent* fitter — no continuation
+> needed. Shift replicate correlation for `shift_Delta` at
+> `fusionreg=6.4e-4` goes 0.0778 (baseline) → 0.4047, and the two drops seen
+> at `maxiter=50` (−0.111 at 1.6e-4, −0.089 at 3.2e-4 for BA2) both turn
+> positive. At a strong lasso the optimizer simply had not converged.
+>
+> This does not retire `"continuation"` — that strategy was never re-tested
+> at `maxiter: 200`, so its marginal value now is unmeasured. Treat the
+> paragraph above as motivation recorded at `maxiter: 50`, not as a
+> standing result. See issue #287.
+
+## Run log
+
+### 2026-07-28 — prod, issue #287 (`beta0_ridge`/`l2reg` promotion + maxiter split)
+
+| | |
+|---|---|
+| Host | orca05 (64 cores, 1.5 TB RAM) |
+| Branch / commit | `287-config-tier-split` @ `9c4b515` |
+| Output dir | `results-prod-287-config-tier-split` |
+| Wall-clock | **3643 s (61 min)** |
+| `fit_collection.pkl` | 1,584,437,445 bytes (1.58 GB), 18 fitted rows |
+| Workers | `n_processes: 6`, ~7 GB RSS each at steady state |
+
+**Parameter set** (verified on the fitted rows, not just the YAML):
+`beta0_ridge=0.01`, `l2reg=1e-6`, `maxiter=200` (outer) / `10` (inner
+`ge_kwargs`, `cal_kwargs`), fusionreg = the 9-value manuscript ladder.
+
+> These are **convergence-lab-derived** values, not the manuscript's ridge
+> weights (manuscript: β ridge 1e-7, α ridge 1e-3). Note also that
+> `beta0_ridge` is *shift shrinkage* — it penalizes `(β0_d − β0_ref)²`,
+> the intercept **differences**, not the intercept magnitudes.
+
+**Shift replicate correlation vs the pre-change baseline** (delta = new − baseline):
+
+| fusionreg | Δ `shift_Delta` | Δ `shift_Omicron_BA2` |
+|---|---|---|
+| 0.0 | −0.0149 | +0.0025 |
+| 5e-6 | −0.0087 | +0.0123 |
+| 1e-5 | −0.0107 | +0.0155 |
+| 2e-5 | −0.0013 | +0.0091 |
+| **4e-5** (chosen λ) | **+0.0083** | **+0.0105** |
+| 8e-5 | +0.0093 | +0.0111 |
+| 1.6e-4 | +0.0108 | +0.0054 |
+| 3.2e-4 | +0.0142 | +0.0213 |
+| 6.4e-4 | **+0.3269** | +0.0248 |
+
+At the three weakest `fusionreg` values `shift_Delta` is slightly below
+baseline (−0.015 to −0.009); at the chosen λ=4e-5 both parameters improve.
