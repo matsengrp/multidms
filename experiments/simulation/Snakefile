@@ -25,6 +25,11 @@ if profile == "test":
 else:
     CONFIG_PATH = os.path.join(SIM_DIR, "config", "config.yaml")
 
+# Downstream tier: derived from whatever path the profile logic resolved.
+# Declared as an input ONLY on downstream rules, so editing it cannot
+# invalidate the cached fit. See issue #287.
+DOWNSTREAM_CONFIG_PATH = CONFIG_PATH.replace(".yaml", "_downstream.yaml")
+
 # Read output_dir from the YAML config so test profiles can isolate results
 with open(CONFIG_PATH) as _f:
     _cfg = yaml.safe_load(_f)
@@ -37,6 +42,7 @@ FIGURES = os.path.join(RESULTS, "figures")
 # Relative config path for papermill parameter injection — avoids
 # leaking absolute server paths into executed notebook metadata.
 CONFIG_PATH_REL = os.path.relpath(CONFIG_PATH, SIM_DIR)
+DOWNSTREAM_CONFIG_PATH_REL = os.path.relpath(DOWNSTREAM_CONFIG_PATH, SIM_DIR)
 
 
 rule all:
@@ -93,6 +99,7 @@ rule fit_models:
 rule evaluate:
     input:
         config=CONFIG_PATH,
+        downstream_config=DOWNSTREAM_CONFIG_PATH,
         fit_collection=os.path.join(RESULTS, "fit_collection.pkl"),
         muteffects=os.path.join(RESULTS, "simulated_muteffects.csv"),
         func_scores=os.path.join(RESULTS, "simulated_func_scores.csv"),
@@ -112,11 +119,13 @@ rule evaluate:
         executed_notebook=os.path.join(RESULTS, "evaluate.ipynb"),
     params:
         config_path=CONFIG_PATH_REL,
+        downstream_config_path=DOWNSTREAM_CONFIG_PATH_REL,
         output_dir=output_dir,
     shell:
         """
         papermill {input.notebook} {output.executed_notebook} \
             -p config_path {params.config_path} \
+            -p downstream_config_path {params.downstream_config_path} \
             -p output_dir {params.output_dir} \
             --cwd {SIM_DIR} \
         && jupyter trust {output.executed_notebook}
@@ -147,6 +156,7 @@ rule cross_validation:
 rule manuscript_figures:
     input:
         config=CONFIG_PATH,
+        downstream_config=DOWNSTREAM_CONFIG_PATH,
         muteffects=os.path.join(RESULTS, "simulated_muteffects.csv"),
         func_scores=os.path.join(RESULTS, "simulated_func_scores.csv"),
         model_vs_truth=os.path.join(
@@ -173,11 +183,13 @@ rule manuscript_figures:
         sparsity_diag=os.path.join(FIGURES, "sparsity_diagnostic.pdf"),
     params:
         config_path=CONFIG_PATH_REL,
+        downstream_config_path=DOWNSTREAM_CONFIG_PATH_REL,
         output_dir=output_dir,
     shell:
         """
         papermill {input.notebook} {output.executed_notebook} \
             -p config_path {params.config_path} \
+            -p downstream_config_path {params.downstream_config_path} \
             -p output_dir {params.output_dir} \
             --cwd {SIM_DIR} \
         && jupyter trust {output.executed_notebook}

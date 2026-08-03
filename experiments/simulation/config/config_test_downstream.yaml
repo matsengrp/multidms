@@ -1,0 +1,8 @@
+# Downstream-tier configuration for the simulation pipeline.
+#
+# Keys here are read ONLY by evaluate and manuscript_figures. Editing this
+# file must NOT invalidate the cached fit_collection.pkl -- that is the whole
+# point of the split. Fit-tier edits (the sibling config) DO invalidate the fit.
+
+simulation:
+  lasso_choice: 8.0e-05
