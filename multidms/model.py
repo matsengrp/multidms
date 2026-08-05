@@ -862,6 +862,69 @@ class Model:
         func_score_curve = pd.concat(curve_rows, ignore_index=True)
         return variants_df, func_score_curve
 
+    def get_ge_params_df(self) -> pd.DataFrame:
+        """Per-condition parameters that place the GE landscape.
+
+        The wildtype latent phenotype decomposes exactly into the condition's
+        intercept plus the summed effect of its *bundle* mutations (those
+        separating the condition's wildtype sequence from the reference
+        wildtype sequence)::
+
+            φ_wt(d) = β0(d) + Σ_{m ∈ bundle(d)} β(d)[m]
+
+        The reference condition has an empty bundle, so its ``bundle_sum`` is
+        zero and ``wildtype_latent`` equals ``beta0``.
+
+        Returns
+        -------
+        pandas.DataFrame
+            One row per condition, in ``Data.conditions`` order, with columns:
+
+            - ``condition`` : str
+              Condition name.
+            - ``alpha`` : float
+              The fitness-to-functional-score scale α for this condition.
+              Constant down the column when the model was fit with
+              ``share_alpha=True`` (the default). Note α scales the curve and
+              does *not* affect wildtype placement.
+            - ``beta0`` : float
+              The condition's latent intercept β0.
+            - ``bundle_sum`` : float
+              Summed β over the condition's bundle mutations.
+            - ``wildtype_latent`` : float
+              ``beta0 + bundle_sum``; equals :attr:`Model.wildtype_latent`.
+            - ``n_bundle_mutations`` : int
+              Number of bundle mutations for the condition.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted.
+        """
+        if self._jax_model is None:
+            raise ValueError("Model has not been fitted. Call fit() first.")
+
+        _α = self._jax_model.α
+        rows = []
+        for condition in self._data.conditions:
+            latent = self._jax_model.φ[condition]
+            # x_wt is int8; it MUST be cast to bool before use as a mask,
+            # since indexing with an integer array selects by position.
+            mask = np.asarray(self._jax_data_sets[condition].x_wt).astype(bool)
+            beta0 = float(latent.β0)
+            bundle_sum = float(np.asarray(latent.β)[mask].sum())
+            rows.append(
+                {
+                    "condition": condition,
+                    "alpha": float(_α[condition] if isinstance(_α, dict) else _α),
+                    "beta0": beta0,
+                    "bundle_sum": bundle_sum,
+                    "wildtype_latent": beta0 + bundle_sum,
+                    "n_bundle_mutations": int(mask.sum()),
+                }
+            )
+        return pd.DataFrame(rows)
+
     def plot_ge_landscape(self, n_curve_points=200, space="fitness", **kwargs):
         """Plot the global epistasis landscape.
 
@@ -878,7 +941,11 @@ class Model:
             condition. Passed to both :meth:`get_ge_landscape_df` and
             :func:`multidms.plot.ge_landscape`.
         **kwargs
-            Passed to :func:`multidms.plot.ge_landscape`.
+            Passed to :func:`multidms.plot.ge_landscape`. The parameter
+            annotation is on by default here: unless ``params_df`` is given
+            explicitly or ``annotate_params=False``, this method supplies
+            :meth:`get_ge_params_df` so the chart is annotated with α, β0 and
+            the bundle sum.
 
         Returns
         -------
@@ -890,6 +957,10 @@ class Model:
         variants_df, curve_df = self.get_ge_landscape_df(
             n_curve_points=n_curve_points, space=space
         )
+        # Not setdefault(): its argument would be evaluated eagerly, computing
+        # the frame even when the caller supplied one or disabled annotation.
+        if "params_df" not in kwargs and kwargs.get("annotate_params", True):
+            kwargs["params_df"] = self.get_ge_params_df()
         return multidms.plot.ge_landscape(variants_df, curve_df, space=space, **kwargs)
 
     def get_ge_curve(
