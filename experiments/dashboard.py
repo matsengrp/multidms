@@ -214,18 +214,108 @@ def _(mo):
     return (times_seen_threshold_slider,)
 
 
+# --- Staged selections ---
+#
+# The multi-select tabs do not render on selection change; they render when
+# their "Plot" button is pressed. The committed selection lives in mo.state
+# so it survives unrelated cell re-runs, and chart cells reference ONLY the
+# state getter -- never the table -- so checking rows recomputes nothing.
+#
+# A staged value of None means "never plotted"; that is distinct from an
+# empty/short selection, which means "plotted, but nothing valid was picked".
+
+
+@app.cell
+def _(mo):
+    get_conv_staged, set_conv_staged = mo.state(None)
+    get_corr_staged, set_corr_staged = mo.state(None)
+    get_scatter_staged, set_scatter_staged = mo.state(None)
+    get_sparsity_staged, set_sparsity_staged = mo.state(None)
+    get_scatter_param, set_scatter_param = mo.state(None)
+    return (
+        get_conv_staged,
+        get_corr_staged,
+        get_scatter_param,
+        get_scatter_staged,
+        get_sparsity_staged,
+        set_conv_staged,
+        set_corr_staged,
+        set_scatter_param,
+        set_scatter_staged,
+        set_sparsity_staged,
+    )
+
+
+@app.cell
+def _(
+    conv_table,
+    corr_table,
+    mo,
+    scatter_table,
+    set_conv_staged,
+    set_corr_staged,
+    set_scatter_staged,
+    set_sparsity_staged,
+    sparsity_table,
+    times_seen_threshold_slider,
+):
+    def _idx_list(table):
+        """Positional fit indices of a table's selected rows."""
+        _sel = table.value
+        if _sel is None or _sel.empty:
+            return []
+        return list(_sel["_fit_idx"])
+
+    # The setters MUST be called from on_change, not from a cell body.
+    # A setter called inside a cell records that cell's id, and marimo's
+    # resolve_state_updates then skips any cell that already ran after it --
+    # which makes the rendered chart intermittently stale or empty. A widget
+    # callback fires outside cell execution, so marimo records an
+    # "__external__" sentinel that matches no cell, and every cell referencing
+    # the getter re-runs deterministically.
+    conv_plot_button = mo.ui.run_button(
+        label="Plot",
+        on_change=lambda _: set_conv_staged(_idx_list(conv_table)),
+    )
+    corr_plot_button = mo.ui.run_button(
+        label="Plot",
+        on_change=lambda _: set_corr_staged(
+            (_idx_list(corr_table), times_seen_threshold_slider.value)
+        ),
+    )
+    scatter_plot_button = mo.ui.run_button(
+        label="Plot",
+        on_change=lambda _: set_scatter_staged(
+            (_idx_list(scatter_table), times_seen_threshold_slider.value)
+        ),
+    )
+    sparsity_plot_button = mo.ui.run_button(
+        label="Plot",
+        on_change=lambda _: set_sparsity_staged(_idx_list(sparsity_table)),
+    )
+    return (
+        conv_plot_button,
+        corr_plot_button,
+        scatter_plot_button,
+        sparsity_plot_button,
+    )
+
+
 # ── D: Tab chart computations ────────────────────────────────────────────
 
 # --- Convergence ---
 
 
 @app.cell
-def _(conv_table, mc, mo, mplot):
-    _sel = conv_table.value  # a DataFrame of selected rows (may be empty)
-    if _sel is None or _sel.empty:
-        convergence_chart = mo.md("Select at least one fit.")
+def _(get_conv_staged, mc, mo, mplot):
+    _idx = get_conv_staged()  # staged at press time; None until first press
+    if _idx is None:
+        convergence_chart = mo.md("Select fits, then press **Plot**.")
+    elif not _idx:
+        convergence_chart = mo.md(
+            "No fits selected. Select at least one, then press **Plot**."
+        )
     else:
-        _idx = list(_sel["_fit_idx"])
         _conv_df = mc.convergence_trajectory_df(fit_indices=_idx)
         convergence_chart = mplot.convergence_trajectory(
             _conv_df,
@@ -280,25 +370,30 @@ def _(ge_table, mc, mo, mplot):
 
 
 @app.cell
-def _(corr_table, mc, mo, synthesize_isin_query, times_seen_threshold_slider):
-    _sel = corr_table.value  # a DataFrame of selected rows (may be empty)
-    _idx = list(_sel["_fit_idx"]) if _sel is not None and not _sel.empty else []
-    _src = mc.fit_models.reset_index(drop=True)
-    _n_datasets = _src.iloc[_idx]["dataset_name"].nunique() if _idx else 0
-    if _n_datasets < 2:
-        correlation_chart = mo.md("Select fits spanning ≥2 datasets.")
+def _(get_corr_staged, mc, mo, synthesize_isin_query):
+    _staged = get_corr_staged()  # (fit indices, threshold), or None
+    if _staged is None:
+        correlation_chart = mo.md("Select fits and a threshold, then press **Plot**.")
     else:
-        _query = synthesize_isin_query(mc.fit_models, _idx)
-        try:
-            correlation_chart = mc.mut_param_dataset_correlation(
-                query=_query,
-                times_seen_threshold=times_seen_threshold_slider.value,
-            )
-        except Exception as _e:
+        _idx, _threshold = _staged
+        _src = mc.fit_models.reset_index(drop=True)
+        _n_datasets = _src.iloc[_idx]["dataset_name"].nunique() if _idx else 0
+        if _n_datasets < 2:
             correlation_chart = mo.md(
-                f"Correlation failed: {_e}. Try lowering the threshold or "
-                "selecting different fits."
+                "Select fits spanning ≥2 datasets, then press **Plot**."
             )
+        else:
+            _query = synthesize_isin_query(mc.fit_models, _idx)
+            try:
+                correlation_chart = mc.mut_param_dataset_correlation(
+                    query=_query,
+                    times_seen_threshold=_threshold,
+                )
+            except Exception as _e:
+                correlation_chart = mo.md(
+                    f"Correlation failed: {_e}. Try lowering the threshold or "
+                    "selecting different fits."
+                )
     return (correlation_chart,)
 
 
@@ -306,56 +401,81 @@ def _(corr_table, mc, mo, synthesize_isin_query, times_seen_threshold_slider):
 
 
 @app.cell
-def _(common_param_columns, mc, mo, scatter_table, times_seen_threshold_slider):
-    _sel = scatter_table.value  # a DataFrame of selected rows (may be empty)
-    if _sel is None or len(_sel) != 2:
+def _(
+    common_param_columns,
+    get_scatter_param,
+    get_scatter_staged,
+    mc,
+    mo,
+    set_scatter_param,
+):
+    _staged = get_scatter_staged()  # (fit indices, threshold), or None
+    _pair = _staged[0] if _staged is not None else []
+
+    # Names must NOT start with "_": marimo treats a single leading underscore
+    # as cell-local, so an underscore-named value never reaches another cell.
+    # Both frames are bound on every branch -- leaving one unbound would
+    # unbind scatter_chart downstream and take the whole tab bar with it.
+    scatter_muts_a = None
+    scatter_muts_b = None
+
+    if len(_pair) != 2:
         scatter_param_dropdown = mo.ui.dropdown(options=[], label="Parameter")
     else:
         _src = mc.fit_models.reset_index(drop=True)
-        _ia, _ib = int(_sel["_fit_idx"].iloc[0]), int(_sel["_fit_idx"].iloc[1])
-        _muts_a = _src.iloc[_ia]["model"].get_mutations_df(
-            times_seen_threshold=times_seen_threshold_slider.value
+        _ia, _ib = int(_pair[0]), int(_pair[1])
+        _threshold = _staged[1]
+        # Computed once here and reused by the chart cell below.
+        scatter_muts_a = _src.iloc[_ia]["model"].get_mutations_df(
+            times_seen_threshold=_threshold
         )
-        _muts_b = _src.iloc[_ib]["model"].get_mutations_df(
-            times_seen_threshold=times_seen_threshold_slider.value
+        scatter_muts_b = _src.iloc[_ib]["model"].get_mutations_df(
+            times_seen_threshold=_threshold
         )
-        _opts = common_param_columns(_muts_a, _muts_b)
+        _opts = common_param_columns(scatter_muts_a, scatter_muts_b)
+        # This cell re-runs on every press, which would reset the dropdown to
+        # its first option; keep the previous choice when it is still offered.
+        _prev = get_scatter_param()
+        _initial = _prev if _prev in _opts else (_opts[0] if _opts else None)
         scatter_param_dropdown = mo.ui.dropdown(
             options=_opts,
-            value=_opts[0] if _opts else None,
+            value=_initial,
             label="Parameter",
+            on_change=set_scatter_param,
         )
     scatter_param_dropdown
-    return (scatter_param_dropdown,)
+    return scatter_muts_a, scatter_muts_b, scatter_param_dropdown
 
 
 @app.cell
 def _(
-    mc,
+    get_scatter_staged,
     merge_two_fits_on_mutation,
     mo,
     mplot,
+    scatter_muts_a,
+    scatter_muts_b,
     scatter_param_dropdown,
-    scatter_table,
-    times_seen_threshold_slider,
 ):
-    _sel = scatter_table.value  # a DataFrame of selected rows (may be empty)
-    if _sel is None or len(_sel) != 2:
-        scatter_chart = mo.md("Select exactly 2 fits.")
+    _staged = get_scatter_staged()  # (fit indices, threshold), or None
+    _pair = _staged[0] if _staged is not None else []
+
+    if _staged is None:
+        scatter_chart = mo.md("Select exactly 2 fits, then press **Plot**.")
+    elif len(_pair) != 2:
+        scatter_chart = mo.md(
+            f"Selected {len(_pair)} fits; this comparison needs exactly 2. "
+            "Adjust the selection, then press **Plot**."
+        )
     elif scatter_param_dropdown.value is None:
         scatter_chart = mo.md("Select a parameter to compare.")
     else:
-        _ia, _ib = int(_sel["_fit_idx"].iloc[0]), int(_sel["_fit_idx"].iloc[1])
-        _src = mc.fit_models.reset_index(drop=True)
-        _muts_a = _src.iloc[_ia]["model"].get_mutations_df(
-            times_seen_threshold=times_seen_threshold_slider.value
-        )
-        _muts_b = _src.iloc[_ib]["model"].get_mutations_df(
-            times_seen_threshold=times_seen_threshold_slider.value
-        )
+        # Reuses the frames from the dropdown cell -- no refetch, so changing
+        # the parameter re-renders without another press.
+        _ia, _ib = int(_pair[0]), int(_pair[1])
         _param = scatter_param_dropdown.value
         _merged, _x_col, _y_col = merge_two_fits_on_mutation(
-            _muts_a, _muts_b, _param, key_a=_ia, key_b=_ib
+            scatter_muts_a, scatter_muts_b, _param, key_a=_ia, key_b=_ib
         )
         scatter_chart = mplot.replicate_param_scatter(
             _merged,
@@ -371,19 +491,23 @@ def _(
 
 
 @app.cell
-def _(mc, mo, sparsity_table, synthesize_isin_query):
-    _sel = sparsity_table.value  # a DataFrame of selected rows (may be empty)
-    _idx = list(_sel["_fit_idx"]) if _sel is not None and not _sel.empty else []
-    _src = mc.fit_models.reset_index(drop=True)
-    _n_fr = _src.iloc[_idx]["fusionreg"].nunique() if _idx else 0
-    if _n_fr < 2:
-        sparsity_chart = mo.md("Select fits spanning ≥2 fusionreg values.")
+def _(get_sparsity_staged, mc, mo, synthesize_isin_query):
+    _idx = get_sparsity_staged()  # staged at press time; None until first press
+    if _idx is None:
+        sparsity_chart = mo.md("Select fits, then press **Plot**.")
     else:
-        _query = synthesize_isin_query(mc.fit_models, _idx)
-        try:
-            sparsity_chart = mc.shift_sparsity(query=_query)
-        except Exception as _e:
-            sparsity_chart = mo.md(f"Sparsity chart failed: {_e}")
+        _src = mc.fit_models.reset_index(drop=True)
+        _n_fr = _src.iloc[_idx]["fusionreg"].nunique() if _idx else 0
+        if _n_fr < 2:
+            sparsity_chart = mo.md(
+                "Select fits spanning ≥2 fusionreg values, then press **Plot**."
+            )
+        else:
+            _query = synthesize_isin_query(mc.fit_models, _idx)
+            try:
+                sparsity_chart = mc.shift_sparsity(query=_query)
+            except Exception as _e:
+                sparsity_chart = mo.md(f"Sparsity chart failed: {_e}")
     return (sparsity_chart,)
 
 
@@ -423,8 +547,10 @@ def _(mc, mo, pd):
 
 @app.cell
 def _(
+    conv_plot_button,
     conv_table,
     convergence_chart,
+    corr_plot_button,
     corr_table,
     correlation_chart,
     ge_chart,
@@ -432,22 +558,29 @@ def _(
     mo,
     scatter_chart,
     scatter_param_dropdown,
+    scatter_plot_button,
     scatter_table,
     sparsity_chart,
+    sparsity_plot_button,
     sparsity_table,
     summary_table,
     table_caption,
     times_seen_threshold_slider,
 ):
+    # Each multi-select tab pairs its table with a Plot button. On the two
+    # tabs that stage the threshold, the slider sits beside the button to
+    # signal that it is an input to the press rather than a live control.
     mo.ui.tabs(
         {
-            "Convergence": mo.vstack([table_caption, conv_table, convergence_chart]),
+            "Convergence": mo.vstack(
+                [table_caption, conv_table, conv_plot_button, convergence_chart]
+            ),
             "GE Landscape": mo.vstack([table_caption, ge_table, ge_chart]),
             "Param Correlation": mo.vstack(
                 [
                     table_caption,
                     corr_table,
-                    times_seen_threshold_slider,
+                    mo.hstack([times_seen_threshold_slider, corr_plot_button]),
                     correlation_chart,
                 ]
             ),
@@ -455,11 +588,14 @@ def _(
                 [
                     table_caption,
                     scatter_table,
-                    mo.hstack([scatter_param_dropdown, times_seen_threshold_slider]),
+                    mo.hstack([times_seen_threshold_slider, scatter_plot_button]),
+                    scatter_param_dropdown,
                     scatter_chart,
                 ]
             ),
-            "Sparsity": mo.vstack([table_caption, sparsity_table, sparsity_chart]),
+            "Sparsity": mo.vstack(
+                [table_caption, sparsity_table, sparsity_plot_button, sparsity_chart]
+            ),
             "Summary": summary_table,
         },
         lazy=True,
