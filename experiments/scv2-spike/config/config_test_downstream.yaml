@@ -6,7 +6,9 @@
 # invalidate the fit.
 
 spike:
-  lasso_choice: 4.0e-05
+  # Chosen lasso weight (manuscript λ); see config_downstream.yaml for the
+  # evidence behind the 4.0e-05 -> 8.0e-05 move.
+  lasso_choice: 8.0e-05
   condition_colors:
     Delta: '#F97306'
     Omicron_BA1: '#BFBFBF'

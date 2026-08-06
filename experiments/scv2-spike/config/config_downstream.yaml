@@ -6,7 +6,19 @@
 # invalidate the fit.
 
 spike:
-  lasso_choice: 4.0e-05
+  # Chosen lasso weight (manuscript λ). Moved 4.0e-05 -> 8.0e-05; matches the
+  # value the simulation pipeline already uses. Evidence from the current prod
+  # run (results-prod-287-config-tier-split), read across the three selection
+  # criteria from the manuscript:
+  #   - replicate shift correlation: shift_Delta peaks here (0.640 -> 0.650),
+  #     and shift_BA2 is still climbing (0.584 -> 0.628).
+  #   - stop-codon sparsity: 0.55/0.59 -> 0.81/0.79 for shift_Delta, i.e. much
+  #     closer to the "nearly all nonsense shifts are zero" criterion.
+  #   - validation loss: minimum is at 4.0e-05 (1.0692) but 8.0e-05 is 1.0718,
+  #     a 0.24% penalty -- flat enough that the other two criteria decide.
+  # Phase 2 of EPIC #290 re-derives this under tighter convergence and an
+  # extended ladder; revisit if the curves move.
+  lasso_choice: 8.0e-05
   condition_colors:
     Delta: '#F97306'
     Omicron_BA1: '#BFBFBF'
