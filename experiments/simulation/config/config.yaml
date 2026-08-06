@@ -40,7 +40,24 @@ simulation:
     share_alpha: true
     beta_clip_range: [-10, 10]
     loss_kwargs: {"δ": 1.0}
-    ge_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 40, jit: true, verbose: false}
-    cal_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 40, jit: true, verbose: false}
+    # Inner block-solver cap. Raised 10 -> 100 in #291 (Phase 1 of EPIC #290).
+    # PR #288 lowered it 100 -> 10 as a side effect of the config tier split;
+    # that is the measured cause of the non-monotonic shift-sparsity curve.
+    # Single-knob arms at inner=100 on lib_1_observed_phenotype_func_score:
+    # sparsity +0.341 at fusionreg=3.2e-4 (0.5189 -> 0.8600) and +0.383 at
+    # 6.4e-4 (0.2600 -> 0.6432), with alpha returning from ~9.3 to ~6.2-7.0
+    # (alpha_init 6.0) and objective_total down 58%. Zeroing l2reg (+0.000) or
+    # beta0_ridge (+0.067) does not reproduce this.
+    #
+    # Convergence triple for later EPIC #290 phases to inherit --
+    # SIMULATION-PIPELINE SCOPE ONLY:
+    #     (inner maxiter, outer maxiter, tol) = (100, 200, 1.0e-4)
+    # experiments/scv2-spike/ deliberately stays at inner maxiter = 10: the
+    # evidence above is simulation-only (noise-free data, known ground-truth
+    # sparsity 0.81), the cost on spike is unmeasured, and changing spike's
+    # fit-tier config.yaml would invalidate its cached fits. Any spike change
+    # must be measured on spike data first.
+    ge_kwargs: {tol: 1.0e-4, maxiter: 100, maxls: 40, jit: true, verbose: false}
+    cal_kwargs: {tol: 1.0e-4, maxiter: 100, maxls: 40, jit: true, verbose: false}
     n_processes: 6  # pinned: auto (null) picks workers by core count alone,
     # ignoring memory, which exhausted a 36 GB host mid-run. Never restore null.
