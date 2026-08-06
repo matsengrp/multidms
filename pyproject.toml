@@ -78,7 +78,11 @@ dev = [
     "sphinxcontrib-bibtex",
     "dms_variants",
     "ipywidgets",
-    "marimo>=0.8",
+    # Upper bound: marimo 0.23.x breaks mo.ui.table's `search` RPC, which
+    # fails with "Value '[]' does not fit any type of the union" on an empty
+    # filter list. Row selections then never reach the kernel, so the
+    # dashboard's Plot buttons have nothing to plot.
+    "marimo>=0.8,<0.23",
     "ghp-import",
 ]
 
