@@ -1359,6 +1359,8 @@ def ge_landscape(
     width=500,
     height=400,
     space="fitness",
+    params_df=None,
+    annotate_params=True,
 ):
     """Plot the global epistasis landscape.
 
@@ -1407,12 +1409,21 @@ def ge_landscape(
         ``ge_curve_value``. ``"func_score"`` draws one condition-colored
         curve per condition on ``func_score_curve_value`` and labels the
         y-axis "Functional score".
+    params_df : pandas.DataFrame, optional
+        Per-condition placement parameters from
+        :meth:`Model.get_ge_params_df`, used to annotate the chart with α,
+        β0 and the bundle sum. When ``None`` (the default) no annotation is
+        drawn, so direct callers of this function are unaffected.
+        :meth:`Model.plot_ge_landscape` supplies it automatically.
+    annotate_params : bool
+        Master switch for the annotation. The annotation renders only when
+        ``annotate_params`` is True *and* ``params_df`` is not None.
 
     Returns
     -------
     alt.LayerChart
         Altair layered chart with scatter, curve, and wildtype reference
-        lines.
+        lines, plus two text layers when annotating.
     """
     if space not in ("fitness", "func_score"):
         raise ValueError(f"space must be 'fitness' or 'func_score', got {space!r}")
@@ -1490,7 +1501,68 @@ def ge_landscape(
         )
     )
 
-    return (scatter + curve + wt_rules).properties(width=width, height=height)
+    if not (annotate_params and params_df is not None and len(params_df)):
+        return (scatter + curve + wt_rules).properties(width=width, height=height)
+
+    # Parameter annotation. The y-column differs by space, so the placement
+    # range must be computed mode-aware.
+    curve_y_col = (
+        "func_score_curve_value" if space == "func_score" else "ge_curve_value"
+    )
+    x_vals = pd.concat(
+        [variants_df["predicted_latent"], ge_curve_df["predicted_latent"]]
+    )
+    y_vals = pd.concat([variants_df[fitness_col], ge_curve_df[curve_y_col]])
+    lo_x, hi_x = float(x_vals.min()), float(x_vals.max())
+    lo_y, hi_y = float(y_vals.min()), float(y_vals.max())
+    ann_x = lo_x + (hi_x - lo_x) * 0.05
+
+    def _row_y(i):
+        return hi_y - (hi_y - lo_y) * (0.05 + 0.06 * i)
+
+    shared_alpha = params_df["alpha"].nunique() == 1
+    alpha_text = (
+        f"α = {float(params_df['alpha'].iloc[0]):.3f} (shared)"
+        if shared_alpha
+        else "α (per-condition)"
+    )
+    alpha_df = pd.DataFrame([{"text": alpha_text, "x": ann_x, "y": _row_y(0)}])
+
+    cond_rows = []
+    for i, row in enumerate(params_df.itertuples(index=False), start=1):
+        text = (
+            f"{row.condition}  φ_wt = {row.wildtype_latent:.3f}"
+            f"  =  β0 {row.beta0:.3f} + bundle {row.bundle_sum:.3f}"
+        )
+        if not shared_alpha:
+            text += f"   α {row.alpha:.3f}"
+        cond_rows.append(
+            {"condition": row.condition, "text": text, "x": ann_x, "y": _row_y(i)}
+        )
+    cond_df = pd.DataFrame(cond_rows)
+
+    # Two text sub-layers: giving the α row a null condition would serialize a
+    # bare NaN (rejected by browser JSON.parse) and add a spurious legend entry.
+    alpha_text_layer = (
+        alt.Chart(alpha_df)
+        .mark_text(align="left", baseline="top", fontSize=11, fontWeight="bold")
+        .encode(x="x:Q", y="y:Q", text="text:N", color=alt.value("black"))
+    )
+    cond_text_layer = (
+        alt.Chart(cond_df)
+        .mark_text(align="left", baseline="top", fontSize=11, fontWeight="normal")
+        .encode(
+            x="x:Q",
+            y="y:Q",
+            text="text:N",
+            color=alt.Color("condition:N"),
+            opacity=alt.condition(selection, alt.value(1.0), alt.value(0.0)),
+        )
+    )
+
+    return (scatter + curve + wt_rules + alpha_text_layer + cond_text_layer).properties(
+        width=width, height=height
+    )
 
 
 if __name__ == "__main__":

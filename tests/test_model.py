@@ -1317,3 +1317,235 @@ def test_output_floor_validation(simple_data):
         multidms.Model(simple_data, output_floor=-3.5, output_floor_hinge=0.0)
     with pytest.raises(ValueError, match="output_floor_hinge"):
         multidms.Model(simple_data, output_floor=-3.5, output_floor_hinge=-1.0)
+
+
+# ==================== get_ge_params_df Tests ====================
+
+
+def _annotation_rows(chart):
+    """Extract annotation text rows from a layered chart's serialized spec.
+
+    Altair stores layer data by reference under top-level ``datasets``, so
+    ``layer[i]["data"]["values"]`` does not exist. Text layers are located by
+    mark type rather than by index, which survives any layer reordering.
+    """
+    spec = chart.to_dict()
+    text_layers = [
+        layer
+        for layer in spec["layer"]
+        if (layer["mark"]["type"] if isinstance(layer["mark"], dict) else layer["mark"])
+        == "text"
+    ]
+    return [
+        row for layer in text_layers for row in spec["datasets"][layer["data"]["name"]]
+    ]
+
+
+def test_get_ge_params_df_identity(fitted_simple_model):
+    """beta0 + bundle_sum reproduces wildtype_latent for every condition."""
+    df = fitted_simple_model.get_ge_params_df()
+    wt_latent = fitted_simple_model.wildtype_latent
+
+    assert list(df.columns) == [
+        "condition",
+        "alpha",
+        "beta0",
+        "bundle_sum",
+        "wildtype_latent",
+        "n_bundle_mutations",
+    ]
+    for row in df.itertuples(index=False):
+        assert np.isclose(row.beta0 + row.bundle_sum, row.wildtype_latent, atol=1e-6)
+        assert np.isclose(row.wildtype_latent, wt_latent[row.condition], atol=1e-6)
+
+
+def test_get_ge_params_df_reference_bundle_empty(fitted_simple_model, simple_data):
+    """The reference condition has an empty bundle, so wildtype_latent == beta0."""
+    df = fitted_simple_model.get_ge_params_df().set_index("condition")
+    ref = df.loc[simple_data.reference]
+
+    assert ref["bundle_sum"] == 0.0
+    assert ref["n_bundle_mutations"] == 0
+    assert np.isclose(ref["wildtype_latent"], ref["beta0"], atol=1e-12)
+
+
+def test_get_ge_params_df_non_reference_bundle(fitted_simple_model):
+    """The non-reference condition carries exactly one bundle mutation."""
+    df = fitted_simple_model.get_ge_params_df().set_index("condition")
+
+    assert df.loc["b", "n_bundle_mutations"] == 1
+    assert df.loc["b", "bundle_sum"] != 0.0
+
+
+def test_get_ge_params_df_shared_alpha(fitted_simple_model):
+    """With the default share_alpha=True the alpha column is constant."""
+    df = fitted_simple_model.get_ge_params_df()
+    assert df["alpha"].nunique() == 1
+
+
+def test_get_ge_params_df_per_condition_alpha(simple_data):
+    """share_alpha=False yields a distinct finite alpha per condition."""
+    model = multidms.Model(simple_data)
+    model.fit(maxiter=5, share_alpha=False, verbose=False)
+    df = model.get_ge_params_df()
+
+    assert df["alpha"].nunique() >= 2
+    for row in df.itertuples(index=False):
+        assert isinstance(row.alpha, float)
+        assert np.isfinite(row.alpha)
+        assert np.isclose(
+            row.alpha, float(model._jax_model.α[row.condition]), atol=1e-9
+        )
+
+
+def test_get_ge_params_df_unfitted_raises(simple_data):
+    """An unfitted model raises rather than returning a frame."""
+    model = multidms.Model(simple_data)
+    with pytest.raises(ValueError, match="has not been fitted"):
+        model.get_ge_params_df()
+
+
+def test_get_ge_params_df_bundle_matches_latent_gap(fitted_simple_model):
+    """bundle_sum equals the wildtype-latent gap minus the intercept gap.
+
+    This cross-condition relation fails if bundle_sum were computed as the
+    tautology ``wildtype_latent - beta0``, or if either term were read from
+    the wrong condition's latent model.
+    """
+    df = fitted_simple_model.get_ge_params_df().set_index("condition")
+    wt_gap = df.loc["b", "wildtype_latent"] - df.loc["a", "wildtype_latent"]
+    b0_gap = df.loc["b", "beta0"] - df.loc["a", "beta0"]
+
+    assert np.isclose(df.loc["b", "bundle_sum"], wt_gap - b0_gap, atol=1e-6)
+
+
+def test_get_ge_params_df_bundle_mask_names(fitted_simple_model, simple_data):
+    """The bundle mask selects exactly the non-identical mutations by name.
+
+    Guards the int8-vs-bool masking trap: indexing beta with the raw int8
+    x_wt array selects by position instead of by set bit.
+    """
+    mutations = list(simple_data.mutations)
+    x_wt = np.asarray(fitted_simple_model._jax_data_sets["b"].x_wt).astype(bool)
+    bundle = np.asarray(simple_data.bundle_idxs["b"]).astype(bool)
+
+    from_x_wt = {m for m, flag in zip(mutations, x_wt) if flag}
+    from_bundle = {m for m, flag in zip(mutations, bundle) if flag}
+
+    assert from_x_wt == from_bundle == {"G3P"}
+    df = fitted_simple_model.get_ge_params_df().set_index("condition")
+    assert df.loc["b", "n_bundle_mutations"] == len(from_x_wt)
+
+
+def test_get_ge_params_df_single_condition(fitted_single_condition_model):
+    """A single-condition model is its own reference, so the bundle is empty."""
+    df = fitted_single_condition_model.get_ge_params_df()
+
+    assert len(df) == 1
+    row = df.iloc[0]
+    assert row["bundle_sum"] == 0.0
+    assert row["n_bundle_mutations"] == 0
+    assert np.isclose(row["wildtype_latent"], row["beta0"], atol=1e-12)
+
+    chart = fitted_single_condition_model.plot_ge_landscape()
+    assert len(chart.to_dict()["layer"]) == 5
+    rows = _annotation_rows(chart)
+    assert len(rows) == 2
+    # A one-condition alpha column is trivially constant, so it reads "shared"
+    # regardless of the share_alpha fit flag.
+    assert rows[0]["text"].endswith("(shared)")
+
+
+# ==================== ge_landscape annotation Tests ====================
+
+
+@pytest.mark.parametrize("space", ["fitness", "func_score"])
+def test_ge_landscape_annotation_layers(fitted_simple_model, space):
+    """Annotating adds exactly two text layers; disabling it adds none."""
+    import multidms.plot as mplt
+
+    variants_df, curve_df = fitted_simple_model.get_ge_landscape_df(space=space)
+    params_df = fitted_simple_model.get_ge_params_df()
+
+    plain = mplt.ge_landscape(variants_df, curve_df, space=space)
+    annotated = mplt.ge_landscape(
+        variants_df, curve_df, space=space, params_df=params_df
+    )
+    disabled = mplt.ge_landscape(
+        variants_df,
+        curve_df,
+        space=space,
+        params_df=params_df,
+        annotate_params=False,
+    )
+
+    assert len(plain.to_dict()["layer"]) == 3
+    assert len(annotated.to_dict()["layer"]) == 5
+    assert len(disabled.to_dict()["layer"]) == 3
+
+
+@pytest.mark.parametrize("space", ["fitness", "func_score"])
+def test_ge_landscape_annotation_content(fitted_simple_model, space):
+    """Annotation rows print numbers that satisfy the decomposition."""
+    import re
+
+    chart = fitted_simple_model.plot_ge_landscape(space=space)
+    rows = _annotation_rows(chart)
+    params_df = fitted_simple_model.get_ge_params_df()
+
+    assert len(rows) == 1 + len(params_df)
+
+    texts = [row["text"] for row in rows]
+    for condition in params_df["condition"]:
+        assert sum(text.startswith(f"{condition} ") for text in texts) == 1
+
+    # The printed numbers must themselves satisfy beta0 + bundle == phi_wt.
+    number = r"(-?\d+\.\d{3})"
+    pattern = rf"φ_wt = {number}  =  β0 {number} \+ bundle {number}"
+    matched = 0
+    for text in texts[1:]:
+        found = re.search(pattern, text)
+        assert found is not None, f"unparseable annotation row: {text!r}"
+        wt, beta0, bundle = (float(g) for g in found.groups())
+        assert np.isclose(beta0 + bundle, wt, atol=1e-3)
+        matched += 1
+    assert matched == len(params_df)
+
+    # ASCII hyphen-minus only; U+2212 breaks rendering consistency.
+    assert all("−" not in text for text in texts)
+    # A null condition on the alpha row would serialize as a bare NaN literal,
+    # which browsers reject when parsing the spec.
+    assert "NaN" not in chart.to_json()
+
+
+def test_ge_landscape_annotation_shared_alpha_label(fitted_simple_model):
+    """A constant alpha column renders the shared label."""
+    rows = _annotation_rows(fitted_simple_model.plot_ge_landscape())
+    assert rows[0]["text"].startswith("α = ")
+    assert rows[0]["text"].endswith("(shared)")
+
+
+def test_ge_landscape_annotation_per_condition_alpha(simple_data):
+    """A varying alpha column labels per-condition and appends alpha in-row."""
+    model = multidms.Model(simple_data)
+    model.fit(maxiter=5, share_alpha=False, verbose=False)
+
+    chart = model.plot_ge_landscape()
+    assert len(chart.to_dict()["layer"]) == 5
+
+    rows = _annotation_rows(chart)
+    assert rows[0]["text"] == "α (per-condition)"
+    assert all("α " in row["text"] for row in rows[1:])
+
+
+def test_plot_ge_landscape_annotates_by_default(fitted_simple_model):
+    """The model-level wrapper annotates without being asked."""
+    assert len(fitted_simple_model.plot_ge_landscape().to_dict()["layer"]) == 5
+    assert (
+        len(
+            fitted_simple_model.plot_ge_landscape(annotate_params=False).to_dict()[
+                "layer"
+            ]
+        )
+        == 3
+    )

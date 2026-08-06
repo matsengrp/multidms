@@ -253,14 +253,28 @@ def _(ge_table, mc, mo, mplot):
                 return _vdf.sample(n=_max_points, random_state=0)
             return _vdf
 
+        # Computed once and shared: the placement parameters do not depend on
+        # `space`. Calling mplot.ge_landscape directly (rather than
+        # _model.plot_ge_landscape) means params_df must be passed explicitly —
+        # it defaults to None, which silently disables the annotation.
+        _params = _model.get_ge_params_df()
+
         _v_fit, _curve_fit = _model.get_ge_landscape_df(space="fitness")
         _fit_chart = mplot.ge_landscape(
-            _sampled_variants(_v_fit), _curve_fit, space="fitness", point_size=20
+            _sampled_variants(_v_fit),
+            _curve_fit,
+            space="fitness",
+            point_size=20,
+            params_df=_params,
         )
 
         _v_fs, _curve_fs = _model.get_ge_landscape_df(space="func_score")
         _fs_chart = mplot.ge_landscape(
-            _sampled_variants(_v_fs), _curve_fs, space="func_score", point_size=20
+            _sampled_variants(_v_fs),
+            _curve_fs,
+            space="func_score",
+            point_size=20,
+            params_df=_params,
         )
 
         ge_chart = mo.vstack(
