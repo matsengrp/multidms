@@ -59,5 +59,19 @@ simulation:
     # must be measured on spike data first.
     ge_kwargs: {tol: 1.0e-4, maxiter: 100, maxls: 40, jit: true, verbose: false}
     cal_kwargs: {tol: 1.0e-4, maxiter: 100, maxls: 40, jit: true, verbose: false}
-    n_processes: 6  # pinned: auto (null) picks workers by core count alone,
-    # ignoring memory, which exhausted a 36 GB host mid-run. Never restore null.
+    # Worker count for the 54-fit grid (6 datasets x 9 fusionreg). NEVER set
+    # this to null: auto-selection picks workers by core count alone, ignoring
+    # memory, which exhausted a 36 GB host mid-run.
+    #
+    # This is HOST-DEPENDENT and must be sized to the machine's RAM, not its
+    # core count. Each worker rebuilds its own copy of every Data object it
+    # fits (see model_collection.py's fit_models docstring), measured at ~42 GB
+    # resident per worker on this grid. Budget ~45 GB/worker and keep total
+    # under ~50% of host RAM.
+    #
+    # Raised 6 -> 18 in #291 after measuring the #291 prod run on orca02
+    # (64 cores, 1511 GB): at 6 workers it used only 17% of RAM and ~11% of
+    # cores, and fit_models alone took 7.9h wall (47.2 CPU-h). 18 workers is
+    # ~756 GB (50% of RAM) and divides the 54 fits into exactly 3 waves.
+    # Lower this when running on a smaller host.
+    n_processes: 18
