@@ -190,3 +190,94 @@ def test_layout_cell_consumes_only_defined_names(cells):
     defined = set().union(*(defs for _, defs in cells))
     missing = sorted(n for n in layout[0] if n not in defined and n != "mo")
     assert missing == [], f"layout cell reads undefined name(s): {missing}"
+
+
+#: Calls that raise when a staged index is stale or a fit lacks the requested
+#: data. Each must sit inside a ``try`` whose handler binds the chart name --
+#: an escape unbinds the chart and erases the tab bar.
+#:
+#: ``iloc`` is deliberately NOT here: ``_src.iloc[_idx]`` parses as an
+#: ``ast.Subscript``, never an ``ast.Call``, so listing it among call names
+#: would be silently vacuous. It is checked separately below, and it matters --
+#: a stale positional index raises at exactly these subscripts.
+_RISKY_CALLS = (
+    "convergence_trajectory_df",
+    "shift_sparsity",
+    "mut_param_dataset_correlation",
+    "get_mutations_df",
+    "merge_two_fits_on_mutation",
+    "replicate_param_scatter",
+    "ge_landscape",
+)
+
+#: Cells that consume staged state must be able to compare tokens.
+_TOKEN_CONSUMERS = (
+    "convergence_chart",
+    "correlation_chart",
+    "scatter_chart",
+    "sparsity_chart",
+)
+
+
+def test_risky_calls_are_inside_try_blocks():
+    """No collection-indexing call sits outside a ``try``.
+
+    Branch analysis alone cannot catch this: every chart cell already assigns
+    its variable in both arms of an ``if``/``else``, yet an exception raised
+    *inside* an arm still escapes and unbinds the name. Guarding the calls is
+    what makes the binding total. Measured against the pre-#305 file this
+    reported 11 distinct offenders.
+    """
+    tree = ast.parse(_DASHBOARD_PY.read_text())
+    protected = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Try):
+            for stmt in node.body:
+                for inner in ast.walk(stmt):
+                    protected.add(id(inner))
+
+    offenders = []
+    for node in ast.walk(tree):
+        if id(node) in protected:
+            continue
+        # Positional indexing: `_src.iloc[_idx]` is a Subscript, not a Call.
+        # This is where a stale staged index actually raises.
+        if (
+            isinstance(node, ast.Subscript)
+            and isinstance(node.value, ast.Attribute)
+            and node.value.attr == "iloc"
+        ):
+            offenders.append(f"iloc[...] at line {node.lineno}")
+            continue
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        called = (
+            func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
+        )
+        if called in _RISKY_CALLS:
+            offenders.append(f"{called} at line {node.lineno}")
+
+    # Nested subscripts (e.g. ``.iloc[int(_sel[...].iloc[0])]``) report the same
+    # line twice; dedupe so the failure message reads cleanly.
+    offenders = sorted(set(offenders))
+    assert not offenders, (
+        "these calls can raise outside any try block, unbinding their chart "
+        f"and erasing the tab bar: {offenders}"
+    )
+
+
+@pytest.mark.parametrize("chart", _TOKEN_CONSUMERS)
+def test_staged_chart_cells_ref_the_collection_token(cells, chart):
+    """A cell reading staged state must also read the current token.
+
+    Comparison needs both sides: the staged value carries the token it was
+    staged *under*, so the cell needs the current one to compare against. A
+    cell that stops reffing ``collection_token`` silently stops resetting.
+    """
+    owning = [refs for refs, defs in cells if chart in defs]
+    assert owning, f"no cell defines {chart}"
+    assert "collection_token" in owning[0], (
+        f"the cell defining {chart} does not ref collection_token, so it "
+        f"cannot detect a pickle switch"
+    )

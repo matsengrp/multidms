@@ -13,6 +13,7 @@ from experiments.dashboard_helpers import (
     load_collection,
     merge_two_fits_on_mutation,
     selectable_columns,
+    staged_for,
     synthesize_isin_query,
     varying_columns,
 )
@@ -265,3 +266,62 @@ def test_common_param_columns_handles_mutation_as_index():
     a = _muts_indexed_by_mutation()
     b = _muts_indexed_by_mutation()
     assert common_param_columns(a, b) == ["beta_x", "shift_y"]
+
+
+def test_staged_for_returns_payload_when_token_matches():
+    """A selection staged under the current collection is returned as-is."""
+    assert staged_for("a.pkl", ("a.pkl", [1, 2])) == [1, 2]
+
+
+def test_staged_for_returns_none_when_token_differs():
+    """A selection staged under a different collection reads as unstaged."""
+    assert staged_for("b.pkl", ("a.pkl", [1, 2])) is None
+
+
+def test_staged_for_returns_none_when_never_staged():
+    """``None`` state (never plotted) stays ``None``."""
+    assert staged_for("a.pkl", None) is None
+
+
+def test_staged_for_preserves_empty_payload_distinctly_from_none():
+    """An empty staged selection is NOT collapsed into the never-staged case.
+
+    The convergence cell renders different messages for "never plotted" and
+    "plotted, but nothing was selected", so callers must be able to tell an
+    empty payload from ``None``.
+    """
+    assert staged_for("a.pkl", ("a.pkl", [])) == []
+    assert staged_for("a.pkl", ("a.pkl", [])) is not None
+
+
+def test_staged_for_handles_tuple_payloads():
+    """Threshold-carrying payloads round-trip unchanged."""
+    assert staged_for("a.pkl", ("a.pkl", ([3, 4], 5))) == ([3, 4], 5)
+
+
+def test_staged_for_compares_none_token_by_equality():
+    """A ``None`` current token is just another value to compare."""
+    assert staged_for(None, (None, [1])) == [1]
+    assert staged_for(None, ("a.pkl", [1])) is None
+
+
+def test_staged_for_raises_on_malformed_tuple():
+    """A wrong-arity tuple is a shape error and must be loud, not silent."""
+    with pytest.raises(ValueError):
+        staged_for("a.pkl", ("a.pkl", [1], "extra"))
+
+
+def test_staged_for_compares_tokens_by_value_not_identity():
+    """Equal-but-distinct token strings must match.
+
+    Kills the ``token is current_token`` implementation. Every other test here
+    uses interned string literals, where ``is`` and ``==`` agree, so this is
+    the only test that catches it -- and it is the case that matters: the real
+    token comes from ``pipeline_dropdown.value``, which is rebuilt per re-run
+    and is not guaranteed to be the same object. Under ``is``, every re-run
+    would look like a pickle switch and reset the selection.
+    """
+    token = "results/a/fit_collection.pkl"
+    rebuilt = "".join(["results/a/", "fit_collection.pkl"])
+    assert rebuilt == token and rebuilt is not token
+    assert staged_for(rebuilt, (token, [1, 2])) == [1, 2]
