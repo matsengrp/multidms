@@ -165,7 +165,7 @@ def test_live_elements_have_exactly_one_referring_cell(cells, name, rendered_by)
     )
     if not any(defs for _, defs in cells):
         return
-    (consumer,) = [defs for refs, defs in cells if name in refs and name not in defs]
+    (consumer,) = (defs for refs, defs in cells if name in refs and name not in defs)
     assert rendered_by in consumer
 
 
