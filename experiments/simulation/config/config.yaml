@@ -38,12 +38,21 @@ simulation:
     # scale is held fixed.
     maxiter: 500
     tol: 1.0e-6
-    # Ladder extended past 6.4e-4 by two doublings. In the recompute_scale=false
-    # run the curves had not turned over at the old top rung: shift sparsity was
-    # still climbing (mean 0.59 at 6.4e-4, vs ground truth 0.81) and recovery
-    # correlation was still 0.748 there. One extra rung would not have bracketed
-    # where sparsity saturates, so add two.
-    fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4, 1.28e-3, 2.56e-3]
+    # Ladder extended past 6.4e-4, now topping out at 1.28e-3.
+    #
+    # The recompute_scale=false run had not turned over at the old top rung
+    # (6.4e-4): sparsity was still climbing (0.59 vs ground truth 0.81) and
+    # recovery was still 0.748. Extending by two doublings bracketed both
+    # optima -- sparsity peaks at 1.28e-3 (0.848, ~= truth) and recovery peaks
+    # at 1.6e-4 (r=0.874), both turning over inside the plotted range.
+    #
+    # The 2.56e-3 rung was then DROPPED. It is where the optimizer breaks down,
+    # not where the model does: all 7 fits whose objective minimum was away
+    # from the final sweep sat there (drift up to +256% past the minimum), one
+    # burned 470 of 500 outer sweeps, and sparsity DECREASED rather than
+    # saturating. That single rung was the sole reason per-dataset sparsity
+    # monotonicity read 1/6; every dataset is monotone up to 1.28e-3.
+    fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4, 1.28e-3]
     l2reg: 1.0e-6
     beta0_ridge: 0.01
     ge_type: "Sigmoid"
@@ -86,8 +95,14 @@ simulation:
     # sparsity 0.81), the cost on spike is unmeasured, and changing spike's
     # fit-tier config.yaml would invalidate its cached fits. Any spike change
     # must be measured on spike data first.
-    ge_kwargs: {tol: 1.0e-4, maxiter: 100, maxls: 40, jit: true, verbose: false}
-    cal_kwargs: {tol: 1.0e-4, maxiter: 100, maxls: 40, jit: true, verbose: false}
+    # Inner cap lowered 100 -> 50. The 100 figure was chosen under
+    # recompute_scale=true, where the inner solvers were fighting a normalizer
+    # that moved every outer sweep and the cap was binding constantly
+    # (beta_bundle at 100 for 54.2% of outer iterations). With the scale held
+    # fixed the outer loop converges in a median of 72 sweeps against a cap of
+    # 500, so inner effort can be traded back for wall-clock. Retest at 50.
+    ge_kwargs: {tol: 1.0e-4, maxiter: 50, maxls: 40, jit: true, verbose: false}
+    cal_kwargs: {tol: 1.0e-4, maxiter: 50, maxls: 40, jit: true, verbose: false}
     # Worker count for the 54-fit grid (6 datasets x 9 fusionreg). NEVER set
     # this to null: auto-selection picks workers by core count alone, ignoring
     # memory, which exhausted a 36 GB host mid-run.
@@ -106,10 +121,9 @@ simulation:
     # "dataset" on the product axis), so per-worker memory is O(1 dataset),
     # not O(all datasets).
     #
-    # Set to 33 for the extended-ladder run: the grid is now 6 datasets x 11
-    # fusionreg = 66 fits, which divides into exactly 2 waves on a 64-core
-    # host, leaving cores free for the JAX thread pools each worker spins up.
-    # At ~3 GB/worker that is ~99 GB, ~7% of a 1511 GB host. Lower this on a
-    # smaller host -- and never set it to null, since auto-selection picks
-    # workers by core count alone.
-    n_processes: 33
+    # Set to 30: the grid is 6 datasets x 10 fusionreg = 60 fits, which divides
+    # into exactly 2 waves on a 64-core host, leaving cores free for the JAX
+    # thread pools each worker spins up. At ~3 GB/worker that is ~90 GB, ~6%
+    # of a 1511 GB host. Lower this on a smaller host -- and never set it to
+    # null, since auto-selection picks workers by core count alone.
+    n_processes: 30
