@@ -16,7 +16,16 @@ simulation:
   n_shifted_identical_sites: 4
   shift_gauss_variance: 0.666
   sigmoid_phenotype_scale: 6
-  variants_per_lib_genelength_scalar: 1000
+  # Halved 1000 -> 500 to match the manuscript simulation
+  # (SARS-CoV-2_spike_multidms @ 6c98b7b, simulation_validation.ipynb), whose
+  # cross-validation panel shows an interior validation-loss minimum that the
+  # pipeline at 1000 does not reproduce. At 1000 the fit sees ~29 variants per
+  # mutation, so every beta is pinned by direct evidence and shrinkage has no
+  # variance left to trade against bias -- validation loss just tracks
+  # training loss and rises monotonically in lambda. This is the single-knob
+  # A/B against results-prod-291-sim-trimmed-ladder-inner100; every other
+  # fit-tier key is held at its pipeline value.
+  variants_per_lib_genelength_scalar: 500
   avgmuts: 2.0
   bclen: 16
   variant_error_rate: 0.0
