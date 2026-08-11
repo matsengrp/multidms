@@ -29,7 +29,7 @@ simulation:
   output_dir: results
   fitting:
     # Outer block-coordinate-descent sweep cap and convergence tolerance.
-    # Raised 200 -> 500 and tightened 1.0e-4 -> 1.0e-5 alongside
+    # Raised 200 -> 500 and tightened 1.0e-4 -> 1.0e-6 alongside
     # recompute_scale: false (below), to give every fit a fair chance to
     # reach tol rather than running out of sweeps. Under the previous
     # recompute_scale=true the tolerance was not comparable across sweeps
@@ -40,8 +40,9 @@ simulation:
     tol: 1.0e-6
     # Ladder extended past 6.4e-4, now topping out at 1.28e-3.
     #
-    # The recompute_scale=false run had not turned over at the old top rung
-    # (6.4e-4): sparsity was still climbing (0.59 vs ground truth 0.81) and
+    # The first recompute_scale=false run, before this extension, had not
+    # turned over at the old top rung (6.4e-4): sparsity was still climbing
+    # (0.59 vs ground truth 0.81) and
     # recovery was still 0.748. Extending by two doublings bracketed both
     # optima -- sparsity peaks at 1.28e-3 (0.848, ~= truth) and recovery peaks
     # at 1.6e-4 (r=0.874), both turning over inside the plotted range.
@@ -50,8 +51,17 @@ simulation:
     # not where the model does: all 7 fits whose objective minimum was away
     # from the final sweep sat there (drift up to +256% past the minimum), one
     # burned 470 of 500 outer sweeps, and sparsity DECREASED rather than
-    # saturating. That single rung was the sole reason per-dataset sparsity
-    # monotonicity read 1/6; every dataset is monotone up to 1.28e-3.
+    # saturating. Dropping it took per-dataset sparsity monotonicity from 1/6
+    # to 5/6.
+    #
+    # The remaining holdout is lib_1_tight_bottle, which drops 0.7284 -> 0.4695
+    # at the top rung (1.28e-3) while the other five sit at 0.92-0.94, and is
+    # also the single remaining fit whose objective minimum is away from its
+    # final sweep. That is the same breakdown signature that justified dropping
+    # 2.56e-3, one rung lower and on the noisiest dataset only. 1.28e-3 is kept
+    # because it is the only rung that reaches the sparsity peak (0.848 vs
+    # ground truth 0.81), but whether it belongs in the PUBLISHED ladder is an
+    # open question -- see the follow-up noted in PR #303.
     fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4, 1.28e-3]
     l2reg: 1.0e-6
     beta0_ridge: 0.01
@@ -87,17 +97,10 @@ simulation:
     # (alpha_init 6.0) and objective_total down 58%. Zeroing l2reg (+0.000) or
     # beta0_ridge (+0.067) does not reproduce this.
     #
-    # Convergence triple for later EPIC #290 phases to inherit --
-    # SIMULATION-PIPELINE SCOPE ONLY:
-    #     (inner maxiter, outer maxiter, tol) = (100, 200, 1.0e-4)
-    # experiments/scv2-spike/ deliberately stays at inner maxiter = 10: the
-    # evidence above is simulation-only (noise-free data, known ground-truth
-    # sparsity 0.81), the cost on spike is unmeasured, and changing spike's
-    # fit-tier config.yaml would invalidate its cached fits. Any spike change
-    # must be measured on spike data first.
-    # Inner block-solver cap. 50 was tried and REVERTED to 100 -- measured
-    # A/B at otherwise identical settings (outer 500 / tol 1e-6,
-    # recompute_scale=false):
+    # 50 was then tried and REVERTED to 100 -- measured A/B at outer 500 /
+    # tol 1e-6, recompute_scale=false. The two arms ran on different ladders
+    # (inner=100 on the 11-rung ladder still carrying 2.56e-3, inner=50 on the
+    # 10-rung trimmed ladder), hence the different denominators:
     #
     #                        inner=100      inner=50
     #   converged            66/66          59/60   <- lost the guarantee
@@ -113,9 +116,18 @@ simulation:
     # what keeps the OUTER loop short, so weakening them lengthens the outer
     # tail. Worse, the drift region MIGRATED DOWN the ladder from the rung we
     # dropped (2.56e-3) into a rung we keep (1.28e-3).
+    #
+    # Convergence triple for later EPIC #290 phases to inherit --
+    # SIMULATION-PIPELINE SCOPE ONLY:
+    #     (inner maxiter, outer maxiter, tol) = (100, 500, 1.0e-6)
+    # experiments/scv2-spike/ deliberately stays at inner maxiter = 10: the
+    # evidence above is simulation-only (noise-free data, known ground-truth
+    # sparsity 0.81), the cost on spike is unmeasured, and changing spike's
+    # fit-tier config.yaml would invalidate its cached fits. Any spike change
+    # must be measured on spike data first.
     ge_kwargs: {tol: 1.0e-4, maxiter: 100, maxls: 40, jit: true, verbose: false}
     cal_kwargs: {tol: 1.0e-4, maxiter: 100, maxls: 40, jit: true, verbose: false}
-    # Worker count for the 54-fit grid (6 datasets x 9 fusionreg). NEVER set
+    # Worker count for the 60-fit grid (6 datasets x 10 fusionreg). NEVER set
     # this to null: auto-selection picks workers by core count alone, ignoring
     # memory, which exhausted a 36 GB host mid-run.
     #
