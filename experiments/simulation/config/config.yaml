@@ -37,8 +37,13 @@ simulation:
     # pinned to 1.0), so tightening it only becomes meaningful now that the
     # scale is held fixed.
     maxiter: 500
-    tol: 1.0e-5
-    fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4]
+    tol: 1.0e-6
+    # Ladder extended past 6.4e-4 by two doublings. In the recompute_scale=false
+    # run the curves had not turned over at the old top rung: shift sparsity was
+    # still climbing (mean 0.59 at 6.4e-4, vs ground truth 0.81) and recovery
+    # correlation was still 0.748 there. One extra rung would not have bracketed
+    # where sparsity saturates, so add two.
+    fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4, 1.28e-3, 2.56e-3]
     l2reg: 1.0e-6
     beta0_ridge: 0.01
     ge_type: "Sigmoid"
@@ -101,9 +106,10 @@ simulation:
     # "dataset" on the product axis), so per-worker memory is O(1 dataset),
     # not O(all datasets).
     #
-    # Set to 27 for the recompute_scale=false run: the 54-fit grid divides
-    # into exactly 2 waves on a 64-core host, leaving cores free for the JAX
-    # thread pools each worker spins up. At ~3 GB/worker that is ~81 GB, ~5%
-    # of a 1511 GB host. Lower this on a smaller host -- and never set it to
-    # null, since auto-selection picks workers by core count alone.
-    n_processes: 27
+    # Set to 33 for the extended-ladder run: the grid is now 6 datasets x 11
+    # fusionreg = 66 fits, which divides into exactly 2 waves on a 64-core
+    # host, leaving cores free for the JAX thread pools each worker spins up.
+    # At ~3 GB/worker that is ~99 GB, ~7% of a 1511 GB host. Lower this on a
+    # smaller host -- and never set it to null, since auto-selection picks
+    # workers by core count alone.
+    n_processes: 33
