@@ -52,6 +52,7 @@ def _():
         display_table_df,
         load_collection,
         merge_two_fits_on_mutation,
+        staged_for,
         synthesize_isin_query,
     )
 
@@ -62,6 +63,7 @@ def _():
         display_table_df,
         load_collection,
         merge_two_fits_on_mutation,
+        staged_for,
         synthesize_isin_query,
     )
 
@@ -128,11 +130,17 @@ def _(discovered_collections, load_collection, mo, pipeline_dropdown):
 
     _n_models = len(mc.fit_models)
     _datasets = list(mc.fit_models["dataset_name"].unique())
+    # Identifies WHICH collection is loaded, for stamping staged selections.
+    # Staged fit indices are positional and mean nothing across collections,
+    # so every staged value carries this token and is discarded on mismatch.
+    # A plain string, deliberately not a UI element: it must stay invisible to
+    # the referrer-count invariants in tests/test_dashboard_reactivity.py.
+    collection_token = pipeline_dropdown.value
     mo.md(
         f"Loaded **{_n_models}** fits from `{pipeline_dropdown.value}` "
         f"| datasets: {_datasets}"
     )
-    return (mc,)
+    return collection_token, mc
 
 
 @app.cell
@@ -172,6 +180,7 @@ def _():
 
 @app.cell
 def _(
+    collection_token,
     constant_summary,
     display_table_df,
     mc,
@@ -251,23 +260,31 @@ def _(
     # the getter re-runs deterministically.
     conv_plot_button = mo.ui.run_button(
         label="Plot",
-        on_change=lambda _: set_conv_staged(_idx_list(conv_table)),
+        on_change=lambda _: set_conv_staged((collection_token, _idx_list(conv_table))),
     )
     corr_plot_button = mo.ui.run_button(
         label="Plot",
         on_change=lambda _: set_corr_staged(
-            (_idx_list(corr_table), times_seen_threshold_slider.value)
+            (
+                collection_token,
+                (_idx_list(corr_table), times_seen_threshold_slider.value),
+            )
         ),
     )
     scatter_plot_button = mo.ui.run_button(
         label="Plot",
         on_change=lambda _: set_scatter_staged(
-            (_idx_list(scatter_table), times_seen_threshold_slider.value)
+            (
+                collection_token,
+                (_idx_list(scatter_table), times_seen_threshold_slider.value),
+            )
         ),
     )
     sparsity_plot_button = mo.ui.run_button(
         label="Plot",
-        on_change=lambda _: set_sparsity_staged(_idx_list(sparsity_table)),
+        on_change=lambda _: set_sparsity_staged(
+            (collection_token, _idx_list(sparsity_table))
+        ),
     )
 
     # Each tab's controls, pre-composed so the layout cell never names the
@@ -308,8 +325,17 @@ def _(
 # so it survives unrelated cell re-runs, and chart cells reference ONLY the
 # state getter -- never the table -- so checking rows recomputes nothing.
 #
-# A staged value of None means "never plotted"; that is distinct from an
-# empty/short selection, which means "plotted, but nothing valid was picked".
+# Each staged value is a ``(collection_token, payload)`` pair. The indices in
+# the payload are POSITIONAL into mc.fit_models and mean nothing across two
+# collections, so the token records which collection they were staged against
+# and `staged_for` discards them when a different pickle is loaded. That is
+# what resets every tab on a pickle switch; see issue #305.
+#
+# Three cases a chart cell must distinguish, two of which are inert:
+#   None                  -> never plotted (show the initial prompt)
+#   token mismatch        -> staged against another collection (same prompt)
+#   token match, empty    -> plotted, but nothing valid was picked (its own
+#                            message; do NOT collapse this into the above)
 
 
 @app.cell
@@ -339,8 +365,10 @@ def _(mo):
 
 
 @app.cell
-def _(get_conv_staged, mc, mo, mplot):
-    _idx = get_conv_staged()  # staged at press time; None until first press
+def _(collection_token, get_conv_staged, mc, mo, mplot, staged_for):
+    # staged_for returns None when never plotted OR when the selection was
+    # staged against a different pickle -- both show the initial prompt.
+    _idx = staged_for(collection_token, get_conv_staged())
     if _idx is None:
         convergence_chart = mo.md("Select fits, then press **Plot**.")
     elif not _idx:
@@ -348,12 +376,15 @@ def _(get_conv_staged, mc, mo, mplot):
             "No fits selected. Select at least one, then press **Plot**."
         )
     else:
-        _conv_df = mc.convergence_trajectory_df(fit_indices=_idx)
-        convergence_chart = mplot.convergence_trajectory(
-            _conv_df,
-            id_cols=["_fit_idx"],
-            tooltip_cols=["dataset_name", "fusionreg"],
-        )
+        try:
+            _conv_df = mc.convergence_trajectory_df(fit_indices=_idx)
+            convergence_chart = mplot.convergence_trajectory(
+                _conv_df,
+                id_cols=["_fit_idx"],
+                tooltip_cols=["dataset_name", "fusionreg"],
+            )
+        except Exception as _e:
+            convergence_chart = mo.md(f"Convergence chart failed: {_e}")
     return (convergence_chart,)
 
 
@@ -366,49 +397,60 @@ def _(ge_table, mc, mo, mplot):
     if _sel is None or len(_sel) != 1:
         ge_chart = mo.md("Select a fit.")
     else:
-        _row = mc.fit_models.reset_index(drop=True).iloc[int(_sel["_fit_idx"].iloc[0])]
-        _model = _row["model"]
-        _max_points = 5000
-
-        def _sampled_variants(_vdf):
-            if len(_vdf) > _max_points:
-                return _vdf.sample(n=_max_points, random_state=0)
-            return _vdf
-
-        # Computed once and shared: the placement parameters do not depend on
-        # `space`. Calling mplot.ge_landscape directly (rather than
-        # _model.plot_ge_landscape) means params_df must be passed explicitly —
-        # it defaults to None, which silently disables the annotation.
-        _params = _model.get_ge_params_df()
-
-        _v_fit, _curve_fit = _model.get_ge_landscape_df(space="fitness")
-        _fit_chart = mplot.ge_landscape(
-            _sampled_variants(_v_fit),
-            _curve_fit,
-            space="fitness",
-            point_size=20,
-            params_df=_params,
-        )
-
-        _v_fs, _curve_fs = _model.get_ge_landscape_df(space="func_score")
-        _fs_chart = mplot.ge_landscape(
-            _sampled_variants(_v_fs),
-            _curve_fs,
-            space="func_score",
-            point_size=20,
-            params_df=_params,
-        )
-
-        ge_chart = mo.vstack(
-            [
-                mo.md("**Fitness space** — g(φ)"),
-                _fit_chart,
-                mo.md(
-                    "**Functional-score space** — " "α·(g(φ) − g(φ_wt)), per condition"
-                ),
-                _fs_chart,
+        # This cell reads ge_table.value live rather than staged state, so it
+        # needs no token check: marimo rebuilds the table when mc changes. It
+        # does need the binding guard -- ge_chart feeds the single mo.ui.tabs
+        # call, so an escaping exception would erase the whole tab bar.
+        try:
+            _row = mc.fit_models.reset_index(drop=True).iloc[
+                int(_sel["_fit_idx"].iloc[0])
             ]
-        )
+            _model = _row["model"]
+            _max_points = 5000
+
+            def _sampled_variants(_vdf):
+                if len(_vdf) > _max_points:
+                    return _vdf.sample(n=_max_points, random_state=0)
+                return _vdf
+
+            # Computed once and shared: the placement parameters do not depend
+            # on `space`. Calling mplot.ge_landscape directly (rather than
+            # _model.plot_ge_landscape) means params_df must be passed
+            # explicitly — it defaults to None, which silently disables the
+            # annotation.
+            _params = _model.get_ge_params_df()
+
+            _v_fit, _curve_fit = _model.get_ge_landscape_df(space="fitness")
+            _fit_chart = mplot.ge_landscape(
+                _sampled_variants(_v_fit),
+                _curve_fit,
+                space="fitness",
+                point_size=20,
+                params_df=_params,
+            )
+
+            _v_fs, _curve_fs = _model.get_ge_landscape_df(space="func_score")
+            _fs_chart = mplot.ge_landscape(
+                _sampled_variants(_v_fs),
+                _curve_fs,
+                space="func_score",
+                point_size=20,
+                params_df=_params,
+            )
+
+            ge_chart = mo.vstack(
+                [
+                    mo.md("**Fitness space** — g(φ)"),
+                    _fit_chart,
+                    mo.md(
+                        "**Functional-score space** — "
+                        "α·(g(φ) − g(φ_wt)), per condition"
+                    ),
+                    _fs_chart,
+                ]
+            )
+        except Exception as _e:
+            ge_chart = mo.md(f"GE landscape failed: {_e}")
     return (ge_chart,)
 
 
@@ -416,30 +458,32 @@ def _(ge_table, mc, mo, mplot):
 
 
 @app.cell
-def _(get_corr_staged, mc, mo, synthesize_isin_query):
-    _staged = get_corr_staged()  # (fit indices, threshold), or None
+def _(collection_token, get_corr_staged, mc, mo, staged_for, synthesize_isin_query):
+    _staged = staged_for(collection_token, get_corr_staged())
     if _staged is None:
         correlation_chart = mo.md("Select fits and a threshold, then press **Plot**.")
     else:
-        _idx, _threshold = _staged
-        _src = mc.fit_models.reset_index(drop=True)
-        _n_datasets = _src.iloc[_idx]["dataset_name"].nunique() if _idx else 0
-        if _n_datasets < 2:
-            correlation_chart = mo.md(
-                "Select fits spanning ≥2 datasets, then press **Plot**."
-            )
-        else:
-            _query = synthesize_isin_query(mc.fit_models, _idx)
-            try:
+        # The try spans the .iloc too, not just the correlation call: a stale
+        # positional index raises there, and an escape would unbind the chart.
+        try:
+            _idx, _threshold = _staged
+            _src = mc.fit_models.reset_index(drop=True)
+            _n_datasets = _src.iloc[_idx]["dataset_name"].nunique() if _idx else 0
+            if _n_datasets < 2:
+                correlation_chart = mo.md(
+                    "Select fits spanning ≥2 datasets, then press **Plot**."
+                )
+            else:
+                _query = synthesize_isin_query(mc.fit_models, _idx)
                 correlation_chart = mc.mut_param_dataset_correlation(
                     query=_query,
                     times_seen_threshold=_threshold,
                 )
-            except Exception as _e:
-                correlation_chart = mo.md(
-                    f"Correlation failed: {_e}. Try lowering the threshold or "
-                    "selecting different fits."
-                )
+        except Exception as _e:
+            correlation_chart = mo.md(
+                f"Correlation failed: {_e}. Try a different fit selection or "
+                "a lower times_seen threshold."
+            )
     return (correlation_chart,)
 
 
@@ -448,47 +492,56 @@ def _(get_corr_staged, mc, mo, synthesize_isin_query):
 
 @app.cell
 def _(
+    collection_token,
     common_param_columns,
     get_scatter_param,
     get_scatter_staged,
     mc,
     mo,
     set_scatter_param,
+    staged_for,
 ):
-    _staged = get_scatter_staged()  # (fit indices, threshold), or None
+    _staged = staged_for(collection_token, get_scatter_staged())
     _pair = _staged[0] if _staged is not None else []
 
     # Names must NOT start with "_": marimo treats a single leading underscore
     # as cell-local, so an underscore-named value never reaches another cell.
-    # Both frames are bound on every branch -- leaving one unbound would
-    # unbind scatter_chart downstream and take the whole tab bar with it.
+    # All four outputs below must be bound on EVERY path -- including the
+    # exception path. A raising cell publishes none of its defs, which would
+    # unbind scatter_chart AND scatter_param_panel and take the whole tab bar
+    # with it, so the risky work sits inside try/except.
     scatter_muts_a = None
     scatter_muts_b = None
+    scatter_param_dropdown = mo.ui.dropdown(options=[], label="Parameter")
 
-    if len(_pair) != 2:
-        scatter_param_dropdown = mo.ui.dropdown(options=[], label="Parameter")
-    else:
-        _src = mc.fit_models.reset_index(drop=True)
-        _ia, _ib = int(_pair[0]), int(_pair[1])
-        _threshold = _staged[1]
-        # Computed once here and reused by the chart cell below.
-        scatter_muts_a = _src.iloc[_ia]["model"].get_mutations_df(
-            times_seen_threshold=_threshold
-        )
-        scatter_muts_b = _src.iloc[_ib]["model"].get_mutations_df(
-            times_seen_threshold=_threshold
-        )
-        _opts = common_param_columns(scatter_muts_a, scatter_muts_b)
-        # This cell re-runs on every press, which would reset the dropdown to
-        # its first option; keep the previous choice when it is still offered.
-        _prev = get_scatter_param()
-        _initial = _prev if _prev in _opts else (_opts[0] if _opts else None)
-        scatter_param_dropdown = mo.ui.dropdown(
-            options=_opts,
-            value=_initial,
-            label="Parameter",
-            on_change=set_scatter_param,
-        )
+    if len(_pair) == 2:
+        try:
+            _src = mc.fit_models.reset_index(drop=True)
+            _ia, _ib = int(_pair[0]), int(_pair[1])
+            _threshold = _staged[1]
+            # Computed once here and reused by the chart cell below.
+            scatter_muts_a = _src.iloc[_ia]["model"].get_mutations_df(
+                times_seen_threshold=_threshold
+            )
+            scatter_muts_b = _src.iloc[_ib]["model"].get_mutations_df(
+                times_seen_threshold=_threshold
+            )
+            _opts = common_param_columns(scatter_muts_a, scatter_muts_b)
+            # This cell re-runs on every press, which would reset the dropdown
+            # to its first option; keep the previous choice when still offered.
+            _prev = get_scatter_param()
+            _initial = _prev if _prev in _opts else (_opts[0] if _opts else None)
+            scatter_param_dropdown = mo.ui.dropdown(
+                options=_opts,
+                value=_initial,
+                label="Parameter",
+                on_change=set_scatter_param,
+            )
+        except Exception:
+            # Leave the frames at None and the dropdown empty; the chart cell
+            # below renders the explanatory message.
+            scatter_muts_a = None
+            scatter_muts_b = None
     # Panelled per rule 1 in section C. The dropdown cannot join that cell --
     # its options come from the two staged fits -- so it is wrapped here
     # instead. It stays exported because the chart cell must remain live on
@@ -505,6 +558,7 @@ def _(
 
 @app.cell
 def _(
+    collection_token,
     get_scatter_staged,
     merge_two_fits_on_mutation,
     mo,
@@ -512,8 +566,9 @@ def _(
     scatter_muts_a,
     scatter_muts_b,
     scatter_param_dropdown,
+    staged_for,
 ):
-    _staged = get_scatter_staged()  # (fit indices, threshold), or None
+    _staged = staged_for(collection_token, get_scatter_staged())
     _pair = _staged[0] if _staged is not None else []
 
     if _staged is None:
@@ -523,23 +578,32 @@ def _(
             f"Selected {len(_pair)} fits; this comparison needs exactly 2. "
             "Adjust the selection, then press **Plot**."
         )
+    elif scatter_muts_a is None or scatter_muts_b is None:
+        # The dropdown cell caught an error building these frames.
+        scatter_chart = mo.md(
+            "Could not load mutation data for the selected fits. Try a lower "
+            "times_seen threshold or a different pair."
+        )
     elif scatter_param_dropdown.value is None:
         scatter_chart = mo.md("Select a parameter to compare.")
     else:
-        # Reuses the frames from the dropdown cell -- no refetch, so changing
-        # the parameter re-renders without another press.
-        _ia, _ib = int(_pair[0]), int(_pair[1])
-        _param = scatter_param_dropdown.value
-        _merged, _x_col, _y_col = merge_two_fits_on_mutation(
-            scatter_muts_a, scatter_muts_b, _param, key_a=_ia, key_b=_ib
-        )
-        scatter_chart = mplot.replicate_param_scatter(
-            _merged,
-            x_col=_x_col,
-            y_col=_y_col,
-            x_label=f"{_param} (fit {_ia})",
-            y_label=f"{_param} (fit {_ib})",
-        )
+        try:
+            # Reuses the frames from the dropdown cell -- no refetch, so
+            # changing the parameter re-renders without another press.
+            _ia, _ib = int(_pair[0]), int(_pair[1])
+            _param = scatter_param_dropdown.value
+            _merged, _x_col, _y_col = merge_two_fits_on_mutation(
+                scatter_muts_a, scatter_muts_b, _param, key_a=_ia, key_b=_ib
+            )
+            scatter_chart = mplot.replicate_param_scatter(
+                _merged,
+                x_col=_x_col,
+                y_col=_y_col,
+                x_label=f"{_param} (fit {_ia})",
+                y_label=f"{_param} (fit {_ib})",
+            )
+        except Exception as _e:
+            scatter_chart = mo.md(f"Scatter chart failed: {_e}")
     return (scatter_chart,)
 
 
@@ -547,23 +611,23 @@ def _(
 
 
 @app.cell
-def _(get_sparsity_staged, mc, mo, synthesize_isin_query):
-    _idx = get_sparsity_staged()  # staged at press time; None until first press
+def _(collection_token, get_sparsity_staged, mc, mo, staged_for, synthesize_isin_query):
+    _idx = staged_for(collection_token, get_sparsity_staged())
     if _idx is None:
         sparsity_chart = mo.md("Select fits, then press **Plot**.")
     else:
-        _src = mc.fit_models.reset_index(drop=True)
-        _n_fr = _src.iloc[_idx]["fusionreg"].nunique() if _idx else 0
-        if _n_fr < 2:
-            sparsity_chart = mo.md(
-                "Select fits spanning ≥2 fusionreg values, then press **Plot**."
-            )
-        else:
-            _query = synthesize_isin_query(mc.fit_models, _idx)
-            try:
+        try:
+            _src = mc.fit_models.reset_index(drop=True)
+            _n_fr = _src.iloc[_idx]["fusionreg"].nunique() if _idx else 0
+            if _n_fr < 2:
+                sparsity_chart = mo.md(
+                    "Select fits spanning ≥2 fusionreg values, then press **Plot**."
+                )
+            else:
+                _query = synthesize_isin_query(mc.fit_models, _idx)
                 sparsity_chart = mc.shift_sparsity(query=_query)
-            except Exception as _e:
-                sparsity_chart = mo.md(f"Sparsity chart failed: {_e}")
+        except Exception as _e:
+            sparsity_chart = mo.md(f"Sparsity chart failed: {_e}")
     return (sparsity_chart,)
 
 
