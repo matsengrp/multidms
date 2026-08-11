@@ -28,13 +28,37 @@ simulation:
     loose_bottle: 100
   output_dir: results
   fitting:
-    maxiter: 200
-    tol: 1.0e-4
+    # Outer block-coordinate-descent sweep cap and convergence tolerance.
+    # Raised 200 -> 500 and tightened 1.0e-4 -> 1.0e-5 alongside
+    # recompute_scale: false (below), to give every fit a fair chance to
+    # reach tol rather than running out of sweeps. Under the previous
+    # recompute_scale=true the tolerance was not comparable across sweeps
+    # anyway (objective_error was a within-sweep change against an obj_old
+    # pinned to 1.0), so tightening it only becomes meaningful now that the
+    # scale is held fixed.
+    maxiter: 500
+    tol: 1.0e-5
     fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4]
     l2reg: 1.0e-6
     beta0_ridge: 0.01
     ge_type: "Sigmoid"
     warmstart: false
+    # Hold the objective normalizer `scale` fixed for the whole fit instead of
+    # recomputing it every outer sweep (the library default, used by every
+    # simulation run before this one).
+    #
+    # With recompute_scale: true, each sweep sets scale = |objective| and then
+    # obj_old = raw_obj/scale = 1.0 BY CONSTRUCTION, so the convergence test
+    # `|obj_old - obj| < tol` measures the WITHIN-sweep relative decrease
+    # against a moving normalizer -- not a true between-sweep change. The
+    # proximal lasso threshold (fusionreg / scale) also drifts with it, so the
+    # problem being minimized is not stationary across sweeps.
+    #
+    # convergence-lab measured false as strictly dominant at inner maxiter=100:
+    # 8/8 vs 4/8 fits converged AND 3.6x faster (788s vs 2808s).
+    # See experiments/convergence-lab/README.md, entry 2026-07-10,
+    # cache=maxiter-scan.
+    recompute_scale: false
     beta0_init: {h1: 5.0, h2: 0.0}
     alpha_init: 6.0
     share_alpha: true
@@ -63,15 +87,23 @@ simulation:
     # this to null: auto-selection picks workers by core count alone, ignoring
     # memory, which exhausted a 36 GB host mid-run.
     #
-    # This is HOST-DEPENDENT and must be sized to the machine's RAM, not its
-    # core count. Each worker rebuilds its own copy of every Data object it
-    # fits (see model_collection.py's fit_models docstring), measured at ~42 GB
-    # resident per worker on this grid. Budget ~45 GB/worker and keep total
-    # under ~50% of host RAM.
+    # This is HOST-DEPENDENT. Size it to cores first, then sanity-check RAM.
     #
-    # Raised 6 -> 18 in #291 after measuring the #291 prod run on orca02
-    # (64 cores, 1511 GB): at 6 workers it used only 17% of RAM and ~11% of
-    # cores, and fit_models alone took 7.9h wall (47.2 CPU-h). 18 workers is
-    # ~756 GB (50% of RAM) and divides the 54 fits into exactly 3 waves.
-    # Lower this when running on a smaller host.
-    n_processes: 18
+    # CORRECTION: an earlier version of this comment claimed ~42 GB resident
+    # per worker and budgeted 45 GB/worker. That number was never measured --
+    # it was back-inferred from a 36 GB laptop dying at 7 workers. Direct
+    # measurement of a worker running a fit from this grid gives a peak RSS of
+    # ~2.9 GB, corroborated independently by the repo's own instrumented probe
+    # (experiments/convergence-lab/diagnostics/parallelism_probe.py: ~1 GB
+    # per-worker duplication, ~4.9 GB total peak). The real figure is ~15x
+    # smaller, so MEMORY IS NOT THE BINDING CONSTRAINT ON THIS GRID -- cores
+    # are. Each task carries exactly one Data object (build_fit_params puts
+    # "dataset" on the product axis), so per-worker memory is O(1 dataset),
+    # not O(all datasets).
+    #
+    # Set to 27 for the recompute_scale=false run: the 54-fit grid divides
+    # into exactly 2 waves on a 64-core host, leaving cores free for the JAX
+    # thread pools each worker spins up. At ~3 GB/worker that is ~81 GB, ~5%
+    # of a 1511 GB host. Lower this on a smaller host -- and never set it to
+    # null, since auto-selection picks workers by core count alone.
+    n_processes: 27

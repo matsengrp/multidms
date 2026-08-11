@@ -283,6 +283,22 @@ def build_fit_params(fit_config, datasets):
         "cal_kwargs": [fit_config["cal_kwargs"]],
         "loss_kwargs": [fit_config["loss_kwargs"]],
         "warmstart": [fit_config["warmstart"]],
+        # Objective normalizer. False holds `scale` fixed for the whole fit, so
+        # the optimization problem, the lasso threshold (fusionreg / scale), and
+        # `objective_error` are all stationary across outer sweeps. True (the
+        # library default, and what every simulation run before this one used)
+        # recomputes it every sweep, which makes `objective_error` a
+        # within-sweep change measured against an obj_old that is 1.0 by
+        # construction -- not a true relative change between sweeps.
+        # convergence-lab measured False as strictly dominant at inner
+        # maxiter=100: 8/8 vs 4/8 fits converged AND 3.6x faster (788s vs
+        # 2808s). See experiments/convergence-lab/README.md, entry
+        # 2026-07-10, cache=maxiter-scan.
+        #
+        # NOTE: this dict is an explicit whitelist -- a key added to the YAML
+        # but missing here is silently dropped. Optional via .get() so older
+        # configs without the key still load.
+        "recompute_scale": [fit_config.get("recompute_scale", False)],
         "beta0_init": [fit_config["beta0_init"]],
         "alpha_init": [fit_config["alpha_init"]],
         "share_alpha": [fit_config.get("share_alpha", True)],
