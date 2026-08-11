@@ -142,11 +142,45 @@ def _():
     return (mplot,)
 
 
-# ── C: Per-tab fit tables + sliders ──────────────────────────────────────
+# ── C: Per-tab control panels ────────────────────────────────────────────
+#
+# Tables, slider, Plot buttons and the per-tab control strips are built in ONE
+# cell on purpose. Marimo re-runs, for a changed element bound to `name`,
+# `get_referring_cells(name) - get_defining_cells(name)` -- so a cell is
+# charged for every element it *names*, and the defining cell is exempt.
+# Splitting these across cells is what made every checkbox click re-run the
+# button cell (rebuilding all four buttons) and the tab-bar cell.
+#
+# Two rules keep that from coming back, both enforced by
+# tests/test_dashboard_reactivity.py:
+#
+#   1. Nothing outside this cell names a staged table, the slider, or a
+#      button. Each tab's controls are pre-composed here into a `*_panel`,
+#      and the layout cell names only panels and charts.
+#   2. Every element keeps a non-underscore name. A single leading underscore
+#      is cell-local (`_ast/variables.py:is_local`) and marimo filters local
+#      names out of `bound_names`, which stops value delivery *silently* --
+#      `on_change` still fires while the referrer scan quietly matches
+#      nothing. The `_`-prefixed names below are scratch values, never
+#      elements.
+#
+# The `return` tuple is not scoping and does not control any of this: marimo
+# strips it before compiling and execs the body at module level, so every
+# non-underscore name here is a kernel global regardless. It lists only what
+# other cells actually consume.
 
 
 @app.cell
-def _(constant_summary, display_table_df, mc, mo):
+def _(
+    constant_summary,
+    display_table_df,
+    mc,
+    mo,
+    set_conv_staged,
+    set_corr_staged,
+    set_scatter_staged,
+    set_sparsity_staged,
+):
     _const = constant_summary(mc.fit_models)
     _caption = (
         "constant across all fits: " + ", ".join(f"{k}={v}" for k, v in _const.items())
@@ -192,18 +226,7 @@ def _(constant_summary, display_table_df, mc, mo):
         show_column_summaries=False,
     )
     table_caption = mo.md(f"*{_caption}*")
-    return (
-        conv_table,
-        corr_table,
-        ge_table,
-        scatter_table,
-        sparsity_table,
-        table_caption,
-    )
 
-
-@app.cell
-def _(mo):
     times_seen_threshold_slider = mo.ui.slider(
         start=0,
         stop=20,
@@ -211,54 +234,7 @@ def _(mo):
         value=1,
         label="Min times_seen (per-condition) to include",
     )
-    return (times_seen_threshold_slider,)
 
-
-# --- Staged selections ---
-#
-# The multi-select tabs do not render on selection change; they render when
-# their "Plot" button is pressed. The committed selection lives in mo.state
-# so it survives unrelated cell re-runs, and chart cells reference ONLY the
-# state getter -- never the table -- so checking rows recomputes nothing.
-#
-# A staged value of None means "never plotted"; that is distinct from an
-# empty/short selection, which means "plotted, but nothing valid was picked".
-
-
-@app.cell
-def _(mo):
-    get_conv_staged, set_conv_staged = mo.state(None)
-    get_corr_staged, set_corr_staged = mo.state(None)
-    get_scatter_staged, set_scatter_staged = mo.state(None)
-    get_sparsity_staged, set_sparsity_staged = mo.state(None)
-    get_scatter_param, set_scatter_param = mo.state(None)
-    return (
-        get_conv_staged,
-        get_corr_staged,
-        get_scatter_param,
-        get_scatter_staged,
-        get_sparsity_staged,
-        set_conv_staged,
-        set_corr_staged,
-        set_scatter_param,
-        set_scatter_staged,
-        set_sparsity_staged,
-    )
-
-
-@app.cell
-def _(
-    conv_table,
-    corr_table,
-    mo,
-    scatter_table,
-    set_conv_staged,
-    set_corr_staged,
-    set_scatter_staged,
-    set_sparsity_staged,
-    sparsity_table,
-    times_seen_threshold_slider,
-):
     def _idx_list(table):
         """Positional fit indices of a table's selected rows."""
         _sel = table.value
@@ -293,11 +269,67 @@ def _(
         label="Plot",
         on_change=lambda _: set_sparsity_staged(_idx_list(sparsity_table)),
     )
+
+    # Each tab's controls, pre-composed so the layout cell never names the
+    # elements themselves. On the two tabs that stage the threshold, the
+    # slider sits beside the button to signal that it is an input to the
+    # press rather than a live control.
+    conv_panel = mo.vstack([table_caption, conv_table, conv_plot_button])
+    ge_panel = mo.vstack([table_caption, ge_table])
+    corr_panel = mo.vstack(
+        [
+            table_caption,
+            corr_table,
+            mo.hstack([times_seen_threshold_slider, corr_plot_button]),
+        ]
+    )
+    scatter_panel = mo.vstack(
+        [
+            table_caption,
+            scatter_table,
+            mo.hstack([times_seen_threshold_slider, scatter_plot_button]),
+        ]
+    )
+    sparsity_panel = mo.vstack([table_caption, sparsity_table, sparsity_plot_button])
     return (
-        conv_plot_button,
-        corr_plot_button,
-        scatter_plot_button,
-        sparsity_plot_button,
+        conv_panel,
+        corr_panel,
+        ge_panel,
+        ge_table,
+        scatter_panel,
+        sparsity_panel,
+    )
+
+
+# --- Staged selections ---
+#
+# The multi-select tabs do not render on selection change; they render when
+# their "Plot" button is pressed. The committed selection lives in mo.state
+# so it survives unrelated cell re-runs, and chart cells reference ONLY the
+# state getter -- never the table -- so checking rows recomputes nothing.
+#
+# A staged value of None means "never plotted"; that is distinct from an
+# empty/short selection, which means "plotted, but nothing valid was picked".
+
+
+@app.cell
+def _(mo):
+    get_conv_staged, set_conv_staged = mo.state(None)
+    get_corr_staged, set_corr_staged = mo.state(None)
+    get_scatter_staged, set_scatter_staged = mo.state(None)
+    get_sparsity_staged, set_sparsity_staged = mo.state(None)
+    get_scatter_param, set_scatter_param = mo.state(None)
+    return (
+        get_conv_staged,
+        get_corr_staged,
+        get_scatter_param,
+        get_scatter_staged,
+        get_sparsity_staged,
+        set_conv_staged,
+        set_corr_staged,
+        set_scatter_param,
+        set_scatter_staged,
+        set_sparsity_staged,
     )
 
 
@@ -457,8 +489,19 @@ def _(
             label="Parameter",
             on_change=set_scatter_param,
         )
+    # The dropdown cannot join the control-panel cell -- its options come from
+    # the two staged fits -- so it gets its own container, for the same reason:
+    # the layout cell must not name the element. `scatter_param_dropdown` is
+    # still exported because the chart cell has to stay live on it (changing
+    # the parameter re-renders without another Plot press).
+    scatter_param_panel = mo.vstack([scatter_param_dropdown])
     scatter_param_dropdown
-    return scatter_muts_a, scatter_muts_b, scatter_param_dropdown
+    return (
+        scatter_muts_a,
+        scatter_muts_b,
+        scatter_param_dropdown,
+        scatter_param_panel,
+    )
 
 
 @app.cell
@@ -553,7 +596,11 @@ def _(mc, mo, pd):
                 _row[f"beta0_{cond}"] = round(float(latent.β0), 4)
         _rows.append(_row)
     summary_table = mo.ui.table(pd.DataFrame(_rows))
-    return (summary_table,)
+    # Wrapped for the same reason as the other panels. Nothing consumes this
+    # table's selection, so without the wrapper a click here would re-render
+    # the tab bar for no purpose at all.
+    summary_panel = mo.vstack([summary_table])
+    return (summary_panel,)
 
 
 # ── E: Layout Assembly ───────────────────────────────────────────────────
@@ -561,56 +608,38 @@ def _(mc, mo, pd):
 
 @app.cell
 def _(
-    conv_plot_button,
-    conv_table,
+    conv_panel,
     convergence_chart,
-    corr_plot_button,
-    corr_table,
+    corr_panel,
     correlation_chart,
     ge_chart,
-    ge_table,
+    ge_panel,
     mo,
     scatter_chart,
-    scatter_param_dropdown,
-    scatter_plot_button,
-    scatter_table,
+    scatter_panel,
+    scatter_param_panel,
     sparsity_chart,
-    sparsity_plot_button,
-    sparsity_table,
-    summary_table,
-    table_caption,
-    times_seen_threshold_slider,
+    sparsity_panel,
+    summary_panel,
 ):
-    # Each multi-select tab pairs its table with a Plot button. On the two
-    # tabs that stage the threshold, the slider sits beside the button to
-    # signal that it is an input to the press rather than a live control.
+    # This cell names only pre-composed panels and charts -- never a table,
+    # slider or button -- so no interaction with a staged control reaches it.
+    # Tab bodies render exactly as the panels were composed upstream.
+    #
+    # Every name below feeds one `mo.ui.tabs` call, so any one of them left
+    # unbound erases the whole tab bar rather than a single panel. That is why
+    # the chart cells branch to an `mo.md(...)` placeholder instead of using
+    # `mo.stop`, which would halt their descendants.
     mo.ui.tabs(
         {
-            "Convergence": mo.vstack(
-                [table_caption, conv_table, conv_plot_button, convergence_chart]
-            ),
-            "GE Landscape": mo.vstack([table_caption, ge_table, ge_chart]),
-            "Param Correlation": mo.vstack(
-                [
-                    table_caption,
-                    corr_table,
-                    mo.hstack([times_seen_threshold_slider, corr_plot_button]),
-                    correlation_chart,
-                ]
-            ),
+            "Convergence": mo.vstack([conv_panel, convergence_chart]),
+            "GE Landscape": mo.vstack([ge_panel, ge_chart]),
+            "Param Correlation": mo.vstack([corr_panel, correlation_chart]),
             "Replicate Scatter": mo.vstack(
-                [
-                    table_caption,
-                    scatter_table,
-                    mo.hstack([times_seen_threshold_slider, scatter_plot_button]),
-                    scatter_param_dropdown,
-                    scatter_chart,
-                ]
+                [scatter_panel, scatter_param_panel, scatter_chart]
             ),
-            "Sparsity": mo.vstack(
-                [table_caption, sparsity_table, sparsity_plot_button, sparsity_chart]
-            ),
-            "Summary": summary_table,
+            "Sparsity": mo.vstack([sparsity_panel, sparsity_chart]),
+            "Summary": summary_panel,
         },
         lazy=True,
     )
