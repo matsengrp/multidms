@@ -28,19 +28,126 @@ simulation:
     loose_bottle: 100
   output_dir: results
   fitting:
-    maxiter: 200
-    tol: 1.0e-4
-    fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4]
+    # Outer block-coordinate-descent sweep cap and convergence tolerance.
+    # Raised 200 -> 500 and tightened 1.0e-4 -> 1.0e-6 alongside
+    # recompute_scale: false (below), to give every fit a fair chance to
+    # reach tol rather than running out of sweeps. Under the previous
+    # recompute_scale=true the tolerance was not comparable across sweeps
+    # anyway (objective_error was a within-sweep change against an obj_old
+    # pinned to 1.0), so tightening it only becomes meaningful now that the
+    # scale is held fixed.
+    maxiter: 500
+    tol: 1.0e-6
+    # Ladder extended past 6.4e-4, now topping out at 1.28e-3.
+    #
+    # The first recompute_scale=false run, before this extension, had not
+    # turned over at the old top rung (6.4e-4): sparsity was still climbing
+    # (0.59 vs ground truth 0.81) and
+    # recovery was still 0.748. Extending by two doublings bracketed both
+    # optima -- sparsity peaks at 1.28e-3 (0.848, ~= truth) and recovery peaks
+    # at 1.6e-4 (r=0.874), both turning over inside the plotted range.
+    #
+    # The 2.56e-3 rung was then DROPPED. It is where the optimizer breaks down,
+    # not where the model does: all 7 fits whose objective minimum was away
+    # from the final sweep sat there (drift up to +256% past the minimum), one
+    # burned 470 of 500 outer sweeps, and sparsity DECREASED rather than
+    # saturating. Dropping it took per-dataset sparsity monotonicity from 1/6
+    # to 5/6.
+    #
+    # The remaining holdout is lib_1_tight_bottle, which drops 0.7284 -> 0.4695
+    # at the top rung (1.28e-3) while the other five sit at 0.92-0.94, and is
+    # also the single remaining fit whose objective minimum is away from its
+    # final sweep. That is the same breakdown signature that justified dropping
+    # 2.56e-3, one rung lower and on the noisiest dataset only. 1.28e-3 is kept
+    # because it is the only rung that reaches the sparsity peak (0.848 vs
+    # ground truth 0.81), but whether it belongs in the PUBLISHED ladder is an
+    # open question -- see the follow-up noted in PR #303.
+    fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4, 1.28e-3]
     l2reg: 1.0e-6
     beta0_ridge: 0.01
     ge_type: "Sigmoid"
     warmstart: false
+    # Hold the objective normalizer `scale` fixed for the whole fit instead of
+    # recomputing it every outer sweep (the library default, used by every
+    # simulation run before this one).
+    #
+    # With recompute_scale: true, each sweep sets scale = |objective| and then
+    # obj_old = raw_obj/scale = 1.0 BY CONSTRUCTION, so the convergence test
+    # `|obj_old - obj| < tol` measures the WITHIN-sweep relative decrease
+    # against a moving normalizer -- not a true between-sweep change. The
+    # proximal lasso threshold (fusionreg / scale) also drifts with it, so the
+    # problem being minimized is not stationary across sweeps.
+    #
+    # convergence-lab measured false as strictly dominant at inner maxiter=100:
+    # 8/8 vs 4/8 fits converged AND 3.6x faster (788s vs 2808s).
+    # See experiments/convergence-lab/README.md, entry 2026-07-10,
+    # cache=maxiter-scan.
+    recompute_scale: false
     beta0_init: {h1: 5.0, h2: 0.0}
     alpha_init: 6.0
     share_alpha: true
     beta_clip_range: [-10, 10]
     loss_kwargs: {"δ": 1.0}
-    ge_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 40, jit: true, verbose: false}
-    cal_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 40, jit: true, verbose: false}
-    n_processes: 6  # pinned: auto (null) picks workers by core count alone,
-    # ignoring memory, which exhausted a 36 GB host mid-run. Never restore null.
+    # Inner block-solver cap. Raised 10 -> 100 in #291 (Phase 1 of EPIC #290).
+    # PR #288 lowered it 100 -> 10 as a side effect of the config tier split;
+    # that is the measured cause of the non-monotonic shift-sparsity curve.
+    # Single-knob arms at inner=100 on lib_1_observed_phenotype_func_score:
+    # sparsity +0.341 at fusionreg=3.2e-4 (0.5189 -> 0.8600) and +0.383 at
+    # 6.4e-4 (0.2600 -> 0.6432), with alpha returning from ~9.3 to ~6.2-7.0
+    # (alpha_init 6.0) and objective_total down 58%. Zeroing l2reg (+0.000) or
+    # beta0_ridge (+0.067) does not reproduce this.
+    #
+    # 50 was then tried and REVERTED to 100 -- measured A/B at outer 500 /
+    # tol 1e-6, recompute_scale=false. The two arms ran on different ladders
+    # (inner=100 on the 11-rung ladder still carrying 2.56e-3, inner=50 on the
+    # 10-rung trimmed ladder), hence the different denominators:
+    #
+    #                        inner=100      inner=50
+    #   converged            66/66          59/60   <- lost the guarantee
+    #   max outer sweeps     470            500     <- hit the cap
+    #   drift fits           7 (@2.56e-3)   3 (@1.28e-3)
+    #   mean sparsity        0.848          0.765   <- further from GT 0.81
+    #     @1.28e-3
+    #   median s/fit         436            419     <- only ~4% cheaper
+    #
+    # Halving inner effort bought ~4% wall-clock and cost the 100%
+    # convergence guarantee, pushed a fit into the 500-sweep cap, and
+    # regressed peak sparsity. Inner iterations are not wasted work: they are
+    # what keeps the OUTER loop short, so weakening them lengthens the outer
+    # tail. Worse, the drift region MIGRATED DOWN the ladder from the rung we
+    # dropped (2.56e-3) into a rung we keep (1.28e-3).
+    #
+    # Convergence triple for later EPIC #290 phases to inherit --
+    # SIMULATION-PIPELINE SCOPE ONLY:
+    #     (inner maxiter, outer maxiter, tol) = (100, 500, 1.0e-6)
+    # experiments/scv2-spike/ deliberately stays at inner maxiter = 10: the
+    # evidence above is simulation-only (noise-free data, known ground-truth
+    # sparsity 0.81), the cost on spike is unmeasured, and changing spike's
+    # fit-tier config.yaml would invalidate its cached fits. Any spike change
+    # must be measured on spike data first.
+    ge_kwargs: {tol: 1.0e-4, maxiter: 100, maxls: 40, jit: true, verbose: false}
+    cal_kwargs: {tol: 1.0e-4, maxiter: 100, maxls: 40, jit: true, verbose: false}
+    # Worker count for the 60-fit grid (6 datasets x 10 fusionreg). NEVER set
+    # this to null: auto-selection picks workers by core count alone, ignoring
+    # memory, which exhausted a 36 GB host mid-run.
+    #
+    # This is HOST-DEPENDENT. Size it to cores first, then sanity-check RAM.
+    #
+    # CORRECTION: an earlier version of this comment claimed ~42 GB resident
+    # per worker and budgeted 45 GB/worker. That number was never measured --
+    # it was back-inferred from a 36 GB laptop dying at 7 workers. Direct
+    # measurement of a worker running a fit from this grid gives a peak RSS of
+    # ~2.9 GB, corroborated independently by the repo's own instrumented probe
+    # (experiments/convergence-lab/diagnostics/parallelism_probe.py: ~1 GB
+    # per-worker duplication, ~4.9 GB total peak). The real figure is ~15x
+    # smaller, so MEMORY IS NOT THE BINDING CONSTRAINT ON THIS GRID -- cores
+    # are. Each task carries exactly one Data object (build_fit_params puts
+    # "dataset" on the product axis), so per-worker memory is O(1 dataset),
+    # not O(all datasets).
+    #
+    # Set to 30: the grid is 6 datasets x 10 fusionreg = 60 fits, which divides
+    # into exactly 2 waves on a 64-core host, leaving cores free for the JAX
+    # thread pools each worker spins up. At ~3 GB/worker that is ~90 GB, ~6%
+    # of a 1511 GB host. Lower this on a smaller host -- and never set it to
+    # null, since auto-selection picks workers by core count alone.
+    n_processes: 30
