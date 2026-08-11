@@ -290,3 +290,36 @@ def merge_two_fits_on_mutation(muts_a, muts_b, param_col, *, key_a, key_b):
         right, on="mutation", suffixes=(f"_{key_a}", f"_{key_b}")
     ).dropna()
     return merged, f"{param_col}_{key_a}", f"{param_col}_{key_b}"
+
+
+def staged_for(current_token, staged):
+    """Unwrap a staged selection, discarding one staged against another collection.
+
+    Staged selections hold *positional* indices into ``mc.fit_models``, which
+    mean nothing across two unrelated collections. Each is therefore stamped
+    with the token of the collection it was staged against; a mismatch here is
+    how a pickle switch resets every tab back to its "press Plot" prompt.
+
+    The distinction between ``None`` and an empty payload is load-bearing:
+    callers render a different message for "never plotted" than for "plotted,
+    but nothing was selected". Test the result with ``is None``, never for
+    truthiness.
+
+    Args:
+        current_token: Token of the collection currently loaded.
+        staged: Either ``None`` (never staged) or a ``(token, payload)`` pair
+            as written by a Plot button's ``on_change``.
+
+    Returns:
+        The staged payload when ``staged`` was stamped with ``current_token``,
+        otherwise ``None``. The payload may itself be falsy (e.g. ``[]``).
+
+    Raises:
+        ValueError: If ``staged`` is neither ``None`` nor a 2-tuple. A
+            malformed shape is a bug in the caller and is deliberately not
+            defended against.
+    """
+    if staged is None:
+        return None
+    token, payload = staged
+    return payload if token == current_token else None
