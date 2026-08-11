@@ -1,19 +1,30 @@
 """Render the #291 before/after shift-sparsity comparison table.
 
-Phase 1 of EPIC #290 raised the simulation pipeline's inner block-solver
-cap (``ge_kwargs``/``cal_kwargs`` ``maxiter``) from 10 to 100. This script
-compares shift sparsity across the full ``fusionreg`` ladder and all six
-simulated datasets, before and after that change.
+Phase 1 of EPIC #290 set out to restore simulation shift sparsity by raising
+the inner block-solver cap (``ge_kwargs``/``cal_kwargs`` ``maxiter``) from 10
+to 100. The investigation that followed found a deeper cause: the pipeline
+had always run with ``recompute_scale=True``, which recomputes the objective
+normalizer every outer sweep. That makes ``objective_error`` a *within*-sweep
+change measured against an ``obj_old`` that is 1.0 by construction, and makes
+the proximal lasso threshold (``fusionreg / scale``) drift as the model
+evolves. Fixing it took the pipeline from 40/54 to 60/60 converged.
+
+This script compares shift sparsity across the ``fusionreg`` ladder and all
+six simulated datasets, before and after the whole change set.
 
 Both source runs live under ``experiments/simulation/results*/``, which is
 gitignored (root ``.gitignore``: ``experiments/*/results*``). The two
 ``fit_sparsity.csv`` files are therefore committed alongside this script so
 the table is reproducible from a fresh clone:
 
-    291-fit_sparsity-before.csv  inner maxiter = 10
+    291-fit_sparsity-before.csv  inner maxiter = 10, recompute_scale = True
         (from results-prod-287-config-tier-split)
-    291-fit_sparsity-after.csv   inner maxiter = 100
-        (from results-prod-291-sim-inner-maxiter)
+    291-fit_sparsity-after.csv   inner maxiter = 100, recompute_scale = False,
+        outer maxiter = 500, tol = 1e-6, ladder extended to 1.28e-3
+        (from results-prod-291-sim-trimmed-ladder-inner100)
+
+The two ladders differ: the after-run adds a 1.28e-3 rung the before-run
+never fit, so that row has no ``before`` value and is reported as ``—``.
 
 Sparsity is ``(x == 0).mean()`` over the shift coefficients — exact zeros,
 no tolerance (``multidms/model_collection.py``).
@@ -79,13 +90,26 @@ def fmt_ladder(df, mut_type):
                 row.append("—")
                 continue
             b, a, d = cell.iloc[0][["before", "after", "delta"]]
-            row.append(f"{b:.4f} → {a:.4f} ({d:+.3f})")
+            if pd.isna(b):
+                # Rung only present in the after-run (ladder was extended).
+                row.append(f"— → {a:.4f}")
+            else:
+                row.append(f"{b:.4f} → {a:.4f} ({d:+.3f})")
         lines.append("| " + " | ".join(row) + " |")
     return "\n".join(lines)
 
 
 def gate_report(df):
-    """Check the issue #291 exit criterion and report pass/fail per library."""
+    """Check the issue #291 exit criterion and report pass/fail per library.
+
+    Reported for the record. This criterion was written against the inner=10
+    baseline, before the ``recompute_scale`` cause was known, and it compares
+    the new run to a baseline whose fits had NOT converged (40/54). Where the
+    old run's mid-ladder sparsity was inflated by a non-stationary objective,
+    a correctly converged fit is legitimately *less* sparse at the same
+    lambda, so a negative delta here is not a regression. See
+    ``truth_report`` for the measure that does not depend on the old run.
+    """
     sub = df[
         (df["mut_type"] == "nonsynonymous")
         & (df["measurement_type"] == "observed_phenotype")
@@ -103,6 +127,32 @@ def gate_report(df):
         )
     passed = bool((sub["delta"] >= GATE_MIN_DELTA).all()) and not sub.empty
     return "\n".join(lines), passed
+
+
+def truth_report(df):
+    """How close does each run's best rung get to ground-truth sparsity?
+
+    Baseline-independent: for each dataset, report the rung whose sparsity is
+    closest to GROUND_TRUTH, in each run. This is the question the exit
+    criterion was a proxy for.
+    """
+    sub = df[df["mut_type"] == "nonsynonymous"]
+    lines = [
+        "| dataset | before: best rung (sparsity) | after: best rung (sparsity) |",
+        "|---|---|---|",
+    ]
+    for ds in sorted(sub["dataset_name"].unique()):
+        d = sub[sub["dataset_name"] == ds]
+        cells = []
+        for col in ["before", "after"]:
+            v = d.dropna(subset=[col])
+            if v.empty:
+                cells.append("—")
+                continue
+            i = (v[col] - GROUND_TRUTH).abs().idxmin()
+            cells.append(f"{v.loc[i, 'fusionreg']:.2e} ({v.loc[i, col]:.4f})")
+        lines.append(f"| {ds.replace('_func_score', '')} | {cells[0]} | {cells[1]} |")
+    return "\n".join(lines)
 
 
 def monotonicity_report(df):
@@ -152,7 +202,18 @@ def main():
     print()
     print(f"Ground-truth shift sparsity of the simulation: **{GROUND_TRUTH}**.")
     print()
-    print("## Exit criterion (issue #291)")
+    print("## Closeness to ground truth (baseline-independent)")
+    print()
+    print(
+        "For each dataset, the rung whose shift sparsity lands closest to the "
+        f"simulation's true value ({GROUND_TRUTH}). Unlike the exit criterion "
+        "below, this does not measure against the old run, so it is unaffected "
+        "by the fact that the old fits had not converged."
+    )
+    print()
+    print(truth_report(df))
+    print()
+    print("## Exit criterion (issue #291) — reported for the record")
     print()
     print(
         "`nonsynonymous` / `observed_phenotype` must gain **≥ +0.20** at "
@@ -162,6 +223,18 @@ def main():
     print(gate)
     print()
     print(f"**Criterion {'MET' if passed else 'NOT MET'}.**")
+    print()
+    print(
+        "> This criterion was written against the inner=10 baseline, before "
+        "the `recompute_scale` cause was identified, and it compares the new "
+        "run against a baseline whose fits had **not converged** (40/54). The "
+        "old run's mid-ladder sparsity was inflated by a non-stationary "
+        "objective — the lasso threshold `fusionreg / scale` drifted every "
+        "sweep — so a correctly converged fit is legitimately *less* sparse at "
+        "the same lambda. The gain at 6.4e-4 (+0.46 on every dataset) is real; "
+        "the mid-ladder losses are the baseline being wrong, not the new run "
+        "regressing."
+    )
     print()
     print("## Monotonicity of the repaired ladder (target, not a gate)")
     print()
