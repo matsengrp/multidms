@@ -489,11 +489,10 @@ def _(
             label="Parameter",
             on_change=set_scatter_param,
         )
-    # The dropdown cannot join the control-panel cell -- its options come from
-    # the two staged fits -- so it gets its own container, for the same reason:
-    # the layout cell must not name the element. `scatter_param_dropdown` is
-    # still exported because the chart cell has to stay live on it (changing
-    # the parameter re-renders without another Plot press).
+    # Panelled per rule 1 in section C. The dropdown cannot join that cell --
+    # its options come from the two staged fits -- so it is wrapped here
+    # instead. It stays exported because the chart cell must remain live on
+    # it: changing the parameter re-renders without another Plot press.
     scatter_param_panel = mo.vstack([scatter_param_dropdown])
     scatter_param_dropdown
     return (
@@ -596,9 +595,9 @@ def _(mc, mo, pd):
                 _row[f"beta0_{cond}"] = round(float(latent.β0), 4)
         _rows.append(_row)
     summary_table = mo.ui.table(pd.DataFrame(_rows))
-    # Wrapped for the same reason as the other panels. Nothing consumes this
-    # table's selection, so without the wrapper a click here would re-render
-    # the tab bar for no purpose at all.
+    # Panelled per rule 1 in section C. Nothing consumes this table's
+    # selection, so unwrapped a click here would re-render the tab bar for no
+    # purpose at all.
     summary_panel = mo.vstack([summary_table])
     return (summary_panel,)
 

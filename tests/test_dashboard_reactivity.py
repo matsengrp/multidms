@@ -179,7 +179,14 @@ def test_layout_cell_consumes_only_defined_names(cells):
     """
     if not any(defs for _, defs in cells):
         pytest.skip("defs unavailable on the AST fallback path")
-    layout_refs = max((refs for refs, defs in cells if not defs), key=len)
+    # Identify the cell structurally, by the panels it assembles, rather than
+    # as "the def-less cell with the most refs" -- that heuristic would
+    # silently retarget this assertion onto some future def-less cell.
+    layout = [refs for refs, defs in cells if not defs and "conv_panel" in refs]
+    assert len(layout) == 1, (
+        "expected exactly one def-less cell referencing 'conv_panel' (the "
+        f"mo.ui.tabs layout cell), found {len(layout)}."
+    )
     defined = set().union(*(defs for _, defs in cells))
-    missing = sorted(n for n in layout_refs if n not in defined and n != "mo")
+    missing = sorted(n for n in layout[0] if n not in defined and n != "mo")
     assert missing == [], f"layout cell reads undefined name(s): {missing}"
