@@ -16,7 +16,16 @@ simulation:
   n_shifted_identical_sites: 4
   shift_gauss_variance: 0.666
   sigmoid_phenotype_scale: 6
-  variants_per_lib_genelength_scalar: 1000
+  # Halved 1000 -> 500 to match the manuscript simulation
+  # (SARS-CoV-2_spike_multidms @ 6c98b7b, simulation_validation.ipynb), whose
+  # cross-validation panel shows an interior validation-loss minimum that the
+  # pipeline at 1000 does not reproduce. At 1000 the fit sees ~29 variants per
+  # mutation, so every beta is pinned by direct evidence and shrinkage has no
+  # variance left to trade against bias -- validation loss just tracks
+  # training loss and rises monotonically in lambda. This is the single-knob
+  # A/B against results-prod-291-sim-trimmed-ladder-inner100; every other
+  # fit-tier key is held at its pipeline value.
+  variants_per_lib_genelength_scalar: 500
   avgmuts: 2.0
   bclen: 16
   variant_error_rate: 0.0
@@ -29,15 +38,24 @@ simulation:
   output_dir: results
   fitting:
     # Outer block-coordinate-descent sweep cap and convergence tolerance.
-    # Raised 200 -> 500 and tightened 1.0e-4 -> 1.0e-6 alongside
+    # Raised 200 -> 500 and tightened 1.0e-4 -> 1.0e-6 (see the loosening to
+    # 1.0e-5 noted below, which supersedes the 1e-6 value) alongside
     # recompute_scale: false (below), to give every fit a fair chance to
     # reach tol rather than running out of sweeps. Under the previous
     # recompute_scale=true the tolerance was not comparable across sweeps
     # anyway (objective_error was a within-sweep change against an obj_old
     # pinned to 1.0), so tightening it only becomes meaningful now that the
     # scale is held fixed.
+    #
+    # LOOSENED 1.0e-6 -> 1.0e-5 for this run. At 1e-6 the 500-variant run
+    # converged 60/60 on the full-data fit but only 59/60 in
+    # cross-validation: lib_2_observed_phenotype at the top rung
+    # (fusionreg 1.28e-3) exhausted all 500 outer sweeps and stopped at
+    # objective_error 2.32e-6, ~2.3x short of tol. This is a single-knob A/B
+    # against sim-vpl500 to see whether a 10x looser tolerance clears that
+    # holdout and how much it shifts the fits that already converged.
     maxiter: 500
-    tol: 1.0e-6
+    tol: 1.0e-5
     # Ladder extended past 6.4e-4, now topping out at 1.28e-3.
     #
     # The first recompute_scale=false run, before this extension, had not

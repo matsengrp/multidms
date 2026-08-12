@@ -139,6 +139,8 @@ rule cross_validation:
         notebook=os.path.join(NOTEBOOKS, "cross_validation.ipynb"),
     output:
         cv_loss=os.path.join(RESULTS, "cross_validation_loss.csv"),
+        cv_collection=os.path.join(RESULTS, "cv_fit_collection.pkl"),
+        cv_convergence=os.path.join(RESULTS, "cv_convergence.csv"),
         executed_notebook=os.path.join(RESULTS, "cross_validation.ipynb"),
     params:
         config_path=CONFIG_PATH_REL,
