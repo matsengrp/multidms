@@ -6,9 +6,14 @@
 # invalidate the fit.
 
 spike:
-  # Chosen lasso weight (manuscript λ); see config_downstream.yaml for the
-  # evidence behind the 4.0e-05 -> 8.0e-05 move.
-  lasso_choice: 8.0e-05
+  # Chosen lasso weight. MUST be a member of this profile's own
+  # `fusionreg_values` ladder in config_test.yaml -- evaluate selects models
+  # with `query(f"fusionreg == {lasso_choice}")`, and a value off the ladder
+  # matches nothing, so `combine_replicate_muts` fails on an empty fit dict.
+  # Commit 320c794 moved every profile's lasso_choice 4.0e-05 -> 8.0e-05, but
+  # the test ladder is only [0.0, 4.0e-5], which broke this profile. The prod
+  # λ lives in config_downstream.yaml; this one just has to be on the ladder.
+  lasso_choice: 4.0e-05
   condition_colors:
     Delta: '#F97306'
     Omicron_BA1: '#BFBFBF'

@@ -141,6 +141,29 @@ def test_tiers_merge_without_collision(section, pipeline_dir, name):
     assert "lasso_choice" in merged[section]
 
 
+@pytest.mark.parametrize("section,pipeline_dir,name", VARIANTS)
+def test_lasso_choice_is_on_its_own_ladder(section, pipeline_dir, name):
+    """Every profile's lasso_choice is a member of that profile's own ladder.
+
+    `evaluate` selects models with ``query(f"fusionreg == {lasso_choice}")``.
+    An off-ladder value matches no rows, so the empty fit dict reaches
+    ``combine_replicate_muts`` and fails there with ``reduce() of empty
+    iterable`` — a failure whose message names neither config. Commit 320c794
+    moved lasso_choice 4.0e-05 -> 8.0e-05 across every profile, including three
+    whose ladders have no 8.0e-05 rung.
+    """
+    config_dir = os.path.join(pipeline_dir, "config")
+    with open(os.path.join(config_dir, f"{name}.yaml")) as f:
+        ladder = yaml.safe_load(f)[section]["fitting"]["fusionreg_values"]
+    with open(os.path.join(config_dir, f"{name}_downstream.yaml")) as f:
+        lasso_choice = yaml.safe_load(f)[section]["lasso_choice"]
+
+    assert lasso_choice in ladder, (
+        f"{name}_downstream.yaml sets lasso_choice={lasso_choice}, which is not "
+        f"on {name}.yaml's fusionreg_values ladder {ladder}"
+    )
+
+
 def test_simulation_downstream_tier_holds_only_lasso_choice():
     """Simulation's downstream tier is lasso_choice alone — it has no cosmetics."""
     config_dir = os.path.join(SIM_DIR, "config")

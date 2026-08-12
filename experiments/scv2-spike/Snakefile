@@ -147,6 +147,8 @@ rule cross_validation:
         common=COMMON,
     output:
         cv_loss=os.path.join(RESULTS, "cross_validation_loss.csv"),
+        cv_collection=os.path.join(RESULTS, "cv_fit_collection.pkl"),
+        cv_convergence=os.path.join(RESULTS, "cv_convergence.csv"),
         executed_notebook=os.path.join(RESULTS, "cross_validation.ipynb"),
     params:
         config_path=CONFIG_PATH_REL,
@@ -179,6 +181,15 @@ rule evaluate:
         replicate_corr=os.path.join(
             RESULTS, "library_replicate_correlation.csv"
         ),
+        # Convergence audit (#292). Declared so a missing export fails the run
+        # instead of surviving only as notebook output.
+        fit_convergence=os.path.join(RESULTS, "fit_convergence.csv"),
+        convergence_trajectory=os.path.join(RESULTS, "convergence_trajectory.csv"),
+        # GE landscape at lasso_choice — the figures rule may not load the
+        # 1.58 GB pickle, so the latent phenotypes are exported here.
+        ge_landscape_variants=os.path.join(RESULTS, "ge_landscape_variants.csv"),
+        ge_landscape_curve=os.path.join(RESULTS, "ge_landscape_curve.csv"),
+        ge_params=os.path.join(RESULTS, "ge_params.csv"),
         executed_notebook=os.path.join(RESULTS, "evaluate.ipynb"),
     params:
         config_path=CONFIG_PATH_REL,

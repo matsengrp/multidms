@@ -26,10 +26,20 @@ spike:
 
   # Fitting parameters — rescaled for .mean() loss normalization (V0.4.0 anchors)
   fitting:
-    maxiter: 200
-    tol: 1.0e-4
-    recompute_scale: true
-    fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4]
+    # Outer block-coordinate-descent ceiling. 500 is headroom, not a target;
+    # a fit that reaches it has NOT converged regardless of any success count.
+    maxiter: 500
+    tol: 1.0e-5
+    # false => the objective normalizer is computed once after warmstart and
+    # held constant, so the proximal lasso threshold `fusionreg / scale` is
+    # stationary across sweeps. Under `true` the threshold drifts between
+    # sweeps, which makes a lasso-selection study measure a moving target, and
+    # pins obj_old to 1.0 so the convergence test never sees a between-sweep
+    # change. Matches the simulation pipeline after PR #303.
+    recompute_scale: false
+    # Extended by one rung (1.28e-3) above the manuscript's 6.4e-4 ceiling, to
+    # test whether stop-codon sparsity is still climbing past the top rung.
+    fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4, 1.28e-3]
     l2reg: 1.0e-6
     beta0_ridge: 0.01
     scale_fusion_by_n: false
@@ -40,6 +50,11 @@ spike:
     share_alpha: true
     beta_clip_range: [-10, 10]
     loss_kwargs: {"δ": 1.0}
+    # Inner solver maxiter deliberately stays at 10 while the outer loop moves
+    # to tol 1e-5 / maxiter 500. Simulation runs 100, but changing two
+    # convergence knobs in one run makes a bad result unattributable, and
+    # inner=10 has never been shown to be spike's problem. If fits converge
+    # poorly, raising this to 100 is the first lever — on evidence.
     ge_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 40, jit: true, verbose: false}
     cal_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 40, jit: true, verbose: false}
     n_processes: 6  # pinned: auto (null) picks workers by core count alone,
