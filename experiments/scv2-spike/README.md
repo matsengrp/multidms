@@ -14,12 +14,18 @@ prepare_data ──► training_functional_scores.csv
     ▼                      ▼
 fit_models            cross_validation
 ──► fit_collection.pkl ──► cross_validation_loss.csv
-    │
+    │                  ──► cv_fit_collection.pkl
+    │                  ──► cv_convergence.csv
     ▼
 evaluate ──► mutations_df.csv
           ──► collection_muts.csv
           ──► fit_sparsity.csv
           ──► library_replicate_correlation.csv
+          ──► fit_convergence.csv
+          ──► convergence_trajectory.csv
+          ──► ge_landscape_variants.csv
+          ──► ge_landscape_curve.csv
+          ──► ge_params.csv
 ```
 
 ## Running
@@ -44,10 +50,17 @@ snakemake -s experiments/scv2-spike/Snakefile --config profile=test -j4
 | `training_functional_scores.csv` | prepare_data | Variant functional scores after count aggregation, filtering, and clipping |
 | `fit_collection.pkl` | fit_models | Pickled DataFrame of fitted Model objects across regularization grid |
 | `cross_validation_loss.csv` | cross_validation | Training vs validation loss across regularization grid |
+| `cv_fit_collection.pkl` | cross_validation | Pickled CV fits, written after `add_eval_loss` so it carries validation losses |
+| `cv_convergence.csv` | cross_validation | Per-CV-fit convergence; `fit N models, M failed` counts crashes, not convergence |
 | `mutations_df.csv` | evaluate | Per-mutation beta and shift parameters at chosen lasso strength |
-| `collection_muts.csv` | evaluate | Per-mutation parameters at all fusionreg values |
+| `collection_muts.csv` | evaluate | Per-mutation parameters at all fusionreg values, keyed by `dataset_name` and `fusionreg` |
 | `fit_sparsity.csv` | evaluate | Shift sparsity fraction across regularization grid |
 | `library_replicate_correlation.csv` | evaluate | Replicate correlation of mutation parameters |
+| `fit_convergence.csv` | evaluate | Per-fit `converged`, sweep count, and drift (`argmin_sweep`, `drift_frac`) |
+| `convergence_trajectory.csv` | evaluate | Tidy per-sweep objective/loss trace; the data behind figure S16 |
+| `ge_landscape_variants.csv` | evaluate | Per-variant latent phenotype and fitness at `lasso_choice` (figure S17) |
+| `ge_landscape_curve.csv` | evaluate | Fitted sigmoid curve points at `lasso_choice` |
+| `ge_params.csv` | evaluate | Per-condition `alpha`, `beta0`, `bundle_sum`, `wildtype_latent` |
 
 ### Configuration (in `config/`)
 
