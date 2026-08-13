@@ -196,8 +196,14 @@ test      = "pytest --doctest-modules multidms tests"
 lint      = "ruff check ."
 fmt       = "black ."
 fmt-check = "black --check ."
-docs        = "make -C docs clean && make -C docs html"
-docs-deploy = "make -C docs clean && make -C docs html && ghp-import -n -p -f docs/_build/html"
+# `check-results` runs first: the docs/*.nblink files resolve through
+# experiments/<pipeline>/results/, a gitignored symlink absent from a fresh
+# clone. Without it Sphinx fails with a bare "No such file or directory".
+# The check only reports -- linking a run is a deliberate choice about which
+# numbers the docs publish, so it is left to a human.
+check-results = "bash experiments/scripts/check-results.sh"
+docs        = { cmd = "make -C docs clean && make -C docs html", depends-on = ["check-results"] }
+docs-deploy = { cmd = "make -C docs clean && make -C docs html && ghp-import -n -p -f docs/_build/html", depends-on = ["check-results"] }
 
 # Simulation pipeline
 sim-test  = "snakemake -s experiments/simulation/Snakefile --config profile=test -j4"
