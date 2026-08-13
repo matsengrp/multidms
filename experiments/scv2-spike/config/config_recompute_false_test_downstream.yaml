@@ -29,3 +29,11 @@ spike:
     CD: [1075, 1162]
     HR2: [1162, 1211]
     TM: [1211, 1234]
+
+  # Naive (independent per-condition) baseline arm -- EPIC #290 Phase 4.
+  # Downstream tier; see config_downstream.yaml for the rationale.
+  naive:
+    # Must match evaluate.ipynb's times_seen_threshold=1 -- filtering the
+    # joint and naive arms differently rigs the headline comparison.
+    times_seen_threshold: 1
+    conditions: [Delta, Omicron_BA1, Omicron_BA2]
