@@ -29,7 +29,14 @@ spike:
     # Outer block-coordinate-descent ceiling. 500 is headroom, not a target;
     # a fit that reaches it has NOT converged regardless of any success count.
     maxiter: 500
-    tol: 1.0e-5
+    # 1e-6, tightened from the 1e-5 that produced 20/20 in the first Stage 1
+    # run. The tolerance is a *between-sweep relative change*, not a gradient
+    # norm, so the question was whether the inner solvers (tol 1e-4) floor it.
+    # They do not: every one of those 20 fits was still decaying geometrically
+    # at its stopping point (median tail rate 0.941/sweep), so the tail had not
+    # flattened. Extrapolating each fit's own decay rate to 1e-6 projects a
+    # median of 127 sweeps and a worst case of 193 — well inside maxiter 500.
+    tol: 1.0e-6
     # false => the objective normalizer is computed once after warmstart and
     # held constant, so the proximal lasso threshold `fusionreg / scale` is
     # stationary across sweeps. Under `true` the threshold drifts between
