@@ -249,7 +249,11 @@ rule manuscript_figures:
         convergence_trajectory=os.path.join(RESULTS, "convergence_trajectory.csv"),
         ge_landscape_variants=os.path.join(RESULTS, "ge_landscape_variants.csv"),
         ge_landscape_curve=os.path.join(RESULTS, "ge_landscape_curve.csv"),
+        ge_landscape_curve_func_score=os.path.join(
+            RESULTS, "ge_landscape_curve_func_score.csv"
+        ),
         ge_params=os.path.join(RESULTS, "ge_params.csv"),
+        site_map=os.path.join(RESULTS, "site_map.csv"),
         cv_loss=os.path.join(RESULTS, "cross_validation_loss.csv"),
         notebook=os.path.join(NOTEBOOKS, "manuscript_figures.ipynb"),
         downstream_common=DOWNSTREAM_COMMON,
@@ -302,7 +306,17 @@ rule evaluate:
         # 1.76 GB pickle, so the latent phenotypes are exported here.
         ge_landscape_variants=os.path.join(RESULTS, "ge_landscape_variants.csv"),
         ge_landscape_curve=os.path.join(RESULTS, "ge_landscape_curve.csv"),
+        # S17 plots both GE spaces: the shared sigmoid g(φ), and the
+        # per-condition α·(g(φ) − g(φ_wt)) that measured scores live on.
+        ge_landscape_curve_func_score=os.path.join(
+            RESULTS, "ge_landscape_curve_func_score.csv"
+        ),
         ge_params=os.path.join(RESULTS, "ge_params.csv"),
+        # Per-condition wildtype residue at every site. Figure 4 needs it for
+        # three marks: the black x at the reference wildtype, the filled circle
+        # where a homolog wildtype differs from it, and the triangles over the
+        # per-site scatter at non-identical sites.
+        site_map=os.path.join(RESULTS, "site_map.csv"),
         executed_notebook=os.path.join(RESULTS, "evaluate.ipynb"),
     params:
         config_path=CONFIG_PATH_REL,
