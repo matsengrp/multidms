@@ -1,11 +1,15 @@
 """Snakemake workflow for the SARS-CoV-2 spike analysis pipeline.
 
-Five notebooks executed via papermill:
-  prepare_data → fit_models      → evaluate
-               → cross_validation
+Notebooks executed via papermill:
+
+  prepare_data ─┬─ fit_models ── evaluate ──┬─ manuscript_figures
+                └─ cross_validation ────────┘
 
 fit_models and cross_validation run in parallel after prepare_data.
-evaluate depends on fit_models.
+evaluate depends on fit_models. manuscript_figures depends on the CSVs
+written by BOTH evaluate and cross_validation -- figure S9's held-out loss
+panel reads cross_validation_loss.csv -- so it is skipped entirely when
+skip_cross_validation is set.
 
 Run with:
   snakemake -s experiments/scv2-spike/Snakefile -j4
@@ -19,6 +23,12 @@ import yaml
 SPIKE_DIR = os.path.dirname(workflow.snakefile)
 NOTEBOOKS = os.path.join(SPIKE_DIR, "notebooks")
 COMMON = os.path.join(NOTEBOOKS, "_common.py")
+
+# Downstream-tier helper module. Deliberately a sibling of _common.py rather
+# than an addition to it: _common.py is `input:` on all four fit-tier rules,
+# so a figure helper added there would make an edit to plotting code
+# invalidate the cached fit. This one is `input:` on manuscript_figures only.
+DOWNSTREAM_COMMON = os.path.join(NOTEBOOKS, "_downstream.py")
 
 # Config: use test profile if --config profile=test is passed
 profile = config.get("profile", None)
@@ -49,7 +59,45 @@ with open(CONFIG_PATH) as _f:
 _yaml_output_dir = _cfg.get("spike", {}).get("output_dir", "results")
 output_dir = config.get("output_dir", _yaml_output_dir)
 RESULTS = os.path.join(SPIKE_DIR, output_dir)
+FIGURES = os.path.join(RESULTS, "figures")
 SKIP_CV = _cfg.get("spike", {}).get("skip_cross_validation", False)
+
+# Manuscript figures, keyed by the manuscript's own label. Each is declared as
+# a rule output in every configured format, so a figure that fails to render
+# fails the run instead of silently vanishing into notebook output.
+#
+# Filename trap: the manuscript build consumes
+# `shrinkage_analysis_trace_plots_beta.pdf` for S9. Two near-identical names
+# exist in the legacy repo (`..._trace_plots.pdf` and
+# `..._trace_plots_with_epistasis.pdf`); both are unused. Do not "correct"
+# the name below to the shorter one.
+FIGURE_NAMES = {
+    "S6": "raw_data_summary_barcodes_backgrounds_hist",
+    "S7": "replicate_functional_score_correlation_scatter",
+    "S9": "shrinkage_analysis_trace_plots_beta",
+    "S11": "percent_shifts_under_x_lineplot",
+    "S12": "shift_corr_Delta_BA2",
+    "S16": "convergence_all_lasso_lines",
+    "S17": "global_epistasis_and_prediction_correlations",
+    "fig4": "shift_by_site_heatmap_zoom",
+    "fig5": "validation_titer_fold_change",
+}
+
+# Formats come from the downstream tier, so adding e.g. SVG is a downstream
+# edit that cannot invalidate the fit.
+with open(DOWNSTREAM_CONFIG_PATH) as _f:
+    _downstream_cfg = yaml.safe_load(_f) or {}
+FIGURE_FORMATS = (
+    _downstream_cfg.get("spike", {})
+    .get("figures", {})
+    .get("formats", ["pdf", "png"])
+)
+
+FIGURE_OUTPUTS = [
+    os.path.join(FIGURES, f"{name}.{ext}")
+    for name in FIGURE_NAMES.values()
+    for ext in FIGURE_FORMATS
+]
 
 # Fitting strategy: "independent" (default) fits each fusionreg from scratch
 # in parallel; "continuation" fits a warm-started path along fusionreg.
@@ -78,6 +126,17 @@ if not SKIP_CV:
     _all_targets += [
         os.path.join(RESULTS, "cross_validation.ipynb"),
         os.path.join(RESULTS, "cross_validation_loss.csv"),
+    ]
+
+# Manuscript figures require cross-validation: S9's middle panel is the
+# held-out loss trace. When CV is skipped there is no honest way to draw it,
+# so the whole rule is dropped rather than silently emitting an S9 with a
+# missing panel.
+BUILD_FIGURES = not SKIP_CV
+if BUILD_FIGURES:
+    _all_targets += [
+        os.path.join(RESULTS, "manuscript_figures.ipynb"),
+        *FIGURE_OUTPUTS,
     ]
 
 
@@ -166,6 +225,60 @@ rule cross_validation:
         """
 
 
+rule manuscript_figures:
+    """Render the manuscript figure surface from the exported CSVs.
+
+    Downstream tier by construction. Note what is deliberately ABSENT from
+    input: `config=CONFIG_PATH` and `common=COMMON`. The simulation pipeline's
+    equivalent rule declares `config=CONFIG_PATH` -- that is a counterexample,
+    not a template. Spike's fit is ~2 h 20 min, and declaring the fit-tier
+    config here would make every figure tweak invalidate it. The fit-tier
+    path still reaches the notebook via params:, which Snakemake does not
+    track for reruns. See issue #287.
+
+    This rule reads CSVs only. It must never load fit_collection.pkl (1.76 GB);
+    everything it needs was exported by evaluate for exactly that reason.
+    """
+    input:
+        downstream_config=DOWNSTREAM_CONFIG_PATH,
+        func_scores=os.path.join(RESULTS, "training_functional_scores.csv"),
+        mutations_df=os.path.join(RESULTS, "mutations_df.csv"),
+        collection_muts=os.path.join(RESULTS, "collection_muts.csv"),
+        sparsity=os.path.join(RESULTS, "fit_sparsity.csv"),
+        replicate_corr=os.path.join(RESULTS, "library_replicate_correlation.csv"),
+        convergence_trajectory=os.path.join(RESULTS, "convergence_trajectory.csv"),
+        ge_landscape_variants=os.path.join(RESULTS, "ge_landscape_variants.csv"),
+        ge_landscape_curve=os.path.join(RESULTS, "ge_landscape_curve.csv"),
+        ge_params=os.path.join(RESULTS, "ge_params.csv"),
+        cv_loss=os.path.join(RESULTS, "cross_validation_loss.csv"),
+        notebook=os.path.join(NOTEBOOKS, "manuscript_figures.ipynb"),
+        downstream_common=DOWNSTREAM_COMMON,
+    output:
+        executed_notebook=os.path.join(RESULTS, "manuscript_figures.ipynb"),
+        # Validation data for Figure 5, fetched from the legacy analysis repo
+        # at a pinned commit and cached here. Declared as outputs so the
+        # fetch is tracked rather than being an invisible side effect.
+        titers=os.path.join(RESULTS, "raw_data", "validation", "viral_titers.csv"),
+        validation=os.path.join(
+            RESULTS, "raw_data", "validation", "spike_validation_data.csv"
+        ),
+        figures=FIGURE_OUTPUTS,
+    params:
+        config_path=CONFIG_PATH_REL,
+        downstream_config_path=DOWNSTREAM_CONFIG_PATH_REL,
+        output_dir=output_dir,
+        cwd=SPIKE_DIR,
+    shell:
+        """
+        papermill "{input.notebook}" "{output.executed_notebook}" \
+            -p config_path "{params.config_path}" \
+            -p downstream_config_path "{params.downstream_config_path}" \
+            -p output_dir "{params.output_dir}" \
+            --cwd "{params.cwd}" \
+        && jupyter trust "{output.executed_notebook}"
+        """
+
+
 rule evaluate:
     input:
         config=CONFIG_PATH,
@@ -186,7 +299,7 @@ rule evaluate:
         fit_convergence=os.path.join(RESULTS, "fit_convergence.csv"),
         convergence_trajectory=os.path.join(RESULTS, "convergence_trajectory.csv"),
         # GE landscape at lasso_choice — the figures rule may not load the
-        # 1.58 GB pickle, so the latent phenotypes are exported here.
+        # 1.76 GB pickle, so the latent phenotypes are exported here.
         ge_landscape_variants=os.path.join(RESULTS, "ge_landscape_variants.csv"),
         ge_landscape_curve=os.path.join(RESULTS, "ge_landscape_curve.csv"),
         ge_params=os.path.join(RESULTS, "ge_params.csv"),

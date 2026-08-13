@@ -3,7 +3,8 @@
 This module is a deliberate sibling of ``_common.py`` rather than an addition
 to it. ``_common.py`` is declared ``input:`` on all four fit-tier rules, so a
 helper added there would make an edit to figure code invalidate the cached
-model fit -- a ~2.5 hour refit. This module is declared ``input:`` on
+model fit -- a 2 h 20 min refit, as measured on the prod run logged in
+``experiments/scv2-spike/README.md``. This module is declared ``input:`` on
 ``rule manuscript_figures`` only, which keeps figure work in the downstream
 tier where it belongs. See ``experiments/scv2-spike/README.md`` ("Configuration
 tiers") and issue #287.
