@@ -249,3 +249,35 @@ def test_missing_reference_for_every_replicate_raises():
     with pytest.warns(UserWarning, match="reference condition"):
         with pytest.raises(ValueError, match="No naive shifts"):
             derive_naive_shifts(models, reference="Omicron_BA1")
+
+
+def test_shifts_are_derived_per_replicate_not_across_them():
+    """``derive_naive_shifts`` intersects within a replicate, not across.
+
+    This is the documented contract, and downstream code depends on knowing
+    it: ``manuscript_figures`` must intersect the two replicates itself
+    before pairing them, or a ``pivot_table`` would union them and leave NaN
+    columns that quietly change every reported ``n``.
+    """
+    from _downstream import derive_naive_shifts
+
+    models = {
+        (1, "Omicron_BA1"): _FakeModel("Omicron_BA1", {"M1A": 0.1, "M2A": -0.2}),
+        (1, "Delta"): _FakeModel("Delta", {"M1A": 0.5, "M2A": -0.1}),
+        (2, "Omicron_BA1"): _FakeModel("Omicron_BA1", {"M2A": 0.3, "M3A": 0.4}),
+        (2, "Delta"): _FakeModel("Delta", {"M2A": 0.7, "M3A": 0.9}),
+    }
+
+    out = derive_naive_shifts(models, reference="Omicron_BA1")
+
+    per_replicate = out.groupby("replicate")["mutation"].apply(set)
+    assert per_replicate[1] == {"M1A", "M2A"}
+    assert per_replicate[2] == {"M2A", "M3A"}
+
+    # The union is what a naive pivot would produce; the paired index is what
+    # a replicate scatter may actually use.
+    wide = out.pivot_table(
+        index="mutation", columns=["replicate", "condition"], values="naive_shift"
+    )
+    assert len(wide) == 3
+    assert len(wide.dropna()) == 1
