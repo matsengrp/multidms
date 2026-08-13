@@ -236,10 +236,16 @@ def fit_single_condition(
         name=f"rep_{replicate}_{condition}",
     )
 
+    # fusionreg and beta0_ridge are forwarded rather than left at their 0.0
+    # defaults. They are inert here -- with one condition the guarded branches
+    # never run -- but passing them makes that inertness a property the test
+    # suite can actually falsify, instead of one hidden behind a default.
     model = multidms.Model(
         data,
         ge_type=fit_config["ge_type"],
         l2reg=fit_config["l2reg"],
+        fusionreg=fit_config.get("fusionreg", 0.0),
+        beta0_ridge=fit_config.get("beta0_ridge", 0.0),
     )
 
     tol = fit_config["tol"]
@@ -460,6 +466,12 @@ def derive_naive_shifts(models, reference, times_seen_threshold=1):
                 )
             )
 
+    if not frames:
+        raise ValueError(
+            f"No naive shifts could be derived: reference condition "
+            f"{reference!r} was not fitted for any of replicates {replicates}."
+        )
+
     return pd.concat(frames, ignore_index=True)
 
 
@@ -500,8 +512,19 @@ def assert_wt_agreement(naive_muts, site_map, conditions):
         .drop_duplicates()
         .merge(site_map[["sites"] + present], on="sites", how="left")
     )
-    # nunique skips NaN, so a site absent from site_map cannot masquerade as
-    # agreement: it yields 0 distinct letters, not 1.
+    # A site absent from site_map merges to all-NaN. nunique skips NaN, so
+    # such a row scores 0 distinct letters and would slip through the
+    # disagreement test below without ever having been checked. Catch it
+    # separately -- an unverifiable site is not an agreeing one.
+    unmapped = merged[merged[present].isna().any(axis=1)]
+    if len(unmapped):
+        raise ValueError(
+            f"{len(unmapped)} mutations in the shared naive index sit on sites "
+            f"absent from site_map, e.g. {unmapped['mutation'].head(5).tolist()}. "
+            "Their wildtype letters cannot be checked, so the "
+            "plain-intersection premise is unverified rather than satisfied."
+        )
+
     disagree = merged[merged[present].nunique(axis=1) > 1]
     if len(disagree):
         raise ValueError(

@@ -216,3 +216,36 @@ def test_wt_agreement_guard():
     )
     with pytest.raises(ValueError, match="wildtype"):
         assert_wt_agreement(naive_muts, bad_map, conditions)
+
+
+def test_wt_agreement_rejects_unmapped_sites():
+    """A site absent from site_map is unverified, not agreeing.
+
+    ``nunique`` skips NaN, so an all-NaN merge row scores 0 distinct letters
+    and would pass a bare ``> 1`` disagreement test without ever having been
+    checked. The guard must reject it instead.
+    """
+    from _downstream import assert_wt_agreement
+
+    naive_muts = pd.DataFrame(
+        {"mutation": ["T19I"], "wts": ["T"], "sites": [19], "muts": ["I"]}
+    )
+    missing_site_map = pd.DataFrame(
+        {"sites": [20], "Delta": ["A"], "Omicron_BA1": ["A"], "Omicron_BA2": ["A"]}
+    )
+
+    with pytest.raises(ValueError, match="absent from site_map"):
+        assert_wt_agreement(
+            naive_muts, missing_site_map, ["Delta", "Omicron_BA1", "Omicron_BA2"]
+        )
+
+
+def test_missing_reference_for_every_replicate_raises():
+    """No reference anywhere means no shifts -- fail clearly, not on concat."""
+    from _downstream import derive_naive_shifts
+
+    models = {(1, "Delta"): _FakeModel("Delta", {"M1A": 0.5})}
+
+    with pytest.warns(UserWarning, match="reference condition"):
+        with pytest.raises(ValueError, match="No naive shifts"):
+            derive_naive_shifts(models, reference="Omicron_BA1")
