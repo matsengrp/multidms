@@ -144,6 +144,42 @@ downstream analysis therefore reuses the cached `fit_collection.pkl`.
 
 ## Run log
 
+### 2026-08-12 — prod, issue #292 Stage 1 (stationary objective + extended ladder)
+
+| | |
+|---|---|
+| Host | orca03 (64 cores, 1.5 TB RAM) |
+| Branch / commit | `292-spike-fit-tuning` @ `9004c4d` |
+| Output dir | `results-prod-292-spike-fit-tuning` |
+| Wall-clock | **5400 s (90 min)** |
+| `fit_collection.pkl` | 1,760,660,303 bytes (1.76 GB), 20 fitted rows |
+| `cv_fit_collection.pkl` | 1,385,567,765 bytes (1.39 GB), 20 fitted rows |
+| Workers | `n_processes: 6`, ~2.5 GB RSS each at steady state |
+
+**Parameter set**: `recompute_scale=false`, `tol=1e-5`, `maxiter=500` (outer) /
+`10` (inner), `beta0_ridge=0.01`, `l2reg=1e-6`, fusionreg = the 9-value
+manuscript ladder plus one rung at `1.28e-3`.
+
+**Convergence — 20/20 on the main fit and 20/20 on cross-validation**, none at
+the `maxiter: 500` cap (65–177 outer sweeps; the slowest rung is `2e-5`). Every
+fit's objective minimum is its final sweep, so `drift_frac` is 0.0 everywhere.
+The `n_processes: 6` pin's memory comment is stale: peak RSS measured ~2.5 GB
+per worker here, not ~7 GB.
+
+**Ladder decision — the `1.28e-3` rung is kept in the config but is not a
+candidate λ.** It converges cleanly, so it does not fail the drift criterion,
+but it drives `shift_Delta` replicate correlation to 0.048 and leaves only 31
+of 5,809 mutations non-zero in both replicates. Its high `shift_Omicron_BA2`
+correlation (0.836) is an artifact of that sparsity: computed over mutations
+non-zero in both replicates it is 0.906, but the 0.836 figure is dominated by
+5,727 shared zeros. Correlation over a near-empty support measures agreement
+about zeros, not about shifts.
+
+**Stop-codon sparsity answers the question the rung was added for**: it
+saturates at 1.000 by `3.2e-4` and is flat thereafter, so it is *not* still
+climbing past `6.4e-4`. Sparsity is monotone non-decreasing in λ for every
+`(dataset_name, mut_type, mut_param)` group.
+
 ### 2026-07-28 — prod, issue #287 (`beta0_ridge`/`l2reg` promotion + maxiter split)
 
 | | |
