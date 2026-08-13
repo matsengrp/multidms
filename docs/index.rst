@@ -82,6 +82,7 @@ The pipeline is orchestrated by Snakemake and lives in ``experiments/scv2-spike/
     spike_fit_models
     spike_evaluate
     spike_cross_validation
+    spike_manuscript_figures
 
 Indices and tables
 ------------------

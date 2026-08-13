@@ -6,9 +6,10 @@
 # invalidate the fit.
 
 spike:
-  # Chosen lasso weight (manuscript λ); see config_downstream.yaml for the
-  # evidence behind the 4.0e-05 -> 8.0e-05 move.
-  lasso_choice: 8.0e-05
+  # Chosen lasso weight. MUST be on this profile's own `fusionreg_values`
+  # ladder -- evaluate selects models by `fusionreg == lasso_choice`, and an
+  # off-ladder value matches nothing. This test ladder is [0.0, 4.0e-5].
+  lasso_choice: 4.0e-05
   condition_colors:
     Delta: '#F97306'
     Omicron_BA1: '#BFBFBF'

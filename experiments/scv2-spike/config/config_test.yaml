@@ -27,10 +27,15 @@ spike:
   fitting:
     # Strategy: "independent" fits each fusionreg from scratch (parallel);
     # "continuation" fits a warm-started path along ascending fusionreg.
-    strategy: "continuation"
+    # "independent" — the strategy the prod profile uses. Was "continuation",
+    # which exercises the known-broken partial-collection path (#240) and is
+    # deferred by EPIC #290. Note the Snakefile reads this from YAML, so
+    # `--config strategy=...` does NOT override it; edit here.
+    strategy: "independent"
     maxiter: 2
     tol: 1.0e-4
-    recompute_scale: true
+    # Matches prod so the test exercises the same solver path.
+    recompute_scale: false
     fusionreg_values: [0.0, 4.0e-5]
     l2reg: 0.0
     beta0_ridge: 1.0e-4

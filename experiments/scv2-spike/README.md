@@ -14,13 +14,29 @@ prepare_data ──► training_functional_scores.csv
     ▼                      ▼
 fit_models            cross_validation
 ──► fit_collection.pkl ──► cross_validation_loss.csv
-    │
-    ▼
+    │                  ──► cv_fit_collection.pkl
+    │                  ──► cv_convergence.csv
+    ▼                      │
 evaluate ──► mutations_df.csv
           ──► collection_muts.csv
           ──► fit_sparsity.csv
           ──► library_replicate_correlation.csv
+          ──► fit_convergence.csv
+          ──► convergence_trajectory.csv
+          ──► ge_landscape_variants.csv
+          ──► ge_landscape_curve.csv
+          ──► ge_params.csv
+    │                      │
+    └──────────┬───────────┘
+               ▼
+      manuscript_figures ──► figures/*.pdf, figures/*.png
+                         ──► raw_data/validation/viral_titers.csv
+                         ──► raw_data/validation/spike_validation_data.csv
 ```
+
+`manuscript_figures` reads the exported CSVs only — never
+`fit_collection.pkl` — and is **skipped entirely** when
+`skip_cross_validation` is true (see below).
 
 ## Running
 
@@ -44,10 +60,46 @@ snakemake -s experiments/scv2-spike/Snakefile --config profile=test -j4
 | `training_functional_scores.csv` | prepare_data | Variant functional scores after count aggregation, filtering, and clipping |
 | `fit_collection.pkl` | fit_models | Pickled DataFrame of fitted Model objects across regularization grid |
 | `cross_validation_loss.csv` | cross_validation | Training vs validation loss across regularization grid |
+| `cv_fit_collection.pkl` | cross_validation | Pickled CV fits, written after `add_eval_loss` so it carries validation losses |
+| `cv_convergence.csv` | cross_validation | Per-CV-fit convergence; `fit N models, M failed` counts crashes, not convergence |
 | `mutations_df.csv` | evaluate | Per-mutation beta and shift parameters at chosen lasso strength |
-| `collection_muts.csv` | evaluate | Per-mutation parameters at all fusionreg values |
+| `collection_muts.csv` | evaluate | Per-mutation parameters at all fusionreg values, keyed by `dataset_name` and `fusionreg` |
 | `fit_sparsity.csv` | evaluate | Shift sparsity fraction across regularization grid |
 | `library_replicate_correlation.csv` | evaluate | Replicate correlation of mutation parameters |
+| `fit_convergence.csv` | evaluate | Per-fit `converged`, sweep count, and drift (`argmin_sweep`, `drift_frac`) |
+| `convergence_trajectory.csv` | evaluate | Tidy per-sweep objective/loss trace; the data behind figure S16 |
+| `ge_landscape_variants.csv` | evaluate | Per-variant latent phenotype and fitness at `lasso_choice` (figure S17) |
+| `ge_landscape_curve.csv` | evaluate | Fitted sigmoid curve points at `lasso_choice` |
+| `ge_params.csv` | evaluate | Per-condition `alpha`, `beta0`, `bundle_sum`, `wildtype_latent` |
+| `manuscript_figures.ipynb` | manuscript_figures | Executed figure notebook (the rendering log for the nine figures below) |
+| `raw_data/validation/viral_titers.csv` | manuscript_figures | Viral titers for figure 5, fetched from the legacy analysis repo at a pinned commit and cached |
+| `raw_data/validation/spike_validation_data.csv` | manuscript_figures | Per-mutation validation measurements for figure 5, same pinned source |
+
+### Manuscript figures (in `results/figures/`)
+
+Each figure is written in every format listed under `spike.figures.formats`
+in the downstream config — by default both `.pdf` (what the manuscript build
+consumes) and `.png` (what the docs page shows). Every format is a declared
+rule output, so a figure that fails to render fails the run instead of
+silently vanishing into notebook output.
+
+| Manuscript label | Filename (`.pdf` and `.png`) |
+|------------------|------------------------------|
+| S6 | `raw_data_summary_barcodes_backgrounds_hist` |
+| S7 | `replicate_functional_score_correlation_scatter` |
+| S9 | `shrinkage_analysis_trace_plots_beta` |
+| S11 | `percent_shifts_under_x_lineplot` |
+| S12 | `shift_corr_Delta_BA2` |
+| S16 | `convergence_all_lasso_lines` |
+| S17 | `global_epistasis_and_prediction_correlations` |
+| fig4 | `shift_by_site_heatmap_zoom` |
+| fig5 | `validation_titer_fold_change` |
+
+> The S9 filename is deliberate. Two near-identical names exist in the legacy
+> repo (`..._trace_plots.pdf` and `..._trace_plots_with_epistasis.pdf`); both
+> are unused, and the manuscript build consumes
+> `shrinkage_analysis_trace_plots_beta.pdf`. Do not "correct" it to the
+> shorter name.
 
 ### Configuration (in `config/`)
 
@@ -69,7 +121,7 @@ invalidate the expensive model fit:
 | File | Holds | Do edits invalidate the fit? |
 |------|-------|------------------------------|
 | `config.yaml` | `seed`, `train_frac`, data sourcing and filtering, the `fitting:` block, `reference`, `output_dir`, `skip_cross_validation`, experiment/condition membership | **Yes** |
-| `config_downstream.yaml` | `lasso_choice`, `condition_colors`, `condition_titles`, `domain_dict` | **No** |
+| `config_downstream.yaml` | `lasso_choice`, `condition_colors`, `condition_titles`, `domain_dict`, the `figures:` block | **No** |
 
 Snakemake reruns a job when an `input:` file changes, but not when a `params:`
 value changes. (Snakemake 9.21 detects that change by hashing file content, not
@@ -78,10 +130,11 @@ split, every rule declared the single config as an input, so editing
 `lasso_choice` — a key the fit never reads — forced a multi-hour refit that
 recomputed a byte-identical `fit_collection.pkl`.
 
-Now only `rule evaluate` declares `config_downstream.yaml` as an `input:`.
-`prepare_data` and `cross_validation` read it too (for plot labels), but
-receive its **path via `params:`** — Snakemake does not rerun on `params:`
-changes, so a color edit cannot reach the fit.
+Only `rule evaluate` and `rule manuscript_figures` declare
+`config_downstream.yaml` as an `input:`. `prepare_data` and `cross_validation`
+read it too (for plot labels), but receive its **path via `params:`** —
+Snakemake does not rerun on `params:` changes, so a color edit cannot reach
+the fit.
 
 > Do not "tidy" this by adding `downstream_config` to the `input:` block of
 > `prepare_data`, `cross_validation`, or `fit_models`. That would silently
@@ -89,6 +142,32 @@ changes, so a color edit cannot reach the fit.
 
 Retuning the chosen lasso weight, changing a plot color, or adding a
 downstream analysis therefore reuses the cached `fit_collection.pkl`.
+
+### The figure tier
+
+`spike.figures` — output formats, DPI, the excluded `fusionreg` rung, and the
+figure-4/figure-5 knobs — lives in `config_downstream.yaml`, so editing it
+re-runs `manuscript_figures` alone and never invalidates
+`fit_collection.pkl` (a **~2 h 20 min** refit).
+
+`rule manuscript_figures` keeps that property on the code side too. Note what
+is deliberately **absent** from its `input:`: `config=CONFIG_PATH` and
+`common=COMMON`. The fit-tier config path still reaches the notebook via
+`params:`, which Snakemake does not track. The rule's helper module is
+`notebooks/_downstream.py`, a deliberate sibling of `_common.py` rather than
+an addition to it — `_common.py` is `input:` on all four fit-tier rules, so a
+figure helper added there would make an edit to plotting code invalidate the
+fit. `_downstream.py` is `input:` on `manuscript_figures` only.
+
+The rule also reads **CSVs only**. It must never load `fit_collection.pkl`
+(1.76 GB); everything it needs was exported by `evaluate` for exactly that
+reason.
+
+> `manuscript_figures` is **skipped when `skip_cross_validation` is true.**
+> Figure S9's middle panel is the held-out loss trace, which needs
+> `cross_validation_loss.csv`. With CV skipped there is no honest way to draw
+> it, so the whole rule is dropped rather than emitting an S9 with a missing
+> panel.
 
 ### Source notebooks (in `notebooks/`)
 
@@ -99,6 +178,9 @@ downstream analysis therefore reuses the cached `fit_collection.pkl`.
 | `fit_models_path.ipynb` | Fit a warm-started continuation path along ascending fusionreg (sequential per replicate) |
 | `cross_validation.ipynb` | 80/20 train/test CV across regularization grid |
 | `evaluate.ipynb` | Convergence diagnostics, sparsity, replicate correlations, GE plots, mutation export |
+| `manuscript_figures.ipynb` | Render the nine manuscript figures from the exported CSVs |
+| `_common.py` | Fit-tier helpers; `input:` on all four fit-tier rules |
+| `_downstream.py` | Figure-tier helpers (validation-data fetch, `savefig`, `lasso_slice`, `set_plot_style`); `input:` on `manuscript_figures` only |
 
 ## Fitting strategy
 
@@ -130,6 +212,57 @@ downstream analysis therefore reuses the cached `fit_collection.pkl`.
 > standing result. See issue #287.
 
 ## Run log
+
+### 2026-08-12 — prod, issue #292 Stage 1 (tol 1e-6, final)
+
+| | |
+|---|---|
+| Host | orca03 (64 cores, 1.5 TB RAM) |
+| Branch / commit | `292-spike-fit-tuning` @ `9cf9109` |
+| Output dir | `results-prod-292-spike-fit-tuning` |
+| Wall-clock | **8400 s (2 h 20 min)**, 18:43–21:03 (vs 90 min at tol 1e-5) |
+| `fit_collection.pkl` | 1,761,133,465 bytes (1.76 GB), 20 fitted rows |
+| `cv_fit_collection.pkl` | 1,385,867,352 bytes (1.39 GB), 20 fitted rows |
+| Workers | `n_processes: 6`, **~35–38 GB RSS each** at steady state |
+
+**Parameter set**: `recompute_scale=false`, `tol=1e-6`, `maxiter=500` (outer) /
+`10` (inner), `beta0_ridge=0.01`, `l2reg=1e-6`, fusionreg = the 9-value
+manuscript ladder plus the excluded `1.28e-3` probe rung.
+
+**Convergence — 18/18 on the analysed ladder**, in 73–319 outer sweeps against
+the 500 ceiling. The one non-converged fit is `rep_1` at the excluded `1.28e-3`
+rung (see below). Cross-validation converged as well.
+
+> **Correction to the `n_processes` sizing note.** The previous entry recorded
+> ~2.5 GB RSS per worker; that was sampled too early. Steady-state RSS here is
+> **~35–38 GB per worker**, so six workers need ~230 GB. Fine on a 1.5 TB orca
+> (peak system usage 263 GB of 1511 GB), but this is why `n_processes` must
+> never be restored to `null` — auto-sizing by core count would pick ~64
+> workers and need multiple TB.
+
+**The `1.28e-3` rung is excluded from analysis under gate G5, because it is
+unstable rather than slow.** `rep_1` reaches `objective_error` 2.7e-06 by sweep
+100, then *diverges*: the error climbs back to ~1.8e-04 and flattens (tail rate
+~1.000 over the last 100 sweeps), and the objective ends 10% above its sweep-109
+minimum — the only `drift_frac` above the 0.05 threshold anywhere on the ladder.
+Raising `maxiter` would not fix this. The earlier tol 1e-5 run stopped at sweep
+94, *before* the divergence began, and so reported this rung as converged: that
+success was an artifact of the stopping point. Excluding the top rung is exactly
+what G5 provides for, and it was never a candidate λ. Across the remaining 18
+fits max `drift_frac` is 0.0024.
+
+**Stop-codon sparsity answers the question the rung was added for**: it
+saturates at 1.000 by `3.2e-4` and is flat thereafter, so it is *not* still
+climbing past `6.4e-4`. Sparsity is monotone non-decreasing in λ for every
+`(dataset_name, mut_type, mut_param)` group.
+
+**λ is unchanged at `8.0e-05`, and is robust to the tolerance.** Tightening
+from 1e-5 to 1e-6 moved sparsity and replicate correlation by <0.05 everywhere
+on the analysed ladder (median |Δ| 0.001 and 0.0006 respectively). The one
+substantive change is that validation loss now *minimizes* at 8.0e-05 instead
+of 4.0e-05, so all three manuscript criteria agree on the chosen rung — though
+the two rungs sit within 0.16% of each other, so that agreement is
+corroboration rather than a decisive independent vote.
 
 ### 2026-07-28 — prod, issue #287 (`beta0_ridge`/`l2reg` promotion + maxiter split)
 
