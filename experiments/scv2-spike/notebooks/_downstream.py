@@ -11,8 +11,11 @@ tiers") and issue #287.
 """
 
 import os
+import time
+import warnings
 
 import matplotlib.pyplot as plt
+import multidms
 import pandas as pd
 import requests
 
@@ -176,3 +179,335 @@ def set_plot_style(rc=None):
     )
     if rc:
         plt.rcParams.update(rc)
+
+
+def fit_single_condition(
+    func_score_df, replicate, condition, fit_config, verbose=False
+):
+    """Fit one single-condition model -- the naive arm's unit of work.
+
+    A single-condition ``Data`` has no shift parameters, so ``fusionreg`` and
+    ``beta0_ridge`` are inert: every fusion and ridge term in ``jaxmodels`` is
+    guarded by ``d != reference_condition``, and with one condition that branch
+    never runs. They are therefore not passed at all, and the naive arm needs
+    no lambda ladder -- which is why it costs ~4 minutes against the joint
+    arm's ~2 h 20 min.
+
+    Uses the raw ``aa_substitutions`` column, which ``_common.load_raw_data``
+    has already rewritten into reference (BA.1) numbering. The subset must
+    retain its wildtype row: ``jaxmodels.Data.from_multidms`` takes
+    ``x_wt = X[0]`` and asserts ``x_wt.sum() == 0``.
+
+    Parameters
+    ----------
+    func_score_df : pandas.DataFrame
+        Training functional scores already subset to one (replicate,
+        condition). Needs ``aa_substitutions``, ``func_score`` and
+        ``condition`` columns.
+    replicate : int or str
+        Replicate label, recorded in the returned diagnostics.
+    condition : str
+        The condition to fit. Becomes the ``Data`` object's own reference.
+    fit_config : dict
+        The ``spike.fitting`` section of the fit-tier config. Read, never
+        written -- writing it would invalidate the cached joint fit.
+    verbose : bool
+        Forwarded to ``Model.fit``.
+
+    Returns
+    -------
+    tuple
+        ``(model, diagnostics)``. ``diagnostics`` is a dict carrying
+        ``replicate``, ``condition``, ``converged``, ``n_outer_sweeps``,
+        ``final_objective_error``, ``tol``, ``alpha``, ``beta0``,
+        ``n_variants`` and ``seconds``.
+    """
+    agg = (
+        func_score_df.groupby(["condition", "aa_substitutions"], dropna=False)
+        .agg({"func_score": "mean"})
+        .reset_index()
+    )
+
+    data = multidms.Data(
+        agg,
+        alphabet=multidms.AAS_WITHSTOP_WITHGAP,
+        reference=condition,
+        assert_site_integrity=False,
+        name=f"rep_{replicate}_{condition}",
+    )
+
+    model = multidms.Model(
+        data,
+        ge_type=fit_config["ge_type"],
+        l2reg=fit_config["l2reg"],
+    )
+
+    tol = fit_config["tol"]
+    start = time.time()
+    model.fit(
+        maxiter=fit_config["maxiter"],
+        tol=tol,
+        warmstart=fit_config.get("warmstart", False),
+        recompute_scale=fit_config.get("recompute_scale", False),
+        share_alpha=fit_config.get("share_alpha", True),
+        alpha_init=fit_config["alpha_init"],
+        # beta0_init must be a dict keyed by condition; passing the scalar that
+        # reads naturally from the config raises TypeError at jaxmodels.py:647,
+        # where `d in beta0_init` runs `in` against a float.
+        beta0_init={condition: fit_config["beta0_init"][condition]},
+        beta_clip_range=tuple(fit_config["beta_clip_range"]),
+        ge_kwargs=fit_config["ge_kwargs"],
+        cal_kwargs=fit_config["cal_kwargs"],
+        loss_kwargs=fit_config["loss_kwargs"],
+        verbose=verbose,
+    )
+    elapsed = time.time() - start
+
+    trajectory = model.convergence_trajectory_df
+    # Use the public per-condition parameter frame rather than reaching into
+    # the jax model's attributes. With one condition it is a single row.
+    ge_row = model.get_ge_params_df().iloc[0]
+
+    diagnostics = {
+        "replicate": replicate,
+        "condition": condition,
+        "converged": bool(model.converged),
+        "n_outer_sweeps": int(len(trajectory)),
+        "final_objective_error": float(
+            trajectory["objective_error_trajectory"].iloc[-1]
+        ),
+        "tol": float(tol),
+        "alpha": float(ge_row["alpha"]),
+        "beta0": float(ge_row["beta0"]),
+        "n_variants": int(len(agg)),
+        "seconds": round(elapsed, 1),
+    }
+    return model, diagnostics
+
+
+def fit_naive_arm(func_score_df, conditions, replicates, fit_config, verbose=False):
+    """Fit the whole naive arm -- one model per (replicate, condition).
+
+    A subset lacking the minimum for ``Data`` construction -- at least one
+    wildtype row plus one variant -- is warned about and skipped rather than
+    raising, so the subsampled test profile stays runnable. Its absence is
+    recorded with ``converged=False``.
+
+    Parameters
+    ----------
+    func_score_df : pandas.DataFrame
+        The full training functional scores, with ``replicate`` and
+        ``condition`` columns.
+    conditions : sequence of str
+        Every condition to fit, including the reference.
+    replicates : sequence
+        Replicate labels to fit.
+    fit_config : dict
+        The ``spike.fitting`` section of the fit-tier config.
+    verbose : bool
+        Forwarded to each fit.
+
+    Returns
+    -------
+    tuple
+        ``(models, convergence_df, ge_params_df)``, where ``models`` maps
+        ``(replicate, condition)`` to a fitted :class:`multidms.Model`.
+    """
+    models = {}
+    diagnostics = []
+
+    for replicate in replicates:
+        for condition in conditions:
+            subset = func_score_df[
+                (func_score_df["replicate"] == replicate)
+                & (func_score_df["condition"] == condition)
+            ]
+            n_wt = int((subset["aa_substitutions"] == "").sum())
+            if n_wt < 1 or len(subset) - n_wt < 1:
+                warnings.warn(
+                    f"rep {replicate} / {condition}: {len(subset)} variants "
+                    f"({n_wt} wildtype) is below the minimum for Data "
+                    "construction; skipping this fit. Expected when the "
+                    "profile subsamples, unexpected on full data.",
+                    stacklevel=2,
+                )
+                diagnostics.append(
+                    {
+                        "replicate": replicate,
+                        "condition": condition,
+                        "converged": False,
+                        "n_outer_sweeps": 0,
+                        "final_objective_error": float("nan"),
+                        "tol": float(fit_config["tol"]),
+                        "alpha": float("nan"),
+                        "beta0": float("nan"),
+                        "n_variants": int(len(subset)),
+                        "seconds": 0.0,
+                    }
+                )
+                continue
+
+            model, diag = fit_single_condition(
+                subset, replicate, condition, fit_config, verbose=verbose
+            )
+            models[(replicate, condition)] = model
+            diagnostics.append(diag)
+            print(
+                f"  rep {replicate} / {condition}: "
+                f"converged={diag['converged']} "
+                f"sweeps={diag['n_outer_sweeps']} "
+                f"alpha={diag['alpha']:.2f} ({diag['seconds']}s)"
+            )
+
+    diag_df = pd.DataFrame(diagnostics)
+    convergence_cols = [
+        "replicate",
+        "condition",
+        "converged",
+        "n_outer_sweeps",
+        "final_objective_error",
+        "tol",
+    ]
+    ge_cols = ["replicate", "condition", "alpha", "beta0", "n_variants"]
+    return models, diag_df[convergence_cols], diag_df[ge_cols]
+
+
+def derive_naive_shifts(models, reference, times_seen_threshold=1):
+    """Derive naive shifts as plain differences of independently fitted betas.
+
+    This is the "naive approach" the manuscript contrasts against joint
+    fitting: fit each condition alone, then subtract. Shifts are computed on
+    the INNER join of the per-condition mutation indices -- a union would
+    silently pair non-equivalent labels, because 32 spike sites carry
+    different wildtype letters across conditions, so the same physical
+    substitution takes a different label per condition.
+
+    ``times_seen_threshold`` defaults to 1 to match ``evaluate.ipynb``'s
+    joint-arm call. Filtering the two arms differently rigs the comparison:
+    joint shift_Delta replicate R^2 reads 0.543 at threshold 3 but 0.410 at 1.
+
+    Parameters
+    ----------
+    models : dict
+        Maps ``(replicate, condition)`` to a fitted model, as returned by
+        :func:`fit_naive_arm`.
+    reference : str
+        The condition betas are subtracted against, e.g. ``"Omicron_BA1"``.
+        Its own shift is identically zero.
+    times_seen_threshold : int
+        Forwarded to each model's ``get_mutations_df``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Long form, with columns ``mutation``, ``wts``, ``sites``, ``muts``,
+        ``replicate``, ``condition``, ``beta``, ``naive_shift`` and
+        ``times_seen``.
+
+    Raises
+    ------
+    ValueError
+        If a replicate's mutation-index intersection is empty, which means
+        the key spaces disagree rather than that data is missing.
+    """
+    replicates = sorted({rep for rep, _ in models})
+    frames = []
+
+    for replicate in replicates:
+        per_condition = {
+            cond: model.get_mutations_df(times_seen_threshold=times_seen_threshold)
+            for (rep, cond), model in models.items()
+            if rep == replicate
+        }
+        if reference not in per_condition:
+            warnings.warn(
+                f"rep {replicate}: reference condition {reference!r} was not "
+                "fitted, so no naive shifts can be derived for it.",
+                stacklevel=2,
+            )
+            continue
+
+        shared = None
+        for frame in per_condition.values():
+            shared = frame.index if shared is None else shared.intersection(frame.index)
+
+        if len(shared) == 0:
+            raise ValueError(
+                f"rep {replicate}: the naive mutation index intersection is "
+                f"empty across conditions {sorted(per_condition)}. An empty "
+                "join means the key spaces disagree, which is a bug rather "
+                "than missing data."
+            )
+
+        ref_beta = per_condition[reference].loc[shared, f"beta_{reference}"]
+        for condition, frame in per_condition.items():
+            sub = frame.loc[shared]
+            frames.append(
+                pd.DataFrame(
+                    {
+                        "mutation": list(shared),
+                        "wts": sub["wts"].to_numpy(),
+                        "sites": sub["sites"].to_numpy(),
+                        "muts": sub["muts"].to_numpy(),
+                        "replicate": replicate,
+                        "condition": condition,
+                        "beta": sub[f"beta_{condition}"].to_numpy(),
+                        "naive_shift": (
+                            sub[f"beta_{condition}"].to_numpy() - ref_beta.to_numpy()
+                        ),
+                        "times_seen": sub[f"times_seen_{condition}"].to_numpy(),
+                    }
+                )
+            )
+
+    return pd.concat(frames, ignore_index=True)
+
+
+def assert_wt_agreement(naive_muts, site_map, conditions):
+    """Assert no mutation in the shared index sits on a disagreeing site.
+
+    32 spike sites carry different wildtype letters across conditions (19,
+    417, 484, 501, 655, 681, 796 and friends), so at those sites the same
+    physical substitution carries a different label per condition. A label
+    can therefore appear in every condition's index only when the wildtype
+    letter agrees -- which is exactly what makes the plain intersection safe.
+    Verify that rather than trusting it.
+
+    Parameters
+    ----------
+    naive_muts : pandas.DataFrame
+        The long-form naive mutation table, with ``mutation`` and ``sites``.
+    site_map : pandas.DataFrame
+        The pipeline's ``site_map.csv``: ``sites`` plus one column per
+        condition giving that condition's wildtype letter.
+    conditions : sequence of str
+        Conditions to compare. Any absent from ``site_map`` are skipped.
+
+    Returns
+    -------
+    int
+        The number of disagreeing mutations, always 0 on success.
+
+    Raises
+    ------
+    ValueError
+        If any mutation's site has disagreeing wildtype letters, since every
+        naive shift would then be suspect.
+    """
+    present = [c for c in conditions if c in site_map.columns]
+    merged = (
+        naive_muts[["mutation", "wts", "sites"]]
+        .drop_duplicates()
+        .merge(site_map[["sites"] + present], on="sites", how="left")
+    )
+    # nunique skips NaN, so a site absent from site_map cannot masquerade as
+    # agreement: it yields 0 distinct letters, not 1.
+    disagree = merged[merged[present].nunique(axis=1) > 1]
+    if len(disagree):
+        raise ValueError(
+            f"{len(disagree)} mutations in the shared naive index sit on sites "
+            "whose wildtype letter disagrees across conditions, e.g. "
+            f"{disagree['mutation'].head(5).tolist()}. The plain-intersection "
+            "premise has broken and every naive shift is suspect."
+        )
+    return 0
