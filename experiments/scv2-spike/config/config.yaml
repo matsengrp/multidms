@@ -46,6 +46,21 @@ spike:
     recompute_scale: false
     # Extended by one rung (1.28e-3) above the manuscript's 6.4e-4 ceiling, to
     # test whether stop-codon sparsity is still climbing past the top rung.
+    # It is not: sparsity saturates at 1.000 by 3.2e-4 and is flat thereafter.
+    #
+    # The 1.28e-3 rung is RETAINED here but EXCLUDED from analysis (gate G5).
+    # Under tol 1e-6 it is the only rung that fails to converge, and the
+    # trajectory shows why: rep_1 reaches objective_error 2.7e-06 at sweep 100,
+    # then diverges -- the error climbs back to ~1.8e-04 and flattens (tail rate
+    # ~1.000), and the objective rises 10% above its sweep-109 minimum. That is
+    # instability at this lasso strength, not slow convergence, so raising
+    # maxiter would not fix it. The tol 1e-5 run stopped at sweep 94, before the
+    # divergence began, and so reported this rung as converged.
+    #
+    # It stays in the ladder because removing it would invalidate this config
+    # and force a full refit purely to *stop* computing one rung, discarding the
+    # evidence above. Nothing selects models by ladder position -- evaluate
+    # queries `fusionreg == lasso_choice` -- so an excluded rung is inert.
     fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4, 1.28e-3]
     l2reg: 1.0e-6
     beta0_ridge: 0.01

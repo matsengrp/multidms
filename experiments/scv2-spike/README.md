@@ -144,41 +144,56 @@ downstream analysis therefore reuses the cached `fit_collection.pkl`.
 
 ## Run log
 
-### 2026-08-12 — prod, issue #292 Stage 1 (stationary objective + extended ladder)
+### 2026-08-12 — prod, issue #292 Stage 1 (tol 1e-6, final)
 
 | | |
 |---|---|
 | Host | orca03 (64 cores, 1.5 TB RAM) |
-| Branch / commit | `292-spike-fit-tuning` @ `9004c4d` |
+| Branch / commit | `292-spike-fit-tuning` @ `9cf9109` |
 | Output dir | `results-prod-292-spike-fit-tuning` |
-| Wall-clock | **5400 s (90 min)** |
-| `fit_collection.pkl` | 1,760,660,303 bytes (1.76 GB), 20 fitted rows |
-| `cv_fit_collection.pkl` | 1,385,567,765 bytes (1.39 GB), 20 fitted rows |
-| Workers | `n_processes: 6`, ~2.5 GB RSS each at steady state |
+| Wall-clock | **8400 s (2 h 20 min)**, 18:43–21:03 (vs 90 min at tol 1e-5) |
+| `fit_collection.pkl` | 1,761,133,465 bytes (1.76 GB), 20 fitted rows |
+| `cv_fit_collection.pkl` | 1,385,867,352 bytes (1.39 GB), 20 fitted rows |
+| Workers | `n_processes: 6`, **~35–38 GB RSS each** at steady state |
 
-**Parameter set**: `recompute_scale=false`, `tol=1e-5`, `maxiter=500` (outer) /
+**Parameter set**: `recompute_scale=false`, `tol=1e-6`, `maxiter=500` (outer) /
 `10` (inner), `beta0_ridge=0.01`, `l2reg=1e-6`, fusionreg = the 9-value
-manuscript ladder plus one rung at `1.28e-3`.
+manuscript ladder plus the excluded `1.28e-3` probe rung.
 
-**Convergence — 20/20 on the main fit and 20/20 on cross-validation**, none at
-the `maxiter: 500` cap (65–177 outer sweeps; the slowest rung is `2e-5`). Every
-fit's objective minimum is its final sweep, so `drift_frac` is 0.0 everywhere.
-The `n_processes: 6` pin's memory comment is stale: peak RSS measured ~2.5 GB
-per worker here, not ~7 GB.
+**Convergence — 18/18 on the analysed ladder**, in 73–319 outer sweeps against
+the 500 ceiling. The one non-converged fit is `rep_1` at the excluded `1.28e-3`
+rung (see below). Cross-validation converged as well.
 
-**Ladder decision — the `1.28e-3` rung is kept in the config but is not a
-candidate λ.** It converges cleanly, so it does not fail the drift criterion,
-but it drives `shift_Delta` replicate correlation to 0.048 and leaves only 31
-of 5,809 mutations non-zero in both replicates. Its high `shift_Omicron_BA2`
-correlation (0.836) is an artifact of that sparsity: computed over mutations
-non-zero in both replicates it is 0.906, but the 0.836 figure is dominated by
-5,727 shared zeros. Correlation over a near-empty support measures agreement
-about zeros, not about shifts.
+> **Correction to the `n_processes` sizing note.** The previous entry recorded
+> ~2.5 GB RSS per worker; that was sampled too early. Steady-state RSS here is
+> **~35–38 GB per worker**, so six workers need ~230 GB. Fine on a 1.5 TB orca
+> (peak system usage 263 GB of 1511 GB), but this is why `n_processes` must
+> never be restored to `null` — auto-sizing by core count would pick ~64
+> workers and need multiple TB.
+
+**The `1.28e-3` rung is excluded from analysis under gate G5, because it is
+unstable rather than slow.** `rep_1` reaches `objective_error` 2.7e-06 by sweep
+100, then *diverges*: the error climbs back to ~1.8e-04 and flattens (tail rate
+~1.000 over the last 100 sweeps), and the objective ends 10% above its sweep-109
+minimum — the only `drift_frac` above the 0.05 threshold anywhere on the ladder.
+Raising `maxiter` would not fix this. The earlier tol 1e-5 run stopped at sweep
+94, *before* the divergence began, and so reported this rung as converged: that
+success was an artifact of the stopping point. Excluding the top rung is exactly
+what G5 provides for, and it was never a candidate λ. Across the remaining 18
+fits max `drift_frac` is 0.0024.
 
 **Stop-codon sparsity answers the question the rung was added for**: it
 saturates at 1.000 by `3.2e-4` and is flat thereafter, so it is *not* still
 climbing past `6.4e-4`. Sparsity is monotone non-decreasing in λ for every
 `(dataset_name, mut_type, mut_param)` group.
+
+**λ is unchanged at `8.0e-05`, and is robust to the tolerance.** Tightening
+from 1e-5 to 1e-6 moved sparsity and replicate correlation by <0.05 everywhere
+on the analysed ladder (median |Δ| 0.001 and 0.0006 respectively). The one
+substantive change is that validation loss now *minimizes* at 8.0e-05 instead
+of 4.0e-05, so all three manuscript criteria agree on the chosen rung — though
+the two rungs sit within 0.16% of each other, so that agreement is
+corroboration rather than a decisive independent vote.
 
 ### 2026-07-28 — prod, issue #287 (`beta0_ridge`/`l2reg` promotion + maxiter split)
 

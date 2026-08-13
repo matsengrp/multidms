@@ -7,32 +7,41 @@
 
 spike:
   # Chosen lasso weight (manuscript λ). Re-derived for EPIC #290 Phase 2 from
-  # results-prod-292-spike-fit-tuning: a 20/20-converged fit on a stationary
-  # objective (recompute_scale: false, tol 1e-5), over a ladder extended to
-  # 1.28e-3. The value is unchanged at 8.0e-05, now on better evidence.
-  #
-  # The manuscript's three criteria disagree, as the manuscript itself notes,
-  # and each points into a narrow band rather than at one rung:
+  # results-prod-292-spike-fit-tuning at tol 1e-6 on a stationary objective
+  # (recompute_scale: false), over the manuscript ladder plus a 1.28e-3 probe
+  # rung that is excluded from analysis (see config.yaml). 18/18 analysed fits
+  # converged. The value is unchanged at 8.0e-05, now on stronger evidence.
   #
   #   lambda    stop sparsity   corr shift_Delta   val loss (% over min)
-  #   2.0e-05       0.285            0.631              +0.97%
-  #   4.0e-05       0.505            0.635               0.00%   <- loss min
-  #   8.0e-05       0.776            0.644              +0.06%   <- chosen
-  #   1.6e-04       0.950            0.628              +3.30%
+  #   2.0e-05       0.288            0.629              +1.14%
+  #   4.0e-05       0.514            0.633              +0.16%
+  #   8.0e-05       0.804            0.640               0.00%   <- chosen
+  #   1.6e-04       0.956            0.625              +3.63%
+  #
+  # Under tol 1e-6 all three criteria agree on 8.0e-05 for the first time:
   #
   #   - stop-codon sparsity ("nearly all nonsense shifts are zero"): 8.0e-05 is
-  #     the SMALLEST rung clearing 0.75. 4.0e-05 reaches only 0.505.
-  #   - validation loss: minimized at 4.0e-05, but 8.0e-05 costs 0.06% -- far
-  #     flatter than the 0.24% penalty measured under the old fit, so this
-  #     criterion is effectively indifferent between the two.
-  #   - replicate correlation of shift_Delta: 0.644 here vs 0.635 at 4.0e-05.
-  #     The global maximum (0.663 at 5.0e-06) is not a candidate: sparsity
-  #     there is 0.084, failing the nonsense criterion outright.
+  #     the SMALLEST rung clearing 0.75, at 0.804. 4.0e-05 reaches only 0.514.
+  #   - validation loss: now MINIMIZED at 8.0e-05. At tol 1e-5 the minimum sat
+  #     at 4.0e-05 with 8.0e-05 costing +0.06%; tightening the tolerance moved
+  #     the minimum one rung up rather than changing its shape, and the two
+  #     rungs remain within 0.16% of each other -- this criterion is nearly
+  #     flat across the pair either way, so read the agreement as corroboration,
+  #     not as a decisive independent vote.
+  #   - replicate correlation of shift_Delta: 0.640, the best of any rung
+  #     clearing the sparsity criterion. The global maximum (0.661 at
+  #     fusionreg 0) is not a candidate: sparsity there is 0.056, failing the
+  #     nonsense criterion outright.
   #
-  # shift_Omicron_BA2 correlation keeps climbing to 0.836 at 1.28e-3, but that
-  # is a sparsity artifact -- only 31 of 5,809 mutations are non-zero in both
-  # replicates there, so the statistic is dominated by shared zeros. It is not
-  # evidence for a larger lambda.
+  # The tolerance change moved these numbers by <0.05 everywhere on the
+  # analysed ladder (median |delta| 0.001 for sparsity, 0.0006 for
+  # correlation), so lambda is robust to the stopping criterion rather than an
+  # artifact of where the optimizer stopped.
+  #
+  # The large shift_Omicron_BA2 correlation once seen at 1.28e-3 (0.836 at tol
+  # 1e-5) was never evidence for a larger lambda -- only 31 of 5,809 mutations
+  # are non-zero in both replicates there, so it was dominated by shared zeros.
+  # At tol 1e-6 that rung does not even converge, and the figure falls to 0.367.
   lasso_choice: 8.0e-05
   condition_colors:
     Delta: '#F97306'
