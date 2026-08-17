@@ -87,5 +87,13 @@ spike:
     # poorly, raising this to 100 is the first lever — on evidence.
     ge_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 40, jit: true, verbose: false}
     cal_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 40, jit: true, verbose: false}
-    n_processes: 6  # pinned: auto (null) picks workers by core count alone,
+    # Raised 6 -> 20 (one worker per fit) for this exploratory arm. JAX/XLA
+    # leaks executable JIT mappings across sequential fits in a single process:
+    # a worker that handles a 6th fit dies with "LLVM ERROR: Unable to allocate
+    # section memory" / "Failed to materialize symbols", on an idle host with
+    # 1.4 TB free. A serial diagnostic showed fits 0-4 pass and 5-19 all fail,
+    # by position rather than by fusionreg or replicate. With 20 workers for 20
+    # fits, p.map chunksize resolves to 1, so no process compiles twice and the
+    # leak cannot accumulate. Host has 64 cores.
+    n_processes: 20  # pinned: auto (null) picks workers by core count alone,
     # ignoring memory, which exhausted a 36 GB host mid-run. Never restore null.
