@@ -70,7 +70,11 @@ spike:
     beta0_init: {Omicron_BA1: 0.0, Delta: 0.0, Omicron_BA2: 0.0}
     alpha_init: 6.0
     share_alpha: true
-    beta_clip_range: [-10, 10]
+    # Exploratory arm: the settled bound is [-10, 10] (#263). Widening to
+    # [-30, 30] loosens the β box constraint by 3x to see what the fit does
+    # when mutation effects are allowed to run further from zero. Not a
+    # candidate for main -- this branch exists only to produce the comparison.
+    beta_clip_range: [-30, 30]
     loss_kwargs: {"δ": 1.0}
     # Inner solver maxiter deliberately stays at 10 while the outer loop moves
     # to tol 1e-5 / maxiter 500. Simulation runs 100, but changing two
