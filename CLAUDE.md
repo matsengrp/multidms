@@ -97,10 +97,46 @@ GitHub Actions runs on push to main and PRs: ruff lint → black format check �
 
 ## Remote Pipeline Execution
 
-Before launching any remote pipeline:
+### CRITICAL: set `n_processes` to at least the number of fits
+
+**JAX/XLA leaks executable JIT mappings across sequential fits in one process.**
+A worker that runs more than ~5 fits dies with `LLVM ERROR: Unable to allocate
+section memory` and `JaxRuntimeError: INTERNAL: Failed to materialize symbols`
+— on an idle host with 1.4 TB free. It is not a memory shortage: the failing
+request was 980 bytes. The XLA dylib counter climbs (`xla_jit_dylib_12` →
+`_19` → `_31`) and mappings are never released.
+
+Failures land **by position in the work queue, not by hyperparameter.** A
+serial run of the spike 20-fit grid passed indices 0–4 and failed 5–19, across
+both replicates and every `fusionreg` including 0.0. Under a multi-worker pool
+this surfaces as a misleading `ModelCollectionFitError: Failed fitting 1 of 20
+parameter sets` — which reads like one bad parameter set but is just the first
+worker to exhaust its address space.
+
+**Rule: `n_processes >= n_fits`,** where `n_fits = len(fusionreg_values) ×
+n_datasets`. `fit_models()` calls `p.map` with no `chunksize`, so it resolves
+to `ceil(n_fits / (n_processes × 4)) == 1` and every fit gets a fresh process.
+
+| pipeline | grid | `n_processes` | fits/worker | safe? |
+|---|---|---|---|---|
+| spike prod | 10 fusionreg × 2 reps = 20 | **20** | 1 | yes |
+| spike prod (old) | 20 | 6 | 3–4 | **no — leaks** |
+| simulation prod | 10 fusionreg × 6 datasets = 60 | 30 | 2 | yes, under the ~5 threshold |
+
+Never set `n_processes: null` — auto-selection picks workers by core count
+alone, ignoring both memory and this leak. Raising `n_processes` is cheap here:
+each worker holds one `Data` object (~2–3 GB), so 20 workers is ~60 GB on a
+1511 GB host.
+
+If a fit ever needs more workers than the host has cores, fix the leak instead
+of splitting the grid — the real repair is disposing of XLA state between fits
+(or `maxtasksperchild=1` on the pool in `model_collection.py`).
+
+### Launch procedure
 
 1. **Create a local worktree** (if not on main): `git worktree add ../multidms-wt-<branch> <branch>`
-2. **Scout first**: `bip scout` — pick a server with <20% CPU
+2. **Scout first**: `bip scout` — pick a server with <20% CPU. Check available
+   RAM and cores too, not just the CPU percentage.
 3. **Launch** (from the worktree): `pixi run remote-pipeline -- <pipeline> <profile> host=<server>`
    - pipeline: `simulation` or `spike`
    - profile: `test`, `experimental`, or `prod`
@@ -115,6 +151,85 @@ Before launching any remote pipeline:
 Convention: `output_dir` is always `results-<profile>-<branch>` (e.g., `results-prod-fix-alpha`).
 
 Never skip step 2. Never leave tmux sessions running after fetching results.
+
+### Manual launch (when `remote-pipeline` cannot reach GitHub)
+
+`remote-pipeline` runs a remote `git fetch origin`, which fails when the
+1Password SSH agent refuses to sign for **forwarded** sessions (`ssh-add -l`
+lists the key, but every signature dies with `signing failed ... from agent`).
+Retrying never fixes it. Push straight into the remote clone over the SSH
+channel you already have:
+
+```bash
+git push <host>:/fh/fast/matsen_e/shared/multidms/multidms <branch>:refs/heads/<branch>
+ssh <host> 'git -C <clone> worktree add <wt-dir> <branch>'
+```
+
+If the branch is already checked out in the remote worktree the push is
+rejected; push to a temp ref and fast-forward instead:
+
+```bash
+git push <host>:<clone> <branch>:refs/heads/<branch>-incoming
+ssh <host> 'git -C <wt-dir> merge --ff-only <branch>-incoming'
+```
+
+Then symlink the env into the new worktree (`.pixi/envs` **and** `pixi.lock` —
+the lock is gitignored, so a fresh worktree lacks it and pixi re-solves every
+platform from scratch) and drive snakemake from a here-doc'd script on the
+remote, so `cd` sits on its own line where it cannot be dropped:
+
+```bash
+ssh <host> 'cat > ~/run-<branch>.sh <<"EOF"
+#!/bin/bash -l
+set -euo pipefail
+export PATH="$HOME/.pixi/bin:$PATH"
+cd <wt-dir>
+pixi run --frozen snakemake -s experiments/scv2-spike/Snakefile \
+  --config output_dir=results-<profile>-<branch> -j1 "$@"
+EOF'
+ssh <host> 'tmux new-session -d -s smk-<branch> "bash ~/run-<branch>.sh > ~/smk-<branch>.log 2>&1"'
+```
+
+`/fh/fast` is a **shared filesystem** — every orca host sees the same worktree,
+env, and results. Moving hosts needs no re-sync, no re-download, and completed
+rule outputs carry over. Always `--dry-run` first: a rule's declared outputs
+are deleted at job start, and `config.yaml` is a rule `input:`, so any edit to
+it (even a comment) invalidates the expensive fit.
+
+### Monitoring a running fit
+
+**Never judge liveness by `%CPU`** — `ps` reports a *lifetime average* that
+decays slowly, so a deadlocked worker can sit at "60%" for hours. Sample
+**cumulative CPU time** twice instead; if `TIME` is identical across a 20 s
+gap, the process is doing nothing:
+
+```bash
+ssh <host> 'ps -p <pids> -o pid,stat,time --no-headers'   # run twice
+```
+
+`stat` of `S` with `wchan` `futex_wait_queue` / `pipe_read` across the whole
+tree means a **`multiprocessing.Pool` deadlock**: `_fit_fun` swallows worker
+exceptions (`except Exception: return None`, no logging, `model_collection.py`)
+and `p.map` blocks forever when a child dies. Count the workers — fewer alive
+than `n_processes` confirms it. See also
+`~/.claude/.../project_convergence_maxiter100_spawn_deadlock.md`.
+
+To find *which* fit fails, run the grid serially with per-fit capture
+(`fit_one_model` in a `try/except` with `traceback.print_exc()`); the pipeline
+itself only reports a count.
+
+Other recurring snags:
+- **HTTP 429 from `raw.githubusercontent.com`** in `prepare_data` — GitHub
+  rate-limits the raw-data download. Seed the cache from a prior run instead:
+  `cp -a <other-results>/raw_data <new-results>/raw_data` (verify md5s; do not
+  `mkdir -p` the destination first or `cp -a` nests it one level deep).
+- **Stale snakemake lock** after a killed run — verify no snakemake is running
+  on *any* host sharing the filesystem, then `snakemake --unlock`.
+- **`IncompleteFilesException`** after a kill — `--rerun-incomplete` regenerates
+  only the interrupted output.
+- **SSH `Connection closed by UNKNOWN port 65535`** — sshd `MaxStartups`
+  throttling from too many rapid connections. Back off several minutes and
+  batch probes into one session; it is not an auth failure.
 
 ## Active Technologies
 - marimo (interactive dashboard for exploring ModelCollection results)
