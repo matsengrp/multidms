@@ -62,7 +62,12 @@ spike:
     # evidence above. Nothing selects models by ladder position -- evaluate
     # queries `fusionreg == lasso_choice` -- so an excluded rung is inert.
     fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4, 1.28e-3]
-    l2reg: 1.0e-6
+    # Exploratory arm: the settled value is 1.0e-6. Dropped 10x to 1.0e-7 to
+    # weaken the beta ridge, paired with the widened clip below. Since the
+    # [-10, 10] clip was proven inactive (max|beta| ~2.9), the ridge and the
+    # fusion lasso are what actually constrain beta -- so this is the knob that
+    # should move the fit. Not a candidate for main.
+    l2reg: 1.0e-7
     beta0_ridge: 0.01
     scale_fusion_by_n: false
     ge_type: "Sigmoid"
@@ -70,7 +75,10 @@ spike:
     beta0_init: {Omicron_BA1: 0.0, Delta: 0.0, Omicron_BA2: 0.0}
     alpha_init: 6.0
     share_alpha: true
-    beta_clip_range: [-10, 10]
+    # Exploratory arm: settled bound is [-10, 10] (#263), proven inactive at
+    # that width. Widened 5x to [-50, 50] so the loosened ridge above has room
+    # to push mutation effects out if it wants to.
+    beta_clip_range: [-50, 50]
     loss_kwargs: {"δ": 1.0}
     # Inner solver maxiter deliberately stays at 10 while the outer loop moves
     # to tol 1e-5 / maxiter 500. Simulation runs 100, but changing two
