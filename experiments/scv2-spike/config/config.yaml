@@ -55,7 +55,11 @@ spike:
     # distinct from the top-level `maxiter` above, which is outer sweeps.
     ge_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 40, jit: true, verbose: false}
     cal_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 40, jit: true, verbose: false}
-    # Pinned: auto (null) picks workers by core count alone, ignoring memory,
-    # which exhausted a host mid-run. Never restore null. ~35-38 GB RSS per
-    # worker on spike.
-    n_processes: 6
+    # Worker count. Pinned to one worker per fit (10 fusionreg x 2 replicates
+    # = 20). JAX/XLA leaks executable JIT mappings across sequential fits in a
+    # single process, so a worker handling more than ~5 fits dies with
+    # "Unable to allocate section memory" even on a host with 1.4 TB free.
+    # One fit per worker means no process compiles twice. Never set to null:
+    # auto-sizing picks workers by core count alone, ignoring both memory and
+    # this leak, and has exhausted a host mid-run. ~35-38 GB RSS per worker.
+    n_processes: 20
