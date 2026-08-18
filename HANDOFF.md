@@ -317,7 +317,7 @@ seeing the correct state, not a broken checkout.
 
 Consequences to carry into any manuscript work:
 
-- **S10 is a carried-over-unchanged figure**, alongside S8 and S11–S15. It is
+- **S10 is a carried-over-unchanged figure**, alongside S8 and S13–S15. It is
   the one SI figure still showing v0.4.0 output while its neighbours were refit
   under the new `(tol, maxiter)` and λ = 8.0e-05.
 - **The linear-vs-sigmoid loss gap is unmeasured** — not "unchanged", and not
@@ -401,6 +401,75 @@ separate namespaces for that reason.
 
 > The paper never says "fusion regularization". Use **λ / "lasso
 > regularization weight"** in prose and captions; `fusionreg` in code.
+
+### Figure manifest — what's regenerated, what's missing (#296)
+
+The manuscript includes **22 figures** (via `\includegraphics` in
+`main.tex`/`si.tex` at `f79ac4a`, excluding two commented-out template
+placeholders). The current spike pipeline
+(`experiments/scv2-spike/results/figures/`, symlinked to
+`results-prod-294-naive-baseline-arm/`) regenerates **10** of them.
+The other **12** are listed below with an owner for each.
+
+**Regenerated (10):**
+
+| Fig | File stem |
+|---|---|
+| 3 | `shift_distribution_correlation_naive` |
+| 4 | `shift_by_site_heatmap_zoom` |
+| 5 | `validation_titer_fold_change` |
+| S6 | `raw_data_summary_barcodes_backgrounds_hist` |
+| S7 | `replicate_functional_score_correlation_scatter` |
+| S9 | `shrinkage_analysis_trace_plots_beta` |
+| S11 | `percent_shifts_under_x_lineplot` |
+| S12 | `shift_corr_Delta_BA2` |
+| S16 | `convergence_all_lasso_lines` |
+| S17 | `global_epistasis_and_prediction_correlations` |
+
+**Missing (12):**
+
+| Manuscript | File stem | Owner |
+|---|---|---|
+| Fig 2 | `simulation_validation` | #316 — renamed from `main_figure`, see below |
+| S1 | `shift_heatmaps_supp` | #316 — built but unsaved (notebook cell 15), needs 2 new panels |
+| S2 | `beta_recovery_supp` | #316 — renamed from `ground_truth_correlation` |
+| S3 | `shift_corr_supp` | #316 — no current producer |
+| S4 | `underdetermined_shifts_supp` | #316 — renamed from `sparsity_diagnostic` |
+| S5 | `diff_sim_conditions_supp` | #316 — no current producer, needs 2 new sim conditions |
+| S8 | `reference_model_comparison_params_scatter` | out of scope — no issue |
+| S10 | `shrinkage_analysis_linear_models` | #293 |
+| S13 | `structure_and_neighbor_statistics_scatter` | out of scope — no issue |
+| S14 | `mut_effect_vs_shift_multiple_studies` | out of scope — no issue |
+| S15 | `shift_corr_with_other_studies` | out of scope — no issue |
+| Fig 1 | `summary_of_approach` | out of scope — no issue (hand-drawn schematic) |
+
+> ⚠️ **The six simulation-figure rows (Fig 2, S1–S5) are mostly a naming
+> mismatch, not an absent analysis.** Three already exist under
+> different names in the simulation notebook (`main_figure` →
+> `simulation_validation`; `ground_truth_correlation` →
+> `beta_recovery_supp`; `sparsity_diagnostic` →
+> `underdetermined_shifts_supp`); one is built but never saved (cell
+> 15's heatmap, needed for S1 panel A); only S3 and S5 have no current
+> producer at all. Regenerating the three renames and saving the
+> fourth **does not re-run the simulation fits** — they are figure-tier
+> work against the already-cached `fit_collection.pkl` (verified
+> 2026-08-18: `snakemake --touch` cleared an mtime-only cascade with
+> the 649,380,559-byte pickle staying byte-identical, and a subsequent
+> forced dry run against a figure target reported `total: 1`, rule
+> `manuscript_figures` alone). S3, S5, and S1's panels B/C need two new
+> simulation conditions and do require a simulate-and-fit pass. See
+> #316 for the full breakdown.
+>
+> ⚠️ **Two filename traps — do not "fix" these.** Manuscript Figure 3 is
+> labelled `fig:shift_distribution_correlation_effect` in the LaTeX but
+> actually includes `..._naive.pdf` (an orphaned `..._effect.pdf` is an
+> older, pre-naive-panel version). SI S13 is labelled
+> `fig:shifts_3D_structure` but includes
+> `structure_and_neighbor_statistics_scatter.pdf` (a decoy
+> `shifts_3D_structure.pdf` also exists on disk and is not the included
+> file). Both mismatches are deliberate and already documented in the
+> Snakefile's `FIGURE_NAMES` comment — match on what's included, never
+> on the label.
 
 ---
 
