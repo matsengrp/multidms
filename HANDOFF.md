@@ -295,7 +295,7 @@ Phase 1  #291  ✅ landed (PR #303)  simulation convergence
 Phase 2  #292  ✅ landed (PR #309)  spike refit + the nine-figure surface
 Phase 3  #293  ⬜ stub              linear (Identity) baseline → Fig S10
 Phase 4  #294  ⬜ stub              naive per-condition baseline → Fig 3
-Phase 5  #295  ⚠️ emptied by Phase 2 — needs an explicit close/repurpose call
+Phase 5  #295  ✅ closed as delivered-by-Phase-2 (figures shipped in PR #309)
 Phase 6  #296  ⬜ stub              figure manifest + number-diff
 Phase 7  #297  ⬜ stub              written handoff for manuscript revision
 ```
@@ -370,10 +370,14 @@ fix this.
   satisfy it.
 - **#192 and #302** overlap substantially — both re-express mutation effects
   in a condition's own coordinates. Merge them when #302 is specced.
-- **#295** needs an explicit decision. Its body is the **only** record of the
-  Figure 4 zoom regions and the Figure 5 x-axis warning (the axis is
-  `2 ** avg_predicted_func_score`, the predicted enrichment ratio — **not**
-  β and **not** shift, despite the legacy variable name `predicted_beta`).
+- **#295** was **closed as delivered-by-Phase-2**; the log-x requirement for
+  Figure 5 was explicitly dropped, not deferred. Its (closed) body remains the
+  richest record of the Figure 4 zoom regions and the Figure 5 x-axis warning —
+  the axis is `2 ** avg_predicted_func_score`, the predicted enrichment ratio,
+  **not** β and **not** shift, despite the legacy name `predicted_beta`. The
+  closing audit comment restates both. Note also that the manuscript's
+  ">1,000-fold" A419S claim refers to **measured titers**, not the model's
+  predicted ratio (predicted: Delta 0.854 / BA.1 0.132 / BA.2 0.137).
 
 **Housekeeping:**
 
