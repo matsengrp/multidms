@@ -79,6 +79,11 @@ FIGURE_NAMES = {
     "S12": "shift_corr_Delta_BA2",
     "S16": "convergence_all_lasso_lines",
     "S17": "global_epistasis_and_prediction_correlations",
+    # Figure 3's manuscript label is `fig:shift_distribution_correlation_effect`
+    # but the file it includes is `..._naive.pdf`. An orphaned `..._effect.pdf`
+    # also exists in the manuscript's figures/ and is an OLDER version with no
+    # naive panels. Target the `_naive` name; do not "correct" it to the label.
+    "fig3": "shift_distribution_correlation_naive",
     "fig4": "shift_by_site_heatmap_zoom",
     "fig5": "validation_titer_fold_change",
 }
@@ -121,6 +126,10 @@ DOWNSTREAM_CONFIG_PATH_REL = os.path.relpath(DOWNSTREAM_CONFIG_PATH, SPIKE_DIR)
 _all_targets = [
     os.path.join(RESULTS, "evaluate.ipynb"),
     os.path.join(RESULTS, "mutations_df.csv"),
+    # The naive baseline arm is built even when figures are skipped: it is a
+    # fit in its own right, not a figure input only.
+    os.path.join(RESULTS, "naive_baseline.ipynb"),
+    os.path.join(RESULTS, "naive_muts.csv"),
 ]
 if not SKIP_CV:
     _all_targets += [
@@ -225,6 +234,51 @@ rule cross_validation:
         """
 
 
+rule naive_baseline:
+    """Fit the naive (independent per-condition) baseline arm.
+
+    This rule IS a fit, so unlike manuscript_figures it legitimately declares
+    the fit-tier config and _common.py as inputs -- rule evaluate sets that
+    precedent. Declaring them cannot invalidate fit_collection.pkl, because
+    Snakemake invalidation flows along edges INTO a rule's outputs and this
+    rule produces no input of any fit-tier rule. What must stay true is the
+    converse: nothing here may become an input of prepare_data, fit_models,
+    cross_validation or evaluate, and the CONTENTS of config.yaml and
+    _common.py must not change. See issue #294 and EPIC #290.
+
+    Cheap by construction (~4.5 min measured): a single-condition model has
+    no shift parameters, so fusionreg and beta0_ridge are inert and there is
+    no lambda ladder to sweep. It reads the training CSV only and must never
+    load fit_collection.pkl (1.76 GB, ~7 GB RSS).
+    """
+    input:
+        config=CONFIG_PATH,
+        downstream_config=DOWNSTREAM_CONFIG_PATH,
+        func_scores=os.path.join(RESULTS, "training_functional_scores.csv"),
+        notebook=os.path.join(NOTEBOOKS, "naive_baseline.ipynb"),
+        common=COMMON,
+        downstream_common=DOWNSTREAM_COMMON,
+    output:
+        naive_muts=os.path.join(RESULTS, "naive_muts.csv"),
+        naive_convergence=os.path.join(RESULTS, "naive_convergence.csv"),
+        naive_ge_params=os.path.join(RESULTS, "naive_ge_params.csv"),
+        executed_notebook=os.path.join(RESULTS, "naive_baseline.ipynb"),
+    params:
+        config_path=CONFIG_PATH_REL,
+        downstream_config_path=DOWNSTREAM_CONFIG_PATH_REL,
+        output_dir=output_dir,
+        cwd=SPIKE_DIR,
+    shell:
+        """
+        papermill "{input.notebook}" "{output.executed_notebook}" \
+            -p config_path "{params.config_path}" \
+            -p downstream_config_path "{params.downstream_config_path}" \
+            -p output_dir "{params.output_dir}" \
+            --cwd "{params.cwd}" \
+        && jupyter trust "{output.executed_notebook}"
+        """
+
+
 rule manuscript_figures:
     """Render the manuscript figure surface from the exported CSVs.
 
@@ -247,6 +301,10 @@ rule manuscript_figures:
         sparsity=os.path.join(RESULTS, "fit_sparsity.csv"),
         replicate_corr=os.path.join(RESULTS, "library_replicate_correlation.csv"),
         convergence_trajectory=os.path.join(RESULTS, "convergence_trajectory.csv"),
+        # S16 marks the fits that did not converge rather than hiding them, so
+        # it needs the per-fit converged flag, not just the traces. Same
+        # downstream tier as convergence_trajectory (both are evaluate outputs).
+        fit_convergence=os.path.join(RESULTS, "fit_convergence.csv"),
         ge_landscape_variants=os.path.join(RESULTS, "ge_landscape_variants.csv"),
         ge_landscape_curve=os.path.join(RESULTS, "ge_landscape_curve.csv"),
         ge_landscape_curve_func_score=os.path.join(
@@ -255,6 +313,8 @@ rule manuscript_figures:
         ge_params=os.path.join(RESULTS, "ge_params.csv"),
         site_map=os.path.join(RESULTS, "site_map.csv"),
         cv_loss=os.path.join(RESULTS, "cross_validation_loss.csv"),
+        naive_muts=os.path.join(RESULTS, "naive_muts.csv"),
+        naive_convergence=os.path.join(RESULTS, "naive_convergence.csv"),
         notebook=os.path.join(NOTEBOOKS, "manuscript_figures.ipynb"),
         downstream_common=DOWNSTREAM_COMMON,
     output:
