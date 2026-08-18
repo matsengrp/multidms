@@ -147,6 +147,16 @@ the fit.
 > `prepare_data`, `cross_validation`, or `fit_models`. That would silently
 > restore the defect. See issue #287.
 
+> ⚠️ **`config.yaml` is itself a rule `input:`, so Snakemake hashes the file,
+> not its meaning.** Even a comment-only edit marks the fit out of date. When
+> you know the change cannot affect results, `snakemake --touch` re-stamps the
+> outputs instead of refitting — but verify `fit_collection.pkl` is
+> byte-identical afterward, and never point `--touch` at a hand-picked subset.
+
+Note that `maxiter` is overloaded: the top-level value counts **outer
+sweeps**, while the one inside `ge_kwargs` / `cal_kwargs` counts **inner
+solver steps**.
+
 Retuning the chosen lasso weight, changing a plot color, or adding a
 downstream analysis therefore reuses the cached `fit_collection.pkl`.
 

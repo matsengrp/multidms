@@ -31,18 +31,7 @@ Reference material lives elsewhere and is not repeated here:
 
 ## 1. Where things stand
 
-**The compute is done.** Every fit the manuscript needs has run, and the
-results are on disk, so you can write the revision without refitting anything.
-
-That is a statement about what the *current* manuscript needs, not a warning
-against running the pipeline. If the revision calls for a new arm — a reviewer
-asks for an ablation, you want a different λ grid, you change the model —
-running it is a normal, well-supported operation. **§5 is the guide for doing
-that.** The one thing to avoid is refitting *by accident*, which happens
-through the config tier split (§7) and produces a fit you did not intend.
-
-The figures that regenerate do so from the current model, not from the
-archived v0.4.0 notebook. **What you can trust today:**
+**What you can trust today:**
 
 - The **spike production fit** is final: 10 lasso rungs × 2 replicates, at
   `tol 1e-6 / maxiter 500`, with the chosen λ = **8.0e-05**. Its
@@ -105,19 +94,7 @@ EOF
 `host` and `remote_dir` are both **required**; the scripts abort with a
 template if the file is missing.
 
-### Step 3 — fetch both payloads
-
-> ⚠️ **Do not use `pixi run run-pull` for these two payloads.** It derives the
-> directory name as `results-<profile>-<branch>`, so on `main` it looks for
-> `results-prod-main`, which does not exist — both payloads are named after
-> the now-landed branches that produced them. There is no override for the
-> derived name. Worse, the script `mkdir -p`s the local directory *before* the
-> transfer, so a failed attempt leaves an empty, plausibly-named
-> `results-prod-main/` behind. (`pixi run check-results` also suggests this
-> command when it finds nothing — that hint is wrong for a fresh clone.)
->
-> `run-pull` is the right tool for results **you** produced on **your** branch
-> (§5). For the manuscript payloads, copy directly:
+### Step 3 — fetch both payloads and link them
 
 ```bash
 REMOTE=your-username@ermine
@@ -127,33 +104,23 @@ BASE=/fh/fast/matsen_e/shared/multidms/multidms/experiments
 rsync -a --info=progress2 \
   "$REMOTE:$BASE/scv2-spike/results-prod-294-naive-baseline-arm/" \
   experiments/scv2-spike/results-prod-294-naive-baseline-arm/
+ln -sfn results-prod-294-naive-baseline-arm experiments/scv2-spike/results
 
 # simulation — 1.2 GB
 rsync -a --info=progress2 \
   "$REMOTE:$BASE/simulation/results-prod-sim-vpl500-tol1e5/" \
   experiments/simulation/results-prod-sim-vpl500-tol1e5/
-```
+ln -sfn results-prod-sim-vpl500-tol1e5 experiments/simulation/results
 
-### Step 4 — link them (do not skip this)
-
-```bash
-ln -sfn results-prod-294-naive-baseline-arm experiments/scv2-spike/results
-ln -sfn results-prod-sim-vpl500-tol1e5      experiments/simulation/results
-```
-
-`results` is a **gitignored symlink**, so it does not survive a clone and
-nothing recreates it for you. Verify both:
-
-```bash
 pixi run check-results     # ✓ per pipeline, or an explanatory ✗
 ```
 
-> ⚠️ **This is the single most common failure on a fresh machine.** Without
-> these symlinks `pixi run docs` dies with a bare "No such file or directory",
-> and the dashboard finds nothing. `check-results` exists to turn that into a
-> readable error, and the docs tasks depend on it.
+> ⚠️ **The `ln -sfn` lines are not optional.** `results` is a gitignored
+> symlink, so it never survives a clone and nothing recreates it for you.
+> Without it `pixi run docs` dies with a bare "No such file or directory" and
+> the dashboard finds nothing — the most common failure on a fresh machine.
 
-### Step 5 — view the figures
+### Step 4 — view the figures
 
 Rendered figures are in `results/figures/`, as **both PDF and PNG**:
 
@@ -166,7 +133,7 @@ it before hunting, because **two filenames are deliberately misleading traps**
 (§4). The executed notebooks (`results/*.ipynb`) carry the same figures inline
 with the code that made them.
 
-### Step 6 — explore the fits interactively
+### Step 5 — explore the fits interactively
 
 An interactive [marimo](https://marimo.io) dashboard explores fitted
 `ModelCollection`s — convergence, GE landscape, parameter correlation,
@@ -399,35 +366,17 @@ finishes, kill the tmux session; leaving it holds the host.
 ### Changing what gets fit
 
 Fitting knobs live in the `fitting:` block of each pipeline's `config.yaml` —
-λ grid, `tol`, `maxiter`, `n_processes`, the loss. Editing that file
-**intentionally** invalidates the fit, which is exactly what you want when
-changing the model. Read the tier split in §7 first so you know which edits
-cost a refit and which do not.
+λ grid, `tol`, `maxiter`, the loss. Editing that file **intentionally**
+invalidates the fit, which is exactly what you want when changing the model.
+The **config tier split** — which edits cost a refit and which do not — is
+documented in
+[`experiments/scv2-spike/README.md`](experiments/scv2-spike/README.md); read
+it before editing anything under `config/`.
 
 For a genuinely different configuration, prefer a **config variant** —
 `config_<name>.yaml` plus its required `config_<name>_downstream.yaml`
 sibling — over editing the production config in place. That keeps the
 manuscript's configuration reproducible alongside your new one.
-
-### ⚠️ Set `n_processes` to at least the number of fits
-
-The one non-obvious failure mode, and it looks like a scientific result when
-it is not. JAX/XLA leaks executable JIT mappings across sequential fits in a
-single process, so a worker handling more than ~5 fits dies with
-`Unable to allocate section memory` — even on a host with 1.4 TB free.
-
-Failures land **by queue position, not by hyperparameter**, so it presents as
-"the high-λ rungs failed" when the λ value had nothing to do with it. Spike
-pins `n_processes: 20` for 10 λ rungs × 2 replicates: one fit per worker, so
-no process ever compiles twice. Never set it to `null` — auto-sizing counts
-cores (~64) and ignores memory, which has OOM'd a host. Full writeup in
-[`CLAUDE.md`](CLAUDE.md).
-
-### Check convergence before trusting anything
-
-`fit_convergence.csv` and `convergence_trajectory.csv` are the first things to
-read after a run. A fit that hit `maxiter` without converging will still
-produce figures — they will just be wrong.
 
 Pipeline internals, the DAG, and the run log of past production fits are in
 [`experiments/scv2-spike/README.md`](experiments/scv2-spike/README.md); the
@@ -455,7 +404,6 @@ site reflects whichever run `results` points at.
 
 ## 7. Science to carry forward
 
-
 **λ moved: `4.0e-05` → `8.0e-05`.** All three selection criteria (CV loss,
 replicate correlation, stop-codon sparsity) now agree on the chosen rung, but
 the two rungs sit within **0.16%** of each other — corroboration, not a
@@ -474,30 +422,7 @@ decisive vote. The Methods paragraph in `main.tex` needs updating.
 > *direction and ordering*. Stating it otherwise reads as a failed
 > replication when it is not.
 
-
-**SI Figure S10 (linear baseline) is carried over unchanged from v0.4.0.**
-The linear arm is not implemented anywhere in the repo — no
-`linear_baseline.ipynb`, no `rule linear_baseline`, no `spike.linear` config
-block, no `S10` entry in `FIGURE_NAMES`. Grepping for those and finding
-nothing is the correct state, not a broken checkout. **#293** carries the
-spec and is unblocked.
-
-Two consequences for the prose:
-
-- S10 is the one SI figure still showing v0.4.0 output while its neighbours
-  were refit under the new `(tol, maxiter)` and λ = 8.0e-05.
-- **The linear-vs-sigmoid loss gap is unmeasured** — not "unchanged", not
-  "moved". The paper's S10 claim is untested by this work.
-
-> ⚠️ **Do not report an S10 erratum.** A suspected defect in the published S10
-> was investigated and **refuted**; the full analysis is in #293 §1a.
-> Reporting a defect that is not there is worse than reporting nothing. What
-> is supportable: the suspicion was investigated and refuted, and S10 has not
-> been regenerated, so #293 is what would settle it decisively.
-
-The paper's **central methodological claim** (joint R² ≈ 3.4× naive) is
-unaffected — that is Figure 3, which is delivered.
-
+### Notation (paper ↔ code)
 
 | Paper | Meaning | Code |
 |---|---|---|
@@ -510,49 +435,5 @@ unaffected — that is Figure 3, which is delivered.
 > The paper never says "fusion regularization". Use **λ / "lasso
 > regularization weight"** in prose and captions; `fusionreg` in code.
 
-
-### ⚠️ The config tier split — the thing most likely to be broken by accident
-
-This is the mechanism that keeps a figure tweak from destroying a ~2h20m
-model fit. Understand it before editing anything under `config/`.
-
-| File | Holds | Invalidates the fit? |
-|---|---|---|
-| `config.yaml` | `fitting:` block, data sourcing, filtering | **Yes** |
-| `config_downstream.yaml` | `lasso_choice`, colors, `domain_dict`, `figures:` | **No** |
-
-Rules to preserve:
-
-1. Do **not** add `config_downstream.yaml` to the `input:` of `prepare_data`,
-   `cross_validation`, or `fit_models`. That silently restores the defect.
-2. New downstream helpers go in `notebooks/_downstream.py`, **never**
-   `_common.py` — the latter is `input:` on all four fit-tier rules.
-3. `manuscript_figures` reads **CSVs only**; it must never load
-   `fit_collection.pkl`.
-4. Every config variant needs a matching `<name>_downstream.yaml` sibling.
-   The path is derived by string substitution, so a missing sibling fails.
-
-> ⚠️ **`config.yaml` is itself a rule `input:`, so Snakemake hashes the file,
-> not its meaning.** Even a comment-only edit marks the fit out of date. When
-> you know the change cannot affect results, `snakemake --touch` re-stamps the
-> outputs instead of refitting — but verify `fit_collection.pkl` is
-> byte-identical afterward, and never point `--touch` at a hand-picked subset.
-
-> **`n_processes: 20` is pinned for spike** — one worker per fit (10 λ rungs ×
-> 2 replicates). Two independent reasons, both load-bearing:
->
-> - **Never set it to `null`.** Auto-sizing picks workers by core count alone
->   (~64), ignoring memory. Steady-state RSS is ~35–38 GB per worker. This has
->   OOM'd a host.
-> - **Never set it below the number of fits.** JAX/XLA leaks JIT mappings
->   across sequential fits in one process; a worker handling more than ~5 dies
->   outright. One fit per worker means no process compiles twice. See
->   [`CLAUDE.md`](CLAUDE.md).
-
-Note `maxiter` is overloaded: top-level = outer sweeps; inside
-`ge_kwargs`/`cal_kwargs` = inner solver steps.
-
-
----
 
 *Verified against the repository on 2026-08-18.*
