@@ -5,8 +5,9 @@ the science — deep mutational scanning, global epistasis, the joint shift
 model, what the paper claims. It assumes you have never read this codebase.
 
 It answers, in order: where the work stands, what is still open, which
-figures exist, where the results live, how to look at them, how to build the
-docs, and which scientific findings must survive the handoff.
+figures exist, where the results live, how to run the pipeline yourself, how
+to look at the results, how to build the docs, and which scientific findings
+must survive the handoff.
 
 Verified against the repository on **2026-08-18**.
 
@@ -24,9 +25,14 @@ Reference material lives elsewhere and is not repeated here:
 ## 1. Where things stand
 
 **The compute is done.** Every fit the manuscript needs has run, and the
-results are on disk. What remains is writing and figure assembly — no model
-refitting is required, and you should be suspicious of anything that proposes
-it (§4 explains the one way that happens by accident).
+results are on disk, so you can write the revision without refitting anything.
+
+That is a statement about what the *current* manuscript needs, not a warning
+against running the pipeline. If the revision calls for a new arm — a reviewer
+asks for an ablation, you want a different λ grid, you change the model —
+running it is a normal, well-supported operation. **§5 is the guide for doing
+that.** The one thing to avoid is refitting *by accident*, which happens
+through the config tier split (§8) and produces a fit you did not intend.
 
 The spine of the work was **EPIC #290** — regenerating every manuscript figure
 from the current model rather than from the archived v0.4.0 notebook.
@@ -51,7 +57,7 @@ Phase 7  #297  ◀ this change       cleanup + this document
   `f602baf4801bb9257a1f22281da99f49`.
 - **10 of the manuscript's 22 figures** regenerate from the live pipeline
   today; §3 names the other 12 and who owns each.
-- The two scientific results in §7 (**λ moved**, **A419S**) are measured on
+- The two scientific results in §8 (**λ moved**, **A419S**) are measured on
   this fit and are ready to go into prose.
 
 **What is not done:** six simulation figures (#316), the linear baseline arm
@@ -239,7 +245,7 @@ ln -sfn results-prod-294-naive-baseline-arm experiments/scv2-spike/results
 ```
 
 Recreate the `results` symlink after any fetch — it is **not** tracked in git,
-and several things break without it (§6).
+and several things break without it (§7).
 
 ### What is in a results directory
 
@@ -259,7 +265,93 @@ and several things break without it (§6).
 
 ---
 
-## 5. Looking at the results interactively
+## 5. Running the pipeline
+
+Do this whenever the revision needs numbers that do not exist yet: a new
+model arm, a different λ grid, an ablation a reviewer asked for, a rerun after
+a code change. Both pipelines are Snakemake workflows driven by a profile.
+
+### Start with the test profile
+
+```bash
+pixi run spike-test   # ~10 min, 10% subsample
+pixi run sim-test     # ~5 min
+```
+
+**Always run `-test` before `-prod`.** It exercises the whole DAG end to end
+in minutes, so a broken config, a bad path, or a notebook that raises fails
+immediately rather than after hours of fitting. The prod profiles are
+`pixi run spike-prod` and `pixi run sim-prod`; spike also has `experimental`.
+
+### Production runs go on a remote host
+
+The spike prod fit needs ~35–38 GB RSS **per worker** with 20 workers. That is
+a server job, not a laptop job.
+
+```bash
+# 1. pick an idle host first — a busy one will thrash at 20 workers
+#    (lab tooling: `bip scout`; otherwise check load however you normally do)
+# 2. launch, poll, fetch:
+pixi run remote-pipeline -- spike prod host=orca03     # launches in tmux
+pixi run remote-status  -- spike prod host=orca03      # poll progress
+pixi run run-pull       -- spike prod host=orca03      # fetch results back
+```
+
+All three take `<pipeline> <profile> [key=value ...]`. The `--` matters: it
+separates pixi's own arguments from the script's, and `host=` overrides
+`~/.config/multidms-experiments/remote.yaml`, which you create once with
+`host:` and `remote_dir:` keys (see `experiments/README.md`).
+
+**Commit before launching.** The launcher warns on a dirty tree because the
+remote checks out your branch — it never sees uncommitted work. When the run
+finishes, kill the tmux session; leaving it holds the host.
+
+> ⭐ **A new run cannot overwrite the manuscript payload.** `output_dir` is
+> derived automatically as `results-<profile>-<branch>`, and non-`main`
+> branches get their own remote worktree. Work on a branch and your run lands
+> in its own directory; the manuscript's `results-prod-294-naive-baseline-arm`
+> is untouched. This is the property that makes experimenting safe.
+
+### Changing what gets fit
+
+Fitting knobs live in the `fitting:` block of each pipeline's `config.yaml` —
+λ grid, `tol`, `maxiter`, `n_processes`, the loss. Editing that file
+**intentionally** invalidates the fit, which is exactly what you want when
+changing the model. Read the tier split in §8 first so you know which edits
+cost a refit and which do not.
+
+For a genuinely different configuration, prefer a **config variant** —
+`config_<name>.yaml` plus its required `config_<name>_downstream.yaml`
+sibling — over editing the production config in place. That keeps the
+manuscript's configuration reproducible alongside your new one.
+
+### ⚠️ Set `n_processes` to at least the number of fits
+
+The one non-obvious failure mode, and it looks like a scientific result when
+it is not. JAX/XLA leaks executable JIT mappings across sequential fits in a
+single process, so a worker handling more than ~5 fits dies with
+`Unable to allocate section memory` — even on a host with 1.4 TB free.
+
+Failures land **by queue position, not by hyperparameter**, so it presents as
+"the high-λ rungs failed" when the λ value had nothing to do with it. Spike
+pins `n_processes: 20` for 10 λ rungs × 2 replicates: one fit per worker, so
+no process ever compiles twice. Never set it to `null` — auto-sizing counts
+cores (~64) and ignores memory, which has OOM'd a host. Full writeup in
+[`CLAUDE.md`](CLAUDE.md).
+
+### Check convergence before trusting anything
+
+`fit_convergence.csv` and `convergence_trajectory.csv` are the first things to
+read after a run. A fit that hit `maxiter` without converging will still
+produce figures — they will just be wrong.
+
+Pipeline internals, the DAG, and the run log of past production fits are in
+[`experiments/scv2-spike/README.md`](experiments/scv2-spike/README.md); the
+remote setup is in [`experiments/README.md`](experiments/README.md).
+
+---
+
+## 6. Looking at the results interactively
 
 An interactive [marimo](https://marimo.io) dashboard explores fitted
 `ModelCollection`s — convergence, GE landscape, parameter correlation,
@@ -287,18 +379,9 @@ mistake working software for broken software here:
 > If you only need numbers, read the exported CSVs (§4) instead — it is
 > seconds rather than minutes.
 
-### One operational trap worth knowing
-
-If you ever *do* re-run a fit, read the **XLA JIT mapping leak** section in
-[`CLAUDE.md`](CLAUDE.md) first. JAX leaks executable JIT mappings across
-sequential fits in one process, so a worker handling more than ~5 fits dies
-with `Unable to allocate section memory` even on a host with 1.4 TB free.
-Failures land **by queue position, not by hyperparameter**, which makes it
-look like a bad λ rung when it is not. The rule is `n_processes >= n_fits`.
-
 ---
 
-## 6. Building the docs
+## 7. Building the docs
 
 ```bash
 pixi run docs          # build to docs/_build/html
@@ -316,7 +399,7 @@ site reflects whichever run `results` points at.
 
 ---
 
-## 7. Science to carry forward
+## 8. Science to carry forward
 
 
 **λ moved: `4.0e-05` → `8.0e-05`.** All three selection criteria (CV loss,
