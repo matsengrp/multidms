@@ -301,6 +301,10 @@ rule manuscript_figures:
         sparsity=os.path.join(RESULTS, "fit_sparsity.csv"),
         replicate_corr=os.path.join(RESULTS, "library_replicate_correlation.csv"),
         convergence_trajectory=os.path.join(RESULTS, "convergence_trajectory.csv"),
+        # S16 marks the fits that did not converge rather than hiding them, so
+        # it needs the per-fit converged flag, not just the traces. Same
+        # downstream tier as convergence_trajectory (both are evaluate outputs).
+        fit_convergence=os.path.join(RESULTS, "fit_convergence.csv"),
         ge_landscape_variants=os.path.join(RESULTS, "ge_landscape_variants.csv"),
         ge_landscape_curve=os.path.join(RESULTS, "ge_landscape_curve.csv"),
         ge_landscape_curve_func_score=os.path.join(
