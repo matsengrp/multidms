@@ -293,15 +293,40 @@ the current model rather than the archived v0.4.0 notebook.
 ```
 Phase 1  #291  ✅ landed (PR #303)  simulation convergence
 Phase 2  #292  ✅ landed (PR #309)  spike refit + the nine-figure surface
-Phase 3  #293  ⬜ stub              linear (Identity) baseline → Fig S10
-Phase 4  #294  ⬜ stub              naive per-condition baseline → Fig 3
+Phase 3  #293  🔻 DESCOPED 2026-08-17 → standalone issue, spec'd and ready
+Phase 4  #294  ✅ landed (PR #311)  naive per-condition baseline → Fig 3
 Phase 5  #295  ✅ closed as delivered-by-Phase-2 (figures shipped in PR #309)
-Phase 6  #296  ⬜ stub              figure manifest + number-diff
+Phase 6  #296  ⬜ stub  ▶ UNBLOCKED  figure manifest + number-diff
 Phase 7  #297  ⬜ stub              written handoff for manuscript revision
 ```
 
-Phases 3 and 4 produce the paper's **central methodological claim** (joint
-R² ≈ 3.4× the naive approach). They are not yet built.
+**The epic's remaining work is #296 then #297 — both local, no compute.** All
+four fit-bearing phases have landed and every remote run the epic needs is done.
+
+### Phase 3 was descoped — what that means
+
+**The linear (Identity) baseline arm, SI Figure S10, is not part of EPIC #290
+anymore.** It lives at **#293** as a standalone issue carrying its full spec,
+and it is unblocked today: it needs only the `(tol, maxiter)` pair from #291
+and the cached spike fit from #292, both landed.
+
+Nothing in the repo implements it yet — there is no `linear_baseline.ipynb`, no
+`rule linear_baseline`, no `spike.linear` config block, no `S10` entry in the
+Snakefile's `FIGURE_NAMES`. A reader grepping for those and finding nothing is
+seeing the correct state, not a broken checkout.
+
+Consequences to carry into any manuscript work:
+
+- **S10 is a carried-over-unchanged figure**, alongside S8 and S11–S15. It is
+  the one SI figure still showing v0.4.0 output while its neighbours were refit
+  under the new `(tol, maxiter)` and λ = 8.0e-05.
+- **The linear-vs-sigmoid loss gap is unmeasured** — not "unchanged", and not
+  "moved". The paper's S10 claim is untested by this work.
+- The paper's **central methodological claim** (joint R² ≈ 3.4× naive) is
+  unaffected: that is Figure 3, delivered by Phase 4.
+
+> ⚠️ Whoever picks up #293 should re-check its §1a analysis against the
+> *current* fit rather than the state of the world when the spec was written.
 
 ### Two live scientific results from the Phase 2 refit
 
@@ -323,14 +348,46 @@ decisive vote. The Methods paragraph in `main.tex` needs updating.
 > *direction and ordering*. Stating it otherwise reads as a failed
 > replication when it is not.
 
-### Known defect to carry into any revision
+### A suspected defect that turned out not to be one
 
-**Figure S10 is likely an erratum against the published preprint.** Legacy
-notebook cell 103 plots the *sigmoid* collection's CV loss inside the
-linear-model figure, so the published S10 middle panel does not show
-linear-model loss — while its caption and the body text both claim the linear
-model has worse loss. Phase 3 must decide explicitly whether to reproduce or
-fix this.
+**The Figure S10 "erratum" was investigated and refuted. Do not report it.**
+
+An earlier version of this document — and the bodies of #290, #296 and #297 —
+stated that legacy notebook cell 103 plots the *sigmoid* collection's CV loss
+inside the linear-model figure, making the published S10 middle panel an
+erratum against the preprint. **That is false.** The spec work on #293 recovered
+the notebook at `fc89753:notebooks/spike-analysis.ipynb` (the previously cited
+`6c98b7b` does not resolve in this repo) and read it by 0-based cell index:
+
+| idx | exec | what it actually does |
+|---|---|---|
+| 103 | 127 | the linear **fit call** — not a loss call |
+| 104 | 128 | builds `linear_mc`, adds validation loss |
+| 105 | 132 | `cross_validation_df = linear_mc.get_conditional_loss_df()` — **linear, and read** |
+| 106 | 133 | renders `shrinkage_analysis_linear_models` — the S10 figure |
+
+Execution counts are monotone 128 → 132 → 133, so the last write to
+`cross_validation_df` before S10 rendered was the linear one. Cells 101/102
+likewise rebind `sparsity_df` and `corr_df` from the linear collection, so
+panels A and C are linear too.
+
+> ⚠️ **Do not tell Hugh the preprint contains an S10 erratum.** Reporting a
+> defect that is not there is worse than reporting nothing, and with Phase 3
+> descoped there is no reproduction run left in the epic to catch the mistake
+> before it reaches the manuscript.
+>
+> **The supportable sentence:** *"A suspected defect in S10 was investigated
+> and refuted. S10 was not regenerated, so the check is not yet decisive —
+> #293 carries the reproduction that would settle it."*
+
+The evidential limit is real and is why #293 still treats this as live: stored
+execution counts record *an* execution order, not proof the saved PDF came from
+it. But "unverified" is not "erratum". Full analysis: **#293 §1a**.
+
+The separate warning that cells 98–100 rebind module-level frames is still a
+genuine *fragility* — the two arms share variable names, so a re-run in a
+different order would silently mix them — and #293's spec keeps the arms in
+separate namespaces for that reason.
 
 ### Notation (paper ↔ code)
 
