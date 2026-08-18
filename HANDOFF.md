@@ -222,7 +222,6 @@ full architecture.
 | `scv2-spike/` | **Live pipeline** | SARS-CoV-2 spike DMS. Nine manuscript figures. |
 | `scripts/` | **Infrastructure** | Remote execution + `check-results.sh`. |
 | `dashboard.py`, `dashboard_helpers.py` | **Live tooling** | The marimo dashboard. |
-| `convergence-lab/` | **Evidence record — keep** | A lab notebook, *not* a pipeline. Its README's "standing findings" are the cited justification for production hyperparameters in both live pipelines (e.g. `simulation/config/config.yaml` refers to it by name). Deleting it orphans those citations. |
 
 ### How a pipeline is wired
 
@@ -510,8 +509,5 @@ The other **12** are listed below with an owner for each.
 - `experiments/loss-normalization/` is dead: nothing references it, and it
   still uses the pre-tier-split single-argument `load_config()`, so it could
   not run today. Safe to delete along with its `CLAUDE.md` line.
-- Branch `246-convergence-lab` is **ahead of its remote by one commit**
-  (`5ac7477`, "preserve uncommitted SWEEP_PLAN + sweep runner"). Push or
-  discard it before deleting the branch.
 - Two `.claude/worktrees/agent-*` worktrees hold unreviewed experiments
   (an `alpha_ridge` knob; a `BiasedSigmoid` GE with a fitted lower plateau).

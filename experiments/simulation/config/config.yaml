@@ -85,21 +85,10 @@ simulation:
     beta0_ridge: 0.01
     ge_type: "Sigmoid"
     warmstart: false
-    # Hold the objective normalizer `scale` fixed for the whole fit instead of
-    # recomputing it every outer sweep (the library default, used by every
-    # simulation run before this one).
-    #
-    # With recompute_scale: true, each sweep sets scale = |objective| and then
-    # obj_old = raw_obj/scale = 1.0 BY CONSTRUCTION, so the convergence test
-    # `|obj_old - obj| < tol` measures the WITHIN-sweep relative decrease
-    # against a moving normalizer -- not a true between-sweep change. The
-    # proximal lasso threshold (fusionreg / scale) also drifts with it, so the
-    # problem being minimized is not stationary across sweeps.
-    #
-    # convergence-lab measured false as strictly dominant at inner maxiter=100:
-    # 8/8 vs 4/8 fits converged AND 3.6x faster (788s vs 2808s).
-    # See experiments/convergence-lab/README.md, entry 2026-07-10,
-    # cache=maxiter-scan.
+    # Hold the objective normalizer `scale` fixed for the whole fit rather
+    # than recomputing it each outer sweep, so the convergence test and the
+    # proximal lasso threshold (fusionreg / scale) stay stationary across
+    # sweeps.
     recompute_scale: false
     beta0_init: {h1: 5.0, h2: 0.0}
     alpha_init: 6.0
@@ -145,27 +134,8 @@ simulation:
     # must be measured on spike data first.
     ge_kwargs: {tol: 1.0e-4, maxiter: 100, maxls: 40, jit: true, verbose: false}
     cal_kwargs: {tol: 1.0e-4, maxiter: 100, maxls: 40, jit: true, verbose: false}
-    # Worker count for the 60-fit grid (6 datasets x 10 fusionreg). NEVER set
-    # this to null: auto-selection picks workers by core count alone, ignoring
-    # memory, which exhausted a 36 GB host mid-run.
-    #
-    # This is HOST-DEPENDENT. Size it to cores first, then sanity-check RAM.
-    #
-    # CORRECTION: an earlier version of this comment claimed ~42 GB resident
-    # per worker and budgeted 45 GB/worker. That number was never measured --
-    # it was back-inferred from a 36 GB laptop dying at 7 workers. Direct
-    # measurement of a worker running a fit from this grid gives a peak RSS of
-    # ~2.9 GB, corroborated independently by the repo's own instrumented probe
-    # (experiments/convergence-lab/diagnostics/parallelism_probe.py: ~1 GB
-    # per-worker duplication, ~4.9 GB total peak). The real figure is ~15x
-    # smaller, so MEMORY IS NOT THE BINDING CONSTRAINT ON THIS GRID -- cores
-    # are. Each task carries exactly one Data object (build_fit_params puts
-    # "dataset" on the product axis), so per-worker memory is O(1 dataset),
-    # not O(all datasets).
-    #
-    # Set to 30: the grid is 6 datasets x 10 fusionreg = 60 fits, which divides
-    # into exactly 2 waves on a 64-core host, leaving cores free for the JAX
-    # thread pools each worker spins up. At ~3 GB/worker that is ~90 GB, ~6%
-    # of a 1511 GB host. Lower this on a smaller host -- and never set it to
-    # null, since auto-selection picks workers by core count alone.
+    # Worker count for the 60-fit grid (6 datasets x 10 fusionreg). Never set
+    # to null: auto-sizing picks workers by core count alone, ignoring memory,
+    # which has exhausted a host mid-run. Host-dependent -- size to cores, then
+    # sanity-check RAM. Cores, not memory, bind this grid (~3 GB/worker).
     n_processes: 30

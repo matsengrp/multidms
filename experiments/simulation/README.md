@@ -129,10 +129,10 @@ pipeline has no `condition_colors`, `condition_titles`, or `domain_dict`.
 `beta0_ridge=0.01`, `l2reg=1e-6`, `maxiter=200` (outer) / `10` (inner
 `ge_kwargs`, `cal_kwargs`), fusionreg = the 9-value manuscript ladder.
 
-> These are **convergence-lab-derived** values, not the manuscript's ridge
-> weights (manuscript: β ridge 1e-7, α ridge 1e-3). `beta0_ridge` is
-> *shift shrinkage* — it penalizes `(β0_d − β0_ref)²`, the intercept
-> **differences**, not the intercept magnitudes.
+> These are not the manuscript's ridge weights (manuscript: β ridge 1e-7,
+> α ridge 1e-3). Note `beta0_ridge` is **shift shrinkage** — it penalizes
+> `(β0_d − β0_ref)²`, the intercept **differences**, not the intercept
+> magnitudes.
 
 #### AC7 — ground-truth shift recovery at `fusionreg = 8e-5`
 
