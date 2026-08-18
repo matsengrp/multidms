@@ -199,8 +199,8 @@ is under `archive/`.
 
 ## 3. Issue status
 
-Re-queried 2026-08-18: **13 open issues** once this change lands, and **#282
-is the only open PR** besides it.
+Re-queried 2026-08-18: **14 open issues** — 13 once this change lands and
+closes #297 — and **#282 is the only open PR** besides it.
 
 ### Live — someone should act on these
 
@@ -229,7 +229,8 @@ is the only open PR** besides it.
 > They record decisions and dead ends, not work. Unless you find one that
 > matters to you, they can safely be deleted.
 
-> ⚠️ **#240**'s `fit_models_path` truncation bug is live but low-severity:
+> ⚠️ **#240** is closed, but its `fit_models_path` truncation bug was never
+> fixed in code. It is live and low-severity:
 > prod sets no `strategy` key, so it defaults to `"independent"`. It becomes a
 > real trap only if you switch to `"continuation"`.
 
@@ -245,7 +246,7 @@ is the only open PR** besides it.
 
 
 The manuscript includes **22 figures** (via `\includegraphics` in
-`main.tex`/`si.tex` at `f79ac4a`, excluding two commented-out template
+`main.tex`/`si.tex` at `f79ac4a`, excluding four commented-out template
 placeholders). The current spike pipeline
 (`experiments/scv2-spike/results/figures/`, symlinked to
 `results-prod-294-naive-baseline-arm/`) regenerates **10** of them.
@@ -295,8 +296,9 @@ The other **12** are listed below with an owner for each.
 > work against the already-cached `fit_collection.pkl` (verified
 > 2026-08-18: `snakemake --touch` cleared an mtime-only cascade with
 > the 649,380,559-byte pickle staying byte-identical, and a subsequent
-> forced dry run against a figure target reported `total: 1`, rule
-> `manuscript_figures` alone). S3, S5, and S1's panels B/C need two new
+> forced dry run against a figure target re-ran only
+> `manuscript_figures` and the `all` aggregator — `total: 2`, no
+> fit-tier rule). S3, S5, and S1's panels B/C need two new
 > simulation conditions and do require a simulate-and-fit pass. See
 > #316 for the full breakdown.
 >
@@ -307,9 +309,10 @@ The other **12** are listed below with an owner for each.
 > `fig:shifts_3D_structure` but includes
 > `structure_and_neighbor_statistics_scatter.pdf` (a decoy
 > `shifts_3D_structure.pdf` also exists on disk and is not the included
-> file). Both mismatches are deliberate and already documented in the
-> Snakefile's `FIGURE_NAMES` comment — match on what's included, never
-> on the label.
+> file). Both mismatches are deliberate: match on what's included, never
+> on the label. The Figure 3 trap is also recorded in the Snakefile's
+> `FIGURE_NAMES` comment; **S13's is not, because S13 has no producer
+> yet** — if you write one (#316-style), carry this warning into it.
 
 ---
 
