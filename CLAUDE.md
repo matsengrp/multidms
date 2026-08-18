@@ -122,7 +122,6 @@ Never skip step 2. Never leave tmux sessions running after fetching results.
 - CSV intermediate files + pickle for fitted model collections; all in `experiments/simulation/results/` (002-simulation-pipeline)
 - Python 3.9+ (matches existing CI matrix) + multidms (this package), snakemake, papermill, jupyter, matplotlib, seaborn, pandas, numpy, pyyaml, requests (for data download) (003-spike-pipeline)
 - CSV intermediate files + pickle for fitted model collections; all in `experiments/scv2-spike/results/` (003-spike-pipeline)
-- Snakemake experiment pipeline in `experiments/loss-normalization/` for validating `.mean()` loss normalization against V0.4.0 hyperparameter anchors (fusionreg × l2reg 2D grid)
 
 ## Recent Changes
 - 002-simulation-pipeline: Added Python 3.9+ (matches existing CI matrix) + multidms (this package), snakemake, papermill, jupyter, matplotlib, seaborn, pandas, numpy, pyyaml

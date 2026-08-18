@@ -506,8 +506,5 @@ The other **12** are listed below with an owner for each.
 
 **Housekeeping:**
 
-- `experiments/loss-normalization/` is dead: nothing references it, and it
-  still uses the pre-tier-split single-argument `load_config()`, so it could
-  not run today. Safe to delete along with its `CLAUDE.md` line.
 - Two `.claude/worktrees/agent-*` worktrees hold unreviewed experiments
   (an `alpha_ridge` knob; a `BiasedSigmoid` GE with a fitted lower plateau).
