@@ -4,10 +4,10 @@
 the science — deep mutational scanning, global epistasis, the joint shift
 model, what the paper claims. It assumes you have never read this codebase.
 
-It answers, in order: where the work stands, what is still open, which
-figures exist, where the results live, how to run the pipeline yourself, how
-to look at the results, how to build the docs, and which scientific findings
-must survive the handoff.
+It answers, in order: where the work stands, **how to get the results and
+look at them** (start there if you have just cloned), what is still open,
+which figures exist, how to run the pipeline yourself, how to build the docs,
+and which scientific findings must survive the handoff.
 
 Verified against the repository on **2026-08-18**.
 
@@ -19,6 +19,13 @@ Reference material lives elsewhere and is not repeated here:
 | Contribution workflow | [`CONTRIBUTING.rst`](CONTRIBUTING.rst) |
 | Pipeline internals, config tiers, run log | [`experiments/scv2-spike/README.md`](experiments/scv2-spike/README.md) |
 | Pipeline index and remote setup | [`experiments/README.md`](experiments/README.md) |
+| **The legacy analysis notebook** — where the *published* manuscript figures were generated | [`SARS-CoV-2_spike_multidms` @ `6c98b7b`](https://github.com/matsengrp/SARS-CoV-2_spike_multidms/blob/6c98b7b607d7387b508cdaa192d659ee9fca7367/spike-analysis.ipynb) |
+
+> ⭐ **That pinned commit is the old-vs-new comparison baseline.** The figures
+> in the published preprint came from it, under multidms v0.4.0. When you need
+> to know whether a number moved because the model changed or because the code
+> changed, compare against `6c98b7b` rather than against the current legacy
+> `main`, which has drifted.
 
 ---
 
@@ -32,22 +39,10 @@ against running the pipeline. If the revision calls for a new arm — a reviewer
 asks for an ablation, you want a different λ grid, you change the model —
 running it is a normal, well-supported operation. **§5 is the guide for doing
 that.** The one thing to avoid is refitting *by accident*, which happens
-through the config tier split (§8) and produces a fit you did not intend.
+through the config tier split (§7) and produces a fit you did not intend.
 
-The spine of the work was **EPIC #290** — regenerating every manuscript figure
-from the current model rather than from the archived v0.4.0 notebook.
-
-```
-Phase 1  #291  ✅ landed (PR #303)  simulation convergence
-Phase 2  #292  ✅ landed (PR #309)  spike refit + the nine-figure surface
-Phase 3  #293  🔻 DESCOPED 2026-08-17 → standalone issue, spec'd and ready
-Phase 4  #294  ✅ landed (PR #311)  naive per-condition baseline → Fig 3
-Phase 5  #295  ✅ closed as delivered-by-Phase-2 (figures shipped in PR #309)
-Phase 6  #296  ✅ landed (PR #317)  figure manifest
-Phase 7  #297  ◀ this change       cleanup + this document
-```
-
-**What you can trust today:**
+The figures that regenerate do so from the current model, not from the
+archived v0.4.0 notebook. **What you can trust today:**
 
 - The **spike production fit** is final: 10 lasso rungs × 2 replicates, at
   `tol 1e-6 / maxiter 500`, with the chosen λ = **8.0e-05**. Its
@@ -56,8 +51,8 @@ Phase 7  #297  ◀ this change       cleanup + this document
 - The **simulation fit** is final at 649,380,559 bytes, md5
   `f602baf4801bb9257a1f22281da99f49`.
 - **10 of the manuscript's 22 figures** regenerate from the live pipeline
-  today; §3 names the other 12 and who owns each.
-- The two scientific results in §8 (**λ moved**, **A419S**) are measured on
+  today; §4 names the other 12 and who owns each.
+- The two scientific results in §7 (**λ moved**, **A419S**) are measured on
   this fit and are ready to go into prose.
 
 **What is not done:** six simulation figures (#316), the linear baseline arm
@@ -65,75 +60,221 @@ for S10 (#293), and the manuscript prose itself.
 
 ---
 
-## 2. Issue status
+## 2. Getting the results and looking at them
 
-Re-queried 2026-08-18. **21 open issues; #282 is the only open PR.**
+**Start here if you have just cloned the repo.** This is the full path from a
+fresh clone to viewing the manuscript figures and exploring the fits. It
+should take under an hour, most of it waiting on the ~4.5 GB download.
+
+### Step 1 — set up the environment
+
+The project uses [pixi](https://pixi.sh). It manages its own Python; you do
+not need conda, venv, or a system Python. **Never run bare `python` or `pip`
+here** — everything goes through `pixi run`.
+
+```bash
+pixi install          # solves and creates .pixi/envs/ — a few minutes
+pixi run test         # sanity check: 134 tests should pass
+```
+
+The default environment (Python **3.11**) is the one you want; `py39` /
+`py310` / `py311` / `py312` exist only for the CI matrix
+(`pixi run -e py39 test`). Everything below assumes the default.
+
+> ⚠️ **`pixi.lock` is gitignored, so a fresh clone re-solves from scratch.**
+> You do not get the exact environment that produced these results. That
+> matters more than it looks: the `jax` / `jaxopt` pins in `pyproject.toml`
+> carry comments explaining that resolver drift there previously caused a
+> **SIGABRT inside jaxopt's proximal solver**. If you hit an inexplicable
+> crash during fitting on a fresh machine, suspect the resolve before you
+> suspect the model.
+
+### Step 2 — configure the remote
+
+Results are **not in git** — they are ~4.5 GB of pickles, CSVs and PDFs living
+on `ermine`. Create this file once:
+
+```bash
+mkdir -p ~/.config/multidms-experiments
+cat > ~/.config/multidms-experiments/remote.yaml << 'EOF'
+host: your-username@ermine
+remote_dir: /fh/fast/matsen_e/shared/multidms/multidms
+EOF
+```
+
+`host` and `remote_dir` are both **required**; the scripts abort with a
+template if the file is missing.
+
+### Step 3 — fetch both payloads
+
+> ⚠️ **Do not use `pixi run run-pull` for these two payloads.** It derives the
+> directory name as `results-<profile>-<branch>`, so on `main` it looks for
+> `results-prod-main`, which does not exist — both payloads are named after
+> the now-landed branches that produced them. There is no override for the
+> derived name. Worse, the script `mkdir -p`s the local directory *before* the
+> transfer, so a failed attempt leaves an empty, plausibly-named
+> `results-prod-main/` behind. (`pixi run check-results` also suggests this
+> command when it finds nothing — that hint is wrong for a fresh clone.)
+>
+> `run-pull` is the right tool for results **you** produced on **your** branch
+> (§5). For the manuscript payloads, copy directly:
+
+```bash
+REMOTE=your-username@ermine
+BASE=/fh/fast/matsen_e/shared/multidms/multidms/experiments
+
+# spike — 3.3 GB
+rsync -a --info=progress2 \
+  "$REMOTE:$BASE/scv2-spike/results-prod-294-naive-baseline-arm/" \
+  experiments/scv2-spike/results-prod-294-naive-baseline-arm/
+
+# simulation — 1.2 GB
+rsync -a --info=progress2 \
+  "$REMOTE:$BASE/simulation/results-prod-sim-vpl500-tol1e5/" \
+  experiments/simulation/results-prod-sim-vpl500-tol1e5/
+```
+
+### Step 4 — link them (do not skip this)
+
+```bash
+ln -sfn results-prod-294-naive-baseline-arm experiments/scv2-spike/results
+ln -sfn results-prod-sim-vpl500-tol1e5      experiments/simulation/results
+```
+
+`results` is a **gitignored symlink**, so it does not survive a clone and
+nothing recreates it for you. Verify both:
+
+```bash
+pixi run check-results     # ✓ per pipeline, or an explanatory ✗
+```
+
+> ⚠️ **This is the single most common failure on a fresh machine.** Without
+> these symlinks `pixi run docs` dies with a bare "No such file or directory",
+> and the dashboard finds nothing. `check-results` exists to turn that into a
+> readable error, and the docs tasks depend on it.
+
+### Step 5 — view the figures
+
+Rendered figures are in `results/figures/`, as **both PDF and PNG**:
+
+```bash
+open experiments/scv2-spike/results/figures/          # macOS
+```
+
+The manifest in §4 maps every manuscript figure number to its filename — read
+it before hunting, because **two filenames are deliberately misleading traps**
+(§4). The executed notebooks (`results/*.ipynb`) carry the same figures inline
+with the code that made them.
+
+### Step 6 — explore the fits interactively
+
+An interactive [marimo](https://marimo.io) dashboard explores fitted
+`ModelCollection`s — convergence, GE landscape, parameter correlation,
+replicate scatter, sparsity.
+
+```bash
+pixi run dashboard        # read-only
+pixi run dashboard-edit   # editable
+```
+
+> ⚠️ **Launch it from the repository root.** It discovers `*.pkl` files below
+> the directory you launch it from (`cwd`), not from a fixed path. Dot-hidden
+> directories (`.git/`, `.pixi/`, `.worktrees/`) are pruned from the search.
+
+**The long waits are not hangs.** This is the most common way to mistake
+working software for broken software here:
+
+- Loading the spike `fit_collection.pkl` needs **~7 GB RSS** and takes a
+  while. The file is 1.76 GB.
+- **The Param Correlation tab is slow by design.** It is button-gated: select
+  the fits, set the threshold, press **Plot**, then wait — **minutes** on a
+  prod-sized collection. That is expected. Do not kill it.
+- `marimo` is pinned `>=0.8,<0.23` in `pyproject.toml`; 0.23.x breaks
+  `mo.ui.table` selection. Do not raise it.
+
+### What is in a results directory
+
+| File | What it holds |
+|---|---|
+| `figures/` | The rendered PDFs and PNGs listed in §4. |
+| `mutations_df.csv` | Per-mutation β and shifts — **the table most manuscript numbers come from.** |
+| `cross_validation_loss.csv` | CV loss per λ rung; the evidence for the λ choice. |
+| `fit_sparsity.csv`, `library_replicate_correlation.csv` | The other two λ selection criteria. |
+| `fit_convergence.csv`, `convergence_trajectory.csv` | Per-fit convergence; check before trusting any fit. |
+| `fit_collection.pkl` | The fitted `ModelCollection`. Large (1.76 GB for spike), ~7 GB RSS to load. |
+| `*.ipynb` | The executed notebooks, with outputs, for every pipeline stage. |
+
+> ⭐ **Prefer the CSVs.** Almost every number in the manuscript can be read
+> from `mutations_df.csv` and the three selection-criterion CSVs in seconds,
+> without ever loading the pickle.
+
+### Where this all lives on the remote
+
+```
+/fh/fast/matsen_e/shared/multidms/
+├── multidms/                       ← canonical clone, on up-to-date main
+│   └── experiments/
+│       ├── scv2-spike/
+│       │   ├── results-prod-294-naive-baseline-arm/   (3.3 GB)
+│       │   └── results -> results-prod-294-naive-baseline-arm
+│       └── simulation/
+│           ├── results-prod-sim-vpl500-tol1e5/        (1.2 GB)
+│           └── results -> results-prod-sim-vpl500-tol1e5
+└── archive/
+    ├── archive-2026-08-18/         ← 9 superseded payloads + loose dirs
+    └── <existing 2023-2024 material>
+```
+
+Nothing was deleted in the cleanup, only moved — if you need an older run, it
+is under `archive/`.
+
+---
+
+## 3. Issue status
+
+Re-queried 2026-08-18: **13 open issues** once this change lands, and **#282
+is the only open PR** besides it.
 
 ### Live — someone should act on these
 
 | # | What | Note |
 |---|---|---|
-| **#316** | Emit Fig 2 and S1–S5 from the simulation pipeline | The largest remaining figure gap. Mostly renames — see §3. |
+| **#316** | Emit Fig 2 and S1–S5 from the simulation pipeline | The largest remaining figure gap. Mostly renames — see §4. |
 | **#293** | Linear (Identity) baseline arm → SI S10 | Spec'd, unblocked, no compute dependency left. |
-| **#282** | v0.4.0 ↔ main equivalence check | **The only open PR.** Open since 2026-07-15. Finished work; it is the evidence resolving #281 and half of #242. Land or close it. |
-| **#319** | `IndexError` in `mut_param_dataset_correlation` | **Live bug**, re-raised in this change — see below. |
-| **#318** | Write the three missing docs pages | Filed in this change; the placeholders they replace were deleted. |
+| **#282** | v0.4.0 ↔ main equivalence check | **The only open PR.** Open since 2026-07-15. Finished work; it is the evidence resolving #281. Land or close it. |
+| **#318** | Write the three missing docs pages | The placeholders they replace were deleted. |
 | **#313** | Spike prep diverges from legacy (codon deletions, replicate subset) | Affects data prep, not the fitted model. |
 | **#312** | `mut_type()` mislabels in-frame codon deletions | Related to #313. |
-| **#302** | Report mutational effects in each condition's own coordinates | Overlaps #192 — see below. |
+| **#192** | Condition-specific mutation names in `get_mutations_df` | Fully spec'd. #302 was closed as a duplicate of it. |
+| **#319** | `IndexError` in `mut_param_dataset_correlation` | Live on `main` at `model_collection.py:1471`, but **benign for the manuscript**: it needs a `(mut_param, x)` cell surviving in only one replicate, which arises under `strategy: continuation`. Every published figure comes from independent-strategy fits. Branch `fix/mut-param-correlation-1col` has a starting patch. |
+| **#179** | Remove deprecated `phenotype_as_effect` | Small cleanup. |
+| **#99** | Citation | Small. |
 
-### The one live bug worth knowing about
+### Parked and reference-only
 
-**#319 — `IndexError` in `mut_param_dataset_correlation` for
-single-replicate cells.** Still live on `main` at
-`multidms/model_collection.py:1471`. When a `(mut_param, x)` cell survives in
-only one replicate, `.corr()` returns a 1×1 matrix and `.iloc[0, 1]` indexes
-past its bound.
-
-> ✅ **No manuscript figure is affected.** The bug triggers only on sparse
-> shift solutions, which arise under `strategy: continuation`. Every published
-> figure comes from independent-strategy fits, whose denser solutions never
-> produce a single-replicate cell.
-
-PR #239 proposed a fix and sat untouched from 2026-05-07; it was **closed
-unmerged** in this change and the defect re-raised as #319 with a fresh
-re-assessment. The branch `fix/mut-param-correlation-1col` is kept — its
-patch and two tests are a starting point.
-
-### Parked — real, but not blocking the manuscript
-
-| # | What | Why parked |
+| # | What | Why |
 |---|---|---|
-| #243 | Concurrent (single-solve) fitting | Performance work. |
-| #242 | Score the manuscript's parameters under the PR #164 objective | Half-answered by #282. |
-| #241 | Reduced per-block optimization iterations | Superseded in practice by the tuning already done. |
-| #197 | Learnable `FlexibleSigmoid` GE | Feature work. |
-| #192 | Condition-specific mutation names | **Overlaps #302** — both re-express effects in a condition's own coordinates. Merge them when #302 is specced. |
-| #51 | A ridge penalty that doesn't bias toward WT | Long-standing design question. |
-| #155, #99 | Docs formatting, citation | Small. |
+| #290 | The epic this work was tracked under | Its phases are done or re-homed; close it when #316 and #293 land. |
+| #243, #51 | Concurrent single-solve fitting; a ridge penalty that doesn't bias toward WT | Design questions, not manuscript blockers. |
+| #281 | Re-express the 0.4.0 spike model in main's form | Already executed by PR #282. |
 
-### Retire the vocabulary, not just the issues
+> **Issues labelled `question` or `wontfix` were kept only for reference.**
+> They record decisions and dead ends, not work. Unless you find one that
+> matters to you, they can safely be deleted.
 
-> ⚠️ **#176 / #177 / #179 reference a v2.0 release that never happened.** The
-> tags go 0.4.2 → 1.0.0 → 1.3.0. #177's target module, `biophysical.py`, no
-> longer exists. Do not try to satisfy these as written — retire the "v2.0"
-> framing first, then decide what (if anything) is left.
+> ⚠️ **#240**'s `fit_models_path` truncation bug is live but low-severity:
+> prod sets no `strategy` key, so it defaults to `"independent"`. It becomes a
+> real trap only if you switch to `"continuation"`.
 
-> **#281** duplicates #242 and is already executed by PR #282.
->
-> **#240**'s `fit_models_path` truncation bug is live but low-severity: prod
-> sets no `strategy` key, so it defaults to `"independent"`. It becomes a real
-> trap only if you switch to `"continuation"`.
->
-> **#295** was closed as delivered-by-Phase-2, and the log-x requirement for
-> Figure 5 was **dropped, not deferred**. Its closed body remains the richest
-> record of the Figure 4 zoom regions and the Figure 5 x-axis warning: that
-> axis is `2 ** avg_predicted_func_score`, the predicted enrichment ratio —
-> **not** β and **not** shift, despite the legacy name `predicted_beta`.
+> **#295** was closed as delivered, and the log-x requirement for Figure 5 was
+> **dropped, not deferred**. Its closed body remains the richest record of the
+> Figure 4 zoom regions and the Figure 5 x-axis warning: that axis is
+> `2 ** avg_predicted_func_score`, the predicted enrichment ratio — **not** β
+> and **not** shift, despite the legacy name `predicted_beta`.
 
 ---
 
-## 3. Figure status
+## 4. Figure status
 
 
 The manuscript includes **22 figures** (via `\includegraphics` in
@@ -208,63 +349,6 @@ The other **12** are listed below with an owner for each.
 
 ---
 
-## 4. Where the results live
-
-Everything is on `ermine`, under the shared lab directory. The layout below
-is the **post-cleanup** state as of 2026-08-18:
-
-```
-/fh/fast/matsen_e/shared/multidms/
-├── multidms/                       ← canonical clone, on up-to-date main
-│   └── experiments/
-│       ├── scv2-spike/
-│       │   ├── results-prod-294-naive-baseline-arm/   (3.3 GB)
-│       │   └── results -> results-prod-294-naive-baseline-arm
-│       └── simulation/
-│           ├── results-prod-sim-vpl500-tol1e5/        (1.2 GB)
-│           └── results -> results-prod-sim-vpl500-tol1e5
-└── archive/
-    ├── archive-2026-08-18/         ← 9 rescued payloads + loose dirs
-    │   ├── results/                  (the 9 results-prod-* runs)
-    │   └── stale-april-results/
-    └── <existing 2023-2024 material>
-```
-
-The clone holds exactly one payload per pipeline, and `results` is a
-**symlink** to it. Everything superseded lives under `archive/` — nothing was
-deleted in the cleanup, only moved.
-
-### Getting a copy locally
-
-```bash
-# from your local clone
-rsync -a --info=progress2 \
-  ermine:/fh/fast/matsen_e/shared/multidms/multidms/experiments/scv2-spike/results-prod-294-naive-baseline-arm/ \
-  experiments/scv2-spike/results-prod-294-naive-baseline-arm/
-ln -sfn results-prod-294-naive-baseline-arm experiments/scv2-spike/results
-```
-
-Recreate the `results` symlink after any fetch — it is **not** tracked in git,
-and several things break without it (§7).
-
-### What is in a results directory
-
-| File | What it holds |
-|---|---|
-| `fit_collection.pkl` | The fitted `ModelCollection`. Large (1.76 GB for spike) and slow to load (~7 GB RSS). |
-| `mutations_df.csv` | Per-mutation β and shifts — **the table most manuscript numbers come from.** |
-| `cross_validation_loss.csv` | CV loss per λ rung; the evidence for the λ choice. |
-| `fit_sparsity.csv`, `library_replicate_correlation.csv` | The other two λ selection criteria. |
-| `fit_convergence.csv`, `convergence_trajectory.csv` | Per-fit convergence; check before trusting any fit. |
-| `figures/` | The rendered PDFs and PNGs listed in §3. |
-| `*.ipynb` | The executed notebooks, with outputs, for every pipeline stage. |
-
-> ⭐ **Prefer the CSVs.** Almost every number in the manuscript can be read
-> from `mutations_df.csv` and the three selection-criterion CSVs without ever
-> loading the pickle.
-
----
-
 ## 5. Running the pipeline
 
 Do this whenever the revision needs numbers that do not exist yet: a new
@@ -317,7 +401,7 @@ finishes, kill the tmux session; leaving it holds the host.
 Fitting knobs live in the `fitting:` block of each pipeline's `config.yaml` —
 λ grid, `tol`, `maxiter`, `n_processes`, the loss. Editing that file
 **intentionally** invalidates the fit, which is exactly what you want when
-changing the model. Read the tier split in §8 first so you know which edits
+changing the model. Read the tier split in §7 first so you know which edits
 cost a refit and which do not.
 
 For a genuinely different configuration, prefer a **config variant** —
@@ -351,37 +435,7 @@ remote setup is in [`experiments/README.md`](experiments/README.md).
 
 ---
 
-## 6. Looking at the results interactively
-
-An interactive [marimo](https://marimo.io) dashboard explores fitted
-`ModelCollection`s — convergence, GE landscape, parameter correlation,
-replicate scatter, sparsity.
-
-```bash
-pixi run dashboard        # read-only
-pixi run dashboard-edit   # editable
-```
-
-> ⚠️ **Launch it from the repository root.** It discovers `*.pkl` files below
-> the directory you launch it from (`cwd`), not from a fixed path. Dot-hidden
-> directories (`.git/`, `.pixi/`, `.worktrees/`) are pruned from the search.
-
-**The long waits are not hangs.** This is the single most common way to
-mistake working software for broken software here:
-
-- Loading the spike prod `fit_collection.pkl` needs **~7 GB RSS** and takes a
-  while. The file is 1.76 GB.
-- **The Param Correlation tab is slow by design.** It is button-gated: select
-  the fits, set the threshold, press **Plot**, then wait — **minutes** on a
-  prod-sized collection. That is expected. Do not kill it.
-- **Pin `marimo<0.23`.** 0.23.x breaks `mo.ui.table` selection.
-
-> If you only need numbers, read the exported CSVs (§4) instead — it is
-> seconds rather than minutes.
-
----
-
-## 7. Building the docs
+## 6. Building the docs
 
 ```bash
 pixi run docs          # build to docs/_build/html
@@ -391,7 +445,7 @@ pixi run docs-deploy   # publish to gh-pages
 > ⚠️ **The build needs the `results/` symlink.** The `.nblink` files in
 > `docs/` point at `experiments/*/results/*.ipynb`. Those symlinks are not
 > tracked in git, so a **fresh clone fails to build** until you fetch a
-> results payload (§4) and recreate them. This is the usual cause of a
+> results payload (§2) and recreate them. This is the usual cause of a
 > mystifying docs failure on a machine that has never run a pipeline.
 
 The docs render the executed pipeline notebooks directly, so the published
@@ -399,7 +453,7 @@ site reflects whichever run `results` points at.
 
 ---
 
-## 8. Science to carry forward
+## 7. Science to carry forward
 
 
 **λ moved: `4.0e-05` → `8.0e-05`.** All three selection criteria (CV loss,
@@ -421,71 +475,28 @@ decisive vote. The Methods paragraph in `main.tex` needs updating.
 > replication when it is not.
 
 
+**SI Figure S10 (linear baseline) is carried over unchanged from v0.4.0.**
+The linear arm is not implemented anywhere in the repo — no
+`linear_baseline.ipynb`, no `rule linear_baseline`, no `spike.linear` config
+block, no `S10` entry in `FIGURE_NAMES`. Grepping for those and finding
+nothing is the correct state, not a broken checkout. **#293** carries the
+spec and is unblocked.
 
-**The Figure S10 "erratum" was investigated and refuted. Do not report it.**
+Two consequences for the prose:
 
-An earlier version of this document — and the bodies of #290, #296 and #297 —
-stated that legacy notebook cell 103 plots the *sigmoid* collection's CV loss
-inside the linear-model figure, making the published S10 middle panel an
-erratum against the preprint. **That is false.** The spec work on #293 recovered
-the notebook at `fc89753:notebooks/spike-analysis.ipynb` (the previously cited
-`6c98b7b` does not resolve in this repo) and read it by 0-based cell index:
-
-| idx | exec | what it actually does |
-|---|---|---|
-| 103 | 127 | the linear **fit call** — not a loss call |
-| 104 | 128 | builds `linear_mc`, adds validation loss |
-| 105 | 132 | `cross_validation_df = linear_mc.get_conditional_loss_df()` — **linear, and read** |
-| 106 | 133 | renders `shrinkage_analysis_linear_models` — the S10 figure |
-
-Execution counts are monotone 128 → 132 → 133, so the last write to
-`cross_validation_df` before S10 rendered was the linear one. Cells 101/102
-likewise rebind `sparsity_df` and `corr_df` from the linear collection, so
-panels A and C are linear too.
-
-> ⚠️ **Do not tell Hugh the preprint contains an S10 erratum.** Reporting a
-> defect that is not there is worse than reporting nothing, and with Phase 3
-> descoped there is no reproduction run left in the epic to catch the mistake
-> before it reaches the manuscript.
->
-> **The supportable sentence:** *"A suspected defect in S10 was investigated
-> and refuted. S10 was not regenerated, so the check is not yet decisive —
-> #293 carries the reproduction that would settle it."*
-
-The evidential limit is real and is why #293 still treats this as live: stored
-execution counts record *an* execution order, not proof the saved PDF came from
-it. But "unverified" is not "erratum". Full analysis: **#293 §1a**.
-
-The separate warning that cells 98–100 rebind module-level frames is still a
-genuine *fragility* — the two arms share variable names, so a re-run in a
-different order would silently mix them — and #293's spec keeps the arms in
-separate namespaces for that reason.
-
-
-
-**The linear (Identity) baseline arm, SI Figure S10, is not part of EPIC #290
-anymore.** It lives at **#293** as a standalone issue carrying its full spec,
-and it is unblocked today: it needs only the `(tol, maxiter)` pair from #291
-and the cached spike fit from #292, both landed.
-
-Nothing in the repo implements it yet — there is no `linear_baseline.ipynb`, no
-`rule linear_baseline`, no `spike.linear` config block, no `S10` entry in the
-Snakefile's `FIGURE_NAMES`. A reader grepping for those and finding nothing is
-seeing the correct state, not a broken checkout.
-
-Consequences to carry into any manuscript work:
-
-- **S10 is a carried-over-unchanged figure**, alongside S8 and S13–S15. It is
-  the one SI figure still showing v0.4.0 output while its neighbours were refit
-  under the new `(tol, maxiter)` and λ = 8.0e-05.
-- **The linear-vs-sigmoid loss gap is unmeasured** — not "unchanged", and not
+- S10 is the one SI figure still showing v0.4.0 output while its neighbours
+  were refit under the new `(tol, maxiter)` and λ = 8.0e-05.
+- **The linear-vs-sigmoid loss gap is unmeasured** — not "unchanged", not
   "moved". The paper's S10 claim is untested by this work.
-- The paper's **central methodological claim** (joint R² ≈ 3.4× naive) is
-  unaffected: that is Figure 3, delivered by Phase 4.
 
-> ⚠️ Whoever picks up #293 should re-check its §1a analysis against the
-> *current* fit rather than the state of the world when the spec was written.
+> ⚠️ **Do not report an S10 erratum.** A suspected defect in the published S10
+> was investigated and **refuted**; the full analysis is in #293 §1a.
+> Reporting a defect that is not there is worse than reporting nothing. What
+> is supportable: the suspicion was investigated and refuted, and S10 has not
+> been regenerated, so #293 is what would settle it decisively.
 
+The paper's **central methodological claim** (joint R² ≈ 3.4× naive) is
+unaffected — that is Figure 3, which is delivered.
 
 
 | Paper | Meaning | Code |
@@ -542,15 +553,6 @@ Note `maxiter` is overloaded: top-level = outer sweeps; inside
 `ge_kwargs`/`cal_kwargs` = inner solver steps.
 
 
-`config_recompute_false*.yaml` (three pairs) are unreachable from the
-Snakefile by profile name and look like leftovers from a finished experiment.
-They are **test fixtures**: `tests/test_config_tiers.py` iterates
-`SPIKE_VARIANTS` and asserts on each. Deleting them fails four tests.
-
-Removing them is a deliberate two-step change — edit `SPIKE_VARIANTS` first,
-then delete the YAMLs.
-
 ---
 
-*This document replaced an installation-first handoff on 2026-08-18 (#297),
-alongside the repository cleanup described above.*
+*Verified against the repository on 2026-08-18.*

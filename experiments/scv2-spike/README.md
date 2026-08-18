@@ -113,6 +113,13 @@ silently vanishing into notebook output.
 Every config variant has a matching `<name>_downstream.yaml` sibling. See
 **Configuration tiers** below for which keys live where and why it matters.
 
+The `config_recompute_false*.yaml` variants (three pairs) are unreachable from
+the Snakefile by profile name and look like leftovers from a finished
+experiment. They are **test fixtures**: `tests/test_config_tiers.py` iterates
+`SPIKE_VARIANTS` and asserts on each, so deleting them fails four tests.
+Removing them is a deliberate two-step change — edit `SPIKE_VARIANTS` first,
+then delete the YAMLs.
+
 ## Configuration tiers
 
 The config is split by dependency tier so that a downstream-only edit cannot
