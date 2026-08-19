@@ -113,6 +113,13 @@ silently vanishing into notebook output.
 Every config variant has a matching `<name>_downstream.yaml` sibling. See
 **Configuration tiers** below for which keys live where and why it matters.
 
+The `config_recompute_false*.yaml` variants (three pairs) are unreachable from
+the Snakefile by profile name and look like leftovers from a finished
+experiment. They are **test fixtures**: `tests/test_config_tiers.py` iterates
+`SPIKE_VARIANTS` and asserts on each, so deleting them fails four tests.
+Removing them is a deliberate two-step change — edit `SPIKE_VARIANTS` first,
+then delete the YAMLs.
+
 ## Configuration tiers
 
 The config is split by dependency tier so that a downstream-only edit cannot
@@ -139,6 +146,16 @@ the fit.
 > Do not "tidy" this by adding `downstream_config` to the `input:` block of
 > `prepare_data`, `cross_validation`, or `fit_models`. That would silently
 > restore the defect. See issue #287.
+
+> ⚠️ **`config.yaml` is itself a rule `input:`, so Snakemake hashes the file,
+> not its meaning.** Even a comment-only edit marks the fit out of date. When
+> you know the change cannot affect results, `snakemake --touch` re-stamps the
+> outputs instead of refitting — but verify `fit_collection.pkl` is
+> byte-identical afterward, and never point `--touch` at a hand-picked subset.
+
+Note that `maxiter` is overloaded: the top-level value counts **outer
+sweeps**, while the one inside `ge_kwargs` / `cal_kwargs` counts **inner
+solver steps**.
 
 Retuning the chosen lasso weight, changing a plot color, or adding a
 downstream analysis therefore reuses the cached `fit_collection.pkl`.
@@ -279,10 +296,10 @@ corroboration rather than a decisive independent vote.
 `beta0_ridge=0.01`, `l2reg=1e-6`, `maxiter=200` (outer) / `10` (inner
 `ge_kwargs`, `cal_kwargs`), fusionreg = the 9-value manuscript ladder.
 
-> These are **convergence-lab-derived** values, not the manuscript's ridge
-> weights (manuscript: β ridge 1e-7, α ridge 1e-3). Note also that
-> `beta0_ridge` is *shift shrinkage* — it penalizes `(β0_d − β0_ref)²`,
-> the intercept **differences**, not the intercept magnitudes.
+> These are not the manuscript's ridge weights (manuscript: β ridge 1e-7,
+> α ridge 1e-3). Note `beta0_ridge` is **shift shrinkage** — it penalizes
+> `(β0_d − β0_ref)²`, the intercept **differences**, not the intercept
+> magnitudes.
 
 **Shift replicate correlation vs the pre-change baseline** (delta = new − baseline):
 

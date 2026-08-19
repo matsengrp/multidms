@@ -29,38 +29,17 @@ spike:
     # Outer block-coordinate-descent ceiling. 500 is headroom, not a target;
     # a fit that reaches it has NOT converged regardless of any success count.
     maxiter: 500
-    # 1e-6, tightened from the 1e-5 that produced 20/20 in the first Stage 1
-    # run. The tolerance is a *between-sweep relative change*, not a gradient
-    # norm, so the question was whether the inner solvers (tol 1e-4) floor it.
-    # They do not: every one of those 20 fits was still decaying geometrically
-    # at its stopping point (median tail rate 0.941/sweep), so the tail had not
-    # flattened. Extrapolating each fit's own decay rate to 1e-6 projects a
-    # median of 127 sweeps and a worst case of 193 — well inside maxiter 500.
+    # Convergence tolerance on the between-sweep relative change in the
+    # objective — not a gradient norm.
     tol: 1.0e-6
-    # false => the objective normalizer is computed once after warmstart and
-    # held constant, so the proximal lasso threshold `fusionreg / scale` is
-    # stationary across sweeps. Under `true` the threshold drifts between
-    # sweeps, which makes a lasso-selection study measure a moving target, and
-    # pins obj_old to 1.0 so the convergence test never sees a between-sweep
-    # change. Matches the simulation pipeline after PR #303.
+    # Hold the objective normalizer `scale` fixed for the whole fit so the
+    # convergence test and the proximal lasso threshold (fusionreg / scale)
+    # stay stationary across sweeps.
     recompute_scale: false
-    # Extended by one rung (1.28e-3) above the manuscript's 6.4e-4 ceiling, to
-    # test whether stop-codon sparsity is still climbing past the top rung.
-    # It is not: sparsity saturates at 1.000 by 3.2e-4 and is flat thereafter.
-    #
-    # The 1.28e-3 rung is RETAINED here but EXCLUDED from analysis (gate G5).
-    # Under tol 1e-6 it is the only rung that fails to converge, and the
-    # trajectory shows why: rep_1 reaches objective_error 2.7e-06 at sweep 100,
-    # then diverges -- the error climbs back to ~1.8e-04 and flattens (tail rate
-    # ~1.000), and the objective rises 10% above its sweep-109 minimum. That is
-    # instability at this lasso strength, not slow convergence, so raising
-    # maxiter would not fix it. The tol 1e-5 run stopped at sweep 94, before the
-    # divergence began, and so reported this rung as converged.
-    #
-    # It stays in the ladder because removing it would invalidate this config
-    # and force a full refit purely to *stop* computing one rung, discarding the
-    # evidence above. Nothing selects models by ladder position -- evaluate
-    # queries `fusionreg == lasso_choice` -- so an excluded rung is inert.
+    # Lasso ladder swept by the pipeline. The top rung (1.28e-3) is retained
+    # but excluded from analysis by gate G5: it is unstable at this lasso
+    # strength. An excluded rung is inert — evaluate selects by
+    # `fusionreg == lasso_choice`, never by ladder position.
     fusionreg_values: [0.0, 5.0e-6, 1.0e-5, 2.0e-5, 4.0e-5, 8.0e-5, 1.6e-4, 3.2e-4, 6.4e-4, 1.28e-3]
     l2reg: 1.0e-6
     beta0_ridge: 0.01
@@ -72,12 +51,15 @@ spike:
     share_alpha: true
     beta_clip_range: [-10, 10]
     loss_kwargs: {"δ": 1.0}
-    # Inner solver maxiter deliberately stays at 10 while the outer loop moves
-    # to tol 1e-5 / maxiter 500. Simulation runs 100, but changing two
-    # convergence knobs in one run makes a bad result unattributable, and
-    # inner=10 has never been shown to be spike's problem. If fits converge
-    # poorly, raising this to 100 is the first lever — on evidence.
+    # Inner block-solver settings. NOTE `maxiter` here is inner solver steps,
+    # distinct from the top-level `maxiter` above, which is outer sweeps.
     ge_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 40, jit: true, verbose: false}
     cal_kwargs: {tol: 1.0e-4, maxiter: 10, maxls: 40, jit: true, verbose: false}
-    n_processes: 6  # pinned: auto (null) picks workers by core count alone,
-    # ignoring memory, which exhausted a 36 GB host mid-run. Never restore null.
+    # Worker count. Pinned to one worker per fit (10 fusionreg x 2 replicates
+    # = 20). JAX/XLA leaks executable JIT mappings across sequential fits in a
+    # single process, so a worker handling more than ~5 fits dies with
+    # "Unable to allocate section memory" even on a host with 1.4 TB free.
+    # One fit per worker means no process compiles twice. Never set to null:
+    # auto-sizing picks workers by core count alone, ignoring both memory and
+    # this leak, and has exhausted a host mid-run. ~35-38 GB RSS per worker.
+    n_processes: 20
