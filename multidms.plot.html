@@ -345,7 +345,7 @@ matching <code class="docutils literal notranslate"><span class="pre">times_seen
 
 <dl class="py function">
 <dt class="sig sig-object py" id="multidms.plot.ge_landscape">
-<span class="sig-prename descclassname"><span class="pre">multidms.plot.</span></span><span class="sig-name descname"><span class="pre">ge_landscape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variants_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ge_curve_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fitness_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'condition'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point_opacity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">curve_color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'grey'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">curve_width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">space</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'fitness'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.plot.ge_landscape" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">multidms.plot.</span></span><span class="sig-name descname"><span class="pre">ge_landscape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variants_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ge_curve_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fitness_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'condition'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point_opacity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">curve_color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'grey'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">curve_width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">space</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'fitness'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params_df</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotate_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.plot.ge_landscape" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plot the global epistasis landscape.</p>
 <p>Overlays per-variant fitness scores on the global epistasis curve
 <code class="docutils literal notranslate"><span class="pre">g(φ)</span></code>, showing how the nonlinear transformation maps latent
@@ -381,11 +381,18 @@ Pass <code class="docutils literal notranslate"><span class="pre">'predicted_fun
 <code class="docutils literal notranslate"><span class="pre">ge_curve_value</span></code>. <code class="docutils literal notranslate"><span class="pre">&quot;func_score&quot;</span></code> draws one condition-colored
 curve per condition on <code class="docutils literal notranslate"><span class="pre">func_score_curve_value</span></code> and labels the
 y-axis “Functional score”.</p></li>
+<li><p><strong>params_df</strong> (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.5)"><em>pandas.DataFrame</em></a><em>, </em><em>optional</em>) – Per-condition placement parameters from
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">Model.get_ge_params_df()</span></code>, used to annotate the chart with α,
+β0 and the bundle sum. When <code class="docutils literal notranslate"><span class="pre">None</span></code> (the default) no annotation is
+drawn, so direct callers of this function are unaffected.
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">Model.plot_ge_landscape()</span></code> supplies it automatically.</p></li>
+<li><p><strong>annotate_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Master switch for the annotation. The annotation renders only when
+<code class="docutils literal notranslate"><span class="pre">annotate_params</span></code> is True <em>and</em> <code class="docutils literal notranslate"><span class="pre">params_df</span></code> is not None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Altair layered chart with scatter, curve, and wildtype reference
-lines.</p>
+lines, plus two text layers when annotating.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>alt.LayerChart</p>
@@ -431,9 +438,6 @@ lines.</p>
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical Model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="simulation_validation.html">Simulation Validation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html">Fit Delta BA.1 Example</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="multidms.html">multidms package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
@@ -453,6 +457,8 @@ lines.</p>
 <li class="toctree-l1"><a class="reference internal" href="spike_fit_models.html">Model Fitting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="spike_evaluate.html">Model Evaluation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="spike_cross_validation.html">Cross-Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_naive_baseline.html">Naive (independent per-condition) baseline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_manuscript_figures.html">Manuscript Figures</a></li>
 </ul>
 
 <div class="relations">

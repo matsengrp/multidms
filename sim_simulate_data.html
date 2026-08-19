@@ -97,7 +97,7 @@
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
 <span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
-<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results-prod-287-config-tier-split&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results-prod-sim-vpl500-tol1e5&quot;</span>
 <br/></pre></div>
 </div>
 </div>
@@ -146,7 +146,7 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Output directory: results-prod-287-config-tier-split
+Output directory: results-prod-sim-vpl500-tol1e5
 </pre></div></div>
 </div>
 <section id="Simulate-reference-sequence">
@@ -804,7 +804,7 @@ Characteristics of mutations separating homologs:
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Generated 200000 variants across both homologs
+Generated 100000 variants across both homologs
 </pre></div></div>
 </div>
 </section>
@@ -1068,7 +1068,7 @@ h2 Variant Support Histogram:
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Ground truth training set: 116622 rows
+Ground truth training set: 60752 rows
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
@@ -1102,7 +1102,7 @@ Ground truth training set: 116622 rows
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Bottleneck functional scores: 233244 rows
+Bottleneck functional scores: 121504 rows
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
@@ -1154,8 +1154,8 @@ Bottleneck functional scores: 233244 rows
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Combined functional scores: 349866 rows
-Variant classes: {&#39;&gt;1 nonsynonymous&#39;: 292527, &#39;stop&#39;: 45933, &#39;1 nonsynonymous&#39;: 11394, &#39;wildtype&#39;: 12}
+Combined functional scores: 182256 rows
+Variant classes: {&#39;&gt;1 nonsynonymous&#39;: 147717, &#39;stop&#39;: 23292, &#39;1 nonsynonymous&#39;: 11235, &#39;wildtype&#39;: 12}
 </pre></div></div>
 </div>
 </section>
@@ -1181,8 +1181,8 @@ Variant classes: {&#39;&gt;1 nonsynonymous&#39;: 292527, &#39;stop&#39;: 45933, 
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Saved results-prod-287-config-tier-split/simulated_muteffects.csv (1000 mutations)
-Saved results-prod-287-config-tier-split/simulated_func_scores.csv (349866 rows)
+Saved results-prod-sim-vpl500-tol1e5/simulated_muteffects.csv (1000 mutations)
+Saved results-prod-sim-vpl500-tol1e5/simulated_func_scores.csv (182256 rows)
 </pre></div></div>
 </div>
 </section>
@@ -1225,9 +1225,6 @@ Saved results-prod-287-config-tier-split/simulated_func_scores.csv (349866 rows)
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical Model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="simulation_validation.html">Simulation Validation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html">Fit Delta BA.1 Example</a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.html">multidms package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
@@ -1247,6 +1244,8 @@ Saved results-prod-287-config-tier-split/simulated_func_scores.csv (349866 rows)
 <li class="toctree-l1"><a class="reference internal" href="spike_fit_models.html">Model Fitting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="spike_evaluate.html">Model Evaluation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="spike_cross_validation.html">Cross-Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_naive_baseline.html">Naive (independent per-condition) baseline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_manuscript_figures.html">Manuscript Figures</a></li>
 </ul>
 
 <div class="relations">

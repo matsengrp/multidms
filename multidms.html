@@ -18,7 +18,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="data" href="multidms.data.html" />
-    <link rel="prev" title="Fit Delta BA.1 Example" href="fit_delta_BA1_example.html" />
+    <link rel="prev" title="Installation" href="installation.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -752,6 +752,50 @@ rows).</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="multidms.Model.get_ge_params_df">
+<span class="sig-name descname"><span class="pre">get_ge_params_df</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.5)"><span class="pre">DataFrame</span></a></span></span><a class="headerlink" href="#multidms.Model.get_ge_params_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>Per-condition parameters that place the GE landscape.</p>
+<p>The wildtype latent phenotype decomposes exactly into the condition’s
+intercept plus the summed effect of its <em>bundle</em> mutations (those
+separating the condition’s wildtype sequence from the reference
+wildtype sequence):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>φ_wt(d) = β0(d) + Σ_{m ∈ bundle(d)} β(d)[m]
+</pre></div>
+</div>
+<p>The reference condition has an empty bundle, so its <code class="docutils literal notranslate"><span class="pre">bundle_sum</span></code> is
+zero and <code class="docutils literal notranslate"><span class="pre">wildtype_latent</span></code> equals <code class="docutils literal notranslate"><span class="pre">beta0</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><p>One row per condition, in <code class="docutils literal notranslate"><span class="pre">Data.conditions</span></code> order, with columns:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">condition</span></code> : str
+Condition name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">alpha</span></code> : float
+The fitness-to-functional-score scale α for this condition.
+Constant down the column when the model was fit with
+<code class="docutils literal notranslate"><span class="pre">share_alpha=True</span></code> (the default). Note α scales the curve and
+does <em>not</em> affect wildtype placement.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">beta0</span></code> : float
+The condition’s latent intercept β0.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bundle_sum</span></code> : float
+Summed β over the condition’s bundle mutations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wildtype_latent</span></code> : float
+<code class="docutils literal notranslate"><span class="pre">beta0</span> <span class="pre">+</span> <span class="pre">bundle_sum</span></code>; equals <a class="reference internal" href="#multidms.Model.wildtype_latent" title="multidms.Model.wildtype_latent"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Model.wildtype_latent</span></code></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">n_bundle_mutations</span></code> : int
+Number of bundle mutations for the condition.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.5)">pandas.DataFrame</a></p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If the model has not been fitted.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="multidms.Model.plot_ge_landscape">
 <span class="sig-name descname"><span class="pre">plot_ge_landscape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_curve_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">space</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'fitness'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#multidms.Model.plot_ge_landscape" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plot the global epistasis landscape.</p>
@@ -765,7 +809,11 @@ delegates to <a class="reference internal" href="multidms.plot.html#multidms.plo
 <code class="docutils literal notranslate"><span class="pre">&quot;func_score&quot;</span></code> plots one predicted-functional-score curve per
 condition. Passed to both <a class="reference internal" href="#multidms.Model.get_ge_landscape_df" title="multidms.Model.get_ge_landscape_df"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_ge_landscape_df()</span></code></a> and
 <a class="reference internal" href="multidms.plot.html#multidms.plot.ge_landscape" title="multidms.plot.ge_landscape"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.plot.ge_landscape()</span></code></a>.</p></li>
-<li><p><strong>**kwargs</strong> – Passed to <a class="reference internal" href="multidms.plot.html#multidms.plot.ge_landscape" title="multidms.plot.ge_landscape"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.plot.ge_landscape()</span></code></a>.</p></li>
+<li><p><strong>**kwargs</strong> – Passed to <a class="reference internal" href="multidms.plot.html#multidms.plot.ge_landscape" title="multidms.plot.ge_landscape"><code class="xref py py-func docutils literal notranslate"><span class="pre">multidms.plot.ge_landscape()</span></code></a>. The parameter
+annotation is on by default here: unless <code class="docutils literal notranslate"><span class="pre">params_df</span></code> is given
+explicitly or <code class="docutils literal notranslate"><span class="pre">annotate_params=False</span></code>, this method supplies
+<a class="reference internal" href="#multidms.Model.get_ge_params_df" title="multidms.Model.get_ge_params_df"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_ge_params_df()</span></code></a> so the chart is annotated with α, β0 and
+the bundle sum.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1362,6 +1410,7 @@ the unregularized problem.</p></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.eval_loss"><code class="docutils literal notranslate"><span class="pre">Model.eval_loss()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.add_phenotypes_to_df"><code class="docutils literal notranslate"><span class="pre">Model.add_phenotypes_to_df()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_ge_landscape_df"><code class="docutils literal notranslate"><span class="pre">Model.get_ge_landscape_df()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_ge_params_df"><code class="docutils literal notranslate"><span class="pre">Model.get_ge_params_df()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.plot_ge_landscape"><code class="docutils literal notranslate"><span class="pre">Model.plot_ge_landscape()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.get_ge_curve"><code class="docutils literal notranslate"><span class="pre">Model.get_ge_curve()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="multidms.model.html#multidms.model.Model.wildtype_latent"><code class="docutils literal notranslate"><span class="pre">Model.wildtype_latent</span></code></a></li>
@@ -1455,9 +1504,6 @@ the unregularized problem.</p></li>
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical Model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="simulation_validation.html">Simulation Validation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html">Fit Delta BA.1 Example</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">multidms package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
@@ -1477,13 +1523,15 @@ the unregularized problem.</p></li>
 <li class="toctree-l1"><a class="reference internal" href="spike_fit_models.html">Model Fitting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="spike_evaluate.html">Model Evaluation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="spike_cross_validation.html">Cross-Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_naive_baseline.html">Naive (independent per-condition) baseline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_manuscript_figures.html">Manuscript Figures</a></li>
 </ul>
 
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="fit_delta_BA1_example.html" title="previous chapter">Fit Delta BA.1 Example</a></li>
+      <li>Previous: <a href="installation.html" title="previous chapter">Installation</a></li>
       <li>Next: <a href="multidms.data.html" title="next chapter">data</a></li>
   </ul></li>
 </ul>

@@ -18,6 +18,7 @@
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Naive (independent per-condition) baseline" href="spike_naive_baseline.html" />
     <link rel="prev" title="Model Evaluation" href="spike_evaluate.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
@@ -56,6 +57,7 @@
 <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 
 <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;notebooks&quot;</span><span class="p">)</span>
@@ -88,7 +90,7 @@
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parameters</span>
 <span class="n">config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config.yaml&quot;</span>
 <span class="n">downstream_config_path</span> <span class="o">=</span> <span class="s2">&quot;config/config_downstream.yaml&quot;</span>
-<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results-prod-287-config-tier-split&quot;</span>
+<span class="n">output_dir</span> <span class="o">=</span> <span class="s2">&quot;results-prod-294-naive-baseline-arm&quot;</span>
 <br/></pre></div>
 </div>
 </div>
@@ -221,8 +223,8 @@ rep_2: 116,570 train, 29,142 test
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Fitting 18 CV models with n_processes=6
-CV: fit 18 models, 0 failed
+Fitting 20 CV models with n_processes=6
+CV: fit 20 models, 0 failed
 </pre></div></div>
 </div>
 </section>
@@ -322,10 +324,78 @@ rep_2: dropped 5413/29142 test variants with unseen mutations
 </div>
 </div>
 </section>
+<section id="Save-the-CV-fit-collection">
+<h2>Save the CV fit collection<a class="headerlink" href="#Save-the-CV-fit-collection" title="Permalink to this heading">¶</a></h2>
+<p>Persist the fitted CV models the same way <code class="docutils literal notranslate"><span class="pre">fit_models</span></code> persists the full-data collection. Written after <code class="docutils literal notranslate"><span class="pre">add_eval_loss</span></code> so the pickle carries validation losses alongside training losses.</p>
+<p>Without this the CV models exist only in this kernel and are lost on exit, leaving no way to audit them after the fact. The <code class="docutils literal notranslate"><span class="pre">fit</span> <span class="pre">N</span> <span class="pre">models,</span> <span class="pre">M</span> <span class="pre">failed</span></code> line above counts crashes, not convergence — a fit that exhausts its iteration budget without reaching <code class="docutils literal notranslate"><span class="pre">tol</span></code> is reported as a success there. Only <code class="docutils literal notranslate"><span class="pre">model.converged</span></code> and <code class="docutils literal notranslate"><span class="pre">model.convergence_trajectory_df</span></code> distinguish the two, and both need the model objects.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cv_collection_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;cv_fit_collection.pkl&quot;</span><span class="p">)</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">cv_collection_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">mc_cv</span><span class="o">.</span><span class="n">fit_models</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved </span><span class="si">{</span><span class="n">cv_collection_path</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">mc_cv</span><span class="o">.</span><span class="n">fit_models</span><span class="p">)</span><span class="si">}</span><span class="s2"> models)&quot;</span><span class="p">)</span>
+
+<span class="c1"># Convergence per fit. `fit_models` reports failures, not convergence, so</span>
+<span class="c1"># report it here where the model objects are still in hand.</span>
+<span class="n">cv_convergence</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;dataset_name&quot;</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">,</span>
+            <span class="s2">&quot;fusionreg&quot;</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">fusionreg</span><span class="p">,</span>
+            <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">converged</span><span class="p">),</span>
+            <span class="s2">&quot;final_objective_error&quot;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="nb">float</span><span class="p">(</span>
+                    <span class="n">row</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">convergence_trajectory_df</span><span class="p">[</span>
+                        <span class="s2">&quot;objective_error_trajectory&quot;</span>
+                    <span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">row</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">convergence_trajectory_df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">convergence_trajectory_df</span><span class="p">)</span>
+                <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;n_outer_sweeps&quot;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">convergence_trajectory_df</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">row</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">convergence_trajectory_df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="k">else</span> <span class="mi">0</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;tol&quot;</span><span class="p">:</span> <span class="n">row</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_fit_tol</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">mc_cv</span><span class="o">.</span><span class="n">fit_models</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()</span>
+    <span class="p">]</span>
+<span class="p">)</span><span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">&quot;dataset_name&quot;</span><span class="p">,</span> <span class="s2">&quot;fusionreg&quot;</span><span class="p">])</span>
+
+<span class="n">cv_convergence</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;cv_convergence.csv&quot;</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="n">n_converged</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cv_convergence</span><span class="p">[</span><span class="s2">&quot;converged&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;CV convergence: </span><span class="si">{</span><span class="n">n_converged</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">cv_convergence</span><span class="p">)</span><span class="si">}</span><span class="s2"> fits converged&quot;</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">n_converged</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">cv_convergence</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">NOT CONVERGED:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">cv_convergence</span><span class="p">[</span><span class="o">~</span><span class="n">cv_convergence</span><span class="p">[</span><span class="s2">&quot;converged&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+
+<span class="n">at_cap</span> <span class="o">=</span> <span class="n">cv_convergence</span><span class="p">[</span><span class="n">cv_convergence</span><span class="p">[</span><span class="s2">&quot;n_outer_sweeps&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">fit_config</span><span class="p">[</span><span class="s2">&quot;maxiter&quot;</span><span class="p">]]</span>
+<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">at_cap</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">HIT OUTER maxiter=</span><span class="si">{</span><span class="n">fit_config</span><span class="p">[</span><span class="s1">&#39;maxiter&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">at_cap</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Saved results-prod-294-naive-baseline-arm/cv_fit_collection.pkl (20 models)
+CV convergence: 20/20 fits converged
+</pre></div></div>
+</div>
+</section>
 <section id="Save">
 <h2>Save<a class="headerlink" href="#Save" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cv_data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
@@ -340,7 +410,7 @@ rep_2: dropped 5413/29142 test variants with unseen mutations
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Saved cross_validation_loss.csv (36 rows)
+Saved cross_validation_loss.csv (40 rows)
 </pre></div></div>
 </div>
 </section>
@@ -383,9 +453,6 @@ Saved cross_validation_loss.csv (36 rows)
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical Model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="simulation_validation.html">Simulation Validation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html">Fit Delta BA.1 Example</a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.html">multidms package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
@@ -405,6 +472,8 @@ Saved cross_validation_loss.csv (36 rows)
 <li class="toctree-l1"><a class="reference internal" href="spike_fit_models.html">Model Fitting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="spike_evaluate.html">Model Evaluation</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Cross-Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_naive_baseline.html">Naive (independent per-condition) baseline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_manuscript_figures.html">Manuscript Figures</a></li>
 </ul>
 
 <div class="relations">
@@ -412,6 +481,7 @@ Saved cross_validation_loss.csv (36 rows)
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
       <li>Previous: <a href="spike_evaluate.html" title="previous chapter">Model Evaluation</a></li>
+      <li>Next: <a href="spike_naive_baseline.html" title="next chapter">Naive (independent per-condition) baseline</a></li>
   </ul></li>
 </ul>
 </div>

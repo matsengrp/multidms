@@ -46,8 +46,6 @@ with the goal of estimating the effects of individual mutations,
 and how much the effects differ between experiments.</p>
 <ul class="simple">
 <li><p>The preprint is available on <a class="reference external" href="https://www.biorxiv.org/content/10.1101/2023.07.31.551037v1">bioRxiv</a>.</p></li>
-<li><p>A concise description of the joint modeling approach is available in the <a class="reference external" href="https://matsengrp.github.io/multidms/biophysical_model.html">biophysical model</a> section.</p></li>
-<li><p>A example fitting python with the python interface is available in the <a class="reference external" href="https://matsengrp.github.io/multidms/fit_delta_BA1_example.html">usage examples documentation</a> page.</p></li>
 <li><p>For a more advanced example of the multidms interface, see our <a class="reference external" href="https://matsengrp.github.io/SARS-CoV-2_spike_multidms/spike-analysis.html">manuscript SARS-CoV-2 spike analysis</a>.</p></li>
 <li><p>The source code is <a class="reference external" href="https://github.com/matsengrp/multidms">on GitHub</a>.</p></li>
 <li><p>For questions or inquiries about the software please <a class="reference external" href="https://github.com/matsengrp/multidms/issues">raise an issue</a>, or contact jgallowa &lt;at&gt; fredhutch.org.</p></li>
@@ -58,9 +56,6 @@ and how much the effects differ between experiments.</p>
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical Model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="simulation_validation.html">Simulation Validation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html">Fit Delta BA.1 Example</a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.html">multidms package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
@@ -97,6 +92,8 @@ The pipeline is orchestrated by Snakemake and lives in <code class="docutils lit
 <li class="toctree-l1"><a class="reference internal" href="spike_fit_models.html">Model Fitting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="spike_evaluate.html">Model Evaluation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="spike_cross_validation.html">Cross-Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_naive_baseline.html">Naive (independent per-condition) baseline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_manuscript_figures.html">Manuscript Figures</a></li>
 </ul>
 </div>
 </section>
@@ -147,9 +144,6 @@ The pipeline is orchestrated by Snakemake and lives in <code class="docutils lit
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="biophysical_model.html">Biophysical Model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="simulation_validation.html">Simulation Validation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fit_delta_BA1_example.html">Fit Delta BA.1 Example</a></li>
 <li class="toctree-l1"><a class="reference internal" href="multidms.html">multidms package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
@@ -169,6 +163,8 @@ The pipeline is orchestrated by Snakemake and lives in <code class="docutils lit
 <li class="toctree-l1"><a class="reference internal" href="spike_fit_models.html">Model Fitting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="spike_evaluate.html">Model Evaluation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="spike_cross_validation.html">Cross-Validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_naive_baseline.html">Naive (independent per-condition) baseline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spike_manuscript_figures.html">Manuscript Figures</a></li>
 </ul>
 
 <div class="relations">
