@@ -1463,12 +1463,17 @@ class ModelCollection:
             for (mut_param, x_i), replicate_params_df in wide_df.T.groupby(
                 ["mut_param", x]
             ):
+                corr_matrix = replicate_params_df.T.corr()
+                if corr_matrix.shape == (1, 1):
+                    corr_val = float('nan')
+                else:
+                    corr_val = corr_matrix.iloc[0, 1] ** r
                 replicate_series.append(
                     pd.DataFrame(
                         {
                             "datasets": ",".join(datasets),
                             "mut_param": mut_param,
-                            "correlation": replicate_params_df.T.corr().iloc[0, 1] ** r,
+                            "correlation": corr_val,
                             x: x_i,
                         },
                         index=[0],
