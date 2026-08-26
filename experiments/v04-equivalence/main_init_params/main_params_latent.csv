@@ -1,0 +1,4 @@
+condition,beta0,logtheta,is_reference,phi_wt,D_d_raw_bias
+Delta,-0.4524477707464004,0.0,False,-0.4,-0.4302886848321448
+Omicron_BA1,-0.4,0.0,True,-0.4,-0.4302886848321448
+Omicron_BA2,-0.5613947207311599,0.0,False,-0.4,-0.4302886848321448

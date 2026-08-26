@@ -1,0 +1,3 @@
+# Large committed spike-analysis CSVs are fetched at runtime from the pinned
+# SARS-CoV-2_spike_multidms commit; do not commit them here.
+data/
